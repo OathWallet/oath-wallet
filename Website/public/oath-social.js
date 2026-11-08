@@ -24,7 +24,7 @@
     t_num: '04', t_text: 'Never type your recovery phrase into a website. Oath will never ask for it.',
     r_cat: 'Security', r_read: '6 min read', r_title: 'What self-custody really means — and why it matters', r_author: '[Author name]', r_domain: 'oathwallet.org', r_post: 'New on the blog: what self-custody really means, in plain words.', r_desc: 'Your keys, your coins — explained without the jargon.',
     c_title: 'How to back up your wallet', c_s1: 'Write your 12 words on paper, in order.', c_s2: 'Store it somewhere only you can reach.', c_s3: 'Never photograph it or save it online.', c_handle: '@OathWallet', c_end: 'for a security tip every week',
-    v_tagline: 'A wallet, not a marketplace.'
+    v_tagline: 'Made for your independence.'
   };
   var TPLS = [
     { id: 'announce', num: '01', title: 'Announcement', desc: 'Launches, releases, milestones. Glow ground, one headline, one action.', boards: [['x'], ['ig'], ['st'], ['fb']], fields: [['a_kicker', 'Kicker'], ['a_headline', 'Headline'], ['a_body', 'Body'], ['a_cta', 'Button']] },

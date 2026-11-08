@@ -1,7 +1,7 @@
 {
   "name": "Oath",
   "short_name": "Oath",
-  "description": "A wallet, not a marketplace.",
+  "description": "Made for your independence.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0A0A0B",
