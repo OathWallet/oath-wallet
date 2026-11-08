@@ -57,7 +57,7 @@ final class RateLimitedArtworkMetadataTests: XCTestCase, @unchecked Sendable {
             }
         }
         let primaryCalls = await primary.calls, catalogCalls = await feed.calls
-        XCTAssertEqual(primaryCalls, 1, "Keep the existing provider cooldown")
+        XCTAssertEqual(primaryCalls, 2, "Both metadata providers keep independent cooldowns across repeated reads")
         XCTAssertEqual(catalogCalls, 1, "All retries share one public network list")
         let asset = MarketAsset(id: identity.assetID, networkID: "flare", reference: reference, decimals: 18)
         let cachedInformation = try await service.cachedInformation(for: asset)

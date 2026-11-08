@@ -54,6 +54,7 @@ public actor PublicMarketRequests {
     private static func isPublicMarketURL(_ url: URL) -> Bool {
         // This exact anonymous bulk route contains only public token quotes;
         // never admit account, holder, authenticated or arbitrary Intear routes.
+        if url.host == "li.quest" { return LifiTokenMetadata.accepts(url) }
         if url == URL(string: "https://prices.intear.tech/list-token-price")! { return true }
         if url.host == "api.kraken.com" {
             return ["XDGUSD", "XBTUSD", "OKBUSD", "TRXUSD"].contains { pair in

@@ -6,6 +6,20 @@ private enum EVMDuplicateBroadcast: Error { case reconcile(Int) }
 public actor EVMSendClient {
     /// Shared with history persistence and its bounded execution evidence cache.
     public static let maximumRPCResponseBytes = 8_388_608
+    // ANKR gateway failures are distinct from deterministic node rejections.
+    // Replay only known reads, unchanged, on the next configured provider.
+    // https://www.ankr.com/docs/rpc-service/errors/overview/
+    private static let ankrReadRecoveryCodes: Set<Int> = [
+        -32603, -32055, -32056, -32057, -32059, -32061, -32063, -32064,
+        -32065, -32071, -32072, -32073, -32076
+    ]
+    private static let recoverableReadMethods: Set<String> = [
+        "eth_chainId", "eth_blockNumber", "eth_getBalance", "eth_call",
+        "eth_getTransactionCount", "eth_getBlockByNumber", "eth_getBlockByHash",
+        "eth_getLogs", "eth_getTransactionReceipt", "eth_getTransactionByHash",
+        "eth_getCode", "eth_getStorageAt", "eth_gasPrice", "eth_feeHistory",
+        "eth_maxPriorityFeePerGas", "eth_estimateGas", "linea_estimateGas"
+    ]
     public nonisolated let network:EVMSendNetwork
     private let transport:any AnkrTransport
     private let endpoints:[URL]
@@ -134,7 +148,13 @@ public actor EVMSendClient {
                             failureContext["reason"] = headOffset > 0 ? "head_timestamp_future" : "head_timestamp_stale"
                             throw EVMSendError.expired
                         }
-                        freshReadEndpoint = (endpoint, .now.advanced(by: .seconds(30)))
+                        // Successful refreshes must not keep extending a backup's
+                        // lease forever. Re-probe the configured primary after
+                        // 30 seconds, even during continuous portfolio refreshes.
+                        if freshReadEndpoint?.url != endpoint ||
+                            freshReadEndpoint.map({ ContinuousClock.now >= $0.expires }) != false {
+                            freshReadEndpoint = (endpoint, .now.advanced(by: .seconds(30)))
+                        }
                     }
                     // Some EVM replicas can omit a mined hash from their
                     // transaction index. Check the independent provider before
@@ -153,6 +173,10 @@ public actor EVMSendClient {
                     if error is CancellationError || Task.isCancelled || (error as? URLError)?.code == .cancelled {
                         throw CancellationError()
                     }
+                    // A failed preferred provider must not be retried first on
+                    // every subsequent pinned read. Cancellation leaves health
+                    // unchanged because it does not establish provider failure.
+                    if freshReadEndpoint?.url == endpoint { freshReadEndpoint = nil }
                     // Own the native transport report with chain/method/host.
                     // The generic send() path would report here a second time
                     // after erasing TLS/certificate details into transport.
@@ -160,8 +184,14 @@ public actor EVMSendClient {
                     // Deterministic RPC rejection must remain visible. Network/HTTP,
                     // malformed and misrouted providers may use an independent fallback.
                     if error is SendFeeFundingError { throw error }
-                    if case EVMSendError.rpc(let code) = error, code != -32601 && code != -32004,
-                       !(network.isIoTeX && code == 13 && method != "eth_sendRawTransaction") { throw error }
+                    if case EVMSendError.rpc(let code) = error {
+                        let recoverableGatewayRead = endpoint.host == "rpc.ankr.com"
+                            && Self.recoverableReadMethods.contains(method)
+                            && Self.ankrReadRecoveryCodes.contains(code)
+                        if code != -32601 && code != -32004,
+                           !(network.isIoTeX && code == 13 && method != "eth_sendRawTransaction"),
+                           !recoverableGatewayRead { throw error }
+                    }
                     // Preserve the existing public fallback/error contract after
                     // reporting the original cause. Never weaken TLS validation.
                     failure = error is URLError ? AnkrError.transport : error

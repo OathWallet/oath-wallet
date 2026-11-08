@@ -20,6 +20,7 @@ public struct NativeRefreshScroll<Content: View>: View {
     private let onFailure: @MainActor () -> Void
     private let onScroll: @MainActor (CGFloat) -> Void
     private let onDraggingChanged: @MainActor (Bool) -> Void
+    private let onPresentationChanged: @MainActor (Bool) -> Void
     private let feedback: @MainActor (NativeRefreshFeedback) -> Void
     private let content: Content
 
@@ -32,6 +33,7 @@ public struct NativeRefreshScroll<Content: View>: View {
                 onFailure: @escaping @MainActor () -> Void,
                 onScroll: @escaping @MainActor (CGFloat) -> Void,
                 onDraggingChanged: @escaping @MainActor (Bool) -> Void = { _ in },
+                onPresentationChanged: @escaping @MainActor (Bool) -> Void = { _ in },
                 feedback: @escaping @MainActor (NativeRefreshFeedback) -> Void = { _ in },
                 @ViewBuilder content: () -> Content) {
         self.identifier = identifier
@@ -45,6 +47,7 @@ public struct NativeRefreshScroll<Content: View>: View {
         self.onFailure = onFailure
         self.onScroll = onScroll
         self.onDraggingChanged = onDraggingChanged
+        self.onPresentationChanged = onPresentationChanged
         self.feedback = feedback
         self.content = content()
     }
@@ -138,6 +141,7 @@ public struct NativeRefreshScroll<Content: View>: View {
         controller.onFailure = onFailure
         controller.onScroll = onScroll
         controller.onDraggingChanged = onDraggingChanged
+        controller.onPresentationChanged = onPresentationChanged
         controller.feedback = feedback
         controller.attachIfPossible()
         controller.positionIndicator()
@@ -170,7 +174,20 @@ public struct NativeRefreshScroll<Content: View>: View {
         fileprivate var onFailure: (@MainActor () -> Void)?
         fileprivate var onScroll: (@MainActor (CGFloat) -> Void)?
         fileprivate var onDraggingChanged: (@MainActor (Bool) -> Void)?
+        fileprivate var onPresentationChanged: (@MainActor (Bool) -> Void)?
+        private var isPresentingRefresh = false
         private var isDragging = false
+
+        /// Loading presentation only: excludes the result hold and any provider
+        /// work continuing after the brief deadline. Cancellation also resets it.
+        private func updatePresentation(_ value: Bool) {
+            guard isPresentingRefresh != value else { return }
+            isPresentingRefresh = value
+            // Like dragging, stop can run inside a representable update. Keep
+            // ordered observation mutations outside SwiftUI's update pass.
+            let callback = onPresentationChanged
+            DispatchQueue.main.async { callback?(value) }
+        }
 
         private func updateDragging(_ value: Bool) {
             guard isDragging != value else { return }
@@ -351,6 +368,7 @@ public struct NativeRefreshScroll<Content: View>: View {
 
         fileprivate func stop() {
             enabled = false
+            updatePresentation(false)
             updateDragging(false)
             activeRequest = nil
             work?.cancel()
@@ -423,6 +441,7 @@ public struct NativeRefreshScroll<Content: View>: View {
             guard enabled, activeRequest == nil, let action else { return }
             let request = UUID()
             activeRequest = request
+            updatePresentation(true)
             feedback?(.started)
             presentation.attach(scroll)
             let startedAt = CACurrentMediaTime()
@@ -455,6 +474,7 @@ public struct NativeRefreshScroll<Content: View>: View {
         }
 
         private func presentResult(request: UUID, outcome: RefreshAction.Outcome?) async -> Bool {
+            updatePresentation(false)
             let failed = outcome == .failed
             let event: NativeRefreshFeedback = failed ? .failed : (outcome == nil ? .finished : .succeeded)
             if indicator != .system {

@@ -9,8 +9,8 @@ private enum QuoteHeadReply: Sendable {
 
 private actor QuoteHeadTransport: AnkrTransport {
     struct Read: Sendable { let host: String; let method: String; let params: [SolanaJSON] }
-    let primary: QuoteHeadReply
-    let backup: QuoteHeadReply
+    var primary: QuoteHeadReply
+    var backup: QuoteHeadReply
     let fixture: EVMSendFixtureTransport
     let alterHistorical: Bool
     private(set) var reads: [Read] = []
@@ -20,6 +20,8 @@ private actor QuoteHeadTransport: AnkrTransport {
         self.alterHistorical = alterHistorical
         fixture = EVMSendFixtureTransport(network: network)
     }
+
+    func update(primary: QuoteHeadReply, backup: QuoteHeadReply) { self.primary = primary; self.backup = backup }
 
     func send(_ request: URLRequest) async throws -> (Data, Int) {
         let calls = try JSONDecoder().decode(SolanaJSON.self, from: XCTUnwrap(request.httpBody)).array!
@@ -75,6 +77,31 @@ final class EVMQuoteHeadRecoveryTests: XCTestCase, @unchecked Sendable {
             XCTAssertTrue(reads.dropFirst(2).allSatisfy { $0.host == "backup.example" }, "Pinned reads must not return to the lagging primary")
             XCTAssertFalse(reads.contains { $0.method == "eth_sendRawTransaction" })
         }
+    }
+
+    func testRepeatedFreshHeadsDoNotExtendBackupPreferenceForever() async throws {
+        let transport = QuoteHeadTransport(.offset(-600))
+        let reader = try client(transport)
+        _ = try await reader.block(.string("latest"), requireFresh: true)
+        try await Task.sleep(for: .seconds(16))
+        _ = try await reader.block(.string("latest"), requireFresh: true)
+        try await Task.sleep(for: .seconds(16))
+        await transport.update(primary: .fresh, backup: .fresh)
+        _ = try await reader.block(.string("latest"), requireFresh: true)
+        let reads = await transport.reads
+        XCTAssertEqual(reads.map(\.host), ["primary.example", "backup.example", "backup.example", "primary.example"])
+    }
+
+    func testFailedPreferredReadClearsPreferenceForNextRead() async throws {
+        let transport = QuoteHeadTransport(.offset(-600))
+        let reader = try client(transport)
+        _ = try await reader.block(.string("latest"), requireFresh: true)
+        await transport.update(primary: .fresh, backup: .wrongChain)
+        for _ in 0..<2 {
+            _ = try await reader.balance(owner: "0x1111111111111111111111111111111111111111", reference: "native")
+        }
+        let reads = await transport.reads
+        XCTAssertEqual(reads.filter { $0.method == "eth_getBalance" }.map(\.host), ["backup.example", "primary.example", "primary.example"])
     }
 
     func testMalformedPrimaryHeadUsesBackup() async throws {

@@ -11,6 +11,7 @@ final class OathRenderer: NSObject {
     private var recovery: Task<Void, Never>?
     private var energyObserver: OathArtworkEnergyObserver?
     private var playback = OathArtworkPlayback()
+    private var playbackRate = 1.0
     private var appearance: Float = 0
     private var targetAppearance: Float = 0
     private var silkColors = OathColorway.cobalt.colors
@@ -55,7 +56,7 @@ final class OathRenderer: NSObject {
 
     func update(_ view: OathArtworkView, dark: Bool, reduceMotion: Bool, active: Bool,
                 foreground: Bool, colorway: OathColorway, customColor: UInt32? = nil,
-                colors: OathSilkColors, placement: OathArtworkPlacement?) {
+                colors: OathSilkColors, placement: OathArtworkPlacement?, playbackRate: Double = 1) {
         // These are SwiftUI's presentation colors, already interpolated by the
         // native animation transaction. Rebuilding from the target hex here
         // would discard that transition and snap to the destination palette.
@@ -66,6 +67,7 @@ final class OathRenderer: NSObject {
         let resuming = (active && !self.active) || (foreground && !self.foreground)
         targetAppearance = dark ? 1 : 0
         self.placement = placement
+        self.playbackRate = playbackRate
         self.reduceMotion = reduceMotion
         self.active = active
         self.foreground = foreground
@@ -113,7 +115,7 @@ final class OathRenderer: NSObject {
             && recovery == nil && !playback.recoveryExhausted && energyPolicy.rendersFrames
         // Restore the native layer before asking it for a drawable. Waiting for
         // a successful frame to unhide a suspended layer creates a dependency
-        // on presentation by the very layer we kept hidden.
+        // on presentation by the hidden layer itself.
         if canDraw { surface?.metal.isHidden = false }
         worker.gate.setEnabled(canDraw)
         let paused = !playback.shouldTick(canDraw: canDraw, animating: animating)
@@ -192,7 +194,7 @@ final class OathRenderer: NSObject {
         if view.contentScaleFactor != scale { view.contentScaleFactor = scale }
         let size = CGSize(width: (view.bounds.width * scale).rounded(), height: (view.bounds.height * scale).rounded())
         if view.metalLayer.drawableSize != size { view.metalLayer.drawableSize = size }
-        let dt = Float(playback.advance(at: CACurrentMediaTime(), animating: animating))
+        let dt = Float(playback.advance(at: CACurrentMediaTime(), animating: animating, rate: playbackRate))
         let smoothing = 1 - exp(-dt * 4)
         appearance += (targetAppearance - appearance) * smoothing
         interaction += (targetInteraction - interaction) * smoothing

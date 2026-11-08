@@ -21,7 +21,7 @@ public actor URLSessionMarketTransport: MarketTransport {
     init(session: URLSession) { self.session = session; publicRequests = PublicMarketRequests() }
     public func data(from url: URL) async throws -> Data {
         guard url.scheme == "https", url.user == nil, url.password == nil,
-              ["api.coinbase.com", "api.exchange.coinbase.com", "api.coingecko.com", "api.geckoterminal.com", "api.dexscreener.com", "coins.llama.fi"].contains(url.host) || ThorchainChart.accepts(url) || NativeInformation.accepts(url) || NativeCoinPrice.accepts(url) || KrakenNativeChart.accepts(url) else {
+              ["api.coinbase.com", "api.exchange.coinbase.com", "api.coingecko.com", "api.geckoterminal.com", "api.dexscreener.com", "coins.llama.fi"].contains(url.host) || LifiTokenMetadata.accepts(url) || ThorchainChart.accepts(url) || NativeInformation.accepts(url) || NativeCoinPrice.accepts(url) || KrakenNativeChart.accepts(url) else {
             throw MarketDataError.invalidResponse
         }
         let host = url.host!

@@ -179,3 +179,39 @@ struct BrowserPolicyTests {
         #expect(tabs.canAdd && tabs.add() != nil)
     }
 }
+@Suite struct BrowserAddressDraftTests {
+    @Test func navigationUpdatesNeverReplaceAnAddressBeingEdited() {
+        let original = URL(string: "https://example.com/original")!
+        let redirect = URL(string: "https://example.com/redirect")!
+        var draft = OathBrowserAddressDraft()
+        draft.synchronize(url: original)
+        #expect(draft.text == original.absoluteString)
+        draft.setEditing(true, url: original)
+        draft.text = "another.example/path"
+        draft.synchronize(url: redirect)
+        #expect(draft.text == "another.example/path")
+        #expect(draft.target?.absoluteString == "https://another.example/path")
+        draft.setEditing(false, url: redirect)
+        #expect(draft.text == redirect.absoluteString)
+    }
+
+    @Test func switchingPageOrClearingWalletDiscardsTheOldDraft() {
+        var draft = OathBrowserAddressDraft()
+        draft.setEditing(true, url: nil)
+        draft.text = "unsubmitted.example"
+        let other = URL(string: "https://other.example/page")!
+        draft.reset(url: other)
+        #expect(!draft.isEditing && draft.text == other.absoluteString)
+        draft.setEditing(true, url: other)
+        draft.text = "private-draft.example"
+        draft.reset(url: nil)
+        #expect(!draft.isEditing && draft.text.isEmpty && draft.target == nil)
+    }
+
+    @Test(arguments: ["", "javascript:alert(1)", "file:///tmp/example", "http://example.com", "https://localhost", "wc:secret@2", "https://user:pass@example.com"])
+    func inlineInputKeepsExistingNavigationPolicy(input: String) {
+        var draft = OathBrowserAddressDraft()
+        draft.text = input
+        #expect(draft.target == nil)
+    }
+}

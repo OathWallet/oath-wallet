@@ -117,7 +117,11 @@ public actor NearClient {
         let data:Data
         var usedFallback = false
         do { data = try await request(endpoint,body:body) }
-        catch { OathDiagnostics.record(error);
+        catch {
+            // exchange already reports the original native transport failure.
+            // Its normalized wrapper is not another outage. HTTP failures still
+            // need an owning report here before recovery or propagation.
+            if error as? NearError != .transport { OathDiagnostics.record(error) }
             let retry:Bool
             switch error { case NearError.http(let n): retry = n == 408 || n == 429 || n >= 500; case NearError.transport: retry = true; default: retry = false }
             guard retry, let fallback else { throw error }

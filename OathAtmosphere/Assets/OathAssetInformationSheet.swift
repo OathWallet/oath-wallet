@@ -82,18 +82,25 @@ struct OathAssetInformationSheet: View {
     }
 
     private var contractRow: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 20) {
+        VStack(alignment: .leading, spacing: 8) {
             Text(strings.text(.tokenContract)).foregroundStyle(.secondary)
-            Spacer(minLength: 8)
             OathButton(feedback: .navigate) {
                 copied = false
                 showsContract = true
             } label: {
-                Text(holding.reference)
-                    .underline(pattern: .dot, color: .gray.opacity(0.65))
-                    .lineLimit(1).truncationMode(.middle)
-                    .environment(\.layoutDirection, .leftToRight)
-                    .frame(minHeight: 44).contentShape(Rectangle())
+                HStack(spacing: 12) {
+                    // Use the same native character wrapping as the full-address
+                    // sheet. Contract identifiers must not be hyphenated or
+                    // reduced to an underlined, compressed single-line label.
+                    OathAddressText(address: holding.reference, identifier: "asset.contract.address", centered: false)
+                        .environment(\.layoutDirection, .leftToRight)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Image(systemName: "chevron.forward")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
+                }
+                .frame(minHeight: 44).contentShape(Rectangle())
             }
             .buttonStyle(.plain).foregroundStyle(.primary)
             .accessibilityLabel(strings.text(.tokenContract))

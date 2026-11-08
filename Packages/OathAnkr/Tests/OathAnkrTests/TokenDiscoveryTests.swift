@@ -152,7 +152,7 @@ final class TokenDiscoveryTests: XCTestCase, @unchecked Sendable {
             XCTAssertEqual(extra.map(\.reference), ["assets:1000085"])
         }
         let calls = await transport.calls
-        XCTAssertEqual(calls, 1)
+        XCTAssertEqual(calls, 2, "LI.FI is attempted before this CoinGecko response")
     }
 
     func testNewEVMArtworkBatchIdentitiesCannotCrossNetworks() throws {
@@ -229,9 +229,10 @@ final class TokenDiscoveryTests: XCTestCase, @unchecked Sendable {
         let reference = "0xfecb3f7c54e2caae9dc6ac9060a822d47e053760"
         let older = Data(#"[{"id":"brla-digital-brla","name":"Cached BRLA","symbol":"brla","platforms":{"xdai":"0xfecb3f7c54e2caae9dc6ac9060a822d47e053760"}}]"#.utf8)
         let newer = Data(#"[{"id":"brla-digital-brla","name":"BRLA Digital BRLA","symbol":"brla","platforms":{"xdai":"0xfecb3f7c54e2caae9dc6ac9060a822d47e053760","celo":"0xfecb3f7c54e2caae9dc6ac9060a822d47e053760"}},{"id":"seed-only","name":"Seed Only","symbol":"OLD","platforms":{"xdai":"0x0000000000000000000000000000000000000001"}}]"#.utf8)
-        let original = TokenDiscoveryCatalog(transport: DiscoveryTransport(older), directory: folder, seed: older)
-        let saved = await original.refreshIfNeeded()
-        XCTAssertTrue(saved)
+        // A pre-LI.FI installation's complete successful CoinGecko snapshot.
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try JSONEncoder().encode(SavedDirectory(version: 1, fetchedAt: .now, retryAt: .distantPast, data: older))
+            .write(to: folder.appendingPathComponent("catalog-v1.json"))
         let offline = DiscoveryTransport(Data(), status: 429)
         let upgraded = TokenDiscoveryCatalog(transport: offline, directory: folder,
             seed: try TokenDiscoveryCatalog.prepareSnapshot(newer))
@@ -248,13 +249,13 @@ final class TokenDiscoveryTests: XCTestCase, @unchecked Sendable {
         let refreshed = await upgraded.refreshIfNeeded()
         XCTAssertFalse(refreshed)
         let afterRefresh = await offline.calls
-        XCTAssertEqual(afterRefresh, 1, "An incomplete old cache should request a normal refresh")
+        XCTAssertEqual(afterRefresh, 2, "An incomplete old cache should request both providers")
         let reopened = TokenDiscoveryCatalog(transport: offline, directory: folder, seed: older)
         let persisted = await reopened.search("BRLA", networks: ["celo"])
         XCTAssertEqual(persisted.map(\.reference), [reference])
         _ = await reopened.refreshIfNeeded()
         let afterReopen = await offline.calls
-        XCTAssertEqual(afterReopen, 1, "Network upgrade must preserve failure cooldown")
+        XCTAssertEqual(afterReopen, 2, "Network upgrade must preserve failure cooldown")
     }
 
     func testBundledBRLADiscoveryIncludesCeloWithoutNetwork() async throws {
@@ -354,7 +355,7 @@ final class TokenDiscoveryTests: XCTestCase, @unchecked Sendable {
         let tokens = await reopened.search("USDT", networks: all)
         XCTAssertEqual(tokens.count, 7)
         let calls = await transport.calls
-        XCTAssertEqual(calls, 1)
+        XCTAssertEqual(calls, 2, "One coalesced primary attempt followed by CoinGecko recovery")
     }
 
     func testFailureRetainsResultsAndCooldownAcrossRestart() async throws {
@@ -368,7 +369,7 @@ final class TokenDiscoveryTests: XCTestCase, @unchecked Sendable {
         let tokens = await second.search("usdt", networks: all)
         XCTAssertEqual(tokens.count, 7)
         let calls = await transport.calls
-        XCTAssertEqual(calls, 1)
+        XCTAssertEqual(calls, 2, "Try the independent directory once; retain both-provider cooldown across restart")
     }
 
     func testBoundedResultsPreserveNetworksAndRejectAmbiguity() async throws {

@@ -59,6 +59,41 @@ import Foundation
         }
         let critical = OathArtworkEnergyPolicy(thermalState: .critical, lowPower: false)
         precondition(!playback.shouldTick(canDraw: critical.rendersFrames, animating: critical.animates))
-        print("PASS: color changes in flight, 240 palette updates, skipped frames, pause/resume, Reduce Motion, bounded retries and thermal recovery")
+
+        // A mature canvas must accelerate from its existing phase, not multiply
+        // that phase (or rewind it when the 2.5-second presentation ends).
+        for framesPerSecond in [30.0, 60.0, 120.0] {
+            var refreshed = OathArtworkPlayback()
+            _ = refreshed.advance(at: 0, animating: true)
+            _ = refreshed.advance(at: 120, animating: true)
+            let step = 1 / framesPerSecond
+            var previous = refreshed.elapsed
+            for frame in 1...Int(2.5 * framesPerSecond) {
+                let realDelta = refreshed.advance(at: 120 + Double(frame) * step, animating: true, rate: 3)
+                precondition(abs(realDelta - step) < 0.0001, "Speed must not change the real frame interval")
+                precondition(abs(refreshed.elapsed - previous - 3 * step) < 0.0001,
+                             "Refresh advances only the next interval at 3x; it never seeks")
+                previous = refreshed.elapsed
+            }
+            precondition(abs(refreshed.elapsed - 127.5) < 0.0001, "Refresh speed is independent of frame rate")
+            // Sample a decreasing presentation rate. SwiftUI supplies the eased
+            // rates; the production clock must remain continuous at each one.
+            for (index, rate) in [2.8, 2.1, 1.4, 1.0].enumerated() {
+                _ = refreshed.advance(at: 122.5 + Double(index + 1) * step, animating: true, rate: rate)
+                precondition(abs(refreshed.elapsed - previous - rate * step) < 0.0001,
+                             "Deceleration must never rewind the artwork")
+                previous = refreshed.elapsed
+            }
+            _ = refreshed.advance(at: 124.5 + 4 * step, animating: true)
+            precondition(abs(refreshed.elapsed - previous - 2) < 0.0001, "Normal speed is restored")
+            previous = refreshed.elapsed
+            refreshed.pause()
+            _ = refreshed.advance(at: 200, animating: true, rate: 3)
+            precondition(refreshed.elapsed == previous, "Resuming a refresh must not include covered time")
+            _ = refreshed.advance(at: 201, animating: false, rate: 3)
+            _ = refreshed.advance(at: 250, animating: false, rate: 1)
+            precondition(refreshed.elapsed == previous, "Reduce Motion remains still, including speed changes")
+        }
+        print("PASS: palette updates, refresh acceleration/deceleration at 30/60/120Hz, continuous phase, normal-speed restoration, pause/resume, Reduce Motion, bounded retries and thermal recovery")
     }
 }

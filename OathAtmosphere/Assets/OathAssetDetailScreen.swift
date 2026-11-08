@@ -26,12 +26,13 @@ struct OathAssetDetailScreen: View {
     @State private var chartExpanded = false
     @State private var chartSelectedDate: Date?
     private enum Sheet: Identifiable {
-        case receive, send, information, priceUntracked
+        case receive, send, information, verification, priceUntracked
         var id: String {
             switch self {
             case .receive: "receive"
             case .send: "send"
             case .information: "information"
+            case .verification: "verification"
             case .priceUntracked: "priceUntracked"
             }
         }
@@ -103,6 +104,7 @@ struct OathAssetDetailScreen: View {
                 refreshIdentity: "\(route.walletID):\(holding.id):\(holding.address)",
                 action: refresh, onFailure: {}, onScroll: { _ in },
                 onDraggingChanged: { scrollEffects.setDragging($0) },
+                onPresentationChanged: { scrollEffects.setRefreshing($0) },
                 feedback: { event in
                     switch event {
                     case .pullStep: OathHaptics.shared.play(.selection)
@@ -122,25 +124,28 @@ struct OathAssetDetailScreen: View {
                                 .accessibilityAddTraits(.isHeader)
                         }.frame(maxWidth: .infinity, alignment: .leading).padding(.bottom, 28)
                         activity.padding(.bottom, 28)
-                        OathButton { sheet = .information } label: {
-                            OathSettingsRow(title: strings.text(.assetInformation), icon: "info.circle",
-                                subtitle: strings.text(.assetInformationDetail))
+                        // Keep both actions in the layout's single footer slot.
+                        VStack(alignment: .leading, spacing: 0) {
+                            OathHairline()
+                                .padding(.horizontal, -20)
+                                .padding(.bottom, 12)
+                            if holding.reference != "native" { verificationRow }
+                            OathButton { sheet = .information } label: {
+                                OathSettingsRow(title: strings.text(.assetInformation), icon: "info.circle",
+                                    subtitle: strings.text(.assetInformationDetail))
+                            }
+                            .buttonStyle(OathSettingsRowButtonStyle())
+                            .padding(.horizontal, -20)
+                            .accessibilityIdentifier("asset.informationRow")
                         }
-                        .buttonStyle(OathSettingsRowButtonStyle())
-                        .padding(.horizontal, -20)
-                        .accessibilityIdentifier("asset.informationRow")
                     }
                     .padding(.horizontal, 20).padding(.bottom, 40)
                     .frame(maxWidth: 700).frame(maxWidth: .infinity)
                 }
             }
             .id(strings.language.isRightToLeft)
-            .modifier(OathHomeScrollEdgeAppearance())
-            .modifier(OathHeaderScrollBackground {
-                OathHomeHeaderSurface(animates: active && sheet == nil && !showsScanner,
-                                      colorHex: session.portfolio?.wallet.colorHex)
-                    .modifier(OathHomeDragBlur(effects: scrollEffects))
-            })
+            .modifier(OathWalletHeaderBackground(animates: active && sheet == nil && !showsScanner,
+                colorHex: session.portfolio?.wallet.colorHex, effects: scrollEffects))
         }
         .background(Color(uiColor: OathSurfaceColors.groupedCanvas).ignoresSafeArea())
         .navigationBarBackButtonHidden()
@@ -214,6 +219,8 @@ struct OathAssetDetailScreen: View {
                     startsScannedAmount: scanUsesCurrentAsset && scannedRecipient != nil)
                 case .information:
                     OathAssetInformationSheet(holding: holding, networkName: networkName, currency: currency, model: model)
+                case .verification:
+                    verificationSheet
                 case .priceUntracked:
                     OathWalletInfoSheet(title: .assetPriceUnavailable, icon: "exclamationmark.circle",
                                         detail: .assetPriceUntrackedDetail)
@@ -252,32 +259,94 @@ struct OathAssetDetailScreen: View {
         .accessibilityIdentifier("asset.detail")
     }
 
-    private func summary(viewportHeight: CGFloat, bottomSafeAreaInset: CGFloat) -> some View {
-        OathWalletSummaryLayout(viewportHeight: viewportHeight, bottomSafeAreaInset: bottomSafeAreaInset) {
-            VStack(spacing: 16) {
-                OathAssetLogo(holding: holding, information: model.information?.value, size: 56)
-                VStack(spacing: 6) {
-                    Text(String(OathAssetAmountFormat(locale: strings.language.locale,
-                        selectedCurrencyCode: currency).fiat(.init(native: holding.nativeDisplayValue ?? .zero,
-                        fiat: holding.fiatDisplayValue ?? .zero, currencyCode: currency)).characters))
-                        .font(.system(size: 44, weight: .semibold, design: .rounded))
-                        .lineLimit(1).minimumScaleFactor(0.45).monospacedDigit()
-                        .oathBalanceConcealed(session.balancesHidden, radius: 18)
-                        .accessibilityIdentifier("asset.fiatBalance")
-                    Text(strings.invariant(
-                        OathAssetAmountFormat(locale: strings.language.locale).native(holding.nativeDisplayValue, ticker: holding.symbol)))
-                        .oathFont(.title3).foregroundStyle(.white.opacity(0.8)).monospacedDigit()
-                        .oathBalanceConcealed(session.balancesHidden)
-                        .accessibilityIdentifier("asset.balance")
-                }
+    private var verificationRow: some View {
+        OathButton(feedback: .navigate) { sheet = .verification } label: {
+            OathListRow {
+                OathSettingsIcon(symbol: "checkmark.shield")
+            } content: {
+                Text(strings.text(.assetVerificationStatus))
+                    .oathFont(.body).foregroundStyle(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .layoutPriority(1)
+                Spacer(minLength: 12)
+            } accessory: {
+                Label(strings.text(verificationTitle), systemImage: verificationIcon)
+                    .labelStyle(.titleAndIcon)
+                    .oathFont(.body).foregroundStyle(verificationColor)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .multilineTextAlignment(.trailing)
             }
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: OathActionMetrics.spacing) { send; receive }
-                VStack(spacing: OathActionMetrics.spacing) { send; receive }
-            }.oathActionArea(existingInset: 20)
         }
-        .foregroundStyle(.white).padding(.horizontal, 20)
-        .frame(maxWidth: 700).frame(maxWidth: .infinity)
+        .buttonStyle(OathSettingsRowButtonStyle())
+        .padding(.horizontal, -20)
+        .accessibilityIdentifier("asset.verification.status")
+    }
+
+    private var verificationSheet: some View {
+        OathWalletSheet(title: .assetVerificationStatus) {
+            VStack(alignment: .leading, spacing: 20) {
+                Label(strings.text(verificationTitle), systemImage: verificationIcon)
+                    .oathFont(.headline).foregroundStyle(verificationColor)
+                Text(strings.text(verificationExplanation))
+                    .oathFont(.body).fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .accessibilityIdentifier("asset.verification.sheet")
+    }
+
+    private var verificationTitle: OathStringKey {
+        switch model.verificationStatus {
+        case .verified: .assetVerificationVerified
+        case .unverified: .assetVerificationUnverified
+        case .flagged: .assetVerificationFlagged
+        case .unknown: .assetVerificationUnknown
+        }
+    }
+    private var verificationExplanation: OathStringKey {
+        switch model.verificationStatus {
+        case .verified: .assetVerificationVerifiedDetail
+        case .unverified: .assetVerificationUnverifiedDetail
+        case .flagged: .assetVerificationFlaggedDetail
+        case .unknown: .assetVerificationUnknownDetail
+        }
+    }
+    private var verificationIcon: String {
+        switch model.verificationStatus {
+        case .verified: "checkmark.seal.fill"
+        case .unverified, .flagged: "exclamationmark.triangle.fill"
+        case .unknown: "questionmark.circle"
+        }
+    }
+    private var verificationColor: Color {
+        switch model.verificationStatus {
+        case .verified: .green
+        case .unverified: .orange
+        case .flagged: .red
+        case .unknown: .secondary
+        }
+    }
+
+    private func summary(viewportHeight: CGFloat, bottomSafeAreaInset: CGFloat) -> some View {
+        OathWalletSummary(viewportHeight: viewportHeight, bottomSafeAreaInset: bottomSafeAreaInset) {
+            OathWalletBalance(value: String(OathAssetAmountFormat(locale: strings.language.locale,
+                selectedCurrencyCode: currency).fiat(.init(native: holding.nativeDisplayValue ?? .zero,
+                fiat: holding.fiatDisplayValue ?? .zero, currencyCode: currency)).characters),
+                concealed: session.balancesHidden, valueIdentifier: "asset.fiatBalance") {
+                OathAssetLogo(holding: holding, information: model.information?.value,
+                              size: OathWalletSummaryStyle.identityHeight)
+            }
+        } detail: {
+            Text(strings.invariant(
+                OathAssetAmountFormat(locale: strings.language.locale).native(holding.nativeDisplayValue, ticker: holding.symbol)))
+                .oathFont(.title3).foregroundStyle(.white.opacity(0.8)).monospacedDigit()
+                .oathBalanceConcealed(session.balancesHidden)
+                .accessibilityIdentifier("asset.balance")
+        } send: {
+            send
+        } receive: {
+            receive
+        }
     }
     private var send: some View {
         OathActionButton(title: strings.text(.send), icon: "paperplane", appearance: .secondary, foreground: .white) {
@@ -531,15 +600,15 @@ struct OathAssetDetailScreen: View {
             }
             if model.hasMoreHistory {
                 OathButton { showsAllActivity = true } label: {
-                    HStack {
-                        Text(strings.text(.assetViewAllActivity))
-                        Spacer()
-                        Image(systemName: "chevron.forward").font(.system(size: 14, weight: .semibold))
-                    }
-                    .oathFont(.body, weight: .semibold)
-                    .frame(minHeight: 44).contentShape(Rectangle())
+                    Text(strings.text(.assetViewAllActivity))
+                        .oathFont(.body, weight: .medium)
+                        .multilineTextAlignment(.center)
                 }
-                .buttonStyle(.plain).foregroundStyle(Color.accentColor)
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.capsule)
+                .controlSize(.large)
+                .tint(.gray).foregroundStyle(.primary)
+                .frame(maxWidth: .infinity)
                 .accessibilityIdentifier("asset.activity.viewAll")
             }
         }

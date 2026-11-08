@@ -484,7 +484,7 @@ struct OathHomeScreen: View {
 
     private var tabs: some View {
         nativeTabs.tint(Color(uiColor: OathTabBarStyle.selectedColor))
-            .modifier(OathBrowserTabAccessory(tabs: browserTabs, visible: selectedTab == .browser))
+            .modifier(OathBrowserTabBehavior(visible: selectedTab == .browser))
             // The owner observes wallet lifecycle even when SwiftUI has not
             // mounted the Browser tab. Inactive tabs must not retain old-wallet
             // website sessions behind a different selected app tab.
@@ -544,6 +544,7 @@ struct OathHomeScreen: View {
     private var walletNavigation: some View {
         NavigationStack(path: $assetPath) {
             homeContent
+                .background(OathSearchTabTransition())
                 .background {
                     if let candidate = nextSecurityNotice, candidate.kind == .backup {
                         Color.clear.frame(width: 0, height: 0)
@@ -632,6 +633,7 @@ struct OathHomeScreen: View {
                 _ = await rates
             }, onFailure: {}, onScroll: { _ in },
                 onDraggingChanged: { scrollEffects.setDragging($0) },
+                onPresentationChanged: { scrollEffects.setRefreshing($0) },
                 feedback: { event in
                     switch event {
                     case .pullStep: OathHaptics.shared.play(.selection)
@@ -698,14 +700,10 @@ struct OathHomeScreen: View {
             // Same-wallet balance updates keep the user's scroll position.
             .id(strings.language.isRightToLeft)
             .id(profile?.id)
-            .modifier(OathHomeScrollEdgeAppearance())
-            .modifier(OathHeaderScrollBackground {
-                // The shared surface supplies dark-mode frost and a light-mode canvas.
-                OathHomeHeaderSurface(animates: session.isUnlocked && settingsDestination == nil && sheet == nil && !showsScanner
+            .modifier(OathWalletHeaderBackground(
+                animates: session.isUnlocked && settingsDestination == nil && sheet == nil && !showsScanner
                         && !OathWalletConnectService.shared.presentationOpen && walletFlow == nil && assetPath.isEmpty && selectedTab == .wallet,
-                    colorHex: walletColorHex)
-                    .modifier(OathHomeDragBlur(effects: scrollEffects))
-            })
+                colorHex: walletColorHex, effects: scrollEffects))
         }
         .background(Color(uiColor: OathSurfaceColors.groupedCanvas).ignoresSafeArea())
         .tint(Color(uiColor: .label))
@@ -771,47 +769,26 @@ struct OathHomeScreen: View {
     }
 
     private func summary(viewportHeight: CGFloat, bottomSafeAreaInset: CGFloat) -> some View {
-        OathWalletSummaryLayout(viewportHeight: viewportHeight, bottomSafeAreaInset: bottomSafeAreaInset) {
-            VStack(spacing: 12) {
-                OathButton(action: toggleBalancesHidden) {
-                    VStack(spacing: 8) {
-                        Text(strings.text(.totalBalance))
-                            .oathFont(.subheadline, weight: .medium)
-                            .foregroundStyle(.white.opacity(0.8))
-                            .fixedSize(horizontal: false, vertical: true)
-                            .accessibilityIdentifier("home.balanceTitle")
-                        Text(totalBalance)
-                            .font(.system(size: 58, weight: .semibold, design: .default))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.5)
-                            .monospacedDigit()
-                            .contentTransition(.opacity)
-                            .oathBalanceConcealed(balancesHidden, radius: 22)
-                    }
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .contentShape(Rectangle())
+        OathWalletSummary(viewportHeight: viewportHeight, bottomSafeAreaInset: bottomSafeAreaInset) {
+            OathButton(action: toggleBalancesHidden) {
+                OathWalletBalance(value: totalBalance, concealed: balancesHidden) {
+                    Text(strings.text(.totalBalance))
+                        .accessibilityIdentifier("home.balanceTitle")
                 }
-                .buttonStyle(.plain)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(strings.text(.totalBalance))
-                .accessibilityValue(balancesHidden ? strings.text(.balanceHidden) : totalBalance)
-                .accessibilityHint(strings.text(.hideBalance))
-                .accessibilityIdentifier("home.balance")
-                OathBalanceChangePill(session: session, visible: balanceHistoryVisible)
             }
-
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: OathActionMetrics.spacing) { sendAction; receiveAction }
-                VStack(spacing: OathActionMetrics.spacing) { sendAction; receiveAction }
-            }
-            .oathActionArea(existingInset: 24)
-
+            .buttonStyle(.plain)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(strings.text(.totalBalance))
+            .accessibilityValue(balancesHidden ? strings.text(.balanceHidden) : totalBalance)
+            .accessibilityHint(strings.text(.hideBalance))
+            .accessibilityIdentifier("home.balance")
+        } detail: {
+            OathBalanceChangePill(session: session, visible: balanceHistoryVisible)
+        } send: {
+            sendAction
+        } receive: {
+            receiveAction
         }
-        .foregroundStyle(.white)
-        .padding(.horizontal, 24)
-        .frame(maxWidth: 700)
-        .frame(maxWidth: .infinity)
     }
 
     private func toggleBalancesHidden() {

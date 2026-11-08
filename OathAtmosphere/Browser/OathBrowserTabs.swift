@@ -7,8 +7,36 @@ import Observation
 }
 
 enum OathBrowserSheet: String, Identifiable {
-    case address, bookmark, bookmarks, pair, tabs
+    case bookmark, bookmarks, pair, tabs
     var id: String { rawValue }
+}
+
+/// Keeps redirects/progress updates from replacing an address being typed.
+/// Drafts are view-local and reset when the selected page or wallet changes.
+struct OathBrowserAddressDraft {
+    var text = ""
+    private(set) var isEditing = false
+
+    var target: URL? {
+        guard let url = OathBrowserPolicy.website(text, allowsBareHost: true),
+              case .website = OathBrowserPolicy.destination(url) else { return nil }
+        return url
+    }
+
+    mutating func synchronize(url: URL?) {
+        guard !isEditing else { return }
+        text = url?.absoluteString ?? ""
+    }
+
+    mutating func setEditing(_ value: Bool, url: URL?) {
+        isEditing = value
+        if !value { synchronize(url: url) }
+    }
+
+    mutating func reset(url: URL?) {
+        isEditing = false
+        synchronize(url: url)
+    }
 }
 
 /// Owns live pages, not just URL strings: switching tabs preserves each page's
@@ -23,6 +51,7 @@ enum OathBrowserSheet: String, Identifiable {
     private(set) var selectedID: UUID
     private(set) var active = false
     var sheet: OathBrowserSheet?
+    private(set) var addressFocusRequest = UUID()
     @ObservationIgnored private let makePage: @MainActor () -> Page
 
     init(makePage: @escaping @MainActor () -> Page) {
@@ -33,6 +62,8 @@ enum OathBrowserSheet: String, Identifiable {
 
     var current: Page { items.first { $0.id == selectedID }!.page }
     var canAdd: Bool { items.count < Self.maximumCount }
+
+    func focusAddress() { addressFocusRequest = UUID() }
 
     func setActive(_ value: Bool) {
         active = value

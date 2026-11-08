@@ -6,6 +6,12 @@ import Observation
 @MainActor @Observable
 final class OathHomeScrollEffects {
     private(set) var isDragging = false
+    private(set) var isRefreshing = false
+
+    func setRefreshing(_ value: Bool) {
+        guard isRefreshing != value else { return }
+        isRefreshing = value
+    }
 
     func setDragging(_ value: Bool) {
         guard isDragging != value else { return }

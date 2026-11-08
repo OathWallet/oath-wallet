@@ -31,6 +31,7 @@ public actor AnkrSynchronizer {
     private let client: AnkrClient
     public typealias BalanceClient = @Sendable (String) throws -> EVMSendClient
     private let balanceClient: BalanceClient?
+    private var balanceReaders: [String: EVMSendClient] = [:]
     private var flights: [String: (UUID, Task<AnkrSyncOutcome, Never>)] = [:]
     private var epoch = UUID()
     private var requestScope = AnkrRequestScope()
@@ -139,8 +140,10 @@ public actor AnkrSynchronizer {
                 try Task.checkCancellation()
                 var start = try await database.beginAnkrSync(accountID: account.id, stream: stream)
                 ticket = start
-                if stream == "balances", let balanceClient = self.balanceClient {
-                    let outcome = await self.refreshVerifiedBalances(ticket: start, rpc: try balanceClient(account.networkID), requestScope: requestScope)
+                try Task.checkCancellation()
+                guard generation == self.epoch else { throw CancellationError() }
+                if stream == "balances", let rpc = try self.balanceReader(networkID: account.networkID) {
+                    let outcome = await self.refreshVerifiedBalances(ticket: start, rpc: rpc, requestScope: requestScope)
                     switch outcome {
                     case .complete: return AnkrSyncOutcome(accountID: account.id, stream: stream, success: true, outcome: outcome)
                     case .partial(let error), .failed(let error):
@@ -235,6 +238,15 @@ public actor AnkrSynchronizer {
         let result = await task.value
         if flights[key]?.0 == id { flights[key] = nil }
         return result
+    }
+
+    private func balanceReader(networkID: String) throws -> EVMSendClient? {
+        guard Self.supports(networkID: networkID), let balanceClient else { return nil }
+        if let reader = balanceReaders[networkID] { return reader }
+        let reader = try balanceClient(networkID)
+        guard reader.network.rawValue == networkID else { throw AnkrError.wrongChain }
+        balanceReaders[networkID] = reader
+        return reader
     }
 
     private func refreshVerifiedBalances(ticket: AnkrSyncTicket, rpc: EVMSendClient, requestScope: AnkrRequestScope) async -> BalanceRefreshOutcome {
@@ -406,6 +418,7 @@ public actor AnkrSynchronizer {
         requestScope.cancel()
         requestScope = AnkrRequestScope()
         epoch = UUID()
+        balanceReaders.removeAll()
         let catalogs = catalogFlights.values.map(\.1)
         catalogFlights.removeAll()
         catalogAttempts.removeAll()

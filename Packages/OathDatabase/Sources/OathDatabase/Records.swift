@@ -144,6 +144,11 @@ public struct BalanceRecord: Codable, Equatable, Sendable, FetchableRecord, Pers
 
 public struct PriceRecord: Codable, Equatable, Sendable, FetchableRecord, PersistableRecord {
     public static let databaseTableName = "prices"
+    /// Prefer a current primary token quote over incidental inventory prices.
+    /// Retain all fallback observations; after 60 seconds they are eligible
+    /// again. The timestamp remains the original retrieval time.
+    static let preferredOrder = "CASE WHEN source='LI.FI' AND observedAt BETWEEN CAST(strftime('%s','now') AS REAL)-60 AND CAST(strftime('%s','now') AS REAL)+1 THEN 0 ELSE 1 END, observedAt DESC"
+
     public var assetID: String
     public var currency: String
     public var value: String

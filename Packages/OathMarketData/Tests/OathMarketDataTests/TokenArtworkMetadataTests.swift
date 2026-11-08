@@ -1,6 +1,7 @@
 import XCTest
 import OathDatabase
 import OathTokenImages
+import OathAnkr
 @testable import OathMarketData
 
 private actor ArtworkMarketFeed: MarketTransport {
@@ -40,7 +41,8 @@ final class TokenArtworkMetadataTests: XCTestCase, @unchecked Sendable {
             let saved = await reopened.sources(for: identity, cachedOnly: true)
             XCTAssertEqual(saved, sources, network)
             let requests = await feed.calls
-            XCTAssertEqual(requests, 1, network)
+            XCTAssertEqual(requests, LifiTokenMetadata.url(network: network, reference: reference) == nil ? 1 : 2,
+                           "Each available metadata provider is attempted once and then cached: \(network)")
             let wrongDecimals = TokenArtworkIdentity(networkID: network, reference: reference, decimals: 18)!
             let wrongSources = await service.sources(for: wrongDecimals, cachedOnly: false)
             XCTAssertTrue(wrongSources.isEmpty, "Identity/decimals mismatch must not supply artwork")

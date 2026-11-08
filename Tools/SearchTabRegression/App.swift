@@ -26,7 +26,9 @@ private struct Fixture: View {
     private var tabs: some View {
         TabView(selection: $tab) {
             Tab(value: .wallet) {
-                NavigationStack(path: $assetPath) { content(title: "Wallet", query: "") }
+                NavigationStack(path: $assetPath) {
+                    content(title: "Wallet", query: "").background(OathSearchTabTransition())
+                }
             } label: { Image(systemName: "wallet.bifold") }
             .accessibilityLabel("Wallet")
             Tab(value: .history) {
@@ -74,7 +76,10 @@ private struct Fixture: View {
 }
 
 // Minimal localization dependencies for the production navigation modifier.
-enum OathLanguage { case english, arabic }
+enum OathLanguage {
+    case english, arabic
+    var isRightToLeft: Bool { self == .arabic }
+}
 enum OathStringKey { case back }
 struct OathLocalizer {
     init(_ language: OathLanguage) {}

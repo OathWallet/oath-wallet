@@ -38,7 +38,7 @@ struct OathBrowserScreen: View {
                 else { startPage }
             }
             .background(Color(uiColor: OathSurfaceColors.canvas).ignoresSafeArea())
-            .modifier(OathBrowserLegacyBottomBar(tabs: tabs))
+            .modifier(OathBrowserBottomBarInset(tabs: tabs))
             .navigationTitle(strings.text(.browserTitle))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -77,13 +77,7 @@ struct OathBrowserScreen: View {
                 } else if selection == .pair {
                     OathBrowserPairSheet { url in pendingPair = url; tabs.sheet = nil }
                 } else {
-                    OathBrowserEditor(bookmarks: bookmarks, url: model.url, title: model.title,
-                        savingBookmark: selection == .bookmark) { url in
-                            tabs.sheet = nil
-                            // The sheet's removal re-enables navigation before load.
-                            tabs.setActive(usable)
-                            model.open(url.absoluteString)
-                        }
+                    OathBrowserBookmarkEditor(bookmarks: bookmarks, url: model.url, title: model.title)
                 }
             }
             .sheet(isPresented: $connections) {
@@ -132,9 +126,6 @@ struct OathBrowserScreen: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 OathSettingsFooter { Text(strings.text(.browserPrivateDetail)) }
-                OathButton { tabs.sheet = .address } label: {
-                    OathSettingsRow(title: strings.text(.browserAddress), icon: "globe")
-                }.buttonStyle(OathSettingsRowButtonStyle())
                 OathSettingsSectionRule()
                 OathSettingsFooter { Text(strings.text(.browserBookmarks)).oathFont(.headline) }
                 bookmarkList
@@ -185,7 +176,7 @@ struct OathBrowserScreen: View {
     private func finishSheet() {
         if pendingNewTabAddress {
             pendingNewTabAddress = false
-            if usable { tabs.sheet = .address }
+            if usable { tabs.setActive(browsing); tabs.focusAddress() }
         } else { deliverPendingPair() }
     }
     private func deliverPendingPair() {
@@ -202,10 +193,8 @@ private struct BrowserWebView: UIViewRepresentable {
     func updateUIView(_ uiView: WKWebView, context: Context) { }
 }
 
-private struct OathBrowserEditor: View {
+private struct OathBrowserBookmarkEditor: View {
     let bookmarks: OathBrowserBookmarks
-    let savingBookmark: Bool
-    let open: (URL) -> Void
     @State private var address: String
     @State private var title: String
     @State private var focused = false
@@ -213,8 +202,8 @@ private struct OathBrowserEditor: View {
     @State private var failed = false
     @Environment(\.dismiss) private var dismiss
     @Environment(\.oathLocalizer) private var strings
-    init(bookmarks: OathBrowserBookmarks, url: URL?, title: String, savingBookmark: Bool, open: @escaping (URL) -> Void) {
-        self.bookmarks = bookmarks; self.savingBookmark = savingBookmark; self.open = open
+    init(bookmarks: OathBrowserBookmarks, url: URL?, title: String) {
+        self.bookmarks = bookmarks
         _address = State(initialValue: url?.absoluteString ?? ""); _title = State(initialValue: title)
     }
     private var target: URL? {
@@ -225,18 +214,16 @@ private struct OathBrowserEditor: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
-                    if savingBookmark {
-                        OathTextInput(text: $title, focused: $titleFocused, title: strings.text(.contactName),
-                            identifier: "browser.bookmark.title").oathInputRow()
-                    }
+                    OathTextInput(text: $title, focused: $titleFocused, title: strings.text(.contactName),
+                        identifier: "browser.bookmark.title").oathInputRow()
                     OathTextInput(text: $address, focused: $focused, title: strings.text(.browserAddress),
-                        identifier: "browser.url.input", address: true, returnKeyType: savingBookmark ? .done : .go, onSubmit: submit).oathInputRow()
+                        identifier: "browser.url.input", address: true, onSubmit: submit).oathInputRow()
                     if failed { Text(strings.text(.preferencesSaveFailed)).foregroundStyle(.red) }
                     Text(strings.text(.browserPrivateDetail)).oathFont(.footnote).foregroundStyle(.secondary)
                 }.padding(20).frame(maxWidth: 700).frame(maxWidth: .infinity)
             }
             .background(Color(uiColor: OathSurfaceColors.canvas).ignoresSafeArea())
-            .navigationTitle(strings.text(savingBookmark ? .browserAddBookmark : .browserAddress)).navigationBarTitleDisplayMode(.inline)
+            .navigationTitle(strings.text(.browserAddBookmark)).navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { OathCloseButton { dismiss() } }
                 ToolbarItem(placement: .topBarTrailing) { OathDoneButton { submit() }.disabled(target == nil).accessibilityIdentifier("browser.url.confirm") }
@@ -247,16 +234,14 @@ private struct OathBrowserEditor: View {
     }
     private func submit() {
         guard let target else { return }
-        if savingBookmark {
-            do { try bookmarks.save(title: title, url: target); dismiss() }
-            catch {
-                // Invalid input/full bookmark storage are expected form states.
-                if !(error is OathBrowserBookmarks.Failure) {
-                    OathDiagnostics.record(error, component: "browser", operation: "save_bookmark")
-                }
-                failed = true
+        do { try bookmarks.save(title: title, url: target); dismiss() }
+        catch {
+            // Invalid input/full bookmark storage are expected form states.
+            if !(error is OathBrowserBookmarks.Failure) {
+                OathDiagnostics.record(error, component: "browser", operation: "save_bookmark")
             }
-        } else { open(target) }
+            failed = true
+        }
     }
 }
 

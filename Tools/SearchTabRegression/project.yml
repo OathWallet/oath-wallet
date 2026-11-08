@@ -7,6 +7,9 @@ settings:
     SWIFT_VERSION: '6.0'
     GENERATE_INFOPLIST_FILE: YES
     CODE_SIGNING_ALLOWED: NO
+packages:
+  OathDiagnostics:
+    path: ${OATH_SEARCH_SOURCE_ROOT}/Packages/OathDiagnostics
 targets:
   SearchFixture:
     type: application
@@ -15,6 +18,8 @@ targets:
       - path: ${OATH_SEARCH_SOURCE_ROOT}/Tools/SearchTabRegression/App.swift
       - path: ${OATH_SEARCH_SOURCE_ROOT}/OathAtmosphere/Home/OathHomeBottomSearch.swift
       - path: ${OATH_SEARCH_SOURCE_ROOT}/OathAtmosphere/Localization/OathTypography.swift
+    dependencies:
+      - package: OathDiagnostics
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: org.oathwallet.tests.search

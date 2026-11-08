@@ -221,7 +221,7 @@ private actor Feed: MarketTransport {
             let cached=try await service.cachedInformation(for:asset);XCTAssertEqual(cached?.value,info.value)
             let wrong=MarketAsset(id:asset.id,networkID:"sui",reference:reference,decimals:18)
             let invalid=try await service.cachedInformation(for:wrong);XCTAssertNil(invalid)
-            let calls=await transport.count();XCTAssertEqual(calls,0);XCTAssertFalse(asset.evm)
+            let calls=await transport.count();XCTAssertEqual(calls,1, "Unavailable primary retains the saved on-chain metadata");XCTAssertFalse(asset.evm)
             if reference.contains("::") {XCTAssertFalse(asset.matches(reference.lowercased()))}
         }
     }

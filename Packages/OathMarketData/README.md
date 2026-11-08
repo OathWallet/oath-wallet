@@ -7,7 +7,11 @@ Public market data shared by Home, token discovery and asset details. Requests c
 
 ## Contract prices
 
-`MarketDataService.quote` races exact-identity Coinbase and CoinGecko quotes with GeckoTerminal, DEX Screener and DefiLlama. The first valid quote is saved atomically with the portfolio price. Providers are independent; missing listings and slow metadata/chart requests do not prevent other price providers from completing.
+`MarketDataService.quote` first requests LI.FI metadata for supported token identities. The response supplies the price, logo, name and an explicit verification status when available. Requests validate the chain, canonical contract and decimals; absent or unknown statuses remain Unknown. Verification describes the provider listing and does not guarantee safety.
+
+Quotes are cached for 60 seconds using the original retrieval time. Home and asset details prefer a fresh LI.FI token quote, then use the newest eligible fallback observation. Refreshing holdings also refreshes their prices without reopening the screen. Gnosis native xDAI can use the documented wrapped-xDAI contract as an independent price source.
+
+When the primary has no usable price, existing Coinbase, CoinGecko, GeckoTerminal, DEX Screener and DefiLlama routes remain available. The first valid fallback quote is saved atomically with the portfolio price. Missing listings and slow metadata/chart requests do not prevent independent providers from completing. Descriptions, supply figures and charts retain their existing providers.
 
 - Network and contract/mint/coin-type identity must match. Symbol-only search is never used. Canonicalization follows the chain's address rules.
 - DEX Screener's USD price belongs to its base token, never the quote token. Select the deepest matching pool with at least USD 1,000 liquidity. GeckoTerminal also requires at least USD 1,000 reported reserve.

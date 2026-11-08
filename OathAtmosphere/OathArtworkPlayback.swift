@@ -20,12 +20,15 @@ struct OathArtworkPlayback {
         canDraw && !recoveryExhausted && (animating || needsFrame)
     }
 
-    mutating func advance(at now: TimeInterval, animating: Bool) -> TimeInterval {
+    mutating func advance(at now: TimeInterval, animating: Bool, rate: Double = 1) -> TimeInterval {
         let delta = lastTime.map { max(0, now - $0) } ?? 0
         lastTime = animating ? now : nil
         // Advance by native clock time, not by a capped per-frame increment.
         // Dropped frames must not slow the material to an apparent standstill.
-        if animating { elapsed += delta }
+        // Scale only the new interval, never the accumulated phase. Returning
+        // from refresh to normal speed must not jump backward in the shader.
+        // The returned real delta still drives appearance/gesture smoothing.
+        if animating { elapsed += delta * rate }
         return delta
     }
 
