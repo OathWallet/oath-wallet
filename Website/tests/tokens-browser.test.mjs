@@ -26,6 +26,7 @@ test('catalog works at mobile and desktop sizes, with keyboard and without JavaS
    await page.getByLabel('Find a token').fill('USDC');await page.getByLabel('Network',{exact:true}).selectOption('base');
    await page.getByRole('button',{name:'Search',exact:true}).click();
    assert.ok(page.url().includes('q=USDC'));
+   assert.equal(new URL(page.url()).pathname,'/networks/base/tokens');
    assert.ok(await page.locator('.token-row').count()>0);
    assert.ok(await page.locator('.token-networks').evaluateAll(nodes=>nodes.every(n=>n.textContent.trim()==='Base')));
    if(width<1024){await page.getByRole('button',{name:'Open menu'}).click();assert.equal(await page.locator('#oath-site-menu').getAttribute('aria-hidden'),'false');await page.keyboard.press('Escape');assert.equal(await page.locator('#oath-site-menu').getAttribute('aria-hidden'),'true');}
@@ -34,6 +35,7 @@ test('catalog works at mobile and desktop sizes, with keyboard and without JavaS
   const context=await browser.newContext({javaScriptEnabled:false,viewport:{width:390,height:844}});const page=await context.newPage();
   await page.goto(base+'/tokens');assert.equal(await page.locator('.token-row').count(),50);
   await page.getByLabel('Find a token').fill('USDT');await page.getByLabel('Network',{exact:true}).selectOption('tron');await page.getByRole('button',{name:'Search',exact:true}).click();
+  assert.equal(new URL(page.url()).pathname,'/networks/tron/tokens');
   await page.locator('.token-row').filter({hasText:'Tether'}).first().click();assert.ok(page.url().endsWith('/tokens/usdt/tron'));assert.ok((await page.locator('.token-identity').textContent()).includes('not your receiving address'));
   await context.close();
  }finally{await browser.close();}
