@@ -15,7 +15,7 @@ public struct AptosHistoryCursor: Codable, Sendable, Equatable, FetchableRecord,
 }
 extension OathDatabase {
     public func beginAptosSync(accountID: String) async throws -> AptosSyncTicket {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard let account = try AccountRecord.fetchOne(db,key:accountID), account.networkID == "aptos" else { throw StoreError.missingRecord }
             _ = try AptosIdentity.address(account.address)
             let run = UUID().uuidString
@@ -37,7 +37,7 @@ extension OathDatabase {
               try String.fetchOne(db,sql:"SELECT runID FROM aptosSync WHERE accountID=?",arguments:[ticket.account.id]) == ticket.runID else { throw StoreError.staleSync }
     }
     public func failAptosSync(_ ticket: AptosSyncTicket, history: Bool, code: String) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateAptos(ticket,db:db)
             try db.execute(sql:"UPDATE aptosSync SET \(history ? "historyFailure" : "failure")=? WHERE accountID=?",arguments:[code,ticket.account.id])
         }
@@ -81,7 +81,7 @@ extension OathDatabase {
         // Paired Coin/FA identities must have been combined at the node layer.
         // Never silently overwrite one with another after catalog aliasing.
         guard Set(value.holdings.map{catalog.canonical($0.token.reference)}).count == value.holdings.count else { throw StoreError.conflictingIdentity }
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateAptos(ticket,db:db)
             let time = value.observedAt.timeIntervalSince1970
             let previous = try Double.fetchOne(db,sql:"SELECT observedAt FROM aptosSync WHERE accountID=?",arguments:[ticket.account.id]) ?? 0
@@ -111,7 +111,7 @@ extension OathDatabase {
                 let asset = try Self.aptosAsset(holding.token,catalog:catalog,db:db)
                 try db.execute(sql:"""
                     INSERT INTO aptosHoldings(accountID,assetID,amountAtomic,observedAt,verified) VALUES(?,?,?,?,?)
-                    ON CONFLICT(accountID,assetID) DO UPDATE SET amountAtomic=excluded.amountAtomic,observedAt=excluded.observedAt,verified=excluded.verified
+                    ON CONFLICT(accountID,assetID) DO UPDATE SET amountAtomic=excluded.amountAtomic,observedAt=excluded.observedAt,verified=\(catalog.tokens.isEmpty ? "MAX(aptosHoldings.verified,excluded.verified)" : "excluded.verified")
                     """,arguments:[ticket.account.id,asset.id,holding.amount,time,catalog.enrich(holding.token).verified])
             }
             try db.execute(sql:"UPDATE aptosSync SET inventory=?,observedAt=?,ledgerVersion=?,failure=? WHERE accountID=?",arguments:[try JSONEncoder().encode(value),time,value.ledgerVersion,value.discoveryComplete && value.failedReferences.isEmpty ? nil : (value.discoveryFailure ?? "partialInventory"),ticket.account.id])
@@ -130,7 +130,7 @@ extension OathDatabase {
         guard page.head == page.transactions.map(\.version).max(), page.next == nil || !page.transactions.isEmpty,
               page.transactions.allSatisfy({ $0.version > 0 && (cursor.beforeVersion == nil || $0.version < cursor.beforeVersion!) }) else { throw AptosError.malformed }
         let owner = try AptosIdentity.address(ticket.account.address)
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateAptos(ticket,db:db)
             guard try AptosHistoryCursor.fetchOne(db,key:["accountID":cursor.accountID,"stream":cursor.stream,"lane":cursor.lane]) == cursor else { throw StoreError.staleSync }
             let now = Date().timeIntervalSince1970

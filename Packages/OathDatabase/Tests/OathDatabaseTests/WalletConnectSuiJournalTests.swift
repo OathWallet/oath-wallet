@@ -14,7 +14,14 @@ import XCTest
         let plan = try SuiSendPlan.make(network:.mainnet,sender:owner,recipient:"0xabc",reference:"native",amount:1_000_000,native:funds,asset:funds,gasPrice:1000,gasBudget:5_000_000,estimatedFee:2_000_000,epoch:1000)
         let params = try JSONEncoder().encode(["address":owner,"transaction":plan.transactionBytes().base64EncodedString()])
         let request = try WalletConnectSuiRequest(method:"sui_signAndExecuteTransaction",chain:"sui:mainnet",account:owner,params:params)
-        let review = WalletConnectSuiReview(request:request,changes:[],details:[],gasOwner:owner,gasBudget:5_000_000,estimatedFee:2_000_000,createdAt:.now)
+        let parsed = try WalletConnectSuiTransaction(request.transaction!, network:.mainnet, account:owner, executing:true)
+        // The address-balance builder explicitly returns its redeemed change
+        // coin to the sender as well as transferring the recipient's coin.
+        let coins = try parsed.transfers.enumerated().map { index, transfer in
+            WalletConnectSuiObjectChange(id:try SuiIdentity.address("0x" + String(0xcafe + index,radix:16)),created:true,deleted:false,before:nil,
+                after:.init(version:1,digest:SuiSendCrypto.base58(Data(repeating:0,count:32)),type:"0x2::coin::Coin<0x2::sui::SUI>",owner:.init(kind:.address,address:transfer.recipient)))
+        }
+        let review = WalletConnectSuiReview(request:request,changes:[],objectChanges:coins,actions:parsed.reviewActions,details:[],gasOwner:owner,gasBudget:5_000_000,estimatedFee:2_000_000,createdAt:.now)
         return (db,folder,plan,review,try request.sign(privateKey:key,review:review).transaction!)
     }
     func draft(db:OathDatabase,plan:SuiSendPlan) async throws {
@@ -28,6 +35,8 @@ import XCTest
         let reopened = try await OathDatabase.open(at:folder.appendingPathComponent("wallet.sqlite"))
         let fetched = try await reopened.walletConnectSuiSubmission("r1")
         XCTAssertEqual(try XCTUnwrap(fetched).decoded().1,signed)
+        XCTAssertEqual(try XCTUnwrap(fetched).decoded().0.objectChanges,review.objectChanges)
+        XCTAssertEqual(try XCTUnwrap(fetched).decoded().0.actions,review.actions)
         try await reopened.settleWalletConnectSui("r1",outcome:.unknown)
         try await draft(db:reopened,plan:plan)
         do { try await reopened.queueSuiSend(sendID:"send",plan:plan); XCTFail("Released pending sender") } catch { XCTAssertEqual(error as? SuiSendError,.busy) }

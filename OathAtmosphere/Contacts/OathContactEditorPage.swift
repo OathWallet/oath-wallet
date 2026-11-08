@@ -1,5 +1,6 @@
 import SwiftUI
 import OathDatabase
+import OathAnkr
 
 /// Receipt quick-add includes the fixed destination and a connected name/label
 /// form; ordinary contact creation continues to ask only for the name.
@@ -10,6 +11,7 @@ struct OathContactEditorPage: View {
     @Environment(\.oathLocalizer) private var strings
     @State private var focused = false
     @State private var labelFocused = false
+    @State private var memoFocused = false
     @State private var didFocus = false
     @State private var dismissingKeyboard = false
     @State private var work: Task<Void, Never>?
@@ -34,8 +36,24 @@ struct OathContactEditorPage: View {
                             }.oathInputRow()
                         OathInputSeparator()
                         OathTextInput(text: $model.addressLabel, focused: $labelFocused, title: strings.text(.contactAddressLabel),
-                            identifier: "contacts.addressLabel", onSubmit: requestSave)
+                            identifier: "contacts.addressLabel", returnKeyType: ["xrpl", "stellar"].contains(recipient.networkID) ? .next : .done) {
+                                if ["xrpl", "stellar"].contains(recipient.networkID) { labelFocused = false; memoFocused = true }
+                                else { requestSave() }
+                            }
                             .oathInputRow()
+                        if ["xrpl", "stellar"].contains(recipient.networkID) {
+                            OathInputSeparator()
+                            if recipient.networkID == "stellar" {
+                                OathStellarMemoTypePicker(selection: $model.memoType)
+                                OathInputSeparator()
+                            }
+                            OathTextInput(text: $model.memo, focused: $memoFocused,
+                                title: strings.text(recipient.networkID == "xrpl" ? .sendDestinationTag : .sendMemo),
+                                identifier: "contacts.memo", onSubmit: requestSave).oathInputRow()
+                        }
+                    }
+                    if ["xrpl", "stellar"].contains(recipient.networkID) {
+                        Text(strings.text(.sendMemoHint)).oathFont(.footnote).foregroundStyle(.secondary)
                     }
                     VStack(alignment: .leading, spacing: 8) {
                         Text(strings.text(.contactAddress)).oathFont(.footnote).foregroundStyle(.secondary)
@@ -88,6 +106,7 @@ struct OathContactEditorPage: View {
         guard canSave, work == nil else { return }
         focused = false
         labelFocused = false
+        memoFocused = false
         dismissingKeyboard = true
     }
 
@@ -105,6 +124,7 @@ struct OathContactEditorPage: View {
         dismissingKeyboard = false
         focused = false
         labelFocused = false
+        memoFocused = false
     }
 }
 
@@ -182,7 +202,7 @@ private struct OathContactAddressEntry: View {
     @State private var scanError: OathRecoveryScanError?
     @State private var pendingScanError: OathRecoveryScanError?
 
-    private enum Field { case address, label }
+    private enum Field { case address, memo, label }
     private enum PendingAction { case save, scan }
     private var busy: Bool { pendingAction != nil || model.saving }
     private var ready: Bool { isAllowed && !busy && !model.loading && !model.loadFailed && !showsScanner }
@@ -218,12 +238,26 @@ private struct OathContactAddressEntry: View {
                         focused = .address
                     }) {
                         OathTextInput(text: $model.draft.address, focused: focus(.address), title: strings.text(.contactAddress),
-                            identifier: "contacts.addressInput", address: true, returnKeyType: .next) { focused = .label }
+                            identifier: "contacts.addressInput", address: true, returnKeyType: .next) { focused = model.memoKind == nil ? .label : .memo }
+                    }
+                    if let memo = model.memoKind {
+                        OathInputSeparator()
+                        if model.draft.networkID == "stellar" {
+                            OathStellarMemoTypePicker(selection: $model.stellarMemoType)
+                            OathInputSeparator()
+                        }
+                        OathTextInput(text: $model.draft.memo, focused: focus(.memo), title: strings.text(memo),
+                            identifier: "contacts.memo", returnKeyType: .next) { focused = .label }
+                            .oathInputRow()
                     }
                     OathInputSeparator()
                     OathTextInput(text: $model.draft.label, focused: focus(.label), title: strings.text(.contactAddressLabel),
                         identifier: "contacts.addressLabel", onSubmit: requestSave)
                         .oathInputRow()
+                }
+                if model.memoKind != nil {
+                    Text(strings.text(.sendMemoHint)).oathFont(.footnote).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 if model.loading { ProgressView().frame(maxWidth: .infinity) }
                 if model.loadFailed {

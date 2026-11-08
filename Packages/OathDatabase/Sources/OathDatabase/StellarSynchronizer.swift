@@ -48,10 +48,16 @@ public actor StellarSynchronizer {
             do {
                 async let inventory = client.inventory(owner:account.address)
                 async let native = await OathDiagnostics.attempt("native_price") { try await markets.nativePrice { try await client.price(reference:"native") } }
-                let savedCatalog = await self.catalog()
+                async let freshCatalog = self.catalog()
+                let cachedCatalog: StellarCatalog = await database.refreshCatalog(key: "stellar.catalog", fallback: .empty)
                 let value = try await inventory; try Task.checkCancellation()
-                let catalog = savedCatalog.includingVerified(value)
-                try await database.commitStellarInventory(value,ticket:ticket,catalog:catalog)
+                let initialCatalog = cachedCatalog.includingVerified(value)
+                try await database.commitStellarInventory(value,ticket:ticket,catalog:initialCatalog)
+                let catalog = await freshCatalog
+                try Task.checkCancellation()
+                try await database.applyRefreshCatalog(account: ticket.account, runID: ticket.runID, enrichment: { asset in
+                    catalog.tokens[asset.reference].flatMap { $0.decimals == asset.decimals ? .init(name: $0.name, symbol: $0.symbol, logo: $0.logo) : nil }
+                }) { catalog.contains($0.reference) }
                 try await Self.save(value.prices,database:database)
                 let quote = await native
                 if let quote { try Task.checkCancellation(); try await Self.save([quote],database:database) }

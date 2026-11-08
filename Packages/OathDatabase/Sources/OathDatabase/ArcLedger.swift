@@ -18,7 +18,7 @@ public struct ArcHistoryCursor: Codable, FetchableRecord, Sendable {
 }
 extension OathDatabase {
     public func beginArcSync(accountID: String, now: Date = .now) async throws -> ArcSyncTicket {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard let account = try AccountRecord.fetchOne(db, key: accountID), account.networkID == "arc" else { throw StoreError.missingRecord }
             let id = UUID().uuidString
             try db.execute(sql: """
@@ -49,11 +49,11 @@ extension OathDatabase {
             return try records.map { try ArcToken(reference: $0.reference, name: $0.name, symbol: $0.symbol, decimals: $0.decimals, logo: $0.logo) }
         }
     }
-    public func commitArcInventory(_ value: ArcInventory, ticket: ArcSyncTicket, catalog: ArcCatalog) async throws {
+    public func commitArcInventory(_ value: ArcInventory, ticket: ArcSyncTicket, catalog: ArcCatalog, final: Bool = true) async throws {
         guard value.owner.lowercased() == ticket.account.address.lowercased(), value.block >= 0,
               value.holdings.contains(where: { $0.token.reference == "native" && $0.amount != nil }),
               Set(value.holdings.map { $0.token.reference }).count == value.holdings.count else { throw StoreError.conflictingIdentity }
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateArc(ticket, db: db)
             let previous = try Int64.fetchOne(db, sql: "SELECT checkpoint FROM arcSync WHERE accountID=?", arguments: [ticket.account.id])
             guard previous.map({ $0 <= value.block }) ?? true else { throw StoreError.staleSync }
@@ -82,12 +82,12 @@ extension OathDatabase {
             }
             // This flag describes state reads only. Archive discovery coverage
             // lives in arcHistoryCursors and is never inferred from this batch.
-            try db.execute(sql: "UPDATE arcSync SET inventory=?,observedAt=?,checkpoint=?,complete=?,failure=? WHERE accountID=?", arguments: [value.raw,now,value.block,value.complete,value.complete ? nil : "incompleteInventory",ticket.account.id])
+            try db.execute(sql: "UPDATE arcSync SET inventory=?,observedAt=?,checkpoint=?,complete=?,failure=? WHERE accountID=?", arguments: [value.raw,now,value.block,final && value.complete,final && value.complete ? nil : "incompleteInventory",ticket.account.id])
         }
     }
     public func prepareArcHistory(_ ticket: ArcSyncTicket, through end: Int64) async throws {
         guard end > 0, end < Int64.max else { throw StoreError.invalidValue("Arc history range") }
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateArc(ticket, db: db)
             let old = try ArcHistoryCursor.fetchOne(db, sql: "SELECT * FROM arcHistoryCursors WHERE accountID=? AND lane='recent'", arguments: [ticket.account.id])
             // Keep interrupted intervals exactly; a subsequent refresh catches
@@ -113,7 +113,7 @@ extension OathDatabase {
     }
     public func commitArcPage(_ page: ArcHistoryPage, cursor: ArcHistoryCursor, ticket: ArcSyncTicket) async throws {
         guard page.fromBlock == cursor.nextBlock, page.nextBlock > cursor.nextBlock, page.nextBlock <= cursor.endBlock else { throw StoreError.conflictingIdentity }
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateArc(ticket, db: db)
             guard let current = try ArcHistoryCursor.fetchOne(db, sql: "SELECT * FROM arcHistoryCursors WHERE accountID=? AND lane=?", arguments: [ticket.account.id,cursor.lane]),
                   current.nextBlock == cursor.nextBlock, current.endBlock == cursor.endBlock,
@@ -170,7 +170,7 @@ extension OathDatabase {
         }
     }
     public func failArcSync(_ ticket: ArcSyncTicket, lane: String? = nil, code: String) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateArc(ticket, db: db)
             if let lane { try db.execute(sql:"UPDATE arcHistoryCursors SET failure=? WHERE accountID=? AND lane=?",arguments:[code,ticket.account.id,lane]) }
             else { try db.execute(sql:"UPDATE arcSync SET failure=? WHERE accountID=?",arguments:[code,ticket.account.id]) }

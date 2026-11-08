@@ -17,7 +17,7 @@ extension OathDatabase {
     /// spending are serialized; independent quote reads may run concurrently.
     public func queueThorchainSend(sendID:String,plan:ThorchainSendPlan) async throws {
         try plan.validate();guard plan.network == .mainnet else { throw ThorchainSendError.wrongNetwork }
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send=try SendRecord.fetchOne(db,key:sendID),send.state=="draft",send.networkID=="thorchain",
                   let account=try AccountRecord.fetchOne(db,key:send.accountID),account.walletID==send.walletID,account.networkID=="thorchain",
                   try ThorchainIdentity.address(account.address)==plan.sender,
@@ -33,7 +33,7 @@ extension OathDatabase {
         try await pool.read { db in try Data.fetchOne(db,sql:"SELECT plan FROM thorchainSendPlans WHERE sendID=?",arguments:[sendID]).map { try JSONDecoder().decode(ThorchainSendPlan.self,from:$0) } }
     }
     public func journalThorchainSignature(sendID:String,signed:ThorchainSignedSend) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send=try SendRecord.fetchOne(db,key:sendID),send.state=="queued",send.networkID=="thorchain",
                   let raw=try Data.fetchOne(db,sql:"SELECT plan FROM thorchainSendPlans WHERE sendID=?",arguments:[sendID]) else { throw StoreError.invalidTransition }
             let plan=try JSONDecoder().decode(ThorchainSendPlan.self,from:raw);try plan.validate()
@@ -47,7 +47,7 @@ extension OathDatabase {
     }
     public func settleThorchainSend(sendID:String,receipt:ThorchainSendReceipt) async throws {
         guard receipt.outcome != .unknown else { return }
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send=try SendRecord.fetchOne(db,key:sendID),send.networkID=="thorchain",["signed","broadcast","confirmed","failed"].contains(send.state),send.transactionID=="thorchain:"+receipt.hash,
                   let payload=send.signedPayload,let raw=try Data.fetchOne(db,sql:"SELECT plan FROM thorchainSendPlans WHERE sendID=?",arguments:[sendID]) else { throw StoreError.invalidTransition }
             let plan=try JSONDecoder().decode(ThorchainSendPlan.self,from:raw),signed=try JSONDecoder().decode(ThorchainSignedSend.self,from:payload)

@@ -29,7 +29,7 @@ extension OathDatabase {
     // their isolated database. The app-facing entry retains its mainnet gate.
     func queueValidatedPolkadotSend(sendID: String, plan: PolkadotSendPlan) async throws {
         try plan.validate()
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send = try SendRecord.fetchOne(db,key:sendID), send.state == "draft", send.networkID == "polkadot",
                   let account = try AccountRecord.fetchOne(db,key:send.accountID), account.walletID == send.walletID,
                   account.networkID == "polkadot", try PolkadotIdentity.address(account.address) == plan.sender,
@@ -52,7 +52,7 @@ extension OathDatabase {
         try await journalPolkadotSignature(sendID:sendID,signed:signed,allowingTestnet:false)
     }
     func journalPolkadotSignature(sendID: String, signed: PolkadotSignedSend, allowingTestnet: Bool) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send = try SendRecord.fetchOne(db,key:sendID), send.state == "queued", send.networkID == "polkadot",
                   let bytes = try Data.fetchOne(db,sql:"SELECT plan FROM polkadotSendPlans WHERE sendID=?",arguments:[sendID]) else { throw StoreError.invalidTransition }
             let plan = try JSONDecoder().decode(PolkadotSendPlan.self,from:bytes)
@@ -74,7 +74,7 @@ extension OathDatabase {
     /// A timeout or local quote expiration never releases a signed transaction.
     public func settlePolkadotSend(sendID: String, receipt: PolkadotSendReceipt) async throws {
         guard receipt.outcome != .unknown else { return }
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send = try SendRecord.fetchOne(db,key:sendID), send.networkID == "polkadot",
                   ["signed","broadcast","confirmed","failed"].contains(send.state),
                   send.transactionID == "polkadot:"+receipt.hash, let raw = send.signedPayload else { throw StoreError.invalidTransition }

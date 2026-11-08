@@ -31,7 +31,7 @@ with tempfile.TemporaryDirectory(prefix='oath-token-lookup-') as temporary:
     sources, tests = work / 'Sources/TokenLookup', work / 'Tests/TokenLookupTests'
     sources.mkdir(parents=True); tests.mkdir(parents=True)
     for name in ['Tokens/OathTokenNetwork.swift', 'Tokens/OathTokenService.swift',
-                 'Tokens/OathTokenSearchModel.swift', 'Import/OathImportCatalog.swift']:
+                 'Tokens/OathTokenSearchModel.swift', 'Tokens/OathAssetSearchScope.swift', 'Import/OathImportCatalog.swift']:
         shutil.copyfile(root / 'OathAtmosphere' / name, sources / Path(name).name)
     codec = (root / 'OathAtmosphere/Tokens/OathTokenCodec.swift').read_text()
     (sources / 'OathTokenCodec.swift').write_text(codec.replace('import WalletCore', 'import OathAnkr')

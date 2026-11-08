@@ -102,7 +102,7 @@ final class OathWalletSession {
     let vault: OathWalletVault
     @ObservationIgnored private var generation = UUID()
     @ObservationIgnored private var unlockWork: Task<OathWalletProfile, Error>?
-    @ObservationIgnored private var databaseObservation: Task<Void, Never>?
+    @ObservationIgnored private let portfolioRefresh = PortfolioRefreshCoordinator<WalletSnapshot>()
     @ObservationIgnored private var balanceSnapshotWork: Task<Void, Never>?
     @ObservationIgnored private var observationCurrency: String?
     @ObservationIgnored private var walletsObservation: Task<Void, Never>?
@@ -376,6 +376,14 @@ final class OathWalletSession {
         Task { await purgeExpiredWallets() }
         Task {
             if isUnlocked, !resetting, !changingWallet {
+                let token = generation
+                if case .home(let current) = state {
+                    await OathDiagnostics.attempt("recover_portfolio_observation") {
+                        let database = try await vault.database()
+                        ensurePortfolioObservation(database: database, walletID: current.id, token: token,
+                            currency: Locale.autoupdatingCurrent.currency?.identifier ?? "USD")
+                    }
+                }
                 await recordBalanceSnapshot(.appOpen)
                 await refreshBalanceDay()
                 await OathPostSendBalanceRefresh.shared.resume(vault: vault)
@@ -405,8 +413,7 @@ final class OathWalletSession {
         tokenSelection.cancel()
         solanaWork?.cancel(); solanaWork = nil
         bitcoinRefreshing = false
-        databaseObservation?.cancel()
-        databaseObservation = nil
+        portfolioRefresh.stop()
         balanceSnapshotWork?.cancel(); balanceSnapshotWork = nil
         walletsObservation?.cancel()
         walletsObservation = nil
@@ -533,38 +540,32 @@ final class OathWalletSession {
     func refresh() async throws {
         guard case .home(let current) = state else { return }
         let token = generation
+        var coordinating = false
         do {
-            // Independent ledgers update concurrently. A provider failure does
-            // not cancel successful work on another family of networks.
-            // Capture the refresh event immediately alongside provider work,
-            // so a long refresh does not postpone the durable history entry.
-            async let balanceEvent: Void = recordBalanceSnapshot(.refresh)
-            async let bitcoin: Result<Void, Error> = refreshBitcoinResult()
-            async let ankr: Result<Void, Error> = refreshAnkrResult()
-            let results = await (bitcoin, ankr)
-            await balanceEvent
-            guard token == generation, case .home(let active) = state, active.id == current.id else { return }
-            // Also save the committed result when a provider failed and left
-            // partial values. History failure must never fail a refresh.
-            await recordBalanceSnapshot(.balanceUpdate, settled: true)
-            try results.0.get(); try results.1.get()
-            // Refresh reads committed SQL state. Network providers must commit
-            // through the repository; they never mutate screen balances.
-            let updated = try await vault.reloadProfile()
-            guard token == generation, case .home(let active) = state,
-                  active.id == current.id else { return }
-            // An unchanged refresh must not rebuild the home hierarchy while
-            // UIKit is animating the refresh control back out of the scroll view.
-            if updated != active { publishHome(updated) }
-            let db = try await vault.database()
+            let database = try await vault.database()
             let currency = Locale.autoupdatingCurrent.currency?.identifier ?? "USD"
-            let snapshot = try await db.snapshot(walletID: updated.id.uuidString, currency: currency)
-            guard token == generation, case .home(let active) = state, active.id == updated.id else { return }
-            if portfolio != snapshot { portfolio = snapshot }
-            if observationCurrency != currency {
-                observePortfolio(database: db, walletID: updated.id, token: token, currency: currency)
-            }
-        } catch { OathDiagnostics.record(error);
+            ensurePortfolioObservation(database: database, walletID: current.id, token: token, currency: currency)
+            try await database.checkStorageForRefresh()
+            coordinating = true
+            try await portfolioRefresh.perform(work: {
+                async let balanceEvent: Void = recordBalanceSnapshot(.refresh)
+                async let bitcoin: Result<Void, Error> = refreshBitcoinResult()
+                async let ankr: Result<Void, Error> = refreshAnkrResult()
+                let results = await (bitcoin, ankr)
+                await balanceEvent
+                if token == generation { await recordBalanceSnapshot(.balanceUpdate, settled: true) }
+                return [BalanceRefreshOutcome(results.0), BalanceRefreshOutcome(results.1)]
+            }, read: {
+                try await database.snapshot(walletID: current.id.uuidString, currency: currency)
+            }, isCurrent: {
+                token == generation && isUnlocked && displayedProfile?.id == current.id
+            }, publish: { value in
+                try applyPortfolioSnapshot(value, walletID: current.id, token: token, database: database)
+                ensurePortfolioObservation(database: database, walletID: current.id, token: token, currency: currency)
+            })
+        } catch {
+            // Provider/reconciliation failures are reported at their owning boundary.
+            if !coordinating { OathDiagnostics.record(error, component: "portfolio_refresh", operation: "prepare") }
             guard token == generation, case .home = state else { return }
             throw error
         }
@@ -706,6 +707,13 @@ final class OathWalletSession {
               current.addresses.contains(where: { AnkrSynchronizer.supports(networkID: $0.chain.id) || $0.chain == .cronos || $0.chain == .story || $0.chain == .solana || $0.chain == .tron || $0.chain == .ton || $0.chain == .aptos || $0.chain == .sui || $0.chain == .thorchain || $0.chain == .near || $0.chain == .xrpl || $0.chain == .stellar || $0.chain == .polkadot || $0.chain == .robinhood || $0.chain == .arc || $0.chain == .hyperevm || $0.chain == .monad || $0.chain == .unichain || $0.chain == .celo || $0.chain == .chiliz || $0.chain == .filecoin || $0.chain == .sei || $0.chain == .zerog || $0.chain == .iotex }) else { return }
         let token = generation
         do {
+            let database = try await vault.database()
+            try await database.checkStorageForRefresh()
+            // Ankr inventories can omit unfunded native coins or their prices.
+            // Fetch their public quotes independently, including Telos/X Layer,
+            // on both initial Home load and pull-to-refresh. A ledger failure
+            // must not cancel otherwise usable market prices.
+            async let nativeQuotes: Void = refreshAnkrNativeQuotes(networkIDs: current.addresses.map { $0.chain.id })
             async let cronos: Result<Void, Error> = refreshCronosResult(walletID: current.id.uuidString)
             async let solana: Result<Void, Error> = refreshSolanaResult()
             async let evm: Result<Void, Error> = refreshEVMResult(walletID: current.id.uuidString)
@@ -732,6 +740,7 @@ final class OathWalletSession {
             async let arc: Result<Void, Error> = refreshArcResult()
             let results = await (solana, evm, tron, ton, aptos, sui, near, xrpl, stellar, robinhood, arc, hyperevm, monad, unichain, thorchain, celo, chiliz, polkadot, filecoin, sei, zerog, iotex, story)
             let cronosResult = await cronos
+            await nativeQuotes
             guard token == generation, !Task.isCancelled else { throw CancellationError() }
             // All chains have finished before propagating an original failure.
             // Successful chains keep their committed state even when another fails.
@@ -760,7 +769,20 @@ final class OathWalletSession {
     }
 
     private func refreshEVMResult(walletID: String) async -> Result<Void, Error> {
-        do { try await OathAnkrSync.shared.refresh(walletID: walletID); return .success(()) } catch { OathDiagnostics.record(error); return .failure(error) }
+        do { try await OathAnkrSync.shared.refresh(walletID: walletID); return .success(()) }
+        catch {
+            // Preserve failure and partial-balance UI state. The refreshAnkr,
+            // Result and automatic-refresh callers must not log this again.
+            return .failure(OathDiagnostics.recordedForPropagation(error))
+        }
+    }
+    private func refreshAnkrNativeQuotes(networkIDs: [String]) async {
+        let networks = networkIDs.filter { AnkrSynchronizer.supports(networkID: $0) }
+        guard !networks.isEmpty, !Task.isCancelled else { return }
+        await OathDiagnostics.attempt("refresh_native_quotes") {
+            let service = try await OathMarketEnvironment.shared.service()
+            await service.refreshNativeQuotes(networkIDs: networks)
+        }
     }
     private func refreshSolanaResult() async -> Result<Void, Error> {
         do { try await refreshSolana(); return .success(()) } catch { OathDiagnostics.record(error); return .failure(error) }
@@ -1302,7 +1324,7 @@ final class OathWalletSession {
         solanaWork?.cancel(); solanaWork = nil
         bitcoinWork?.cancel(); bitcoinWork = nil
         deletionTimer?.cancel(); deletionTimer = nil
-        databaseObservation?.cancel()
+        portfolioRefresh.stop()
         balanceSnapshotWork?.cancel(); balanceSnapshotWork = nil
         walletsObservation?.cancel()
         let vault = vault
@@ -1466,32 +1488,41 @@ final class OathWalletSession {
         }
     }
 
-    private func observePortfolio(database: OathDatabase, walletID: UUID, token: UUID, currency: String) {
-        databaseObservation?.cancel()
-        observationCurrency = currency
-        databaseObservation = Task { [weak self] in
-            do {
-                for try await value in database.observeWallet(walletID: walletID.uuidString, currency: currency) {
-                    guard let self, token == self.generation, case .home(let active) = self.state,
-                          active.id == walletID else { return }
-                    let previous = self.portfolio
-                    if previous != value { self.portfolio = value }
-                    self.observeBalanceDay(database: database, walletID: walletID.uuidString, currency: value.currency,
-                        interval: BalanceDaySummary.interval(containing: Date()), token: token)
-                    if previous?.currency != value.currency || previous?.totalFiat != value.totalFiat
-                        || previous?.valuationComplete != value.valuationComplete || previous?.holdings != value.holdings {
-                        self.scheduleBalanceSnapshot(token: token)
-                    }
-                    let updated = try OathWalletProfile.stored(value)
-                    if active != updated { self.publishHome(updated) }
-                }
-            } catch is CancellationError { }
-            catch { OathDiagnostics.record(error);
-                guard !Task.isCancelled, let self, token == self.generation else { return }
-                self.observationCurrency = nil
-                self.notice = .walletUnavailable
-            }
+    private func ensurePortfolioObservation(database: OathDatabase, walletID: UUID, token: UUID, currency: String) {
+        guard token == generation, isUnlocked, displayedProfile?.id == walletID else { return }
+        if !portfolioRefresh.isObserving || observationCurrency != currency {
+            observePortfolio(database: database, walletID: walletID, token: token, currency: currency)
         }
+    }
+
+    private func observePortfolio(database: OathDatabase, walletID: UUID, token: UUID, currency: String) {
+        observationCurrency = currency
+        portfolioRefresh.observe(stream: {
+            database.observeWallet(walletID: walletID.uuidString, currency: currency)
+        }, isCurrent: { [weak self] in
+            guard let self else { return false }
+            return token == self.generation && self.isUnlocked && self.displayedProfile?.id == walletID
+        }, publish: { [weak self] value in
+            try self?.applyPortfolioSnapshot(value, walletID: walletID, token: token, database: database)
+        }, exhausted: { [weak self] in
+            guard let self, token == self.generation else { return }
+            self.observationCurrency = nil
+            self.notice = .walletUnavailable
+        })
+    }
+
+    private func applyPortfolioSnapshot(_ value: WalletSnapshot, walletID: UUID, token: UUID, database: OathDatabase) throws {
+        guard token == generation, case .home(let active) = state, active.id == walletID else { return }
+        let previous = portfolio
+        if previous != value { portfolio = value }
+        observeBalanceDay(database: database, walletID: walletID.uuidString, currency: value.currency,
+                          interval: BalanceDaySummary.interval(containing: Date()), token: token)
+        if previous?.currency != value.currency || previous?.totalFiat != value.totalFiat
+            || previous?.valuationComplete != value.valuationComplete || previous?.holdings != value.holdings {
+            scheduleBalanceSnapshot(token: token)
+        }
+        let updated = try OathWalletProfile.stored(value)
+        if active != updated { publishHome(updated) }
     }
 
     private func publishHome(_ profile: OathWalletProfile) {
@@ -1565,7 +1596,7 @@ final class OathWalletSession {
         await OathAnkrSync.shared.cancel()
         generation = UUID()
         backgroundLock?.cancel(); backgroundLock = nil; lockPolicy.reset()
-        databaseObservation?.cancel(); databaseObservation = nil
+        portfolioRefresh.stop()
         balanceSnapshotWork?.cancel(); balanceSnapshotWork = nil
         walletsObservation?.cancel(); walletsObservation = nil
         walletWork?.cancel(); walletWork = nil

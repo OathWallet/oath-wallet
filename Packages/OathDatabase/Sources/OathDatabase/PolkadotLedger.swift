@@ -6,7 +6,7 @@ public struct PolkadotSyncTicket: Sendable { public let account: AccountRecord; 
 public struct PolkadotHistoryCursor: Sendable { public let page: Int; public let upperHeight: Int64; public let lowerHeight: Int64 }
 extension OathDatabase {
     public func beginPolkadotSync(accountID: String) async throws -> PolkadotSyncTicket {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard let account = try AccountRecord.fetchOne(db, key: accountID), account.networkID == "polkadot",
                   let wallet = try WalletRecord.fetchOne(db, key: account.walletID), wallet.deletedAt == nil else { throw StoreError.missingRecord }
             _ = try PolkadotIdentity.address(account.address)
@@ -40,7 +40,7 @@ extension OathDatabase {
               value.observedAt.timeIntervalSince1970.isFinite, value.holdings.count <= 10_000,
               value.holdings.filter({ $0.token.reference == "native" }).count == 1,
               Set(value.holdings.map(\.token.reference)).count == value.holdings.count else { throw StoreError.conflictingIdentity }
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validatePolkadot(ticket, db: db)
             let height = try Int64.fetchOne(db, sql: "SELECT height FROM polkadotSync WHERE accountID=?", arguments: [ticket.account.id]) ?? 0
             let time = try Double.fetchOne(db, sql: "SELECT observedAt FROM polkadotSync WHERE accountID=?", arguments: [ticket.account.id]) ?? 0
@@ -60,7 +60,7 @@ extension OathDatabase {
         }
     }
     public func polkadotHistoryCursor(_ ticket: PolkadotSyncTicket, stream: String, latestHeight: Int64) async throws -> PolkadotHistoryCursor {
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validatePolkadot(ticket, db: db, background: true)
             let row = try Row.fetchOne(db, sql: "SELECT * FROM polkadotHistory WHERE accountID=? AND stream=?", arguments: [ticket.account.id, stream])
             if let row {
@@ -75,7 +75,7 @@ extension OathDatabase {
     }
     public func commitPolkadotHistory(_ page: PolkadotHistoryPage, ticket: PolkadotSyncTicket, stream: String, currentPage: Int, advance: Bool) async throws {
         guard page.events.count <= 100, page.next == nil || page.next == currentPage + 1 else { throw StoreError.invalidValue("Polkadot page") }
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validatePolkadot(ticket, db: db, background: true)
             if advance {
                 let expected = try Int.fetchOne(db, sql: "SELECT page FROM polkadotHistory WHERE accountID=? AND stream=?", arguments: [ticket.account.id, stream]) ?? 0
@@ -122,7 +122,7 @@ extension OathDatabase {
         }
     }
     public func commitPolkadotPrices(_ prices: [PolkadotPrice], ticket: PolkadotSyncTicket) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validatePolkadot(ticket, db: db, background: true)
             for price in prices {
                 try Validation.price(price.usd)

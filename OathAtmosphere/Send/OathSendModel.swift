@@ -11,15 +11,24 @@ final class OathSendModel {
     struct ScannedAssetResolution: Identifiable {
         let id = UUID()
         let recipient: OathScannedRecipient
+        let accountID: String
     }
     private(set) var scannedAssetResolution: ScannedAssetResolution?
+    private(set) var scannedAssetUnavailable = false
+    private(set) var selectedSharedAccountID: String?
+    let sharedPayment: OathScannedRecipient?
+    private var sharedMemoReview = false
     /// An address-book entry fixes the picker network without guessing from
     /// address syntax (the same EVM address can belong to several networks).
     let initialRecipient: SendRecipient?
-    var walletID: String { didSet { if walletID != oldValue { xrplAccountClosure = nil; scannedAssetResolution = nil } } }
+    var walletID: String { didSet { if walletID != oldValue { xrplAccountClosure = nil; scannedAssetResolution = nil; selectedSharedAccountID = nil } } }
     var holdingID: String?
-    var path: [Step] = [] { didSet { if !path.isEmpty { scannedAssetResolution = nil } } }
+    var path: [Step] = [] { didSet {
+        if !path.isEmpty { scannedAssetResolution = nil }
+        if path.isEmpty && !oldValue.isEmpty { selectedSharedAccountID = nil }
+    } }
     var query = "" { didSet { if query != oldValue { scannedAssetResolution = nil } } }
+    var searchScope: OathAssetSearchScope = .all
     var address = "" { didSet { if address != oldValue { xrplAccountClosure = nil; pendingCatalogScan = nil; paymentNote = nil; solanaReferences = [] } } }
     var memo = "" { didSet { if memo != oldValue { xrplAccountClosure = nil; pendingCatalogScan = nil } } }
     var stellarMemoType: StellarSendMemoType = .text {
@@ -71,6 +80,7 @@ final class OathSendModel {
         fiatEntry = OathSendUnitPreference.isFiat(in: preferences)
         initialHoldingID = holdingID
         initialScan = scannedRecipient
+        sharedPayment = scannedRecipient?.sharedPaymentScope == nil ? nil : scannedRecipient
     }
 
     var recipientNetworks: Set<OathImportChain>? {
@@ -157,10 +167,11 @@ final class OathSendModel {
         return details
     }
 
-    /// Missing XRP/Stellar routing information needs an opportunity to edit.
+    /// Shared XRP/Stellar payments always offer tag/memo review, even when the
+    /// link supplied it. Standard URIs stop here only when that field is absent.
     /// Continue on Recipient remains explicit consent to send without a memo.
     func validateScannedRecipient() -> Bool {
-        validateRecipient() && !((supportsXrplSend || supportsStellarSend) && memo.isEmpty)
+        validateRecipient() && !((supportsXrplSend || supportsStellarSend) && (memo.isEmpty || sharedMemoReview))
     }
     var holdings: [Holding] {
         // WalletSnapshot already uses the shared AssetOrdering policy. Keep
@@ -168,8 +179,10 @@ final class OathSendModel {
         // and was repeated by every lazy row's separator check while scrolling.
         let words = query.split(whereSeparator: \.isWhitespace).map(String.init)
         return (snapshot?.holdings ?? []).filter { holding in
-            guard OathImportChain(rawValue: holding.networkID) != nil else { return false }
+            guard searchScope.includes(networkID: holding.networkID) else { return false }
             guard initialRecipient == nil || initialRecipient?.networkID == holding.networkID else { return false }
+            guard sharedPayment?.matchesAsset(networkID: holding.networkID, reference: holding.reference, symbol: holding.symbol) != false,
+                  selectedSharedAccountID == nil || holding.accountID == selectedSharedAccountID else { return false }
             return words.allSatisfy { word in
                 [holding.name, holding.symbol, holding.networkID, holding.reference].contains {
                     $0.localizedStandardContains(word)
@@ -260,8 +273,9 @@ final class OathSendModel {
 
     func selectWallet(_ id: String) {
         guard id != walletID else { return }
-        generation = UUID(); initialHoldingID = nil; initialSelectionPending = true; initialScan = nil; resetDraft()
-        snapshot = nil; query = ""; walletID = id
+        generation = UUID(); initialHoldingID = nil; initialSelectionPending = true; initialScan = sharedPayment
+        selectedSharedAccountID = nil; resetDraft()
+        snapshot = nil; query = ""; searchScope = .all; walletID = id
     }
 
     /// Resolve the opening route once, from persisted wallet data, before first
@@ -281,8 +295,8 @@ final class OathSendModel {
             return
         }
         if let scan {
-            guard scan.hasExactAsset,
-                  snapshot.accounts.filter({ account in scan.networks.contains(where: { $0.id == account.networkID }) }).count == 1 else { return }
+            let accounts = snapshot.accounts.filter { account in scan.networks.contains { $0.id == account.networkID } }
+            guard scan.hasExactAsset, accounts.count == 1, let account = accounts.first else { return }
             let matches = snapshot.holdings.filter {
                 scan.matchesAsset(networkID: $0.networkID, reference: $0.reference, symbol: $0.symbol)
             }
@@ -290,7 +304,7 @@ final class OathSendModel {
             if matches.count == 1, let item = matches.first {
                 startScannedSend(item, from: snapshot, recipient: scan)
             } else if matches.isEmpty, let reference = scan.token, reference != "native" {
-                scannedAssetResolution = .init(recipient: scan)
+                scannedAssetResolution = .init(recipient: scan, accountID: account.id)
             }
             return
         }
@@ -306,16 +320,52 @@ final class OathSendModel {
         choose(item, from: snapshot, scannedRecipient: scan)
     }
 
+    /// Accounts compatible with an exact shared asset; never infer the sender
+    /// when more than one account can fund the same payment.
+    var sharedPaymentAccounts: [AccountRecord] {
+        guard sharedPayment?.sharedPaymentScope == .asset, let sharedPayment else { return [] }
+        return (snapshot?.accounts ?? []).filter { account in sharedPayment.networks.contains { $0.id == account.networkID } }
+    }
+
+    var needsSharedPaymentAccount: Bool { sharedPaymentAccounts.count > 1 && selectedSharedAccountID == nil }
+
+    func selectSharedPaymentAccount(_ id: String) {
+        guard path.isEmpty, let snapshot, let request = sharedPayment,
+              sharedPaymentAccounts.contains(where: { $0.id == id }) else { return }
+        selectedSharedAccountID = id
+        let matches = snapshot.holdings.filter { $0.accountID == id && request.matchesAsset(networkID: $0.networkID, reference: $0.reference, symbol: $0.symbol) }
+        if matches.count == 1, let holding = matches.first {
+            startScannedSend(holding, from: snapshot, recipient: request)
+        } else { retrySharedPaymentAsset() }
+    }
+
+    func retrySharedPaymentAsset() {
+        guard let request = sharedPayment, request.sharedPaymentScope == .asset,
+              request.token != "native", path.isEmpty, let snapshot, snapshot.wallet.id == walletID,
+              let accountID = selectedSharedAccountID ?? (sharedPaymentAccounts.count == 1 ? sharedPaymentAccounts.first?.id : nil) else { return }
+        resetDraft()
+        scannedAssetResolution = .init(recipient: request, accountID: accountID)
+    }
+
+    func cancelScannedAssetResolution() { scannedAssetResolution = nil }
+
     /// Resolve an exact but unsaved asset once. Late metadata must never reopen
     /// a route after a manual selection, search, wallet change or cancellation.
-    func resolveScannedAsset(using resolve: @MainActor (OathScannedRecipient, WalletSnapshot) async -> (Holding, WalletSnapshot)?) async {
+    func resolveScannedAsset(using resolve: @MainActor (ScannedAssetResolution, WalletSnapshot) async -> (Holding, WalletSnapshot)?) async {
         guard let request = scannedAssetResolution, let snapshot, snapshot.wallet.id == walletID else { return }
-        let resolved = await resolve(request.recipient, snapshot)
+        let resolved = await resolve(request, snapshot)
         guard !Task.isCancelled, scannedAssetResolution?.id == request.id,
               walletID == snapshot.wallet.id, path.isEmpty, holdingID == nil else { return }
         scannedAssetResolution = nil
-        guard let (holding, updated) = resolved else { return }
-        startScannedSend(holding, from: updated, recipient: request.recipient)
+        guard let (holding, updated) = resolved, holding.accountID == request.accountID,
+              request.recipient.sharedPaymentScope != .asset || !holding.isCatalogPreview,
+              self.snapshot?.accounts.contains(where: { $0.id == request.accountID }) == true else {
+            // An absent/unsupported token is expected discovery input. Provider
+            // failures are reported by the existing shared lookup boundary.
+            scannedAssetUnavailable = true
+            return
+        }
+        scannedAssetUnavailable = !startScannedSend(holding, from: updated, recipient: request.recipient)
     }
 
     /// Catalog identity is enough for recipient entry. Amounts and signing
@@ -338,12 +388,14 @@ final class OathSendModel {
               recipient.matchesAsset(networkID: holding.networkID, reference: holding.reference, symbol: holding.symbol) else { return false }
         choose(holding, from: snapshot, scannedRecipient: recipient)
         guard holdingID == holding.id, !addressError, validateRecipient() else { return false }
-        // choose keeps XRP/Stellar on Recipient when their routing field is absent.
+        // choose preserves the explicit shared-payment memo review policy.
         return true
     }
 
     func choose(_ holding: Holding, scannedRecipient: OathScannedRecipient? = nil) {
         guard initialRecipient == nil || initialRecipient?.networkID == holding.networkID else { return }
+        guard sharedPayment?.matchesAsset(networkID: holding.networkID, reference: holding.reference, symbol: holding.symbol) != false,
+              selectedSharedAccountID == nil || selectedSharedAccountID == holding.accountID else { return }
         initialSelectionPending = false; initialHoldingID = nil; initialScan = nil
         resetDraft(); holdingID = holding.id; path = [.recipient]
         catalogPreview = holding.isCatalogPreview ? holding : nil
@@ -353,10 +405,11 @@ final class OathSendModel {
             // Known does not mean valid: preserve checksum, memo and self-send
             // rules. Invalid/stale entries remain on the recipient form.
             if validateRecipient() { path = [.amount] }
-        } else if var scannedRecipient, let chain {
+        } else if var scannedRecipient = scannedRecipient ?? sharedPayment, let chain {
             // A different explicitly selected asset can reuse the recipient,
             // but must never inherit another asset's amount or token identity.
             if !scannedRecipient.matchesAsset(networkID: holding.networkID, reference: holding.reference, symbol: holding.symbol) {
+                guard scannedRecipient.sharedPaymentScope != .asset else { return }
                 scannedRecipient.amount = nil; scannedRecipient.token = nil; scannedRecipient.tokenSymbol = nil; scannedRecipient.solanaReferences = []
             }
             if !receiveScan(scannedRecipient, chain: chain) {
@@ -393,6 +446,7 @@ final class OathSendModel {
             : OathSendRecipientRules.validMemo(decoded.memo ?? "", networkID: chain.rawValue) else { return false }
         address = decoded.address; memo = decoded.memo ?? ""; stellarMemoType = memoType; recipientName = nil
         paymentNote = result.displayNote; solanaReferences = result.solanaReferences
+        sharedMemoReview = result.requiresRecipientReview
         addressError = false; memoError = false
         if let scannedAmount { fiatEntry = false; amount = scannedAmount; maximumAmount = nil }
         pendingCatalogScan = holding.isCatalogPreview && result.amount != nil ? result : nil
@@ -402,7 +456,14 @@ final class OathSendModel {
     func setRecipient(_ entry: SendRecipient) {
         guard entry.networkID == holding?.networkID else { return }
         pendingCatalogScan = nil
-        address = entry.address; recipientName = entry.name; memo = ""; stellarMemoType = .text
+        // A saved destination includes its routing fields. Invalid/corrupt
+        // metadata must not become a payment with a silently omitted memo.
+        guard let routing = try? ContactRoutingMemo(networkID: entry.networkID, value: entry.memo ?? "", type: entry.memoType) else {
+            address = ""; memo = ""; memoError = true; recipientName = nil
+            return
+        }
+        address = entry.address; recipientName = entry.name; memo = routing.value
+        stellarMemoType = StellarSendMemoType(rawValue: routing.type ?? "text") ?? .text
         paymentNote = nil; solanaReferences = []
         addressError = false; memoError = false
     }
@@ -548,6 +609,8 @@ final class OathSendModel {
 
     private func resetDraft() {
         scannedAssetResolution = nil
+        scannedAssetUnavailable = false
+        sharedMemoReview = false
         catalogPreview = nil
         pendingCatalogScan = nil
         path = []; holdingID = nil; address = ""; memo = ""; stellarMemoType = .text; amount = ""

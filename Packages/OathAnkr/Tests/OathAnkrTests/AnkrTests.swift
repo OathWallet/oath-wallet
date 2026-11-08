@@ -26,9 +26,9 @@ final class AnkrTests: XCTestCase, @unchecked Sendable {
         try Data(contentsOf: XCTUnwrap(Bundle.module.url(forResource: chain.rawValue + "-" + method,
                                                         withExtension: "json", subdirectory: "Fixtures")))
     }
-    func testAllSeventeenActualResponseShapesDecodeAndKeepEveryOriginalByte() async throws {
+    func testSupportedResponseShapesDecodeAndKeepEveryOriginalByte() async throws {
         XCTAssertEqual(AnkrChain.allCases.count,17)
-        for chain in AnkrChain.allCases {
+        for chain in AnkrChain.allCases.filter(\.supportsAdvancedAPI) {
             for method in ["ankr_getAccountBalance","ankr_getTransactionsByAddress","ankr_getTokenTransfers"] {
                 let raw = try fixture(chain,method)
                 let transport = FixtureTransport(raw)
@@ -74,7 +74,7 @@ final class AnkrTests: XCTestCase, @unchecked Sendable {
         }
     }
     func testExplicitUnfilteredBalancesOnEveryPageAndSupportedChain() async throws {
-        for chain in AnkrChain.allCases {
+        for chain in AnkrChain.allCases.filter(\.supportsAdvancedAPI) {
             let transport = FixtureTransport(try fixture(chain, "ankr_getAccountBalance"))
             let client = try AnkrClient(apiKey: "fixture", transport: transport)
             for cursor in [nil, "next-inventory-page"] as [String?] {
@@ -117,9 +117,9 @@ final class AnkrTests: XCTestCase, @unchecked Sendable {
         }
     }
     func testTransientHTTPFailureRetriesAndPermanentFailureDoesNot() async throws {
-        let transport = FixtureTransport(try fixture(.story,"ankr_getAccountBalance"),statuses:[429,503,200])
-        let page = try await AnkrClient(apiKey:"fixture",transport:transport).balances(chain:.story,address:publicAddress)
-        XCTAssertTrue(page.value.assets.isEmpty)
+        let transport = FixtureTransport(try fixture(.eth,"ankr_getAccountBalance"),statuses:[429,503,200])
+        let page = try await AnkrClient(apiKey:"fixture",transport:transport).balances(chain:.eth,address:publicAddress)
+        XCTAssertFalse(page.value.assets.isEmpty)
         let requests = await transport.requests.count; XCTAssertEqual(requests,3)
         let denied = FixtureTransport(Data(),statuses:[401])
         do { _ = try await AnkrClient(apiKey:"fixture",transport:denied).balances(chain:.eth,address:publicAddress); XCTFail() }
@@ -127,13 +127,13 @@ final class AnkrTests: XCTestCase, @unchecked Sendable {
         let attempts = await denied.requests.count; XCTAssertEqual(attempts,1)
     }
     func testHTTP200TransientRPCErrorsRetryButAccessFailuresDoNot() async throws {
-        let data = try fixture(.story,"ankr_getAccountBalance")
+        let data = try fixture(.eth,"ankr_getAccountBalance")
         let transient = FixtureTransport(data,rpcErrors:[-32090,-32055])
-        _ = try await AnkrClient(apiKey:"fixture",transport:transient).balances(chain:.story,address:publicAddress)
+        _ = try await AnkrClient(apiKey:"fixture",transport:transient).balances(chain:.eth,address:publicAddress)
         let recovered = await transient.requests.count
         XCTAssertEqual(recovered,3)
         let denied = FixtureTransport(data,rpcErrors:[-32075])
-        do { _ = try await AnkrClient(apiKey:"fixture",transport:denied).balances(chain:.story,address:publicAddress); XCTFail() }
+        do { _ = try await AnkrClient(apiKey:"fixture",transport:denied).balances(chain:.eth,address:publicAddress); XCTFail() }
         catch { XCTAssertEqual(error as? AnkrError,.rpc(-32075)) }
         let failed = await denied.requests.count
         XCTAssertEqual(failed,1)
@@ -144,7 +144,7 @@ final class AnkrTests: XCTestCase, @unchecked Sendable {
         let config = try PropertyListSerialization.propertyList(from: Data(contentsOf: URL(fileURLWithPath:path)),format:nil) as! [String:Any]
         let client = try AnkrClient(apiKey: XCTUnwrap(config["AnkrAPIKey"] as? String))
         try await withThrowingTaskGroup(of: Void.self) { group in
-            for chain in AnkrChain.allCases {
+            for chain in AnkrChain.allCases.filter(\.supportsAdvancedAPI) {
                 group.addTask {
                     var cursor: String?
                     var visited: Set<String> = []
@@ -175,7 +175,7 @@ final class AnkrTests: XCTestCase, @unchecked Sendable {
         let config = try PropertyListSerialization.propertyList(from: Data(contentsOf: URL(fileURLWithPath:path)),format:nil) as! [String:Any]
         let client = try AnkrClient(apiKey: XCTUnwrap(config["AnkrAPIKey"] as? String))
         try await withThrowingTaskGroup(of: Void.self) { group in
-            for chain in AnkrChain.allCases {
+            for chain in AnkrChain.allCases.filter(\.supportsAdvancedAPI) {
                 group.addTask {
                     async let balance = client.balances(chain:chain,address:publicAddress)
                     async let transactions = client.transactions(chain:chain,address:publicAddress,pageSize:2)
@@ -209,7 +209,6 @@ final class AnkrTests: XCTestCase, @unchecked Sendable {
         let recent: [(AnkrChain,String)] = [
             (.flare,"0x85d134f68c3c564bb935479490e5c8df5f4f1124"),
             (.somnia,"0xf47b84e40c13b6bbd35721f458c98f4fdf96a9b8"),
-            (.story,"0xd2f6a17b5842f783039247b038cbc1294c4facf4"),
             (.linea,"0xb01caea8c6c47bbf4f4b4c5080ca642043359c2e"),
             (.taiko,"0x0000777735367b36bc9b61c50022d9d0700db4ec"),
             (.telos,"0xBAb93B7ad7fE8692A878B95a8e689423437cc500")

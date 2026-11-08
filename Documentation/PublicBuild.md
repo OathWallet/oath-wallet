@@ -1,6 +1,6 @@
 # Public build configuration
 
-Version: 5.0.2 (104). Scheme: `OathAtmosphere`. Product: `Oath Wallet`.
+Version: 5.0.3 (105). Scheme: `OathAtmosphere`. Product: `Oath Wallet`.
 
 Run `sh Tools/PreparePublicBuild.sh` before the first build. It creates an empty
 `OathApp/Private/TokenRPC.plist` only when one does not exist. This directory is
@@ -50,3 +50,15 @@ Reviewed scanner matches are recorded with exact fingerprints and file hashes in
 changed exception file until it is reviewed again; it does not disable rules for a
 whole folder. These checks supplement review and do not prove absence of every
 possible secret or vulnerability.
+
+## Host validation
+
+`Tools/CheckPackageHost.py` runs the Swift package tests on macOS and gives
+suites that configure a custom diagnostics recorder separate processes. Use it
+with `OathAnkr`, `OathDatabase`, `OathMarketData`, or `OathBitcoin`. It does not
+enable the opt-in live-network tests or launch a simulator.
+
+Additional focused checks cover browser navigation (`Tools/CheckBrowser.py`),
+transaction review presentation (`Tools/CheckReviewLocalization.py`), and all
+enabled-chain refresh paths (`Tools/CheckBalanceRefresh.py`). A generic iOS
+build checks the native app integration without launching a device.

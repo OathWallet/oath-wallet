@@ -12,7 +12,7 @@ with tempfile.TemporaryDirectory(prefix="oath-receive-selection-") as temporary:
     work = Path(temporary)
     source = work / "Sources/ReceiveChecks"
     source.mkdir(parents=True)
-    for file in ["Home/OathReceiveAsset.swift", "Home/OathReceiveQRCode.swift", "Import/OathImportCatalog.swift"]:
+    for file in ["Tokens/OathAssetSearchScope.swift", "Home/OathReceiveAsset.swift", "Home/OathReceiveQRCode.swift", "Import/OathImportCatalog.swift"]:
         shutil.copyfile(root / "OathAtmosphere" / file, source / Path(file).name)
     # Compile the real value type without the unrelated iOS-only WalletCore engine.
     engine = (root / "OathAtmosphere/Wallet/OathWalletEngine.swift").read_text()

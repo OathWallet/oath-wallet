@@ -52,19 +52,21 @@ public struct IndexedEVMClient: Sendable {
         for attempt in 0..<3 {
             try Task.checkCancellation()
             do {
-                let (data, status) = try await transport.send(request)
+                let (data, status) = try await transport.sendPreservingTransportError(request)
                 guard data.count <= 64 * 1024 * 1024 else { throw AnkrError.responseTooLarge }
                 guard status == 200 else { throw AnkrError.http(status) }
                 return Exchange(value: try JSONDecoder().decode(SolanaJSON.self, from: data), raw: data)
-            } catch { OathDiagnostics.record(error);
+            } catch {
+                if error is CancellationError || Task.isCancelled || (error as? URLError)?.code == .cancelled { throw CancellationError() }
+                OathDiagnostics.record(error, operation: "indexed_read", context: ["chain": chain.rawValue, "host": request.url?.host ?? ""])
                 let retry: Bool
                 switch error {
                 case AnkrError.http(let code): retry = code == 429 || (500...599).contains(code)
-                case AnkrError.transport: retry = true
-                default: retry = false
+                default: retry = AnkrReadRetry.transientTransport(error)
                 }
                 if retry, attempt < 2 { try await Task.sleep(for: .milliseconds(500 * (1 << attempt))); continue }
                 if error is CancellationError || Task.isCancelled { throw CancellationError() }
+                if error is URLError { throw AnkrError.transport }
                 throw (error as? AnkrError) ?? .invalidResponse
             }
         }
@@ -367,30 +369,39 @@ public struct IndexedEVMClient: Sendable {
                 guard next < chunks.count else { return }
                 let chunk = chunks[next]; next += 1
                 group.addTask {
-                    var calls: [(String, [SolanaJSON])] = []
-                    for token in chunk {
-                        if token.reference == "native" { calls.append(("eth_getBalance", [.string(owner), .string(blockNumber)])) }
-                        else {
-                            calls.append(("eth_call", [.object(["to": .string(token.reference), "data": .string(body)]), .string(blockNumber)]))
-                            calls.append(("eth_call", [.object(["to": .string(token.reference), "data": .string("0x313ce567")]), .string(blockNumber)]))
+                    do {
+                        var calls: [(String, [SolanaJSON])] = []
+                        for token in chunk {
+                            if token.reference == "native" { calls.append(("eth_getBalance", [.string(owner), .string(blockNumber)])) }
+                            else {
+                                calls.append(("eth_call", [.object(["to": .string(token.reference), "data": .string(body)]), .string(blockNumber)]))
+                                calls.append(("eth_call", [.object(["to": .string(token.reference), "data": .string("0x313ce567")]), .string(blockNumber)]))
+                            }
                         }
-                    }
-                    let (rows, raw) = try await pinnedReader.rpc(calls)
-                    var i = 0, holdings: [IndexedEVMHolding] = []
-                    for token in chunk {
-                        // Keep the native RPC error intact so an unavailable
-                        // IoTeX state snapshot can restart on the official node.
-                        var amount: String?
-                        if chain == .iotex, token.reference == "native" { amount = try IndexedEVMIdentity.amount(Self.result(rows[i])) }
-                        else { amount = OathDiagnostics.attempt("balance_call") { try IndexedEVMIdentity.amount(Self.result(rows[i])) } }
-                        i += 1
-                        if token.reference != "native" {
-                            let decimals = OathDiagnostics.attempt("token_decimals") { try IndexedEVMIdentity.amount(Self.result(rows[i])) }; i += 1
-                            if decimals != String(token.decimals) { amount = nil }
+                        let (rows, raw) = try await pinnedReader.rpc(calls)
+                        var i = 0, holdings: [IndexedEVMHolding] = []
+                        for token in chunk {
+                            // Keep the native RPC error intact so an unavailable
+                            // IoTeX state snapshot can restart on the official node.
+                            var amount: String?
+                            if chain == .iotex, token.reference == "native" { amount = try IndexedEVMIdentity.amount(Self.result(rows[i])) }
+                            else { amount = OathDiagnostics.attempt("balance_call") { try IndexedEVMIdentity.amount(Self.result(rows[i])) } }
+                            i += 1
+                            if token.reference != "native" {
+                                let decimals = OathDiagnostics.attempt("token_decimals") { try IndexedEVMIdentity.amount(Self.result(rows[i])) }; i += 1
+                                if decimals != String(token.decimals) { amount = nil }
+                            }
+                            holdings.append(.init(token: token, amount: amount))
                         }
-                        holdings.append(.init(token: token, amount: amount))
+                        return (holdings, raw)
+                    } catch {
+                        // A failed token-only batch must not discard successful
+                        // native/other batches. The native batch retains the
+                        // existing snapshot recovery and fallback behavior.
+                        guard !Task.isCancelled, !(error is CancellationError), !chunk.contains(where: { $0.reference == "native" }) else { throw error }
+                        OathDiagnostics.record(error, operation: "inventory_token_batch")
+                        return (chunk.map { .init(token: $0, amount: nil) }, Data())
                     }
-                    return (holdings, raw)
                 }
             }
             for _ in 0..<min(4, chunks.count) { enqueue() }

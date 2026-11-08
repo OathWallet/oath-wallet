@@ -114,6 +114,8 @@ import GRDB
 
     func testSynchronizerPublishesBalancesPricesHistoryAndRetainsOfflineCache() async throws {
         let (db, folder) = try await fixture()
+            let publication = RefreshPublicationProbe(db, wallet: "w1")
+            defer { publication.stop() }
         defer { try? FileManager.default.removeItem(at: folder) }
         let transport = SolanaIntegrationTransport(owner: phantom.address, mint: mint, token: token1)
         let client = try SolanaClient(apiKey: "fixture", transport: transport)
@@ -135,7 +137,10 @@ import GRDB
         XCTAssertEqual(entries.count, 1)
         XCTAssertEqual(entries.first?.amountAtomic, "500000")
         XCTAssertEqual(entries.first?.direction, "incoming")
-        await sync.cancel()
+        XCTAssertEqual(entries.first?.timestamp, 1_700_000_000, "History must retain RPC Unix seconds instead of floating-point bits")
+        try await publication.expect(amount: "2000000000", network: "solana")
+            try await publication.expect(mint, amount: "123454321", network: "solana")
+            await sync.cancel()
         await transport.goOffline()
         do { try await sync.refresh(accountID: "a1"); XCTFail("Offline refresh must fail instead of replacing balances") }
         catch { }

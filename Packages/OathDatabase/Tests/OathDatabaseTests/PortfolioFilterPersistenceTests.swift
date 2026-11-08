@@ -25,7 +25,7 @@ import GRDB
         var selection = PortfolioFilter()
         selection.hidesZeroBalances = true; selection.hidesUnverifiedTokens = false
         selection.groupsTokensByChain = true
-        selection.onlyWithActivity = true; selection.sort = .highestValue; selection.kind = .tokens
+        selection.sort = .highestValue; selection.kind = .tokens
         selection.networkIDs = ["ethereum", "solana"]; selection.minimumValue = 1.25
         selection.maximumValue = 500; selection.rangeCurrency = "USD"
         try await store.savePortfolioFilter(selection, walletID: "first")
@@ -44,6 +44,37 @@ import GRDB
         try await reopened.savePortfolioFilter(.init(), walletID: "first")
         let reset = try await store.portfolioFilter(walletID: "first")
         XCTAssertEqual(reset, .init())
+    }
+
+    func testRetiredActivityFilterDoesNotHideAssetsOrResetOtherSavedPreferences() async throws {
+        let (store, url) = try await fixture()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        var selection = PortfolioFilter()
+        selection.groupsTokensByChain = true
+        selection.hidesZeroBalances = true
+        selection.kind = .coins
+        selection.networkIDs = ["ethereum"]
+        var legacy = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(selection)) as? [String: Any])
+        legacy["onlyWithActivity"] = true
+        let data = try JSONSerialization.data(withJSONObject: legacy)
+        try await store.pool.write { db in
+            try db.execute(sql: "INSERT INTO walletPortfolioFilters(walletID,selection,hidesUnverifiedTokens) VALUES('first',?,1)", arguments: [data])
+        }
+
+        let snapshot = try await store.snapshot(walletID: "first", currency: "USD")
+        XCTAssertEqual(snapshot.assetFilter, selection)
+        XCTAssertEqual(snapshot.assetFilter.activeCount, 3)
+        let visible = snapshot.assetFilter.applying(to: snapshot.holdings, currency: "USD")
+        XCTAssertEqual(visible.map(\.assetID), ["ethereum:native"])
+        XCTAssertEqual(visible.first?.transactionCount, 0)
+        try await store.savePortfolioFilter(snapshot.assetFilter, walletID: "first")
+        let saved = try await store.pool.read { db in
+            try Data.fetchOne(db, sql: "SELECT selection FROM walletPortfolioFilters WHERE walletID='first'")
+        }
+        let fields = try XCTUnwrap(JSONSerialization.jsonObject(with: XCTUnwrap(saved)) as? [String: Any])
+        XCTAssertNil(fields["onlyWithActivity"])
+        let restored = try await store.portfolioFilter(walletID: "first")
+        XCTAssertEqual(restored, selection)
     }
 
     func testAllChainInventoriesRevealAndRehideWithoutChangingVerificationOrOtherWallet() async throws {

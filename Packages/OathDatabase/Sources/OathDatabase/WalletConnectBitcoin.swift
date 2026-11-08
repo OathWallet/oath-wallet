@@ -104,7 +104,7 @@ extension OathDatabase {
         try BitcoinConnectSigning.verify(signed,plan:plan)
         guard let hash = signed.txid, plan.request.broadcasts else { throw BitcoinConnectError.changed }
         let planData = try JSONEncoder().encode(plan), signedData = try JSONEncoder().encode(signed)
-        return try await pool.write { db in
+        return try await storageWrite { db in
             if let old = try WalletConnectBitcoinSubmission.fetchOne(db,key:id) {
                 guard old.walletID == walletID, old.accountID == accountID, old.fingerprint == plan.request.fingerprint, try old.decoded().1 == signed else { throw BitcoinConnectError.changed }
                 return old
@@ -133,7 +133,7 @@ extension OathDatabase {
         }
     }
     public func settleWalletConnectBitcoin(_ id: String, status: BitcoinConnectClient.Status) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var row = try WalletConnectBitcoinSubmission.fetchOne(db,key:id), row.state != "confirmed",
                   !(row.state == "accepted" && status == .unknown) else { return }
             row.state = status.rawValue; try row.update(db)

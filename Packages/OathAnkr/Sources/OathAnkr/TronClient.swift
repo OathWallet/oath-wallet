@@ -27,6 +27,7 @@ public actor TronClient {
         let publicRequest = index || network == .mainnet && url.host == network.endpoint.host
         let gate = publicRequest ? indexPermit : permits
         try await gate.acquire()
+        var failureReported = false
         do {
             var req = URLRequest(url: url)
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -40,7 +41,7 @@ public actor TronClient {
                     lastIndex = .now
                 }
                 do {
-                    let (data, status) = try await transport.send(req)
+                    let (data, status) = try await transport.sendPreservingTransportError(req)
                     guard status == 200 else { throw TronError.http(status) }
                     guard data.count <= 32 * 1024 * 1024 else { throw TronError.malformed }
                     let value = try JSONDecoder().decode(TronJSON.self, from: data)
@@ -48,22 +49,27 @@ public actor TronClient {
                     await gate.release(); return value
                 } catch {
                     if error is CancellationError || Task.isCancelled || (error as? URLError)?.code == .cancelled { throw CancellationError() }
+                    failureReported = true
                     OathDiagnostics.record(error, component: "provider", operation: "tron_read",
                         context: ["chain": "tron", "host": url.host ?? "", "attempt": String(attempt + 1)])
                     let retry: Bool
                     switch error { case TronError.http(let c): retry = c == 429 || c >= 500
-                    case AnkrError.transport: retry = true
-                    default: retry = false }
+                    default: retry = AnkrReadRetry.transientTransport(error) }
                     if retry && attempt < 2 { try await Task.sleep(for: .seconds(index ? 6 * (1 << attempt) : 1 << attempt)); continue }
                     if error is CancellationError || Task.isCancelled { throw CancellationError() }
                     if let error = error as? TronError { throw error }
                     if error is DecodingError { throw TronError.malformed }
+                    if error is URLError { throw TronError.transport }
                     if case AnkrError.transport = error { throw TronError.transport }
                     throw error
                 }
             }
             throw TronError.transport
-        } catch { OathDiagnostics.record(error); await gate.release(); throw error }
+        } catch {
+            // Only pre-request preparation failures lack an owning report.
+            if !failureReported { OathDiagnostics.record(error) }
+            await gate.release(); throw error
+        }
     }
     public func verifyNetwork() async throws {
         if verified { return }
@@ -228,8 +234,7 @@ public actor TronClient {
     }
     public func inventory(owner: String, additionalTokens: [String] = []) async throws -> TronInventory {
         _ = try TronIdentity.bytes(owner); try await verifyNetwork()
-        // A late response may still contain state read before a send. Use the
-        // start of this inventory request, not its completion, for freshness.
+        // A late response can still contain state read before a send.
         let observedAt = Date.now
         async let state = post("wallet/getaccount", ["address": .string(owner), "visible": .bool(true)])
         async let discovery = await OathDiagnostics.attempt("token_discovery") { try await indexed(owner) }

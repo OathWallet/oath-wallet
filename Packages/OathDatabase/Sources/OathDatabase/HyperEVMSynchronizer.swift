@@ -50,13 +50,18 @@ public actor HyperEVMSynchronizer {
             let ticket = try await database.beginHyperEVMSync(accountID: accountID)
             guard generation == self.epoch, !Task.isCancelled else { throw CancellationError() }
             self.startHistory(ticket)
+            var failureContext: [String: String] = [:]
             do {
                 let tracked = try await database.knownHyperEVMTokens(accountID: accountID)
                 async let inventory = client.inventory(owner: ticket.account.address, tracked: tracked)
                 async let native = await OathDiagnostics.attempt("native_price") { try await markets.nativePrice() }
-                let catalog = await self.catalog()
+                async let freshCatalog = self.catalog()
+                let cachedCatalog: HyperEVMCatalog = await database.refreshCatalog(key: "hyperevm.catalog", fallback: .empty)
                 let value = try await inventory; try Task.checkCancellation()
-                try await database.commitHyperEVMInventory(value, ticket: ticket, catalog: catalog)
+                try await database.commitHyperEVMInventory(value, ticket: ticket, catalog: cachedCatalog)
+                let catalog = await freshCatalog
+                try Task.checkCancellation()
+                try await database.applyRefreshCatalog(account: ticket.account, runID: ticket.runID) { catalog.contains($0.reference) }
                 if let price = await native { try await Self.save([price], database: database) }
                 let refs = value.holdings.filter { $0.token.reference != "native" && $0.amount != "0" }.map { $0.token.reference }.sorted()
                 await withTaskGroup(of: Void.self) { group in
@@ -77,11 +82,25 @@ public actor HyperEVMSynchronizer {
                     enqueue(); enqueue(); for await _ in group { enqueue() }
                 }
                 try Task.checkCancellation()
-            } catch { OathDiagnostics.record(error); await OathDiagnostics.attempt("failHyperEVMSync", body: { try await database.failHyperEVMSync(ticket, code: Self.code(error)) }); throw error }
+                if !value.complete {
+                    failureContext = ["stage": "inventory", "reason": value.holdings.contains { $0.amount == nil } ? "balance_unavailable" : "discovery_incomplete"]
+                    throw BalanceRefreshError.incomplete
+                }
+            } catch {
+                // Provider recovery has finished. Preserve its terminal cause
+                // through cleanup and wallet callers without repeating this report.
+                let reported = OathDiagnostics.recordedForPropagation(error, context: failureContext)
+                await OathDiagnostics.attempt("failHyperEVMSync", body: { try await database.failHyperEVMSync(ticket, code: Self.code(error)) })
+                throw reported
+            }
         }
         flights[accountID] = (id,task)
         do { try await task.value; if flights[accountID]?.0 == id { flights[accountID] = nil } }
-        catch { OathDiagnostics.record(error); if flights[accountID]?.0 == id { flights[accountID] = nil }; throw error }
+        catch {
+            if flights[accountID]?.0 == id { flights[accountID] = nil }
+            // Preparation can fail before the inner boundary acquires a ticket.
+            throw OathDiagnostics.recordedForPropagation(error)
+        }
     }
     private static func save(_ prices: [HyperEVMPrice], database: OathDatabase) async throws {
         for quote in prices {
@@ -136,6 +155,7 @@ public actor HyperEVMSynchronizer {
     public func waitForHistory(accountID: String) async { await histories[accountID]?.value }
     private static func code(_ error: Error) -> String {
         if error is CancellationError { return "cancelled" }
+        if error as? BalanceRefreshError == .incomplete { return "incompleteInventory" }
         if let error = error as? AnkrError { return String(describing: error) }; return "storage"
     }
     public func cancel() async {

@@ -33,7 +33,7 @@ private actor SuiCheckpointFloorFeed: AnkrTransport {
                 "address": .string(mode == "wrongOwner" ? "0x9999" : owner),
                 "balances": .object([
                     "nodes": .array([.object(["coinType": .object(["repr": .string(SuiIdentity.coin)]),
-                                              "totalBalance": .string("42"), "coinBalance": .string("42"), "addressBalance": .string("0")])]),
+                                              "totalBalance": .string("42"), "coinBalance": .string("42"), "addressBalance": .string("0")]), .object(["coinType": .object(["repr": .string("0xab::coin::COIN")]), "totalBalance": .string("50"), "coinBalance": .string("50"), "addressBalance": .string("0")])]),
                     "pageInfo": .object(["hasNextPage": .bool(false), "endCursor": .null])])])
         } else if query.contains("transactions") {
             value["transactions"] = .object(["edges": .array([]), "pageInfo": .object([
@@ -49,14 +49,17 @@ extension SuiLedgerTests {
     func testRefreshCannotGoBehindPersistedCheckpointWhenProviderHeadRegresses() async throws {
         for (head, mode): (Int64, String) in [(50, ""), (50, "fallback"), (150, "")] {
             let (db, folder) = try await fixture()
+            let publication = RefreshPublicationProbe(db, wallet: "w1")
+            defer { publication.stop() }
             defer { try? FileManager.default.removeItem(at: folder) }
             let saved = try await db.beginSuiSync(accountID: "a1")
             try await db.commitSuiInventory(inventory(time: 100), ticket: saved, catalog: catalog)
             let feed = SuiCheckpointFloorFeed(owner: owner, head: head, mode: mode)
-            let reopened = try await OathDatabase.open(at: folder.appendingPathComponent("wallet.sqlite"))
-            let sync = SuiSynchronizer(database: reopened, client: try SuiClient(apiKey: "fixture", transport: feed), markets: SuiMarkets(transport: feed))
+            let sync = SuiSynchronizer(database: db, client: try SuiClient(apiKey: "fixture", transport: feed), markets: SuiMarkets(transport: feed))
             do { try await sync.refresh(accountID: "a1") }
             catch { XCTFail("A lagging head must recover at the saved checkpoint: \(error)") }
+            try await publication.expect(amount: "42", network: "sui")
+            try await publication.expect(ref, amount: "50", network: "sui")
             await sync.cancel()
             let result = try await db.suiInventory(accountID: "a1")
             XCTAssertEqual(result?.checkpoint, max(100, head))

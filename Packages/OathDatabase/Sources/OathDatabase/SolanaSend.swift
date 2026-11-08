@@ -37,7 +37,7 @@ extension OathDatabase {
     /// serialized; independent quote reads may run concurrently.
     public func queueSolanaSend(sendID:String,plan:SolanaSendPlan) async throws {
         try plan.validate();guard plan.network == .mainnet else { throw SolanaSendError.wrongNetwork }
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send=try SendRecord.fetchOne(db,key:sendID),send.state=="draft",send.networkID=="solana",
                   let account=try AccountRecord.fetchOne(db,key:send.accountID),account.walletID==send.walletID,account.networkID=="solana",
                   try Self.solanaOwner(account,db:db)==plan.sender,
@@ -52,7 +52,7 @@ extension OathDatabase {
         try await pool.read { db in try Data.fetchOne(db,sql:"SELECT plan FROM solanaSendPlans WHERE sendID=?",arguments:[sendID]).map { try JSONDecoder().decode(SolanaSendPlan.self,from:$0) } }
     }
     public func journalSolanaSignature(sendID:String,signed:SolanaSignedSend) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send=try SendRecord.fetchOne(db,key:sendID),send.state=="queued",send.networkID=="solana",
                   let raw=try Data.fetchOne(db,sql:"SELECT plan FROM solanaSendPlans WHERE sendID=?",arguments:[sendID]) else { throw StoreError.invalidTransition }
             let plan=try JSONDecoder().decode(SolanaSendPlan.self,from:raw);try plan.validate()
@@ -70,7 +70,7 @@ extension OathDatabase {
     }
     public func settleSolanaSend(sendID:String,receipt:SolanaSendReceipt) async throws {
         guard receipt.outcome != .unknown else { return }
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send=try SendRecord.fetchOne(db,key:sendID),send.networkID=="solana",["signed","broadcast","confirmed","failed"].contains(send.state),send.transactionID=="solana:"+receipt.hash,
                   let payload=send.signedPayload,let raw=try Data.fetchOne(db,sql:"SELECT plan FROM solanaSendPlans WHERE sendID=?",arguments:[sendID]) else { throw StoreError.invalidTransition }
             let plan=try JSONDecoder().decode(SolanaSendPlan.self,from:raw),signed=try JSONDecoder().decode(SolanaSignedSend.self,from:payload)

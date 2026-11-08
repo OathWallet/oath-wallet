@@ -1535,6 +1535,28 @@ enum Schema {
         migrations.registerMigration("v107_solana_unix_timestamps") { db in
             try SolanaTimestampRepair.migrate(db)
         }
+        migrations.registerMigration("v108_contact_routing_memos") { db in
+            try db.alter(table: "contactAddresses") {
+                $0.add(column: "memo", .text)
+                $0.add(column: "memoType", .text)
+            }
+        }
+        migrations.registerMigration("v109_unpriced_ankr_native_quotes") { db in
+            // Older inventory refreshes stored an unavailable native price as
+            // zero. Such rows can hide a newer fetch whose actual provider
+            // observation predates that zero. Repair only this invalid cache;
+            // keep balances, transactions and all positive observations intact.
+            try db.execute(sql: """
+                DELETE FROM prices WHERE source='ankr' AND currency='USD'
+                  AND replace(replace(value,'0',''),'.','')=''
+                  AND assetID IN (SELECT id FROM assets WHERE reference='native')
+                """)
+        }
+        migrations.registerMigration("v110_thorchain_protocol_history") { db in
+            // Visibility-only migration: no wallet or ledger records change.
+            try db.execute(sql: "DROP VIEW visibleActivity")
+            try HistorySafety.createVisibilityView(db, indexedMetadata: true, thorchainActions: true)
+        }
         return migrations
     }
 }

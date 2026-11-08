@@ -11,6 +11,9 @@ import OathAnkr
         func check(_ value:Bool,_ reason:String) { precondition(value,reason); checks += 1 }
         let evmChains=OathImportChain.allCases.filter { $0.isEVM && $0 != .arc }
         check(Set(evmChains.map(\.rawValue))==Set(EVMSendNetwork.allCases.filter{!$0.isTestnet && $0 != .arc}.map(\.rawValue)),"Every EVM catalog chain has a send adapter")
+        check(!OathImportChain.cronos.isEnabled, "Cronos is temporarily disabled")
+        check(!OathPrivateKeyChoice.evm.networks.contains(.cronos), "Import choices omit Cronos")
+        check(OathTokenNetwork.find(.cronos) == nil, "Token discovery omits Cronos")
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("EVMVault-"+UUID().uuidString)
         defer { try? FileManager.default.removeItem(at:folder) }
         let db = try await OathDatabase.open(at:folder.appendingPathComponent("wallet.sqlite"))

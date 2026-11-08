@@ -4,6 +4,25 @@ import OathDatabase
 
 /// Opt-in host tests: no simulator, wallet address, credential or balance RPC.
 @MainActor final class MarketLiveTests: XCTestCase {
+    func testLiveEthereumChartThroughServiceAndPersistentCache() async throws {
+        guard ProcessInfo.processInfo.environment["OATH_ETH_CHART_LIVE"] == "1" else {
+            throw XCTSkip("Opt-in public Ethereum chart check")
+        }
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("oath-eth-chart-" + UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let url = folder.appendingPathComponent("test.sqlite")
+        let database = try await OathDatabase.open(at: url)
+        let asset = MarketAsset(id: "ethereum:native", networkID: "ethereum", reference: "native", decimals: 18)
+        let chart = try await MarketDataService(database: database).chart(for: asset)
+        XCTAssertGreaterThanOrEqual(chart.value.points.count, 20)
+        XCTAssertTrue(chart.value.points.allSatisfy { $0.close.isFinite && $0.close > 0 })
+        XCTAssertEqual(chart.value.points.map(\.time), chart.value.points.map(\.time).sorted())
+        let reopened = try await OathDatabase.open(at: url)
+        let persisted = try await MarketDataService(database: reopened, transport: Offline()).cachedChart(for: asset)
+        XCTAssertEqual(persisted?.value, chart.value)
+        print("ETH_CHART_LIVE decoded and retained \(chart.value.points.count) positive chronological points")
+    }
+
     func testNativeProviderCoverageAndKeylessInformationWithPersistentFallback() async throws {
         guard ProcessInfo.processInfo.environment["OATH_MARKET_LIVE"] == "1" else { throw XCTSkip("Opt-in public provider test") }
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("oath-market-live-" + UUID().uuidString)
@@ -29,9 +48,9 @@ import OathDatabase
                 quotes += 1
                 print("OATH_MARKET_LIVE_QUOTE \(network) \(mapping.coinbase) validated")
             } catch {
-                // These three identities have no Coinbase USD spot listing.
-                // Never silently substitute GNO for xDAI, or a matching ticker.
-                guard ["XDAI", "TLOS", "OKB"].contains(mapping.coinbase), error as? MarketDataError == .notListed else { throw error }
+                // Never silently substitute GNO for xDAI. TLOS and OKB have
+                // exact-identity public quotes and must no longer be exempted.
+                guard mapping.coinbase == "XDAI", error as? MarketDataError == .notListed else { throw error }
                 print("OATH_MARKET_LIVE_NOT_LISTED \(network) \(mapping.coinbase)")
             }
         }

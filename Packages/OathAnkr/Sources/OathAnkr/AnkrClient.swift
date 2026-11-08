@@ -4,6 +4,10 @@ import Foundation
 public protocol AnkrTransport: Sendable {
     func send(_ request: URLRequest) async throws -> (Data, Int)
     func sendResponse(_ request: URLRequest) async throws -> AnkrHTTPResponse
+    /// The Advanced API owns retry classification and reports the original
+    /// transport error before converting it to its public domain error.
+    func sendPreservingTransportError(_ request: URLRequest) async throws -> (Data, Int)
+    func sendResponsePreservingTransportError(_ request: URLRequest) async throws -> AnkrHTTPResponse
 }
 public struct AnkrHTTPResponse: Sendable {
     public let data: Data
@@ -14,6 +18,12 @@ public struct AnkrHTTPResponse: Sendable {
     }
 }
 extension AnkrTransport {
+    public func sendResponsePreservingTransportError(_ request: URLRequest) async throws -> AnkrHTTPResponse {
+        try await sendResponse(request)
+    }
+    public func sendPreservingTransportError(_ request: URLRequest) async throws -> (Data, Int) {
+        try await send(request)
+    }
     public func sendResponse(_ request: URLRequest) async throws -> AnkrHTTPResponse {
         let (data, status) = try await send(request)
         return .init(data: data, status: status)
@@ -37,7 +47,19 @@ public struct AnkrHTTPTransport: AnkrTransport {
         let response = try await PublicMarketRequests.shared.send(request) { try await raw(request) }
         return .init(data: response.data, status: response.status, retryAfter: response.retryAfter)
     }
-    private func raw(_ request: URLRequest) async throws -> PublicMarketRequests.Response {
+    public func sendPreservingTransportError(_ request: URLRequest) async throws -> (Data, Int) {
+        let response = try await sendResponsePreservingTransportError(request)
+        return (response.data, response.status)
+    }
+    public func sendResponsePreservingTransportError(_ request: URLRequest) async throws -> AnkrHTTPResponse {
+        // Keep anonymous market coalescing/cooldowns and Retry-After headers.
+        // The owning read client reports and classifies the original native error.
+        let response = try await PublicMarketRequests.shared.send(request) {
+            try await raw(request, preserveTransportError: true)
+        }
+        return .init(data: response.data, status: response.status, retryAfter: response.retryAfter)
+    }
+    private func raw(_ request: URLRequest, preserveTransportError: Bool = false) async throws -> PublicMarketRequests.Response {
         // Balances currently ignore pageSize on some chains (observed >12,000
         // assets). Bound the actual byte stream, not just Content-Length.
         do {
@@ -64,6 +86,9 @@ public struct AnkrHTTPTransport: AnkrTransport {
             // A failure already queued by URLSession may also arrive after
             // navigation cancelled its task. Teardown must not emit an outage.
             if Task.isCancelled || (error as? URLError)?.code == .cancelled { throw CancellationError() }
+            // Advanced API exchange owns this report and needs the native code
+            // to distinguish a TLS failure from a retryable connection loss.
+            if preserveTransportError { throw error }
             OathDiagnostics.record(error, component: "network", context: DiagnosticHTTP.context(request))
             throw AnkrError.transport
         }
@@ -98,12 +123,13 @@ public struct AnkrClient: Sendable {
     }
     public func balances(chain: AnkrChain, address: String, cursor: String? = nil,
                          onlyWhitelisted: Bool = true, requestScope: AnkrRequestScope? = nil) async throws -> AnkrPage<AnkrBalanceResult> {
+        try requireSupported(chain)
         // Explicit on every page. Unfiltered discovery is a per-wallet opt-in;
         // callers retain whitelist evidence separately from token visibility.
         var params: [String: Any] = ["blockchain": [chain.rawValue], "walletAddress": address, "onlyWhitelisted": onlyWhitelisted, "nativeFirst": true, "pageSize": 1000]
         if let cursor { params["pageToken"] = cursor }
         let request = try makeRequest("ankr_getAccountBalance", address: address, params: params)
-        let page: AnkrPage<AnkrBalanceResult> = try await call(request, scope: requestScope)
+        let page: AnkrPage<AnkrBalanceResult> = try await call(request, chain: chain, scope: requestScope)
         for asset in page.value.assets {
             guard asset.blockchain == chain.rawValue else { throw AnkrError.wrongChain }
             guard asset.holderAddress.lowercased() == address.lowercased() else { throw AnkrError.wrongAccount }
@@ -116,9 +142,10 @@ public struct AnkrClient: Sendable {
     public func transactions(chain: AnkrChain, address: String, cursor: String? = nil,
                              fromTimestamp: Int? = nil, toTimestamp: Int? = nil, pageSize: Int = 100,
                              requestScope: AnkrRequestScope? = nil) async throws -> AnkrPage<AnkrTransactionResult> {
+        try requireSupported(chain)
         let params = historyParams(chain, address, cursor, fromTimestamp, toTimestamp, pageSize, transfers: false)
         let request = try makeRequest("ankr_getTransactionsByAddress", address: address, params: params)
-        let page: AnkrPage<AnkrTransactionResult> = try await call(request, scope: requestScope)
+        let page: AnkrPage<AnkrTransactionResult> = try await call(request, chain: chain, scope: requestScope)
         for tx in page.value.transactions {
             guard tx.blockchain == chain.rawValue else { throw AnkrError.wrongChain }
             guard tx.from.lowercased() == address.lowercased() || tx.to?.lowercased() == address.lowercased() else { throw AnkrError.wrongAccount }
@@ -131,9 +158,10 @@ public struct AnkrClient: Sendable {
     public func transfers(chain: AnkrChain, address: String, cursor: String? = nil,
                           fromTimestamp: Int? = nil, toTimestamp: Int? = nil, pageSize: Int = 100,
                           requestScope: AnkrRequestScope? = nil) async throws -> AnkrPage<AnkrTransferResult> {
+        try requireSupported(chain)
         let params = historyParams(chain, address, cursor, fromTimestamp, toTimestamp, pageSize, transfers: true)
         let request = try makeRequest("ankr_getTokenTransfers", address: address, params: params)
-        let page: AnkrPage<AnkrTransferResult> = try await call(request, scope: requestScope)
+        let page: AnkrPage<AnkrTransferResult> = try await call(request, chain: chain, scope: requestScope)
         for item in page.value.transfers {
             guard item.blockchain == chain.rawValue else { throw AnkrError.wrongChain }
             guard item.fromAddress.lowercased() == address.lowercased() || item.toAddress.lowercased() == address.lowercased() else { throw AnkrError.wrongAccount }
@@ -162,7 +190,19 @@ public struct AnkrClient: Sendable {
         request.httpBody = try JSONSerialization.data(withJSONObject: ["jsonrpc": "2.0", "id": 1, "method": method, "params": params])
         return request
     }
-    private func call<T: Decodable & Sendable>(_ request: URLRequest, scope: AnkrRequestScope?) async throws -> AnkrPage<T> {
+    private func requireSupported(_ chain: AnkrChain) throws {
+        guard chain.supportsAdvancedAPI else {
+            OathDiagnostics.record(AnkrError.wrongChain, operation: "advanced_api_routing",
+                context: ["chain": chain.networkID, "stage": "unsupported_advanced_api"])
+            throw AnkrError.wrongChain
+        }
+    }
+    private func call<T: Decodable & Sendable>(_ request: URLRequest, chain: AnkrChain, scope: AnkrRequestScope?) async throws -> AnkrPage<T> {
+        try await OathDiagnostics.withChain(chain.networkID) {
+            try await permittedCall(request, scope: scope)
+        }
+    }
+    private func permittedCall<T: Decodable & Sendable>(_ request: URLRequest, scope: AnkrRequestScope?) async throws -> AnkrPage<T> {
         try scope?.checkCancellation()
         try await permits.acquire()
         do {
@@ -170,14 +210,19 @@ public struct AnkrClient: Sendable {
             let page: AnkrPage<T> = try await exchange(request, scope: scope)
             await permits.release()
             return page
-        } catch { OathDiagnostics.record(error); await permits.release(); throw error }
+        } catch {
+            // diagnostics: ankr-permit-cleanup
+            // exchange reports the original failure; releasing a permit does
+            // not create another failure or change the error sent to callers.
+            await permits.release(); throw error
+        }
     }
     private func exchange<T: Decodable & Sendable>(_ request: URLRequest, scope: AnkrRequestScope?) async throws -> AnkrPage<T> {
         for attempt in 0..<3 {
             try Task.checkCancellation()
             try scope?.checkCancellation()
             do {
-                let (data, status) = try await transport.send(request)
+                let (data, status) = try await transport.sendPreservingTransportError(request)
                 try scope?.checkCancellation()
                 guard data.count <= 64 * 1024 * 1024 else { throw AnkrError.responseTooLarge }
                 guard status == 200 else { throw AnkrError.http(status) }
@@ -186,7 +231,13 @@ public struct AnkrClient: Sendable {
                 if let error = envelope.error { throw AnkrError.rpc(error.code) }
                 guard let result = envelope.result else { throw AnkrError.invalidResponse }
                 return AnkrPage(value: result, raw: data, fetchedAt: .now)
-            } catch { OathDiagnostics.record(error);
+            } catch {
+                if Task.isCancelled || error is CancellationError || (error as? URLError)?.code == .cancelled {
+                    throw CancellationError()
+                }
+                var context = DiagnosticHTTP.context(request)
+                if let chain = OathDiagnostics.chain { context["chain"] = chain }
+                OathDiagnostics.record(error, context: context)
                 let retry: Bool
                 switch error {
                 case AnkrError.http(let code): retry = code == 429 || (500...599).contains(code)
@@ -196,10 +247,16 @@ public struct AnkrClient: Sendable {
                     retry = [-32603, -32055, -32056, -32057, -32059, -32061, -32063, -32064,
                              -32067, -32068, -32069, -32070, -32071, -32076, -32077, -32090].contains(code)
                 case AnkrError.transport: retry = true
+                case let error as URLError:
+                    // Do not hammer the same TLS/certificate failure three times.
+                    // Safe read requests can still recover transient timeouts or
+                    // a dropped connection within the existing bounded budget.
+                    retry = AnkrReadRetry.transientTransport(error)
                 default: retry = false
                 }
                 if retry && attempt < 2 { try await Task.sleep(for: .milliseconds(500 * (1 << attempt))); continue }
                 if error is DecodingError { throw AnkrError.invalidResponse }
+                if error is URLError { throw AnkrError.transport }
                 throw error
             }
         }

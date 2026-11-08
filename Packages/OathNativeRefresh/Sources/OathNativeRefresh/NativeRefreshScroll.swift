@@ -19,6 +19,7 @@ public struct NativeRefreshScroll<Content: View>: View {
     private let action: @MainActor @Sendable () async throws -> Void
     private let onFailure: @MainActor () -> Void
     private let onScroll: @MainActor (CGFloat) -> Void
+    private let onDraggingChanged: @MainActor (Bool) -> Void
     private let feedback: @MainActor (NativeRefreshFeedback) -> Void
     private let content: Content
 
@@ -30,6 +31,7 @@ public struct NativeRefreshScroll<Content: View>: View {
                 action: @escaping @MainActor @Sendable () async throws -> Void,
                 onFailure: @escaping @MainActor () -> Void,
                 onScroll: @escaping @MainActor (CGFloat) -> Void,
+                onDraggingChanged: @escaping @MainActor (Bool) -> Void = { _ in },
                 feedback: @escaping @MainActor (NativeRefreshFeedback) -> Void = { _ in },
                 @ViewBuilder content: () -> Content) {
         self.identifier = identifier
@@ -42,6 +44,7 @@ public struct NativeRefreshScroll<Content: View>: View {
         self.action = action
         self.onFailure = onFailure
         self.onScroll = onScroll
+        self.onDraggingChanged = onDraggingChanged
         self.feedback = feedback
         self.content = content()
     }
@@ -134,6 +137,7 @@ public struct NativeRefreshScroll<Content: View>: View {
         controller.action = action
         controller.onFailure = onFailure
         controller.onScroll = onScroll
+        controller.onDraggingChanged = onDraggingChanged
         controller.feedback = feedback
         controller.attachIfPossible()
         controller.positionIndicator()
@@ -165,6 +169,18 @@ public struct NativeRefreshScroll<Content: View>: View {
         fileprivate var action: (@MainActor @Sendable () async throws -> Void)?
         fileprivate var onFailure: (@MainActor () -> Void)?
         fileprivate var onScroll: (@MainActor (CGFloat) -> Void)?
+        fileprivate var onDraggingChanged: (@MainActor (Bool) -> Void)?
+        private var isDragging = false
+
+        private func updateDragging(_ value: Bool) {
+            guard isDragging != value else { return }
+            isDragging = value
+            // stop() also runs during representable updates and teardown.
+            // Deliver state changes on the next main-loop turn, in order,
+            // without mutating SwiftUI observation during that update.
+            let callback = onDraggingChanged
+            DispatchQueue.main.async { callback?(value) }
+        }
         fileprivate var feedback: (@MainActor (NativeRefreshFeedback) -> Void)?
         private let presentation = RefreshPresentation()
         private let backgroundRefresh = BackgroundRefresh()
@@ -272,6 +288,10 @@ public struct NativeRefreshScroll<Content: View>: View {
         }
 
         public func scrollViewDidScroll(_ scrollView: UIScrollView) {
+            // The recognizer ends on finger release, before native deceleration
+            // or refresh rebound finishes. Observe it without taking ownership.
+            let gestureState = scrollView.panGestureRecognizer.state
+            updateDragging(enabled && (gestureState == .began || gestureState == .changed))
             if activeRequest == nil && !control.isRefreshing && !model.cycle.isReturning {
                 restingTopInset = scrollView.adjustedContentInset.top
             }
@@ -308,6 +328,7 @@ public struct NativeRefreshScroll<Content: View>: View {
 
         public func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
             scrollViewDidScroll(scrollView)
+            updateDragging(false)
         }
 
         fileprivate func positionIndicator() {
@@ -330,6 +351,7 @@ public struct NativeRefreshScroll<Content: View>: View {
 
         fileprivate func stop() {
             enabled = false
+            updateDragging(false)
             activeRequest = nil
             work?.cancel()
             work = nil

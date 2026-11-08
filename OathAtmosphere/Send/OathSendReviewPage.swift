@@ -653,8 +653,9 @@ struct OathSendReviewPage: View {
         .sheet(isPresented: $showsAddContact) {
             if let networkID = model.holding?.networkID {
                 OathSendContactSheet(networkID: networkID, address: recipientAddress,
+                                     memo: recipientContactMemo, memoType: recipientContactMemoType,
                                      isAllowed: session.isUnlocked && !session.resetting) {
-                    savedRecipient = true
+                    contactLookupRetry = UUID()
                     showsAddContact = false
                 }
             }
@@ -976,6 +977,19 @@ struct OathSendReviewPage: View {
         return message
     }
 
+    private var recipientContactMemo: String {
+        if model.supportsXrplSend {
+            if let plan = xrpl.quote?.plan { return plan.destinationTag.map { String($0) } ?? "" }
+            return model.memo
+        }
+        if model.supportsStellarSend { return stellar.quote?.plan.memo.value ?? model.memo }
+        return ""
+    }
+
+    private var recipientContactMemoType: String? {
+        model.supportsStellarSend ? (stellar.quote?.plan.memo.type ?? model.stellarMemoType).rawValue : nil
+    }
+
     private func observeRecipientContact() async {
         #if DEBUG && targetEnvironment(simulator)
         if OathSendResultVisualFixture.enabled { savedRecipient = true; return }
@@ -986,7 +1000,8 @@ struct OathSendReviewPage: View {
             await OathDiagnostics.$operationID.withValue(UUID()) {
                 do {
                     let database = try await OathDataEnvironment.shared.database()
-                    for try await saved in database.observeContactAddress(networkID: networkID, address: recipientAddress) {
+                    for try await saved in database.observeContactAddress(networkID: networkID, address: recipientAddress,
+                        memo: recipientContactMemo, memoType: recipientContactMemoType) {
                         try Task.checkCancellation()
                         savedRecipient = saved
                     }

@@ -616,3 +616,20 @@ private struct LedgerQuery: BitcoinAddressQuerying {
         XCTAssertEqual(count, 1)
     }
 }
+
+extension BitcoinLedgerTests {
+    func testAllUTXOChainsPublishChangedScansWithoutReopening() async throws {
+        for network in UTXONetwork.allCases {
+            let (db, url, descriptor) = try await fixture(network: network)
+            defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+            let publication = RefreshPublicationProbe(db, wallet: "w1")
+            defer { publication.stop() }
+            let (scan, transactions) = try await funding(descriptor)
+            try await commit(db, scan: scan, transactions: transactions)
+            try await publication.expect(amount: String(scan.total), network: network.rawValue)
+            let empty = try await BitcoinDiscovery(query: LedgerQuery(replies: [:])).scan(descriptor)
+            try await commit(db, scan: empty, transactions: [:], tip: 800201)
+            try await publication.expect(amount: "0", network: network.rawValue)
+        }
+    }
+}

@@ -66,7 +66,7 @@ public actor EVMSendClient {
                 targets.swapAt(0, 1)
             }
             for endpoint in targets {
-                var failureContext = ["chain": network.rawValue, "rpc_method": method,
+                var failureContext = ["chain": network.rawValue, "method": method,
                                       "host": endpoint.host ?? "unknown"]
                 do {
                     try Task.checkCancellation()
@@ -79,11 +79,10 @@ public actor EVMSendClient {
                         var request=URLRequest(url:endpoint);request.httpMethod="POST";request.timeoutInterval=10
                         request.setValue("OathWallet/1.0",forHTTPHeaderField:"User-Agent")
                         request.setValue("application/json",forHTTPHeaderField:"Content-Type");request.httpBody=try JSONEncoder().encode(check)
-                        let (data,status)=try await transport.send(request)
+                        let (data,status)=try await transport.sendPreservingTransportError(request)
                         DiagnosticHTTP.response(data,status:status,request:request)
                         guard (200...299).contains(status) else { throw EVMSendError.http(status) }
-                        // The standalone pre-broadcast check has the same
-                        // decoding bound as ordinary batched RPC responses.
+                        // Bound the standalone check before admitting a broadcast.
                         guard data.count<=Self.maximumRPCResponseBytes else { throw EVMSendError.malformed }
                         let reply=try JSONDecoder().decode(SolanaJSON.self,from:data)
                         guard reply["id"].integer==0,reply["jsonrpc"].string=="2.0",try Self.uint(result(reply))==network.chainID else { throw EVMSendError.wrongNetwork }
@@ -94,7 +93,7 @@ public actor EVMSendClient {
                     var request=URLRequest(url:endpoint);request.httpMethod="POST";request.timeoutInterval=10
                     request.setValue("OathWallet/1.0",forHTTPHeaderField:"User-Agent")
                     request.setValue("application/json",forHTTPHeaderField:"Content-Type");request.httpBody=try JSONEncoder().encode(body)
-                    let (data,status)=try await transport.send(request)
+                    let (data,status)=try await transport.sendPreservingTransportError(request)
                     DiagnosticHTTP.response(data,status:status,request:request)
                     guard (200...299).contains(status) else { throw EVMSendError.http(status) }
                     guard data.count<=Self.maximumRPCResponseBytes,let rows=try JSONDecoder().decode(SolanaJSON.self,from:data).array,rows.count==2,
@@ -151,14 +150,21 @@ public actor EVMSendClient {
                     // releasing this RPC permit; it is never a retry here.
                     if error is EVMDuplicateBroadcast { throw error }
                     verifiedEndpoints.removeValue(forKey:endpoint)
+                    if error is CancellationError || Task.isCancelled || (error as? URLError)?.code == .cancelled {
+                        throw CancellationError()
+                    }
+                    // Own the native transport report with chain/method/host.
+                    // The generic send() path would report here a second time
+                    // after erasing TLS/certificate details into transport.
                     OathDiagnostics.record(error,component:"evm_send",operation:method,context:failureContext)
-                    if error is CancellationError || Task.isCancelled { throw CancellationError() }
                     // Deterministic RPC rejection must remain visible. Network/HTTP,
                     // malformed and misrouted providers may use an independent fallback.
                     if error is SendFeeFundingError { throw error }
                     if case EVMSendError.rpc(let code) = error, code != -32601 && code != -32004,
                        !(network.isIoTeX && code == 13 && method != "eth_sendRawTransaction") { throw error }
-                    failure=error
+                    // Preserve the existing public fallback/error contract after
+                    // reporting the original cause. Never weaken TLS validation.
+                    failure = error is URLError ? AnkrError.transport : error
                 }
             }
             if missingIndexedLookup { await permits.release();return .null }
@@ -550,7 +556,7 @@ public actor EVMSendClient {
             // again here. Explicit RPC rejections retain their original handling.
             let uncertainReply: Bool
             switch error {
-            case EVMSendError.transport, EVMSendError.http, EVMSendError.malformed:
+            case EVMSendError.transport, EVMSendError.http, EVMSendError.malformed, AnkrError.transport:
                 uncertainReply = true
             default:
                 uncertainReply = error is URLError || error is DecodingError

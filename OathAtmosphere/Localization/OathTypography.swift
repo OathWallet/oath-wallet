@@ -112,6 +112,24 @@ private struct OathNativeNavigationAppearance: ViewModifier {
     }
 }
 
+/// Keep the magnifier in UITextField's leading overlay. UIKit can assign it
+/// to the trailing slot for an in-app RTL language, where it suppresses Clear.
+/// Only relocate the built-in image; never replace custom trailing controls.
+@MainActor enum OathSearchFieldLayout {
+    static func normalizeLeadingImage(in searchBar: UISearchBar, rightToLeft: Bool) {
+        let field = searchBar.searchTextField
+        guard rightToLeft, !searchBar.showsBookmarkButton,
+              let icon = field.rightView as? UIImageView else { return }
+        let mode = field.rightViewMode
+        field.rightView = nil
+        field.rightViewMode = .never
+        if field.leftView == nil {
+            field.leftView = icon
+            field.leftViewMode = mode
+        }
+    }
+}
+
 /// Uses UIKit's native semantic direction and appearance APIs for navigation
 /// chrome that lives outside SwiftUI stacks. Never replaces gesture delegates,
 /// swaps coordinates, flips transforms, or rebuilds the navigation hierarchy.
@@ -161,9 +179,12 @@ private struct OathNativeLocalizationChrome: UIViewControllerRepresentable {
                     controller.navigationItem.backButtonTitle = backTitle
                 }
             }
-            if let field = navigation.topViewController?.navigationItem.searchController?.searchBar.searchTextField {
+            if let searchBar = navigation.topViewController?.navigationItem.searchController?.searchBar {
+                OathLayoutDirection.apply(language, to: searchBar)
+                let field = searchBar.searchTextField
                 OathKeyboardAccessory.removeFromSearch(field)
                 OathLayoutDirection.apply(language, to: field)
+                OathSearchFieldLayout.normalizeLeadingImage(in: searchBar, rightToLeft: language.isRightToLeft)
                 let font = UIFont.preferredFont(forTextStyle: .body)
                 field.adjustsFontForContentSizeCategory = true
                 if field.font != font { field.font = font }

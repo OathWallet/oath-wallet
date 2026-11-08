@@ -43,7 +43,7 @@ import GRDB
         let balance = try await db.balance(accountID:"a1",assetID:"xrpl:"+ref); XCTAssertEqual(balance?.amountAtomic,"0")
         let raw = try await db.xrplInventory(accountID:"a1"); XCTAssertEqual(raw?.holdings.last?.amount,try XrplIdentity.issuedAmount("-5"))
         try await db.commitXrplInventory(inventory(time:300),ticket:ticket,catalog:.empty)
-        let hidden = try await db.snapshot(walletID:"w1",currency:"USD"); XCTAssertEqual(hidden.holdings.count,1)
+        let hidden = try await db.snapshot(walletID:"w1",currency:"USD"); XCTAssertEqual(hidden.holdings.count,2, "An unavailable catalog must retain previously verified assets")
     }
     func testFailureRetainsBalancesCompleteEmptySnapshotClearsAndStaleRejected() async throws {
         let (db,folder) = try await fixture(); defer { try? FileManager.default.removeItem(at:folder) }
@@ -135,5 +135,47 @@ import GRDB
         let count = try await db.pool.read{try Int.fetchOne($0,sql:"SELECT COUNT(*) FROM xrplTransactions WHERE accountID='a1'")!}; XCTAssertGreaterThan(count,0)
         try await assertActivityDetails(db, walletID: "w1")
             print("XRPL production persisted \(inventory!.holdings.count) holdings and \(count) transactions; offline snapshot matches")
+    }
+}
+
+private actor XrplRefreshFeed: AnkrTransport {
+    let owner: String, issuer: String
+    var round = 1
+    init(owner: String, issuer: String) { self.owner = owner; self.issuer = issuer }
+    func advance() { round += 1 }
+    func send(_ request: URLRequest) async throws -> (Data, Int) {
+        if request.url?.host == "api.coinbase.com" { return (Data(#"{"data":{"base":"XRP","currency":"USD","amount":"2"}}"#.utf8), 200) }
+        guard let body = request.httpBody else { return (Data("{}".utf8), 200) }
+        let call = try JSONSerialization.jsonObject(with: body) as! [String: Any]
+        var result: [String: Any] = ["status": "success", "validated": true, "ledger_hash": String(repeating: "A", count: 64)]
+        switch call["method"] as? String {
+        case "server_info": result["info"] = ["network_id": 0, "complete_ledgers": "1-200"]
+        case "ledger": result.merge(["validated": true, "ledger_hash": String(repeating: "A", count: 64), "ledger_index": 100 + round,
+                                      "ledger": ["closed": true, "close_time": 800000000]], uniquingKeysWith: { _, new in new })
+        case "account_info": result["account_data"] = ["Account": owner, "Balance": String(round * 1000000)]
+        case "account_lines": result["account"] = owner; result["lines"] = [["currency": "USD", "account": issuer, "balance": String(round)]]
+        case "account_objects": result["account"] = owner; result["account_objects"] = [Any]()
+        case "account_tx": result.merge(["account": owner, "transactions": [Any](), "ledger_index_min": 1, "ledger_index_max": 100 + round, "validated": true], uniquingKeysWith: { _, new in new })
+        default: throw XrplError.malformed
+        }
+        return (try JSONSerialization.data(withJSONObject: ["result": result]), 200)
+    }
+}
+extension XrplLedgerTests {
+    func testChangedNativeAndIssuedBalancesPublishWithoutReopening() async throws {
+        let (db, folder) = try await fixture()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try await db.saveMarketCache(.init(key: "xrpl.catalog", source: "fixture", payload: JSONEncoder().encode(catalog), fetchedAt: Date().timeIntervalSince1970))
+        let feed = XrplRefreshFeed(owner: owner, issuer: String(ref.split(separator: ".")[1]))
+        let service = XrplSynchronizer(database: db, client: try XrplClient(apiKey: "fixture", transport: feed), markets: XrplMarkets(transport: feed))
+        let publication = RefreshPublicationProbe(db, wallet: "w1")
+        defer { publication.stop() }
+        try await service.refresh(accountID: "a1")
+        try await publication.expect(amount: "1000000", network: "xrpl")
+        await feed.advance()
+        try await service.refresh(accountID: "a1")
+        try await publication.expect(amount: "2000000", network: "xrpl")
+        try await publication.expect(ref, amount: XrplIdentity.issuedAmount("2"), network: "xrpl")
+        await service.cancel()
     }
 }

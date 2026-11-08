@@ -15,7 +15,7 @@ public struct TronHistoryCursor: Codable, Sendable, Equatable, FetchableRecord, 
 }
 extension OathDatabase {
     public func beginTronSync(accountID: String, now: Date = .now) async throws -> TronSyncTicket {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard let account = try AccountRecord.fetchOne(db, key: accountID), account.networkID == "tron",
                   TronIdentity.isAddress(account.address) else { throw StoreError.missingRecord }
             let run = UUID().uuidString
@@ -46,7 +46,7 @@ extension OathDatabase {
         }
     }
     public func failTronSync(_ ticket: TronSyncTicket, history: Bool, code: String) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateTron(ticket, db: db)
             try db.execute(sql: "UPDATE tronSync SET \(history ? "historyFailure" : "failure")=? WHERE accountID=?", arguments: [code,ticket.account.id])
         }
@@ -78,7 +78,7 @@ extension OathDatabase {
     public func commitTronInventory(_ value: TronInventory, ticket: TronSyncTicket, catalog: [String: TronMarketTokenInfo]) async throws {
         guard value.owner == ticket.account.address, Set(value.holdings.map { $0.token.reference }).count == value.holdings.count,
               value.holdings.filter({ $0.token.reference == "native" }).count == 1 else { throw TronError.wrongOwner }
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateTron(ticket, db: db)
             let now = value.observedAt.timeIntervalSince1970
             let old = try Double.fetchOne(db, sql: "SELECT observedAt FROM tronSync WHERE accountID=?", arguments: [ticket.account.id]) ?? 0
@@ -96,7 +96,7 @@ extension OathDatabase {
                 let verified = asset.reference == "native" || catalog[asset.reference]?.decimals == asset.decimals
                 try db.execute(sql: """
                     INSERT INTO tronHoldings(accountID,assetID,amountAtomic,observedAt,verified) VALUES(?,?,?,?,?)
-                    ON CONFLICT(accountID,assetID) DO UPDATE SET amountAtomic=excluded.amountAtomic,observedAt=excluded.observedAt,verified=excluded.verified
+                    ON CONFLICT(accountID,assetID) DO UPDATE SET amountAtomic=excluded.amountAtomic,observedAt=excluded.observedAt,verified=\(catalog.isEmpty ? "MAX(tronHoldings.verified,excluded.verified)" : "excluded.verified")
                     """, arguments: [ticket.account.id,asset.id,holding.amount,now,verified])
             }
             try db.execute(sql: "UPDATE tronSync SET inventory=?,observedAt=?,failure=? WHERE accountID=?", arguments: [try JSONEncoder().encode(value),now,value.failedReferences.isEmpty && value.discoveryComplete ? nil : "partialInventory",ticket.account.id])
@@ -112,7 +112,7 @@ extension OathDatabase {
     }
     public func restartTronCursor(_ cursor: TronHistoryCursor, ticket: TronSyncTicket) async throws -> TronHistoryCursor {
         guard cursor.accountID == ticket.account.id else { throw StoreError.staleSync }
-        return try await pool.write { db in
+        return try await storageWrite { db in
             try Self.validateTron(ticket, db: db)
             guard try TronHistoryCursor.fetchOne(db, key: ["accountID":cursor.accountID,"stream":cursor.stream,"lane":cursor.lane]) == cursor else { throw StoreError.staleSync }
             // Fingerprints can expire. Replaying the same window must not
@@ -132,7 +132,7 @@ extension OathDatabase {
         guard cursor.accountID == ticket.account.id else { throw StoreError.staleSync }
         guard Set(page.hashes) == Set(transactions.map(\.hash)), transactions.count == page.hashes.count,
               page.cursor == nil || page.cursor != cursor.cursor else { throw TronError.incomplete }
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateTron(ticket, db: db)
             guard try TronHistoryCursor.fetchOne(db, key: ["accountID":cursor.accountID,"stream":cursor.stream,"lane":cursor.lane]) == cursor else { throw StoreError.staleSync }
             if let next = page.cursor, try Bool.fetchOne(db, sql: "SELECT EXISTS(SELECT 1 FROM tronPages WHERE accountID=? AND stream=? AND start=? AND end=? AND pageKey=?)", arguments: [ticket.account.id,cursor.stream,cursor.start,cursor.end,next]) == true { throw TronError.paginationLoop }

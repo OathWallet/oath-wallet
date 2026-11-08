@@ -150,12 +150,7 @@ struct OathSendRecipientPage: View {
             if let memo = model.memoKind {
                 OathInputSeparator()
                 if model.supportsStellarSend {
-                    Picker(strings.text(.stellarMemoType), selection:$model.stellarMemoType) {
-                        Text(strings.text(.stellarMemoText)).tag(StellarSendMemoType.text)
-                        Text(strings.text(.stellarMemoID)).tag(StellarSendMemoType.id)
-                        Text(strings.text(.stellarMemoHash)).tag(StellarSendMemoType.hash)
-                        Text(strings.text(.stellarMemoReturn)).tag(StellarSendMemoType.returnHash)
-                    }.pickerStyle(.menu).oathNeutralControl().oathInputRow()
+                    OathStellarMemoTypePicker(selection: $model.stellarMemoType)
                     OathInputSeparator()
                 }
                 OathTextInput(text: $model.memo, focused: focus(.memo), title: strings.text(memo), identifier: "send.memo",
@@ -188,9 +183,11 @@ struct OathSendRecipientPage: View {
                                 Text(entry.name).oathFont(.body, weight: .medium).lineLimit(1)
                                 Text(entry.label.isEmpty ? entry.address : entry.label + " · " + entry.address)
                                     .oathFont(.footnote).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+                                OathContactMemoSummary(networkID: entry.networkID, memo: entry.memo, memoType: entry.memoType)
                             }
                             Spacer(minLength: 4)
-                            if model.address == entry.address {
+                            if model.address == entry.address && model.memo == (entry.memo ?? "") &&
+                                (entry.networkID != "stellar" || model.stellarMemoType.rawValue == (entry.memoType ?? "text")) {
                                 Image(systemName: "checkmark").foregroundStyle(OathOnboardingColors.blue)
                             }
                         }.foregroundStyle(.primary).padding(.vertical, 8).contentShape(Rectangle())
@@ -247,6 +244,43 @@ struct OathSendRecipientPage: View {
                 self.pending = nil
                 OathHaptics.shared.play(.error)
             }
+        }
+    }
+}
+
+/// The address book and send composer offer exactly the same native selection.
+struct OathStellarMemoTypePicker: View {
+    @Binding var selection: StellarSendMemoType
+    @Environment(\.oathLocalizer) private var strings
+    var body: some View {
+        Picker(strings.text(.stellarMemoType), selection: $selection) {
+            Text(strings.text(.stellarMemoText)).tag(StellarSendMemoType.text)
+            Text(strings.text(.stellarMemoID)).tag(StellarSendMemoType.id)
+            Text(strings.text(.stellarMemoHash)).tag(StellarSendMemoType.hash)
+            Text(strings.text(.stellarMemoReturn)).tag(StellarSendMemoType.returnHash)
+        }.pickerStyle(.menu).oathNeutralControl().oathInputRow()
+    }
+}
+
+struct OathContactMemoSummary: View {
+    let networkID: String
+    let memo: String?
+    let memoType: String?
+    @Environment(\.oathLocalizer) private var strings
+    var body: some View {
+        if let memo, !memo.isEmpty {
+            Text(strings.text(Self.title(networkID: networkID, memoType: memoType)) + ": " +
+                 (networkID == "stellar" && (memoType ?? "text") == "text" ? memo : strings.invariant(memo)))
+                .oathFont(.footnote).foregroundStyle(.secondary).lineLimit(2)
+        }
+    }
+    static func title(networkID: String, memoType: String?) -> OathStringKey {
+        if networkID == "xrpl" { return .sendDestinationTagLabel }
+        return switch StellarSendMemoType(rawValue: memoType ?? "text") {
+        case .id: .stellarMemoID
+        case .hash: .stellarMemoHash
+        case .returnHash: .stellarMemoReturn
+        default: .stellarMemoText
         }
     }
 }

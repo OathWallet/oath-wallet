@@ -21,7 +21,7 @@ private actor GatedPolkadotProvider: PolkadotSyncProviding {
         let generation = inventoryCalls
         if generation == 2 { await replacementStarted.open(); await releaseReplacement.wait() }
         return .init(owner: owner, blockHash: "0x" + String(repeating: "ab", count: 32), height: Int64(generation * 100),
-                     holdings: [.init(token: .native, amount: String(generation * 10_000))], observedAt: Date(timeIntervalSince1970: Double(generation * 100)))
+                     holdings: [.init(token: .native, amount: String(generation * 10_000)), .init(token: .init(reference: "assets:1984", name: "Tether", symbol: "USDt", decimals: 6, pallet: "Assets", key: Data([192, 7, 0, 0])), amount: String(generation * 500))], observedAt: Date(timeIntervalSince1970: Double(generation * 100)))
     }
     private func holdFirst(_ stream: String) async {
         guard seen.insert(stream).inserted else { return }
@@ -75,6 +75,8 @@ private actor GatedPolkadotProvider: PolkadotSyncProviding {
         try await db.seed(networks: [.init(id: "polkadot", name: "Polkadot", family: "account", symbol: "DOT", decimals: 10, derivationPath: "fixture", logo: "network-polkadot", sortOrder: 0)], assets: [.init(id: "polkadot:native", networkID: "polkadot", reference: "native", name: "Polkadot", symbol: "DOT", decimals: 10)])
         try await db.importWalletIfNeeded(.init(id: "wallet", name: "Fixture", kind: "hd", vaultReference: "fixture", createdAt: 1), accounts: [.init(id: "account", walletID: "wallet", networkID: "polkadot", address: "13vg3Mrxm3GL9eXxLsGgLYRueiwFCiMbkdHBL4ZN5aob5D4N", derivationPath: "fixture")])
         let provider = GatedPolkadotProvider()
+            let publication = RefreshPublicationProbe(db, wallet: "wallet")
+            defer { publication.stop() }
         let sync = PolkadotSynchronizer(database: db, provider: provider)
         try await sync.refresh(accountID: "account")
         await provider.started.wait()
@@ -92,6 +94,8 @@ private actor GatedPolkadotProvider: PolkadotSyncProviding {
         XCTAssertEqual(inventory?.holdings.first?.amount, "20000")
         let snapshot = try await db.snapshot(walletID: "wallet", currency: "USD")
         XCTAssertEqual(snapshot.holdings.first?.price, "4")
-        await sync.cancel()
+        try await publication.expect(amount: "20000", network: "polkadot")
+        try await publication.expect("assets:1984", amount: "1000", network: "polkadot")
+            await sync.cancel()
     }
 }

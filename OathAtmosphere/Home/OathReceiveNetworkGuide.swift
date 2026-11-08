@@ -32,11 +32,12 @@ struct OathReceiveNetworkGuide: Sendable {
         case .ton: .receiveJettonExplanation
         case .tron: .receiveTronExplanation
         case .arbitrum, .arc, .avalanche, .base, .bnb, .ethereum, .fantom, .flare, .somnia, .story, .gnosis,
-             .linea, .optimism, .polygon, .chiliz, .filecoin, .sei, .zerog, .iotex, .celo, .cronos, .monad, .unichain, .hyperevm, .robinhood, .scroll, .taiko, .telos, .xlayer: .receiveEVMExplanation
+             .linea, .optimism, .polygon, .chiliz, .filecoin, .sei, .zerog, .iotex, .cronos, .celo, .monad, .unichain, .hyperevm, .robinhood, .scroll, .taiko, .telos, .xlayer: .receiveEVMExplanation
         }
     }
 
     var trackingExplanation: OathStringKey {
+        if chain == .cronos { return .receiveManualTracking }
         if chain == .arc && !arcIndexAvailable { return .receiveManualTracking }
         if chain == .robinhood && !robinhoodIndexAvailable { return .receiveManualTracking }
         if chain == .bitcoin { return .bitcoinReceiveTracking }

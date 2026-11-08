@@ -8,7 +8,7 @@ private actor RecoveryDiagnosticSink: DiagnosticTransport {
 }
 
 private actor BroadcastRecoveryTransport: AnkrTransport {
-    enum Mode { case lostReply, pendingWithoutReceipt, pendingWithoutFinality, replacedWhilePending, laggingPrimary, missing, missingWithoutReceipt, wrongTransaction, cancelled }
+    enum Mode { case lostReply, lostLegacyReply, missingLegacyReply, pendingWithoutReceipt, pendingWithoutFinality, replacedWhilePending, laggingPrimary, missing, missingWithoutReceipt, wrongTransaction, cancelled }
     var mode: Mode
     let base: EVMSendFixtureTransport
     var plan: EVMSendPlan?, signed: EVMSignedSend?
@@ -29,6 +29,7 @@ private actor BroadcastRecoveryTransport: AnkrTransport {
         if broadcast {
             broadcasts += 1
             if mode == .cancelled { throw CancellationError() }
+            if mode == .lostLegacyReply || mode == .missingLegacyReply { throw AnkrError.transport }
             throw URLError(.timedOut)
         }
         let lookup = calls.contains { ["eth_getTransactionByHash", "eth_getTransactionReceipt"].contains($0["method"].string ?? "") }
@@ -40,7 +41,7 @@ private actor BroadcastRecoveryTransport: AnkrTransport {
             let method = call["method"].string ?? ""
             var value = row["result"]
             if ["eth_getTransactionByHash", "eth_getTransactionReceipt"].contains(method) {
-                if mode == .missing || (mode == .missingWithoutReceipt && method == "eth_getTransactionByHash") || (mode == .laggingPrimary && request.url?.host != "fallback.example") { value = .null }
+                if mode == .missing || mode == .missingLegacyReply || (mode == .missingWithoutReceipt && method == "eth_getTransactionByHash") || (mode == .laggingPrimary && request.url?.host != "fallback.example") { value = .null }
                 else if method == "eth_getTransactionReceipt", [.pendingWithoutReceipt, .pendingWithoutFinality, .missingWithoutReceipt, .replacedWhilePending].contains(mode) {
                     if [.pendingWithoutReceipt, .missingWithoutReceipt].contains(mode) { return .object(["jsonrpc": .string("2.0"), "id": row["id"], "error": .object(["code": .number("-32000"), "message": .string("receipt service unavailable")])]) }
                     value = .null

@@ -15,6 +15,10 @@ enum OathContactAddressValidator {
             return (try? BitcoinSendPlan.recipientScript(address, chain: network)) != nil
         }
         if chain == .near { return isNearAccountID(address) }
+        // Routing fields have separate inputs. Require the classic account
+        // encoding used by send clients, not an embedded destination tag/ID.
+        if chain == .xrpl { return (try? XrplIdentity.address(address)) != nil }
+        if chain == .stellar { return (try? StellarIdentity.address(address)) != nil }
         if chain == .filecoin, address.hasPrefix("f") { return (try? FilecoinIdentity.ethereum(address)) != nil }
         guard AnyAddress.isValid(string: address, coin: chain.walletCoin) else { return false }
         if chain.isEVM {

@@ -40,10 +40,19 @@ extension ThorchainClient {
         async let securedResult = OathDiagnostics.attempt("thorchain_secured_assets") { try await read(Self.node,path:"thorchain/securedassets") }
         async let vaultResult = OathDiagnostics.attempt("thorchain_vault_prices") { try await recoverVaultMarkets() }
         let (tokens,pools,stats,secured) = await (tokenResult,poolsResult,statsResult,securedResult)
-        let pricedPools = Set((pools?.array ?? []).filter { $0["status"].string == "available" && TonMarkets.positive($0["assetPriceUSD"]) != nil }.compactMap { $0["asset"].string })
-        var identities = Set(["THOR.RUNE", "THOR.TCY", "X/RUJI"] + (pools?.array ?? []).filter { $0["status"].string == "available" }.compactMap { $0["asset"].string }).subtracting(pricedPools)
+        // A positive pool spot price is not an external market valuation.
+        // Always request the exact asset's fresh oracle before considering a
+        // pool-derived fallback; the shared catalog still coalesces wallets.
+        var identities = Set(["THOR.RUNE", "THOR.TCY", "X/RUJI"] + (pools?.array ?? []).filter { $0["status"].string == "available" }.compactMap { $0["asset"].string })
         if let stats, TonMarkets.positive(stats["runePriceUSD"]) != nil { identities.remove("THOR.RUNE") }
-        let oracle=await OathDiagnostics.attempt("thorchain_oracle_prices") { try await oraclePrices(assets:Array(identities).sorted()) } ?? [:]
+        var oracle=await OathDiagnostics.attempt("thorchain_oracle_prices") { try await oraclePrices(assets:Array(identities).sorted()) } ?? [:]
+        let missingMarkets = identities.filter { Self.portfolioMarketIDs[$0] != nil && oracle[$0] == nil }
+        if !missingMarkets.isEmpty {
+            let recovered = await OathDiagnostics.attempt("thorchain_asset_market_fallback") {
+                try await portfolioMarketFallback(assets: Array(missingMarkets).sorted())
+            } ?? [:]
+            oracle.merge(recovered, uniquingKeysWith: { existing, _ in existing })
+        }
         var result = try Self.decodeCatalog(pools:pools ?? .array([]), stats:stats ?? .null, secured:secured ?? .array([]),oracle:oracle)
         result.tokens=tokens ?? [:]
         // CoinGecko is a fallback, not an unconditional extra request on every
@@ -79,6 +88,26 @@ extension ThorchainClient {
         if let vaults = await vaultResult { try Self.applyVaultMarkets(vaults,to:&result) }
         return result
     }
+    // Contract/chain identities, never ticker matching or an assumed $1 peg.
+    static let portfolioMarketIDs: [String: String] = [
+        "AVAX.AVAX": "avalanche-2",
+        "DOGE.DOGE": "dogecoin",
+        "ETH.USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7": "tether"
+    ]
+    private func portfolioMarketFallback(assets: [String]) async throws -> [String: String] {
+        let ids = Set(assets.compactMap { Self.portfolioMarketIDs[$0] }).sorted()
+        let json = try await read(URL(string: "https://coins.llama.fi")!, path: "prices/current/" + ids.map { "coingecko:" + $0 }.joined(separator: ","))
+        var quotes: [String: String] = [:]
+        for asset in assets {
+            guard let id = Self.portfolioMarketIDs[asset] else { throw ThorchainError.malformed }
+            let key = "coingecko:" + id
+            if json["coins"][key].isNull { continue } // Optional market coverage.
+            if let quote = OathDiagnostics.attempt("thorchain_asset_fallback_validation", body: {
+                try NativePriceFallback.decodeLlama(json, key: key, maxAge: 300)
+            }) { quotes[asset] = quote.usd }
+        }
+        return quotes
+    }
     private func oraclePrices(assets:[String]) async throws -> [String:String] {
         guard assets.count <= 500 else { throw ThorchainError.incomplete }
         var result:[String:String] = [:]
@@ -88,18 +117,27 @@ extension ThorchainClient {
             let batch=Array(assets[start..<min(start+10,assets.count)])
             let ids=batch.map{Data(("Asset:"+$0).utf8).base64EncodedString()}
             let literal=String(decoding:try JSONEncoder().encode(ids),as:UTF8.self)
-            let j=try await readMarketGraphQL("{nodes(ids:\(literal)){... on Asset {asset price {current timestamp}}}}", stage: "oracle")
-            guard let rows=j["data"]["nodes"].array, rows.count == batch.count else { throw ThorchainError.malformed }
-            result.merge(try Self.decodeOracle(rows,expected:Set(batch)),uniquingKeysWith:{$1})
+            do {
+                let j=try await readMarketGraphQL("{nodes(ids:\(literal)){... on Asset {asset price {current timestamp}}}}", stage: "oracle")
+                guard let rows=j["data"]["nodes"].array, rows.count == batch.count else { throw ThorchainError.malformed }
+                result.merge(try Self.decodeOracle(rows,expected:Set(batch)),uniquingKeysWith:{$1})
+            } catch {
+                if error is CancellationError || Task.isCancelled { throw CancellationError() }
+                OathDiagnostics.record(error, component: "ThorchainClient", operation: "oracle_batch",
+                                       context: ["chain": "thorchain", "stage": "oracle"])
+                // Keep already-validated batches. A provider cooldown cannot
+                // become a reason to discard fresh quotes or hammer its bucket.
+                if error is DiagnosticDeferral || (error as? ThorchainError) == .rateLimited { break }
+            }
         }
         return result
     }
     public static func decodeOracle(_ rows:[SolanaJSON],expected:Set<String>,now:Date = .now) throws -> [String:String] {
         let parser=ISO8601DateFormatter(); parser.formatOptions=[.withInternetDateTime,.withFractionalSeconds]
-        var result:[String:String] = [:]
+        var result:[String:String] = [:], seen = Set<String>()
         for row in rows {
             if row.isNull { continue } // Not every issued token has a market.
-            guard let asset=row["asset"].string, expected.contains(asset) else { throw ThorchainError.malformed }
+            guard let asset=row["asset"].string, expected.contains(asset), seen.insert(asset).inserted else { throw ThorchainError.malformed }
             guard let text=row["price"]["current"].text, let n=Decimal(string:text), n>0,
                   let time=row["price"]["timestamp"].string.flatMap(parser.date(from:)),
                   now.timeIntervalSince(time)<900, time.timeIntervalSince(now)<=60 else { continue }
@@ -174,7 +212,7 @@ extension ThorchainClient {
         result.prices["tcy"]=oracle["THOR.TCY"]
         var spot:[String:Decimal] = [:]
         for row in rows {
-            guard let asset=row["asset"].string, let p=oracle[asset] ?? TonMarkets.positive(row["assetPriceUSD"]), let value=Decimal(string:p,locale:Locale(identifier:"en_US_POSIX")) else { continue }
+            guard let asset=row["asset"].string, let p=oracle[asset] ?? (Self.portfolioMarketIDs[asset] == nil ? TonMarkets.positive(row["assetPriceUSD"]) : nil), let value=Decimal(string:p,locale:Locale(identifier:"en_US_POSIX")) else { continue }
             // A suspended pool is not a current redeemable market quote.
             guard row["status"].string == "available" else { continue }
             spot[asset.lowercased()] = value

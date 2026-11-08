@@ -2,6 +2,11 @@ import Foundation
 
 /// Stable English localization keys shared by SwiftUI, UIKit, and system prompts.
 enum OathStringKey: String, CaseIterable, Sendable {
+    case browserTabs, browserNewTab
+    case wcNearCreateAccount, wcNearDeployContract, wcNearStake, wcNearAddKey, wcNearDeleteKey, wcNearDeleteAccount, wcNearFullAccess, wcArguments, wcPublicKey, wcDeposit, wcGasAllowance, wcAllowedMethods, wcAllMethods, wcRemainingBalance, wcAtomicAmount
+
+    case browserTitle, browserAddress, browserForward, browserReload, browserAddBookmark, browserBookmarks, browserClearData, browserClearDataDetail, browserPrivateDetail, browserNoBookmarks, browserInvalidAddress, browserLoadFailed, browserPairingLink
+    case assetSearchAll = "asset.search.all"
     case appIconSignalBlue = "app_icon.signal_blue"
     case appIconObsidian = "app_icon.obsidian"
     case appIconPorcelain = "app_icon.porcelain"
@@ -65,6 +70,8 @@ enum OathStringKey: String, CaseIterable, Sendable {
     case wcReviewNFT
     case historyTokenApproval, historyApprovalRemoval
     case wcContractCall
+    case wcSuiObjects, wcSuiObjectID, wcSuiMintAuthority, wcSuiUpgradeAuthority, wcSuiUnknownAuthority
+    case wcSuiShared, wcSuiImmutable, wcSuiRemoved, wcSuiObjectOwner
     case wcCallWarning
     case wcApprovalCallDetail
     case wcOperatorDetail
@@ -479,7 +486,6 @@ enum OathStringKey: String, CaseIterable, Sendable {
     case assetFilterGroupTokens = "asset.filter.group_tokens"
     case assetFilterHideUnverified = "asset.filter.hide_unverified"
     case assetFilterSaveFailed = "asset.filter.save_failed"
-    case assetFilterWithActivity = "asset.filter.with_activity"
     case assetFilterBalanceDetail = "asset.filter.balance_detail"
     case assetFilterValueRange = "asset.filter.value_range"
     case assetFilterValueDetail = "asset.filter.value_detail"
@@ -971,7 +977,6 @@ enum OathStringKey: String, CaseIterable, Sendable {
     case aptosAccountUnsupported, aptosMetadataChanged, aptosFeeTooHigh, aptosInsufficientFunds, aptosSimulationFailed, aptosSendFailed
     case nearAccountUnsupported, nearRecipientMissing, nearMetadataChanged, nearStorageUnsupported, nearFeeTooHigh, nearSendFailed, nearInsufficientFunds, nearStorageDeposit, nearFeeNotice
 
-    case scannerAddressValidFor
     case scannerReady
     case scannerDetail
     case scannerPhotos
@@ -997,7 +1002,7 @@ enum OathStringKey: String, CaseIterable, Sendable {
     case scannerPayment
     case scannerNetworkChoice
     case scannerNetworkDetail
-    case scannerMismatch
+    case scannerAddressValidFor
     case scannerMismatchDetail
     case scannerAssetMismatchDetail
     case scannerUseAddress

@@ -42,7 +42,9 @@ struct OathHomeScreen: View {
     @State private var pendingScanError: OathRecoveryScanError?
     @State private var walletFlow: OathAdditionalWalletDestination?
     @State private var pendingWalletDestination: WalletSwitcherDestination?
+    @State private var scrollEffects = OathHomeScrollEffects()
     @State private var query = ""
+    @State private var searchScope: OathAssetSearchScope = .all
     @State private var historyQuery = ""
     @State private var historyFilters = OathHistoryFilterSelection()
     private var assetFilters: PortfolioFilter {
@@ -50,6 +52,7 @@ struct OathHomeScreen: View {
     }
     private var portfolioPresentation: OathHomePortfolioModel { session.homePortfolio }
     @State private var selectedTab: OathHomeTab = .wallet
+    @State private var browserTabs = OathBrowserSession(makePage: OathBrowserModel.init)
     @State private var silentAssetTabSelection = false
     @State private var searchContext: OathHomeTab = .wallet
     @State private var searchPresented = false
@@ -59,11 +62,14 @@ struct OathHomeScreen: View {
         var request = OathTokenSearchRequest(query: query, walletID: profile?.id.uuidString,
             active: session.isUnlocked && !session.changingWallet && !session.resetting
                 && selectedTab == .search && searchContext == .wallet,
-            snapshot: session.portfolio)
+            snapshot: session.portfolio, scope: searchScope)
         request.attempt = tokenSearchAttempt
         return request
     }
     private var balancesHidden: Bool { session.balancesHidden }
+    private var searchRows: [OathHomeAssetPresentation] {
+        portfolioPresentation.searchRows.filter { searchScope.includes(networkID: $0.holding.networkID) }
+    }
     private var currentWallet: WalletRecord? {
         session.wallets.first(where: { $0.id == profile?.id.uuidString })
     }
@@ -311,7 +317,9 @@ struct OathHomeScreen: View {
         .onChange(of: selectedTab) { _, tab in
             if !silentAssetTabSelection || tab != .wallet { OathHaptics.shared.play(.selection) }
             silentAssetTabSelection = false
+            if tab == .search && searchContext == .wallet { searchPresented = true }
             if tab != .search {
+                searchScope = .all
                 searchPresented = false
                 if tab == .wallet || tab == .history { searchContext = tab }
             }
@@ -337,7 +345,7 @@ struct OathHomeScreen: View {
             if sheet?.id == "multisig" { sheet = nil }
             if sheet?.id == "stablecoin" { sheet = nil }
             assetPath.removeAll()
-            query = ""; historyQuery = ""; historyFilters = .init(); tokenSearch.reset()
+            query = ""; searchScope = .all; historyQuery = ""; historyFilters = .init(); tokenSearch.reset()
             if sheet?.id == "assetFilters" { sheet = nil }
         }
         .sheet(item: $sheet, onDismiss: {
@@ -476,6 +484,22 @@ struct OathHomeScreen: View {
 
     private var tabs: some View {
         nativeTabs.tint(Color(uiColor: OathTabBarStyle.selectedColor))
+            .modifier(OathBrowserTabAccessory(tabs: browserTabs, visible: selectedTab == .browser))
+            // The owner observes wallet lifecycle even when SwiftUI has not
+            // mounted the Browser tab. Inactive tabs must not retain old-wallet
+            // website sessions behind a different selected app tab.
+            .onChange(of: session.isUnlocked) { _, value in if !value { clearBrowserSession() } }
+            .onChange(of: session.changingWallet) { _, value in if value { clearBrowserSession() } }
+            .onChange(of: session.resetting) { _, value in if value { clearBrowserSession() } }
+            .onChange(of: session.displayedProfile?.id) { _, _ in clearBrowserSession() }
+            .onChange(of: selectedTab) { _, value in
+                if value != .browser { browserTabs.setActive(false) }
+            }
+    }
+
+    private func clearBrowserSession() {
+        browserTabs.setActive(false)
+        browserTabs.reset()
     }
 
     @ViewBuilder private var nativeTabs: some View {
@@ -489,6 +513,10 @@ struct OathHomeScreen: View {
                     Image(systemName: "clock.arrow.circlepath")
                 }
                 .accessibilityLabel(strings.text(.historyTab))
+                Tab(value: .browser) { OathBrowserScreen(session: session, tabs: browserTabs, selected: selectedTab == .browser) } label: {
+                    Image(systemName: "globe")
+                }
+                .accessibilityLabel(strings.text(.browserTitle))
                 Tab(value: .search, role: .search) { searchNavigation } label: {
                     Image(systemName: "magnifyingglass")
                 }
@@ -503,6 +531,9 @@ struct OathHomeScreen: View {
                 historyNavigation.tabItem {
                     Image(systemName: "clock.arrow.circlepath").accessibilityLabel(strings.text(.historyTab))
                 }.tag(OathHomeTab.history)
+                OathBrowserScreen(session: session, tabs: browserTabs, selected: selectedTab == .browser).tabItem {
+                    Image(systemName: "globe").accessibilityLabel(strings.text(.browserTitle))
+                }.tag(OathHomeTab.browser)
                 searchNavigation.tabItem {
                     Image(systemName: "magnifyingglass").accessibilityLabel(strings.text(.searchTitle))
                 }.tag(OathHomeTab.search)
@@ -554,17 +585,16 @@ struct OathHomeScreen: View {
                 if searchContext == .history {
                     walletHistory(query: historyQuery, visible: selectedTab == .search)
                 } else {
-                    OathEmptyStateScrollView(centersContent: portfolioPresentation.searchRows.isEmpty && tokenSearch.results.isEmpty) {
-                        Text(strings.text(.assets)).oathFont(.title3, weight: .bold)
-                            .accessibilityAddTraits(.isHeader)
-                            .frame(maxWidth: .infinity, alignment: .leading).padding(20)
-                    } content: {
+                    OathEmptyStateScrollView(centersContent: searchRows.isEmpty && tokenSearch.results.isEmpty) {
                         assetList(searching: true)
-                            .padding(20).frame(maxWidth: 700).frame(maxWidth: .infinity)
+                            .padding(.horizontal, 20).padding(.bottom, 20)
+                            .frame(maxWidth: 700).frame(maxWidth: .infinity)
                     }
                     .background(Color(uiColor: OathSurfaceColors.groupedCanvas).ignoresSafeArea())
                     .navigationTitle(strings.text(.assets))
                     .navigationBarTitleDisplayMode(.inline)
+                    .modifier(OathHomeAssetSearch(query: $query, scope: $searchScope,
+                        isPresented: $searchPresented, selectedTab: $selectedTab))
                     .oathNativeLocalization()
                 }
             }
@@ -572,7 +602,7 @@ struct OathHomeScreen: View {
         // History search can also retain a pushed transaction across tab changes.
         .id(profile?.id)
         .tint(Color(uiColor: .label))
-        .modifier(OathHomeSearchField(query: searchBinding, isPresented: $searchPresented, prompt: searchPrompt))
+        .modifier(OathHomeSearchField(query: searchBinding, isPresented: $searchPresented, prompt: searchPrompt, isEnabled: searchContext == .history))
     }
 
     @ViewBuilder private func walletHistory(query: String, visible: Bool) -> some View {
@@ -601,6 +631,7 @@ struct OathHomeScreen: View {
                 try await session.refresh()
                 _ = await rates
             }, onFailure: {}, onScroll: { _ in },
+                onDraggingChanged: { scrollEffects.setDragging($0) },
                 feedback: { event in
                     switch event {
                     case .pullStep: OathHaptics.shared.play(.selection)
@@ -665,14 +696,15 @@ struct OathHomeScreen: View {
             // creation replaces the wallet under the switcher/customization.
             // The backup offer's appearance gate then runs above the new list.
             // Same-wallet balance updates keep the user's scroll position.
-            .id(profile?.id)
             .id(strings.language.isRightToLeft)
+            .id(profile?.id)
             .modifier(OathHomeScrollEdgeAppearance())
             .modifier(OathHeaderScrollBackground {
                 // The shared surface supplies dark-mode frost and a light-mode canvas.
                 OathHomeHeaderSurface(animates: session.isUnlocked && settingsDestination == nil && sheet == nil && !showsScanner
                         && !OathWalletConnectService.shared.presentationOpen && walletFlow == nil && assetPath.isEmpty && selectedTab == .wallet,
                     colorHex: walletColorHex)
+                    .modifier(OathHomeDragBlur(effects: scrollEffects))
             })
         }
         .background(Color(uiColor: OathSurfaceColors.groupedCanvas).ignoresSafeArea())
@@ -817,7 +849,7 @@ struct OathHomeScreen: View {
 
     private func assetList(searching: Bool, values: [OathHomeAssetPresentation]? = nil) -> some View {
         // Sort/filter once per content change, not once again for every divider.
-        let visibleHoldings = values ?? (searching ? portfolioPresentation.searchRows : portfolioPresentation.rows)
+        let visibleHoldings = values ?? (searching ? searchRows : portfolioPresentation.rows)
         return VStack(alignment: .leading, spacing: 0) {
             if !portfolioPresentation.hasPrepared {
                 ProgressView().tint(.secondary).frame(maxWidth: .infinity)
@@ -853,7 +885,7 @@ struct OathHomeScreen: View {
             if searching && tokenSearchRequest.hasQuery {
                 OathTokenSearchResults(model: tokenSearch, session: session, walletID: tokenSearchRequest.walletID,
                     active: tokenSearchRequest.active, hasSavedMatches: !visibleHoldings.isEmpty,
-                    balancesHidden: balancesHidden, onSelected: { holding, snapshot in
+                    balancesHidden: balancesHidden, permittedNetworks: tokenSearchRequest.networks, onSelected: { holding, snapshot in
                         searchPresented = false
                         query = ""
                         assetPath = [OathAssetRoute(walletID: snapshot.wallet.id, holding: holding)]

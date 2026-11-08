@@ -4,7 +4,7 @@ import CryptoKit
 
 public typealias TonJSON = SolanaJSON
 public enum TonError: Error, Sendable, Equatable {
-    case configuration, invalidAddress, wrongNetwork, wrongOwner, malformed, incomplete, paginationLoop, http(Int), rpc(Int), transport
+    case configuration, invalidAddress, wrongNetwork, wrongOwner, malformed, incomplete, paginationLoop, http(Int), rpc(Int), transport, indexCooldown
 }
 public enum TonIdentity {
     public static let genesis = "F6OpKZKqvqeFp6CQmFomXNMfMj2EnaUSOXN+Mh+wVWk="

@@ -240,7 +240,10 @@ private struct UnavailableDirectory: AnkrTransport {
         await failure.search(publicToken, available: [.ethereum])
         XCTAssertEqual(failure.failedNetworks.map(\.chain), [.ethereum])
         for _ in 0..<100 {
-            if await capture.events.contains(where: { $0.error.domain == "Oath.Provider" }) { break }
+            await OathDiagnostics.flush()
+            // The lookup forwards the same cause before the queued HTTP
+            // inspection finishes. Await the boundary event asserted below.
+            if await capture.events.contains(where: { $0.error.domain == "Oath.Provider" && $0.component == "network" }) { break }
             try await Task.sleep(for: .milliseconds(10))
         }
         let genuine = await capture.events.filter { $0.error.domain == "Oath.Provider" && $0.component == "network" }
@@ -371,9 +374,9 @@ private struct UnavailableDirectory: AnkrTransport {
     }
 
     func testAllAppChainsHaveDiscoveryOrNativeSearchAndPreserveRealIdentity() async throws {
-        let supported = Set(OathImportChain.allCases.map(\.id))
-        XCTAssertEqual(supported, Set(TokenDiscoveryNetworks.platforms.keys).union(TokenDiscoveryNetworks.nativeOnly))
-        XCTAssertEqual(Set(OathTokenNetwork.all.map(\.id)), Set(TokenDiscoveryNetworks.platforms.keys))
+        let supported = Set(OathImportChain.enabledCases.map(\.id))
+        XCTAssertEqual(Set(OathImportChain.allCases.map(\.id)), Set(TokenDiscoveryNetworks.platforms.keys).union(TokenDiscoveryNetworks.nativeOnly))
+        XCTAssertEqual(Set(OathTokenNetwork.all.map(\.id)), Set(TokenDiscoveryNetworks.platforms.keys).intersection(supported))
         let entries = await TokenDiscoveryCatalog.shared.search("USDT", networks: supported)
         let mapped = entries.compactMap(OathTokenDefinition.discovery)
         XCTAssertEqual(entries.map(\.id), mapped.map(\.id))
@@ -461,6 +464,27 @@ private struct UnavailableDirectory: AnkrTransport {
             "solana:Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB"
         ]
         XCTAssertTrue(expected.isSubset(of: Set(model.results.map(\.id))))
+        // The same picker request is used by Home, Receive and Send. Changing
+        // just the chain must restart discovery without broadening link scope.
+        for chain in chains {
+            let scoped = OathTokenSearchRequest(query: "Usdt", walletID: "fixture", active: true,
+                snapshot: snapshot, scope: .init(chain: chain))
+            XCTAssertNotEqual(scoped, request)
+            await model.search(scoped)
+            XCTAssertFalse(model.results.isEmpty)
+            XCTAssertEqual(Set(model.results.map(\.network.chain)), [chain])
+        }
+        let incompatibleScope = OathTokenSearchRequest(query: "Usdt", walletID: "fixture", active: true,
+            snapshot: snapshot, permittedNetworks: [.ethereum], scope: .init(chain: .tron))
+        XCTAssertFalse(incompatibleScope.active)
+        XCTAssertTrue(incompatibleScope.networks.isEmpty)
+        await model.search(incompatibleScope)
+        XCTAssertTrue(model.results.isEmpty, "An incompatible chain must clear the previous results")
+        let unavailable = OathTokenSearchRequest(query: "Usdt", walletID: "fixture", active: true,
+            snapshot: snapshot, scope: .init(chain: .bnb))
+        XCTAssertFalse(unavailable.active, "A filter never fabricates a wallet account")
+        await model.search(request)
+        XCTAssertTrue(expected.isSubset(of: Set(model.results.map(\.id))), "All restores every available chain")
         let token = try XCTUnwrap(model.results.first { $0.id == "ethereum:0xdac17f958d2ee523a2206206994597c13d831ec7" })
         try await database.trackAsset(.init(id: token.id, networkID: token.network.id, reference: token.reference,
             name: token.name, symbol: token.symbol, decimals: 6), walletID: "fixture")
@@ -628,6 +652,37 @@ private struct UnavailableDirectory: AnkrTransport {
         XCTAssertEqual(pending.count, 4, "Lock/reset must prevent queued work starting")
         XCTAssertEqual(selection.pendingCount, 0)
         XCTAssertEqual(navigations, 6)
+    }
+
+    func testSharedPaymentSelectionRetainsExplicitSenderAccount() async throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let (database, token) = try await selectionFixture(folder)
+        let account = AccountRecord(id: "second", walletID: "fixture", networkID: "ethereum",
+            address: "public-second-fixture", derivationPath: "fixture", accountIndex: 1)
+        try await database.importWalletIfNeeded(.init(id: "fixture", name: "", kind: "hd", vaultReference: "fixture", createdAt: 1), accounts: [account])
+        let snapshot = try await database.snapshot(walletID: "fixture", currency: "USD")
+        let selection = OathTokenSelectionModel()
+        selection.select(token, walletID: "fixture", snapshot: snapshot, accountID: "missing", add: { _, _ in
+            XCTFail("Unknown account reached persistence"); return snapshot
+        }) { _, _ in XCTFail("Unknown account navigated") }
+        XCTAssertEqual(selection.pendingCount, 0)
+        var selected: Holding?
+        selection.select(token, walletID: "fixture", snapshot: snapshot, accountID: account.id, add: { _, _ in
+            throw CancellationError()
+        }) { holding, _ in selected = holding }
+        XCTAssertEqual(selected?.accountID, account.id)
+        XCTAssertEqual(selected?.address, account.address)
+        XCTAssertTrue(selected?.isCatalogPreview == true)
+        selection.cancel()
+        try await database.trackAsset(.init(id: token.id, networkID: token.network.id, reference: token.reference,
+            name: token.name, symbol: token.symbol, decimals: 6), walletID: "fixture")
+        let saved = try await database.snapshot(walletID: "fixture", currency: "USD")
+        selection.select(token, walletID: "fixture", snapshot: saved, accountID: account.id, add: { _, _ in
+            XCTFail("Saved token was added again"); return saved
+        }) { holding, _ in selected = holding }
+        XCTAssertEqual(selected?.accountID, account.id, "Must not select the first account's copy of the same token")
+        XCTAssertFalse(selected?.isCatalogPreview == true)
     }
 
     private func selectionFixture(_ folder: URL) async throws -> (OathDatabase, OathTokenDefinition) {

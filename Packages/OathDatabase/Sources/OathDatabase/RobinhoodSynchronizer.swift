@@ -47,9 +47,13 @@ public actor RobinhoodSynchronizer {
                 let tracked = try await database.knownRobinhoodTokens(accountID: accountID)
                 async let inventory = client.inventory(owner: ticket.account.address, tracked: tracked)
                 async let native = await OathDiagnostics.attempt("native_price") { try await markets.nativePrice() }
-                let catalog = await self.catalog()
+                async let freshCatalog = self.catalog()
+                let cachedCatalog: RobinhoodCatalog = await database.refreshCatalog(key: "robinhood.catalog", fallback: .empty)
                 let value = try await inventory; try Task.checkCancellation()
-                try await database.commitRobinhoodInventory(value, ticket: ticket, catalog: catalog)
+                try await database.commitRobinhoodInventory(value, ticket: ticket, catalog: cachedCatalog)
+                let catalog = await freshCatalog
+                try Task.checkCancellation()
+                try await database.applyRefreshCatalog(account: ticket.account, runID: ticket.runID) { catalog.contains($0.reference) }
                 if let price = await native { try await Self.save([price], database: database) }
                 let trackedRefs = Set(try await database.trackedAssets(walletID: ticket.account.walletID).filter { $0.networkID == "robinhood" }.map(\.reference))
                 let refs = value.holdings.filter { $0.token.reference != "native" && $0.amount != "0" &&
@@ -72,6 +76,7 @@ public actor RobinhoodSynchronizer {
                     enqueue(); enqueue(); for await _ in group { enqueue() }
                 }
                 try Task.checkCancellation()
+                if !value.complete { throw BalanceRefreshError.incomplete }
             } catch { OathDiagnostics.record(error); await OathDiagnostics.attempt("failRobinhoodSync", body: { try await database.failRobinhoodSync(ticket, code: Self.code(error)) }); throw error }
         }
         flights[accountID] = (id,task)

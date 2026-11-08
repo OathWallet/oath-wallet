@@ -14,6 +14,11 @@ private actor OutageCounter {
     }
 }
 
+private actor MarketTLSReports: DiagnosticTransport {
+    private(set) var events: [DiagnosticEvent] = []
+    func upload(_ events: [DiagnosticEvent]) async throws { self.events += events }
+}
+
 final class PublicMarketOutageTests: XCTestCase, @unchecked Sendable {
     private func request(_ symbol: String, host: String = "api.coinbase.com") -> URLRequest {
         URLRequest(url: URL(string: "https://\(host)/v2/prices/\(symbol)-USD/spot")!)
@@ -70,7 +75,9 @@ final class PublicMarketOutageTests: XCTestCase, @unchecked Sendable {
 
     func testTransientOutageExpiresAndAllowsRecovery() async throws {
         for failure: any Error in [URLError(.cannotFindHost), URLError(.timedOut),
-                                   URLError(.secureConnectionFailed), AnkrError.transport] {
+                                   URLError(.secureConnectionFailed), URLError(.serverCertificateUntrusted),
+                                   URLError(.serverCertificateHasBadDate), URLError(.serverCertificateHasUnknownRoot),
+                                   URLError(.serverCertificateNotYetValid), AnkrError.transport] {
             let pool = PublicMarketRequests(spacing: .zero, transportCooldown: .milliseconds(20))
             do { _ = try await pool.send(request("SOL")) { throw failure }; XCTFail() }
             catch { XCTAssertFalse(error is DiagnosticDeferral) }
@@ -83,43 +90,46 @@ final class PublicMarketOutageTests: XCTestCase, @unchecked Sendable {
     }
 
     func testTLSFailureIsAttemptedOnceAcrossAssetsAndFallbacksRemainAvailable() async throws {
-        let pool = PublicMarketRequests(spacing: .zero)
-        let counter = OutageCounter(failure: URLError(.secureConnectionFailed))
-        let results = await withTaskGroup(of: Int.self) { group in
-            for symbol in ["BTC", "BCH", "DOGE", "ETH", "SOL", "XRP", "TRX", "SUI"] {
-                let next = request(symbol)
-                group.addTask {
-                    do { _ = try await pool.send(next) { try await counter.fail() }; return 0 }
-                    catch DiagnosticDeferral.publicMarketCooldown { return 1 }
-                    catch let error as URLError where error.code == .secureConnectionFailed { return 2 }
-                    catch { return 3 }
+        for code in [URLError.Code.secureConnectionFailed, .serverCertificateUntrusted,
+                     .serverCertificateHasBadDate, .serverCertificateHasUnknownRoot, .serverCertificateNotYetValid] {
+            let pool = PublicMarketRequests(spacing: .zero)
+            let counter = OutageCounter(failure: URLError(code))
+            let results = await withTaskGroup(of: Int.self) { group in
+                for symbol in ["BTC", "BCH", "DOGE", "ETH", "SOL", "XRP", "TRX", "SUI"] {
+                    let next = request(symbol)
+                    group.addTask {
+                        do { _ = try await pool.send(next) { try await counter.fail() }; return 0 }
+                        catch DiagnosticDeferral.publicMarketCooldown { return 1 }
+                        catch let error as URLError where error.code == code { return 2 }
+                        catch { return 3 }
+                    }
                 }
+                var results: [Int] = []
+                for await value in group { results.append(value) }
+                return results
             }
-            var results: [Int] = []
-            for await value in group { results.append(value) }
-            return results
-        }
-        let attempts = await counter.requests
-        XCTAssertEqual(attempts, 1, "A TLS outage is shared by every asset using this host")
-        XCTAssertEqual(results.filter { $0 == 2 }.count, 1, "Preserve the original TLS failure")
-        XCTAssertEqual(results.filter { $0 == 1 }.count, 7, "Only unattempted requests are deferred")
-        for symbol in ["ETH", "MON", "HYPE"] {
-            let quote = try await NativePriceFallback.resolve(symbol) { url in
-                let response = try await pool.send(URLRequest(url: url)) {
-                    if url.host == "api.coinbase.com" { return try await counter.fail() }
-                    XCTAssertEqual(url.host, "coins.llama.fi")
-                    let data = try JSONSerialization.data(withJSONObject: ["coins": [url.lastPathComponent: [
-                        "price": 1.25, "confidence": 0.99, "timestamp": Date().timeIntervalSince1970
-                    ]]])
-                    return .init(data: data, status: 200)
+            let attempts = await counter.requests
+            XCTAssertEqual(attempts, 1, "A TLS outage is shared by every asset using this host")
+            XCTAssertEqual(results.filter { $0 == 2 }.count, 1, "Preserve the original TLS failure")
+            XCTAssertEqual(results.filter { $0 == 1 }.count, 7, "Only unattempted requests are deferred")
+            for symbol in ["ETH", "MON", "HYPE"] {
+                let quote = try await NativePriceFallback.resolve(symbol) { url in
+                    let response = try await pool.send(URLRequest(url: url)) {
+                        if url.host == "api.coinbase.com" { return try await counter.fail() }
+                        XCTAssertEqual(url.host, "coins.llama.fi")
+                        let data = try JSONSerialization.data(withJSONObject: ["coins": [url.lastPathComponent: [
+                            "price": 1.25, "confidence": 0.99, "timestamp": Date().timeIntervalSince1970
+                        ]]])
+                        return .init(data: data, status: 200)
+                    }
+                    return response.data
                 }
-                return response.data
+                XCTAssertEqual(quote.source, "DefiLlama")
+                XCTAssertEqual(quote.usd, "1.25")
             }
-            XCTAssertEqual(quote.source, "DefiLlama")
-            XCTAssertEqual(quote.usd, "1.25")
+            let finalAttempts = await counter.requests
+            XCTAssertEqual(finalAttempts, 1, "Fallbacks must not retry the failed TLS host during cooldown")
         }
-        let finalAttempts = await counter.requests
-        XCTAssertEqual(finalAttempts, 1, "Fallbacks must not retry the failed TLS host during cooldown")
     }
 
     func testCancellationAndMalformedResponsesDoNotCauseHostOutage() async throws {

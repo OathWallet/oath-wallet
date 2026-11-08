@@ -1,6 +1,7 @@
 import XCTest
 import GRDB
 import OathAnkr
+import OathDiagnostics
 @testable import OathDatabase
 
 private let syncAddress = "0x1111111111111111111111111111111111111111"
@@ -134,8 +135,23 @@ private actor RateLimitedCatalogTransport: AnkrTransport {
 }
 
 @MainActor final class AnkrSynchronizerTests: XCTestCase {
+    func testStoryDoesNotStartAdvancedAPIWorkOnRefreshOrBalanceRefresh() async throws {
+        let db = try await fixture([.story, .eth])
+        let transport = ScriptedAnkrTransport(.empty)
+        let sync = AnkrSynchronizer(database: db, client: try AnkrClient(apiKey: "fixture", transport: transport),
+            catalogTransport: UnavailableCatalogTransport())
+        let full = try await sync.refresh(walletID: "wallet")
+        let balances = try await sync.refreshBalances(walletID: "wallet")
+        XCTAssertEqual(full.count, 3)
+        XCTAssertEqual(balances.count, 1)
+        XCTAssertTrue(full.allSatisfy(\.success))
+        let requests = await transport.requests
+        XCTAssertTrue(requests.allSatisfy { $0.chain == "eth" })
+        XCTAssertFalse(AnkrSynchronizer.supports(networkID: "story"))
+        XCTAssertFalse(AnkrSynchronizer.supportedNetworkIDs.contains("story"))
+    }
     func testRateLimitedCatalogsRecoverPersistAndShareOneDirectoryAcrossChains() async throws {
-        let chains: [AnkrChain] = [.story, .telos, .xlayer]
+        let chains: [AnkrChain] = [.telos, .xlayer]
         let db = try await fixture(chains)
         let catalogTransport = RateLimitedCatalogTransport()
         let sync = AnkrSynchronizer(database: db,
@@ -349,6 +365,13 @@ private actor RateLimitedCatalogTransport: AnkrTransport {
         XCTAssertTrue(results.filter { !$0.success }.allSatisfy { ($0.failure as? AnkrError) == .http(401) },
                       "The original provider rejection must survive concurrent aggregation")
         XCTAssertTrue(results.filter(\.success).allSatisfy { $0.failure == nil })
+        for result in results where !result.success {
+            do { try result.outcome.get(); XCTFail("Failed stream must remain failed") }
+            catch {
+                XCTAssertEqual((error as? ReportedDiagnosticFailure)?.underlying as? AnkrError, .http(401),
+                    "Throwing propagation must retain the observed cause without duplicate wallet reports")
+            }
+        }
         let snapshot = try await db.snapshot(walletID:"wallet",currency:"USD")
         XCTAssertEqual(snapshot.holdings.first { $0.networkID == "base" }?.amountAtomic,"0")
         XCTAssertNil(snapshot.holdings.first { $0.networkID == "ethereum" }?.amountAtomic)
@@ -375,17 +398,17 @@ private actor RateLimitedCatalogTransport: AnkrTransport {
         guard ProcessInfo.processInfo.environment["OATH_ANKR_LIVE"] == "1" else { throw XCTSkip("Opt-in public read-only sync") }
         let path = try XCTUnwrap(ProcessInfo.processInfo.environment["OATH_ANKR_CONFIG"])
         let config = try PropertyListSerialization.propertyList(from:Data(contentsOf:URL(fileURLWithPath:path)),format:nil) as! [String:Any]
-        let db = try await fixture([.somnia,.story,.telos])
-        // Widely published exchange address, empty on these three chains at
+        let db = try await fixture([.somnia,.telos])
+        // Widely published exchange address, empty on these two chains at
         // the time of the probe. No installed wallet or secret material read.
         try await db.pool.write { try $0.execute(sql:"UPDATE accounts SET address=?",arguments:["0xF977814e90dA44bFA03b6295A0616a897441aceC"]) }
         let sync = try AnkrSynchronizer(database:db,apiKey:XCTUnwrap(config["AnkrAPIKey"] as? String))
         let outcomes = try await sync.refresh(walletID:"wallet")
-        XCTAssertEqual(outcomes.count,9); XCTAssertTrue(outcomes.allSatisfy(\.success))
+        XCTAssertEqual(outcomes.count,6); XCTAssertTrue(outcomes.allSatisfy(\.success))
         let snapshot = try await db.snapshot(walletID:"wallet",currency:"USD")
         XCTAssertTrue(snapshot.accountSync.allSatisfy { $0.complete && $0.lastSuccess != nil && $0.failure == nil })
         XCTAssertTrue(snapshot.holdings.allSatisfy { $0.amountAtomic != nil })
-        let pages = try await db.ankrResponsePages(accountID:"story",stream:"balances")
+        let pages = try await db.ankrResponsePages(accountID:"telos",stream:"balances")
         XCTAssertFalse(pages.isEmpty)
     }
 }

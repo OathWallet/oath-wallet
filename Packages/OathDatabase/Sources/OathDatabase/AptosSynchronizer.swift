@@ -48,10 +48,18 @@ public actor AptosSynchronizer {
             do {
                 async let inventory=client.inventory(owner:account.address)
                 async let native = await OathDiagnostics.attempt("native_price") { try await markets.nativePrice() }
-                let catalog=await self.catalog()
+                async let freshCatalog = self.catalog()
+                let cachedCatalog: AptosCatalog = await database.refreshCatalog(key: "aptos.catalog", fallback: .empty)
                 try Task.checkCancellation()
                 let value=try await inventory;try Task.checkCancellation()
-                try await database.commitAptosInventory(value,ticket:ticket,catalog:catalog)
+                try await database.commitAptosInventory(value,ticket:ticket,catalog:cachedCatalog)
+                let catalog = await freshCatalog
+                try Task.checkCancellation()
+                try await database.applyRefreshCatalog(account: ticket.account, runID: ticket.runID, enrichment: { asset in
+                    catalog.tokens[catalog.canonical(asset.reference)].map { .init(name: $0.name, symbol: $0.symbol, logo: $0.logo) }
+                }) { asset in
+                    catalog.tokens[catalog.canonical(asset.reference)].map { $0.verified && $0.decimals == asset.decimals } == true
+                }
                 // Inventory and history share the indexer's compute quota.
                 // Persist balances before history can consume that quota.
                 self.startHistory(ticket,catalog:catalog)

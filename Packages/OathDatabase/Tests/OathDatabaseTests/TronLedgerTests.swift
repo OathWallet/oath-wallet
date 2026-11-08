@@ -143,8 +143,19 @@ import GRDB
 private struct TronLedgerRecoveryTransport: AnkrTransport {
     let recover: Bool
     let owner: String
+    var nativeQuote: Data? = nil
     func send(_ request: URLRequest) async throws -> (Data, Int) {
         let url = try XCTUnwrap(request.url)
+        if let nativeQuote {
+            switch url.host {
+            case "api.coinbase.com": throw AnkrError.transport
+            case "api.dexscreener.com": return (Data("[]".utf8), 200)
+            case "api.geckoterminal.com": return (Data(#"{"data":{"type":"simple_token_price","attributes":{"token_prices":{}}}}"#.utf8), 200)
+            case "api.coingecko.com": return (Data("{}".utf8), 200)
+            case "coins.llama.fi": return (nativeQuote, 200)
+            default: break
+            }
+        }
         if url.host == "rpc.ankr.com" { throw AnkrError.transport }
         guard url.host == "api.trongrid.io" else { return (Data(), 400) }
         guard recover else { throw AnkrError.transport }
@@ -168,9 +179,48 @@ private struct TronLedgerRecoveryTransport: AnkrTransport {
     }
 }
 extension TronLedgerTests {
+    func testNativePriceRecoveryAndExpiredQuotePreserveWalletHistoryAndCacheAfterReopen() async throws {
+        for expired in [false, true] {
+            let (db, folder) = try await fixture()
+            defer { try? FileManager.default.removeItem(at: folder) }
+            let ticket = try await db.beginTronSync(accountID: "a1")
+            try await db.commitTronInventory(inventory(), ticket: ticket, catalog: catalog)
+            let tx = TronTransaction(hash: String(repeating: "a", count: 64), block: 123, timestamp: 1000,
+                failed: false, confirmed: true, fee: "100", payer: other,
+                events: [.init(index: 0, reference: "native", from: other, to: owner, amount: "2000000")], raw: Data("{}".utf8))
+            let work = try await db.tronHistoryWork(ticket)
+            let cursor = try XCTUnwrap(work.first)
+            try await db.commitTronPage(.init(hashes: [tx.hash], cursor: nil, raw: Data("{}".utf8)), transactions: [tx],
+                tokens: ["native": .init(reference: "native", name: "TRON", symbol: "TRX", decimals: 6)],
+                catalog: catalog, cursor: cursor, ticket: ticket)
+            try await db.saveMarketCache(.init(key: "tron.price.native", source: "Fixture", payload: Data("{}".utf8), fetchedAt: 1000),
+                price: .init(assetID: "tron:native", currency: "USD", value: "0.25", observedAt: 1000, source: "Fixture"))
+            let accounts = try await db.pool.read { try Row.fetchAll($0, sql: "SELECT * FROM accounts ORDER BY id").map { $0.description } }
+            let wallets = try await db.pool.read { try Row.fetchAll($0, sql: "SELECT * FROM wallets ORDER BY id").map { $0.description } }
+            let payload = try JSONSerialization.data(withJSONObject: ["coins": ["coingecko:tron": ["symbol": "TRX", "price": "0.32",
+                "confidence": 0.99, "timestamp": Date().timeIntervalSince1970 - (expired ? 1000 : 0)]]])
+            let transport = TronLedgerRecoveryTransport(recover: true, owner: owner, nativeQuote: payload)
+            let sync = TronSynchronizer(database: db, client: try TronClient(apiKey: "FixtureKey", transport: transport), markets: TronMarkets(transport: transport))
+            try await sync.refresh(accountID: "a1")
+            await sync.waitForHistory(accountID: "a1")
+            await sync.cancel()
+            let reopened = try await OathDatabase.open(at: folder.appendingPathComponent("wallet.sqlite"))
+            let snapshot = try await reopened.snapshot(walletID: "w1", currency: "USD")
+            XCTAssertEqual(snapshot.holdings.first { $0.reference == "native" }?.usdPrice, expired ? "0.25" : "0.32")
+            XCTAssertEqual(snapshot.holdings.first { $0.reference == "native" }?.amountAtomic, "123456789012345")
+            XCTAssertEqual(snapshot.holdings.first { $0.reference == usdt }?.amountAtomic, "42")
+            let history = try await reopened.assetHistory(walletID: "w1", accountID: "a1", assetID: "tron:native")
+            XCTAssertEqual(history.count, 1); XCTAssertEqual(history.first?.amountAtomic, "2000000")
+            let afterAccounts = try await reopened.pool.read { try Row.fetchAll($0, sql: "SELECT * FROM accounts ORDER BY id").map { $0.description } }
+            let afterWallets = try await reopened.pool.read { try Row.fetchAll($0, sql: "SELECT * FROM wallets ORDER BY id").map { $0.description } }
+            XCTAssertEqual(afterAccounts, accounts); XCTAssertEqual(afterWallets, wallets)
+        }
+    }
     func testNodeRecoveryPersistsExactBalancesAndOutagePreservesCache() async throws {
         for recover in [true, false] {
             let (db, folder) = try await fixture()
+            let publication = RefreshPublicationProbe(db, wallet: "w1")
+            defer { publication.stop() }
             defer { try? FileManager.default.removeItem(at: folder) }
             let ticket = try await db.beginTronSync(accountID: "a1")
             try await db.commitTronInventory(inventory(), ticket: ticket, catalog: catalog)
@@ -178,6 +228,8 @@ extension TronLedgerTests {
             let sync = TronSynchronizer(database: db, client: try TronClient(apiKey: "FixtureKey", transport: transport), markets: TronMarkets(transport: transport))
             do { try await sync.refresh(accountID: "a1"); XCTAssertTrue(recover) }
             catch { XCTAssertFalse(recover); XCTAssertEqual(error as? TronError, .transport) }
+            try await publication.expect(amount: recover ? "123456789012345" : "3577033", network: "tron")
+            try await publication.expect(usdt, amount: recover ? "42" : "9007199254740993", network: "tron")
             await sync.cancel()
             let native = try await db.balance(accountID: "a1", assetID: "tron:native")
             XCTAssertEqual(native?.amountAtomic, recover ? "123456789012345" : "3577033")

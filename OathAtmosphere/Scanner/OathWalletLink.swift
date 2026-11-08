@@ -34,7 +34,7 @@ enum OathWalletLink: Equatable, Sendable {
                 ((parts.host ?? "").isEmpty && ["/pay", "/pay/"].contains(parts.path)) {
                 let items = parts.queryItems ?? []
                 guard Set(items.map(\.name)).count == items.count,
-                      Set(items.map(\.name)).isSubset(of: ["uri", "network"]),
+                      Set(items.map(\.name)).isSubset(of: ["uri", "network", "v", "scope", "asset"]),
                       let payload = items.first(where: { $0.name == "uri" })?.value, !payload.isEmpty,
                       payload == payload.trimmingCharacters(in: .whitespacesAndNewlines),
                       // Wrappers cannot nest, import secrets, or load remote requests.
@@ -44,6 +44,31 @@ enum OathWalletLink: Equatable, Sendable {
                     guard let value = item.value, let chain = OathImportChain(rawValue: value),
                           recipient.networks.contains(chain) else { return nil }
                     recipient = scoped(recipient, to: chain)
+                }
+                if items.contains(where: { $0.name == "v" }) {
+                    guard items.first(where: { $0.name == "v" })?.value == "1",
+                          let network = items.first(where: { $0.name == "network" })?.value,
+                          let chain = OathImportChain(rawValue: network), chain.isEnabled,
+                          let scope = items.first(where: { $0.name == "scope" })?.value,
+                          // Version 1 has one authoritative asset field. Nested
+                          // payment requests cannot contradict the outer intent.
+                          OathScanAddress.decode(payload, chain: chain) != nil,
+                          recipient.amount == nil, recipient.token == nil, recipient.tokenSymbol == nil else { return nil }
+                    switch scope {
+                    case "network":
+                        guard chain.supportsTokens, chain != .xrpl, chain != .stellar,
+                              !items.contains(where: { $0.name == "asset" }) else { return nil }
+                        recipient.sharedPaymentScope = .network
+                    case "asset":
+                        guard let asset = items.first(where: { $0.name == "asset" })?.value,
+                              let reference = OathScannedRecipient.canonicalReference(asset, chain: chain) else { return nil }
+                        recipient.token = reference
+                        recipient.sharedPaymentScope = .asset
+                    default: return nil
+                    }
+                } else {
+                    guard !items.contains(where: { ["scope", "asset"].contains($0.name) }) else { return nil }
+                    recipient.sharedPaymentScope = .legacy
                 }
                 return .payment(recipient)
             }
@@ -74,13 +99,17 @@ enum OathWalletLink: Equatable, Sendable {
     }
 
     /// Oath-specific address links avoid competing registrations for bitcoin:, wc:, etc.
-    static func paymentURL(address: String, chain: OathImportChain) -> URL? {
+    static func paymentURL(address: String, chain: OathImportChain, reference: String = "native") -> URL? {
         let parser = OathScanParser(validator: nil, evmNetworks: networks)
-        guard case .recipient(let recipient) = parser.parse(address), recipient.networks.contains(chain),
-              OathScanAddress.decode(address, chain: chain) != nil else { return nil }
+        guard chain.isEnabled, case .recipient(let recipient) = parser.parse(address), recipient.networks.contains(chain),
+              OathScanAddress.decode(address, chain: chain) != nil,
+              let reference = OathScannedRecipient.canonicalReference(reference, chain: chain) else { return nil }
+        let networkWide = reference == "native" && chain.supportsTokens && chain != .xrpl && chain != .stellar
         var parts = URLComponents(string: native + "pay")!
-        parts.queryItems = [.init(name: "uri", value: address), .init(name: "network", value: chain.rawValue)]
-        guard let url = parts.url, url.absoluteString.utf8.count <= 8_192 else { return nil }
+        parts.queryItems = [.init(name: "v", value: "1"), .init(name: "uri", value: address),
+                            .init(name: "network", value: chain.rawValue), .init(name: "scope", value: networkWide ? "network" : "asset")]
+        if !networkWide { parts.queryItems?.append(.init(name: "asset", value: reference)) }
+        guard let url = parts.url, case .payment = parse(url) else { return nil }
         return url
     }
 
@@ -92,6 +121,7 @@ enum OathWalletLink: Equatable, Sendable {
         result.memo = recipient.memo; result.memoType = recipient.memoType
         result.solanaReferences = recipient.solanaReferences
         result.label = recipient.label; result.message = recipient.message
+        result.sharedPaymentScope = recipient.sharedPaymentScope
         return result
     }
 
@@ -121,11 +151,13 @@ enum OathWalletLink: Equatable, Sendable {
         let id = UUID()
         let route: OathWalletLink
         let expires: Date
+        let browserHost: String?
         fileprivate let sourceURL: URL?
-        init(route: OathWalletLink, expires: Date, sourceURL: URL? = nil) {
+        init(route: OathWalletLink, expires: Date, sourceURL: URL? = nil, browserHost: String? = nil) {
             self.route = route
             self.expires = expires
             self.sourceURL = sourceURL
+            self.browserHost = browserHost
         }
         var uri: String? { if case .pair(let uri) = route { return uri }; return nil }
     }
@@ -134,12 +166,12 @@ enum OathWalletLink: Equatable, Sendable {
     @ObservationIgnored private var active: Entry?
     @ObservationIgnored private var delivered: Entry?
 
-    func receive(_ url: URL, now: Date = .now) {
+    func receive(_ url: URL, now: Date = .now, browserHost: String? = nil) {
         guard let route = OathWalletLink.parse(url, now: now) else { return }
         if active?.route == route { return }
         if let pending, pending.expires > now { return } // One bounded request; never replace an in-flight consent.
         if let delivered, delivered.route == route, delivered.expires > now { return }
-        pending = Entry(route: route, expires: now.addingTimeInterval(300), sourceURL: url)
+        pending = Entry(route: route, expires: now.addingTimeInterval(300), sourceURL: url, browserHost: browserHost)
     }
 
     func take(now: Date = .now, walletConnectOnly: Bool = false) -> Entry? {
