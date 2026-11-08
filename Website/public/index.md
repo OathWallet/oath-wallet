@@ -1,4 +1,4 @@
-# Oath — A wallet, not a marketplace.
+# Oath — Made for your independence.
 
 Oath is a self-custody Bitcoin and crypto wallet for iPhone and iPad. You control your wallet credentials, review fees before confirming, and manage supported assets without a trading marketplace.
 
