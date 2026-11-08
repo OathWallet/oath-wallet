@@ -11,7 +11,7 @@ device. Only documented public synthetic key material belongs in tests.
 
 Changed features use `Packages/OathDiagnostics` at swallowed-failure boundaries.
 Preserve filtering, bounds, cancellation behavior, and non-recursive reporting.
-Diagnostics remain on device.
+Diagnostics remain on device. Keep Mac host validation isolated from the iOS app.
 
 Default to source review, generic iOS compilation, and focused host tests. Do not
 launch a simulator without a specific unresolved runtime concern or explicit
@@ -22,6 +22,8 @@ Before publication run `python3 Tools/ValidatePublicRelease.py`,
 `gitleaks dir . --redact=100`, `python3 Tools/CheckDiagnosticsCoverage.py`, the
 diagnostics host tests, and a generic iOS build. Review scanner exceptions by
 content and preserve the exact file-hash checks. Never print secret values.
+After the build, run `python3 Tools/CheckDiagnosticsBoundary.py` with the build's
+`Build/Products/Debug-iphoneos` directory to verify the iOS API and binary.
 
 Website/ contains the public website, help, articles and website service source.
 It is independent of the iOS target and must never be bundled into the app.

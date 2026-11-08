@@ -1,15 +1,19 @@
 import Foundation
 
+#if os(macOS)
+/// Event consumer for Mac host validation. Not available in the iOS module.
 public protocol DiagnosticTransport: Sendable {
-    /// Optional event consumer used by tests. The app supplies no consumer.
     func upload(_ events: [DiagnosticEvent]) async throws
 }
+#endif
 
 /// Independent of the wallet database/keychain. Bounded, private, crash-safe
-/// snapshots; failed uploads never erase events and never recursively log.
+/// snapshots. iOS persists events on device and has no event transport.
 public actor DiagnosticOutbox {
     private let file: URL
+    #if os(macOS)
     private let transport: (any DiagnosticTransport)?
+    #endif
     private let limit: Int
     private let now: @Sendable () -> Date
     private var pending: [DiagnosticEvent] = []
@@ -20,9 +24,15 @@ public actor DiagnosticOutbox {
     private var failures = 0
     private var writeFailed = false
     public private(set) var dropped = 0
+    #if os(macOS)
     public init(file: URL, transport: (any DiagnosticTransport)? = nil, limit: Int = 256, now: @escaping @Sendable () -> Date = { Date() }) {
         self.file = file; self.transport = transport; self.limit = max(2, limit); self.now = now
     }
+    #else
+    public init(file: URL, limit: Int = 256, now: @escaping @Sendable () -> Date = { Date() }) {
+        self.file = file; self.limit = max(2, limit); self.now = now
+    }
+    #endif
     private func load() {
         guard !loaded else { return }; loaded = true
         guard FileManager.default.fileExists(atPath: file.path) else { return }
@@ -127,6 +137,7 @@ public actor DiagnosticOutbox {
             _ = enqueue(event)
         }
         if writeFailed { persist() }
+        #if os(macOS)
         guard let transport else { return }
         for _ in 0..<8 {
             let batch = Array(pending.prefix(10))
@@ -141,6 +152,7 @@ public actor DiagnosticOutbox {
             }
         }
         if !pending.isEmpty { scheduleRetry() }
+        #endif
     }
     public nonisolated func requestFlush() {
         Task(priority: .utility) { await self.flush(force: true) }
