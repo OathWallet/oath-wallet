@@ -35,6 +35,25 @@ final class DiagnosticsTests: XCTestCase, @unchecked Sendable {
               component: "send", operation: "broadcast", context: ["chain": "dogecoin", "stage": "broadcast"],
               sessionID: UUID(), id: id, occurredAt: Date(timeIntervalSince1970: floor(Date().timeIntervalSince1970)))
     }
+    func testOnDeviceOutboxRetainsFilteredEventsAcrossFlushAndReopen() async throws {
+        let path = file(), original = event(message: "RPC rejected https://rpc.example/secret-token")
+        defer { try? FileManager.default.removeItem(at: path.deletingLastPathComponent()) }
+        let queue = DiagnosticOutbox(file: path)
+        let saved = await queue.enqueue(original)
+        XCTAssertTrue(saved)
+        await queue.flush()
+        await queue.flush(force: true)
+        let status = await queue.status()
+        XCTAssertEqual(status.pending, 1)
+        XCTAssertFalse(status.writeFailed)
+        let data = try Data(contentsOf: path)
+        XCTAssertFalse(String(decoding: data, as: UTF8.self).contains("secret-token"))
+        XCTAssertEqual(try DiagnosticEvent.decoder().decode([DiagnosticEvent].self, from: data), [original])
+        let reopened = DiagnosticOutbox(file: path)
+        await reopened.flush(force: true)
+        let restored = await reopened.status()
+        XCTAssertEqual(restored.pending, 1)
+    }
     @MainActor func testSchedulingFlushReturnsWithAnUnfinishedDelivery() async throws {
         actor Held: DiagnosticTransport {
             var started = false

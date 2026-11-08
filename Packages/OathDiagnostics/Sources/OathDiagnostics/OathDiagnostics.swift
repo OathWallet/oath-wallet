@@ -27,10 +27,19 @@ public enum OathDiagnostics {
         // State is accessed only under lock; enqueue admission is bounded before
         // allocating asynchronous work, so reporting cannot freeze the app.
     }
-    public static func configure(file: URL, transport: (any DiagnosticTransport)? = nil) {
+    public static func configure(file: URL) {
+        configure { DiagnosticOutbox(file: file) }
+    }
+    #if os(macOS)
+    /// Mac host validation only. iOS cannot install an event consumer.
+    public static func configure(file: URL, transport: (any DiagnosticTransport)?) {
+        configure { DiagnosticOutbox(file: file, transport: transport) }
+    }
+    #endif
+    private static func configure(_ makeOutbox: () -> DiagnosticOutbox) {
         let box: DiagnosticOutbox = state.lock.withLock {
             if let box = state.outbox { return box }
-            let box = DiagnosticOutbox(file: file, transport: transport); state.outbox = box; return box
+            let box = makeOutbox(); state.outbox = box; return box
         }
         box.requestFlush()
     }
