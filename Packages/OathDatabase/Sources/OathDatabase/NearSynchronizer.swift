@@ -40,9 +40,13 @@ public actor NearSynchronizer {
                     let known = try await database.nearKnownReferences(accountID:accountID)
                     async let inventory = client.inventory(owner:account.address,knownReferences:known)
                     async let native = await OathDiagnostics.attempt("native_price") { try await markets.nativePrice() }
-                    let catalog = await self.catalog()
+                    async let freshCatalog = self.catalog()
+                    let cachedCatalog: NearCatalog = await database.refreshCatalog(key: "near.catalog", fallback: .empty)
                     let value = try await inventory; try Task.checkCancellation()
-                    try await database.commitNearInventory(value,ticket:ticket,catalog:catalog)
+                    try await database.commitNearInventory(value,ticket:ticket,catalog:cachedCatalog)
+                    let catalog = await freshCatalog
+                try Task.checkCancellation()
+                    try await database.applyRefreshCatalog(account: ticket.account, runID: ticket.runID) { catalog.contains($0.reference) }
                     let quote = await native
                     if let quote { try Task.checkCancellation(); try await Self.save([quote],database:database) }
                     let refs = value.holdings.filter{$0.amount != nil && $0.amount != "0" && ($0.reference != "native" || quote == nil)}.map(\.reference).sorted()
@@ -85,6 +89,7 @@ public actor NearSynchronizer {
                         await OathDiagnostics.attempt("save_ecosystem_prices", body: { try await Self.save(ecosystem,database:database) })
                     }
                     try Task.checkCancellation()
+                    if !value.complete { throw BalanceRefreshError.incomplete }
                 } catch { OathDiagnostics.record(error); await OathDiagnostics.attempt("failNearSync", body: { try await database.failNearSync(ticket,history:false,code:Self.code(error)) }); throw error }
             }
         }

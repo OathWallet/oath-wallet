@@ -323,10 +323,12 @@ struct OathContactDetailPage: View {
                     .lineLimit(1).truncationMode(.middle)
                     .environment(\.layoutDirection, .leftToRight)
                     .accessibilityIdentifier("contacts.address.\(address.id)")
+                OathContactMemoSummary(networkID: address.networkID, memo: address.memo, memoType: address.memoType)
             }.frame(maxWidth: .infinity, alignment: .leading)
         } accessory: { EmptyView() }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(verbatim: [networkName, address.label, address.address]
+        .accessibilityLabel(Text(verbatim: [networkName, address.label, address.address,
+            address.memo.map { strings.text(OathContactMemoSummary.title(networkID: address.networkID, memoType: address.memoType)) + ": " + $0 } ?? ""]
             .filter { !$0.isEmpty }.joined(separator: ", ")))
     }
 

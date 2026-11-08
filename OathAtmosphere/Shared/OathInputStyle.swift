@@ -8,6 +8,8 @@ enum OathInputMetrics {
     static let verticalInset: CGFloat = 6
     static let minimumContentHeight: CGFloat = 44
     static let actionInset: CGFloat = 6
+    static let actionHorizontalPadding: CGFloat = 14
+    static let actionBackgroundOpacity: CGFloat = 0.07
     static let actionCornerRadius = cornerRadius - actionInset
 }
 
@@ -135,10 +137,10 @@ struct OathPasteInput<Content: View>: View {
                 .oathFont(.subheadline, weight: .semibold)
                 .foregroundStyle(Color(uiColor: onScan == nil ? .label : .secondaryLabel))
                 .fixedSize(horizontal: true, vertical: true)
-                .padding(.horizontal, 14)
+                .padding(.horizontal, OathInputMetrics.actionHorizontalPadding)
                 .padding(.vertical, 8)
                 .frame(minHeight: OathInputMetrics.minimumContentHeight)
-                .background(Color.primary.opacity(0.07))
+                .background(Color.primary.opacity(Double(OathInputMetrics.actionBackgroundOpacity)))
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

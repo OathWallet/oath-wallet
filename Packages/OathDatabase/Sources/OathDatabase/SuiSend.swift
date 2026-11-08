@@ -18,7 +18,7 @@ extension OathDatabase {
     public func queueSuiSend(sendID: String, plan: SuiSendPlan) async throws {
         try plan.validate()
         guard plan.network == .mainnet else { throw SuiSendError.wrongNetwork }
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send = try SendRecord.fetchOne(db,key:sendID), send.state == "draft", send.networkID == "sui",
                   let account = try AccountRecord.fetchOne(db,key:send.accountID), account.walletID == send.walletID,
                   account.networkID == "sui", try SuiIdentity.address(account.address) == plan.sender,
@@ -39,7 +39,7 @@ extension OathDatabase {
         }
     }
     public func journalSuiSignature(sendID: String, signed: SuiSignedSend) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send = try SendRecord.fetchOne(db,key:sendID), send.state == "queued", send.networkID == "sui",
                   let bytes = try Data.fetchOne(db,sql:"SELECT plan FROM suiSendPlans WHERE sendID=?",arguments:[sendID]) else { throw StoreError.invalidTransition }
             let plan = try JSONDecoder().decode(SuiSendPlan.self,from:bytes)
@@ -61,7 +61,7 @@ extension OathDatabase {
     /// indexer data, timeouts and expired quotes never release a signed send.
     public func settleSuiSend(sendID: String, receipt: SuiSendReceipt) async throws {
         guard receipt.outcome != .unknown else { return }
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send = try SendRecord.fetchOne(db,key:sendID), send.networkID == "sui",
                   ["signed","broadcast","confirmed","failed"].contains(send.state),
                   send.transactionID == "sui:"+receipt.digest, let raw = send.signedPayload else { throw StoreError.invalidTransition }

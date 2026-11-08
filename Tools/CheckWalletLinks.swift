@@ -66,16 +66,23 @@ import Foundation
         try check(inbox.pending != nil, "Explicit later retry works")
         inbox.clear()
         try check(inbox.pending == nil, "Clear drops pending payload")
+        inbox.receive(good, now: now, browserHost: "app.example.com")
+        try check(inbox.take(now: now)?.browserHost == "app.example.com", "Browser origin follows the exact pairing into native review")
+        inbox.clear()
+        inbox.receive(good, now: now)
+        try check(inbox.take(now: now)?.browserHost == nil, "External links preserve their existing review path")
+        inbox.clear()
         inbox.receive(URL(string: "oathwallet://")!, now: now)
         try check(inbox.take(now: now.addingTimeInterval(301)) == nil, "Pending launch request expires")
         let address = "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu"
         let payment = "bitcoin:\(address)?amount=0.125&label=Invoice&message=Order%20one"
         let parser = OathScanParser(validator: nil, evmNetworks: [:])
         guard case .recipient(let expected) = parser.parse(payment) else { throw Failure.assertion("Payment fixture") }
+        var wrapped = expected; wrapped.sharedPaymentScope = .legacy
         let paymentLink = link("oathwallet://pay", payment)
         try check(OathWalletLink.parse(URL(string: payment)!, now: now) == .payment(expected), "Raw payment keeps amounts and notes")
-        try check(OathWalletLink.parse(paymentLink, now: now) == .payment(expected), "Wrapped payment keeps amounts and notes")
-        try check(OathWalletLink.parse(URL(string: paymentLink.absoluteString + "&network=bitcoin")!, now: now) == .payment(expected), "Explicit matching network")
+        try check(OathWalletLink.parse(paymentLink, now: now) == .payment(wrapped), "Wrapped payment keeps amounts and notes")
+        try check(OathWalletLink.parse(URL(string: paymentLink.absoluteString + "&network=bitcoin")!, now: now) == .payment(wrapped), "Explicit matching network")
         for bad in [paymentLink.absoluteString + "&network=ethereum", paymentLink.absoluteString + "&uri=other",
                     paymentLink.absoluteString + "&network=bitcoin&network=bitcoin", paymentLink.absoluteString + "&redirect=evil",
                     paymentLink.absoluteString + "#fragment", "oathwallet://pay?network=bitcoin", "oathwallet://pay?uri="] {
@@ -93,7 +100,7 @@ import Foundation
         inbox.receive(paymentLink, now: now)
         try check(inbox.pending?.id == paymentID && !inbox.hasWalletConnectRequest, "Payment launch delivery coalesces")
         try check(inbox.take(now: now, walletConnectOnly: true) == nil && inbox.pending?.id == paymentID, "WalletConnect page cannot consume a payment")
-        try check(inbox.take(now: now)?.route == .payment(expected), "Unlock resumes a queued payment")
+        try check(inbox.take(now: now)?.route == .payment(wrapped), "Unlock resumes a queued payment")
         inbox.receive(paymentLink, now: now.addingTimeInterval(4))
         try check(inbox.pending == nil, "Active send review never duplicates")
         inbox.didDismiss()
@@ -114,8 +121,11 @@ import Foundation
         try check(types.contains { ($0["CFBundleURLSchemes"] as? [String])?.contains("oathwallet") == true }, "Scheme registered in app")
         let registered = Set(types.flatMap { $0["CFBundleURLSchemes"] as? [String] ?? [] })
         try check(registered == OathScanParser.registeredPaymentSchemes.union(["oathwallet", "wc"]), "Every supported OS scheme registered; no foreign app schemes")
-        for chain in OathImportChain.allCases {
+        for chain in OathImportChain.enabledCases {
             try check(registered.contains(chain.rawValue), "Every chain can receive an OS payment link")
+        }
+        for chain in OathImportChain.allCases where !chain.isEnabled {
+            try check(!registered.contains(chain.rawValue), "Paused networks must not regain an OS payment handler")
         }
         let project = try String(contentsOf: root.appendingPathComponent("project.yml"), encoding: .utf8)
         let projectSchemes = Set(project.components(separatedBy: .newlines).filter { $0.contains("CFBundleURLSchemes:") }.flatMap { line in

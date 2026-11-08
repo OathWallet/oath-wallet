@@ -1,5 +1,6 @@
 import SwiftUI
 import OathDatabase
+import OathDiagnostics
 
 /// The production send composer uses actual holdings and address-book data.
 /// Bitcoin submits through its authenticated, persisted send service.
@@ -56,7 +57,7 @@ struct OathSendFlow: View {
         .init(query: model.query, walletID: model.walletID,
               active: allowed && !session.changingWallet && model.path.isEmpty,
               snapshot: model.snapshot,
-              permittedNetworks: permittedNetworks)
+              permittedNetworks: permittedNetworks, scope: model.searchScope)
     }
 
     var body: some View {
@@ -120,20 +121,41 @@ struct OathSendFlow: View {
         }
         .task(id: model.scannedAssetResolution?.id) {
             guard allowed, !session.changingWallet else { return }
-            await model.resolveScannedAsset { recipient, snapshot in
+            await model.resolveScannedAsset { request, snapshot in
+                let recipient = request.recipient
                 guard let reference = recipient.token, reference != "native" else { return nil }
                 await scannedAssetSearch.search(reference, available: Set(recipient.networks), requiredReference: reference)
                 guard !Task.isCancelled, allowed, !session.changingWallet,
                       session.displayedProfile?.id.uuidString == snapshot.wallet.id,
-                      model.walletID == snapshot.wallet.id, model.scannedAssetResolution != nil,
+                      model.walletID == snapshot.wallet.id, model.scannedAssetResolution?.id == request.id,
                       let current = model.snapshot, current.wallet.id == snapshot.wallet.id,
-                      current.accounts.filter({ account in recipient.networks.contains(where: { $0.id == account.networkID }) }).count == 1 else { return nil }
+                      current.accounts.contains(where: { account in account.id == request.accountID && recipient.networks.contains(where: { $0.id == account.networkID }) }) else { return nil }
                 let matches = scannedAssetSearch.results.filter {
                     recipient.matchesAsset(networkID: $0.network.id, reference: $0.isNativeRepresentation ? "native" : $0.reference, symbol: $0.symbol)
                 }
                 guard matches.count == 1, let token = matches.first else { return nil }
+                if recipient.sharedPaymentScope == .asset {
+                    // Resolve persisted metadata before opening Amount. Otherwise
+                    // a failed background add leaves an unspendable preview with
+                    // no retry. Cancellation/lookup failures stay on this picker.
+                    let updated = await OathDiagnostics.$chain.withValue(token.network.id) {
+                        await OathDiagnostics.$operationID.withValue(UUID()) {
+                            await OathDiagnostics.attempt("resolve_shared_payment_asset") {
+                                try await session.addToken(token, walletID: current.wallet.id)
+                            }
+                        }
+                    }
+                    guard !Task.isCancelled, allowed, !session.changingWallet,
+                          session.displayedProfile?.id.uuidString == snapshot.wallet.id,
+                          model.scannedAssetResolution?.id == request.id,
+                          let updated, updated.wallet.id == snapshot.wallet.id,
+                          let holding = updated.holdings.first(where: {
+                              $0.accountID == request.accountID && recipient.matchesAsset(networkID: $0.networkID, reference: $0.reference, symbol: $0.symbol)
+                          }) else { return nil }
+                    return (holding, updated)
+                }
                 var selected: (Holding, WalletSnapshot)?
-                session.tokenSelection.select(token, walletID: current.wallet.id, snapshot: current, add: { token, walletID in
+                session.tokenSelection.select(token, walletID: current.wallet.id, snapshot: current, accountID: request.accountID, add: { token, walletID in
                     try await session.addToken(token, walletID: walletID)
                 }, onSelected: { holding, updated in selected = (holding, updated) })
                 return selected
@@ -147,13 +169,27 @@ struct OathSendFlow: View {
             if !allowed && session.isUnlocked && !session.wallets.contains(where: { $0.id == model.walletID }) {
                 model.senderUnavailable()
             }
-            if !allowed { scannedAssetSearch.reset(); bitcoin.cancel(); sui.cancel(); xrpl.cancel(); stellar.cancel(); tron.cancel(); near.cancel(); polkadot.cancel(); solana.cancel(); aptos.cancel(); thorchain.cancel(); arc.cancel(); evm.cancel(); ton.cancel() }
+            if !allowed { model.cancelScannedAssetResolution(); scannedAssetSearch.reset(); bitcoin.cancel(); sui.cancel(); xrpl.cancel(); stellar.cancel(); tron.cancel(); near.cancel(); polkadot.cancel(); solana.cancel(); aptos.cancel(); thorchain.cancel(); arc.cancel(); evm.cancel(); ton.cancel() }
         }
-        .onDisappear { scannedAssetSearch.reset(); bitcoin.cancel(); sui.cancel(); xrpl.cancel(); stellar.cancel(); tron.cancel(); near.cancel(); polkadot.cancel(); solana.cancel(); aptos.cancel(); thorchain.cancel(); arc.cancel(); evm.cancel(); ton.cancel() }
+        .onChange(of: session.changingWallet) { _, changing in
+            if changing { model.cancelScannedAssetResolution(); scannedAssetSearch.reset() }
+        }
+        .onDisappear { model.cancelScannedAssetResolution(); scannedAssetSearch.reset(); bitcoin.cancel(); sui.cancel(); xrpl.cancel(); stellar.cancel(); tron.cancel(); near.cancel(); polkadot.cancel(); solana.cancel(); aptos.cancel(); thorchain.cancel(); arc.cancel(); evm.cancel(); ton.cancel() }
         .accessibilityIdentifier("send.flow")
     }
 
     private var assetPicker: some View {
+        Group {
+            if scannedRecipient?.sharedPaymentScope == .asset {
+                assetPickerContent
+            } else {
+                assetPickerContent
+                    .modifier(OathAssetSearchFilter(query: $model.query, scope: $model.searchScope, permittedNetworks: permittedNetworks))
+            }
+        }.scrollDismissesKeyboard(.interactively)
+    }
+
+    private var assetPickerContent: some View {
         // Capture one list for this update. Lazy row creation must not ask the
         // model to filter the full portfolio again as each row scrolls in.
         let available = model.holdings
@@ -168,6 +204,26 @@ struct OathSendFlow: View {
                     OathEmptyState(title: strings.text(.sendLoadFailed), systemImage: "exclamationmark.circle", isError: true) {
                         OathActionButton(title: strings.text(.tryAgain), appearance: .secondary) { retry = UUID() }
                     }.padding(20)
+                } else if model.needsSharedPaymentAccount {
+                    Text(strings.text(.privateKeyAccount)).oathFont(.caption).foregroundStyle(.secondary).padding(.top, 20)
+                    ForEach(model.sharedPaymentAccounts, id: \.id) { account in
+                        OathButton {
+                            model.selectSharedPaymentAccount(account.id)
+                        } label: {
+                            Text(account.address).font(.body.monospaced())
+                                .environment(\.layoutDirection, .leftToRight)
+                                .frame(maxWidth: .infinity, alignment: .leading).padding(20)
+                        }.buttonStyle(OathSettingsRowButtonStyle())
+                    }
+                } else if model.scannedAssetResolution != nil {
+                    ProgressView().frame(maxWidth: .infinity).padding(36)
+                } else if scannedRecipient?.sharedPaymentScope == .asset && (holdings.isEmpty || model.scannedAssetUnavailable) {
+                    OathEmptyState(title: strings.text(model.sharedPaymentAccounts.isEmpty ? .tokenNetworkUnavailable : .sendLoadFailed),
+                                   systemImage: "exclamationmark.circle") {
+                        if !model.sharedPaymentAccounts.isEmpty && scannedRecipient?.token != "native" {
+                            OathActionButton(title: strings.text(.tryAgain), appearance: .secondary) { model.retrySharedPaymentAsset() }
+                        }
+                    }.padding(20)
                 } else if holdings.isEmpty && !searchRequest.hasQuery {
                     OathEmptyState(strings.text(.sendNoAssets), systemImage: "magnifyingglass")
                 } else {
@@ -180,15 +236,13 @@ struct OathSendFlow: View {
                         }
                     }
                 }
-                if searchRequest.hasQuery && model.snapshot != nil && !model.failed {
+                if scannedRecipient?.sharedPaymentScope != .asset && searchRequest.hasQuery && model.snapshot != nil && !model.failed {
                     OathTokenPickerSearch(request: searchRequest, session: session, hasSavedMatches: !holdings.isEmpty) { holding, snapshot in
                         model.choose(holding, from: snapshot, scannedRecipient: scannedRecipient)
                     }
                 }
             }.frame(maxWidth: 600).frame(maxWidth: .infinity)
         }
-        .searchable(text: $model.query, placement: .navigationBarDrawer(displayMode: .always), prompt: strings.text(.searchAssets))
-        .scrollDismissesKeyboard(.interactively)
     }
 
 }

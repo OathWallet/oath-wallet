@@ -1,5 +1,6 @@
 import Foundation
 import XCTest
+import OathDiagnostics
 import GRDB
 @testable import OathDatabase
 @testable import OathAnkr
@@ -177,13 +178,16 @@ extension TonLedgerTests {
     func testNodeRecoveryPersistsBalanceAndPersistentOutagePreservesCache() async throws {
         for recover in [true, false] {
             let (db, folder) = try await fixture()
+            let publication = RefreshPublicationProbe(db, wallet: "w1")
+            defer { publication.stop() }
             defer { try? FileManager.default.removeItem(at: folder) }
             let ticket = try await db.beginTonSync(accountID: "a1")
             try await db.commitTonInventory(inventory(), ticket: ticket)
             let transport = TonLedgerRecoveryTransport(recover: recover)
             let sync = TonSynchronizer(database: db, client: TonClient(testTransport: transport), markets: TonMarkets(transport: transport))
             do { try await sync.refresh(accountID: "a1"); XCTAssertTrue(recover) }
-            catch { XCTAssertFalse(recover); XCTAssertEqual(error as? TonError, .transport) }
+            catch { XCTAssertFalse(recover); XCTAssertEqual((error as? ReportedDiagnosticFailure)?.underlying as? TonError, .transport) }
+            try await publication.expect(amount: recover ? "123456789012345" : "59570010157331145", network: "ton")
             await sync.cancel()
             let native = try await db.balance(accountID: "a1", assetID: "ton:native")
             XCTAssertEqual(native?.amountAtomic, recover ? "123456789012345" : "59570010157331145")

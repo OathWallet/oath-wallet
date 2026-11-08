@@ -17,7 +17,7 @@ extension OathDatabase {
     /// spending are serialized; independent quote reads may run concurrently.
     public func queueAptosSend(sendID:String,plan:AptosSendPlan) async throws {
         try plan.validate();guard plan.network == .mainnet else { throw AptosSendError.wrongNetwork }
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send=try SendRecord.fetchOne(db,key:sendID),send.state=="draft",send.networkID=="aptos",
                   let account=try AccountRecord.fetchOne(db,key:send.accountID),account.walletID==send.walletID,account.networkID=="aptos",
                   try AptosIdentity.address(account.address)==plan.sender,
@@ -33,7 +33,7 @@ extension OathDatabase {
         try await pool.read { db in try Data.fetchOne(db,sql:"SELECT plan FROM aptosSendPlans WHERE sendID=?",arguments:[sendID]).map { try JSONDecoder().decode(AptosSendPlan.self,from:$0) } }
     }
     public func journalAptosSignature(sendID:String,signed:AptosSignedSend) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send=try SendRecord.fetchOne(db,key:sendID),send.state=="queued",send.networkID=="aptos",
                   let raw=try Data.fetchOne(db,sql:"SELECT plan FROM aptosSendPlans WHERE sendID=?",arguments:[sendID]) else { throw StoreError.invalidTransition }
             let plan=try JSONDecoder().decode(AptosSendPlan.self,from:raw);try plan.validate()
@@ -47,7 +47,7 @@ extension OathDatabase {
     }
     public func settleAptosSend(sendID:String,receipt:AptosSendReceipt) async throws {
         guard receipt.outcome != .unknown else { return }
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send=try SendRecord.fetchOne(db,key:sendID),send.networkID=="aptos",["signed","broadcast","confirmed","failed"].contains(send.state),send.transactionID=="aptos:"+receipt.hash,
                   let payload=send.signedPayload,let raw=try Data.fetchOne(db,sql:"SELECT plan FROM aptosSendPlans WHERE sendID=?",arguments:[sendID]) else { throw StoreError.invalidTransition }
             let plan=try JSONDecoder().decode(AptosSendPlan.self,from:raw),signed=try JSONDecoder().decode(AptosSignedSend.self,from:payload)

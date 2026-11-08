@@ -23,7 +23,7 @@ public struct TronMarkets: Sendable {
     private let permits = AnkrPermits(count: 2)
     private let fallbackPacer = TronMarketPacer()
     public init(transport: any AnkrTransport = AnkrHTTPTransport()) { self.transport = transport }
-    private func get(_ url: URL) async throws -> Data {
+    private func get(_ url: URL, reportFailure: Bool = true) async throws -> Data {
         try await permits.acquire()
         do {
             var request = URLRequest(url: url)
@@ -46,7 +46,7 @@ public struct TronMarkets: Sendable {
             if Task.isCancelled || error is CancellationError || (error as? URLError)?.code == .cancelled {
                 throw CancellationError()
             }
-            OathDiagnostics.record(error)
+            if reportFailure { OathDiagnostics.record(error) }
             throw error
         }
     }
@@ -75,18 +75,35 @@ public struct TronMarkets: Sendable {
         return result
     }
     public func nativePrice() async throws -> TronPrice {
+        try await OathDiagnostics.withChain("tron") {
+            try await nativeQuote()
+        }
+    }
+    private func nativeQuote() async throws -> TronPrice {
         do {
-            let data = try await get(URL(string: "https://api.coinbase.com/v2/prices/TRX-USD/spot")!)
+            // This boundary reports the primary failure once before recovery.
+            let data = try await get(URL(string: "https://api.coinbase.com/v2/prices/TRX-USD/spot")!, reportFailure: false)
             let value = try JSONDecoder().decode(TronJSON.self, from: data)["data"]
             guard value["base"].string == "TRX", value["currency"].string == "USD",
                   let price = value["amount"].string, Self.positive(price) != nil else { throw TronError.malformed }
             return .init(mint: "native", usd: price, source: "Coinbase", fetchedAt: .now)
         } catch is CancellationError {
             throw CancellationError()
-        } catch { OathDiagnostics.record(error);
+        } catch {
+            OathDiagnostics.record(error, component: "prices", operation: "tron_native_fallback", context: ["stage": "quote", "source": "Coinbase"])
             try Task.checkCancellation()
-            guard let quote = try await prices(mints: ["TNUC9Qb1rRpS5CbWLmNMxXBjyFoydXjWFR"]).first else { throw TronError.malformed }
-            return .init(mint: "native", usd: quote.usd, source: quote.source, fetchedAt: quote.fetchedAt)
+            if let quote = try await prices(mints: ["TNUC9Qb1rRpS5CbWLmNMxXBjyFoydXjWFR"]).first {
+                return .init(mint: "native", usd: quote.usd, source: quote.source, fetchedAt: quote.fetchedAt)
+            }
+            // Wrapped-token feeds can legitimately have no pool/contract quote.
+            // Recover using the registered native identity, never a ticker search.
+            let key = "coingecko:tron"
+            let data = try await get(URL(string: "https://coins.llama.fi/prices/current/" + key)!)
+            let json = try JSONDecoder().decode(TronJSON.self, from: data)
+            if json == .object(["coins": .object([:])]) { throw DiagnosticDeferral.publicMarketQuoteUnavailable }
+            guard json["coins"][key]["symbol"].string == "TRX" else { throw AnkrError.invalidResponse }
+            let quote = try NativePriceFallback.decodeLlama(json, key: key)
+            return .init(mint: "native", usd: quote.usd, source: quote.source, fetchedAt: quote.date)
         }
     }
     /// Up to 30 token references per group, the documented DEX Screener limit.

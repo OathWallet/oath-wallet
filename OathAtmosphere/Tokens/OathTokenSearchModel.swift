@@ -22,13 +22,14 @@ struct OathTokenSearchRequest: Hashable {
     var attempt: Int = 0
 
     init(query: String, walletID: String?, active: Bool, snapshot: WalletSnapshot?,
-         permittedNetworks: Set<OathImportChain>? = nil, requiredReference: String? = nil) {
+         permittedNetworks: Set<OathImportChain>? = nil, requiredReference: String? = nil,
+         scope: OathAssetSearchScope = .all) {
         self.query = query
         self.walletID = walletID
         self.requiredReference = requiredReference
         let snapshot = snapshot?.wallet.id == walletID ? snapshot : nil
         let available = Set((snapshot?.accounts ?? []).compactMap { OathImportChain(rawValue: $0.networkID) })
-        networks = permittedNetworks.map { available.intersection($0) } ?? available
+        networks = available.intersection(scope.networks(permitted: permittedNetworks))
         savedIDs = Set((snapshot?.holdings ?? []).map { $0.networkID + ":" + $0.reference })
         self.active = active && snapshot != nil && !networks.isEmpty
     }
@@ -184,13 +185,13 @@ struct OathTokenSearchRequest: Hashable {
     private var work: [String: Task<Void, Never>] = [:]
     var pendingCount: Int { queue.count + work.count }
 
-    func select(_ token: OathTokenDefinition, walletID: String, snapshot: WalletSnapshot,
+    func select(_ token: OathTokenDefinition, walletID: String, snapshot: WalletSnapshot, accountID: String? = nil,
                 add: @escaping @MainActor (OathTokenDefinition, String) async throws -> WalletSnapshot,
                 onSelected: @MainActor (Holding, WalletSnapshot) -> Void) {
         guard snapshot.wallet.id == walletID,
-              let account = snapshot.accounts.first(where: { $0.networkID == token.network.id }) else { return }
+              let account = snapshot.accounts.first(where: { $0.networkID == token.network.id && (accountID == nil || $0.id == accountID) }) else { return }
         let reference = token.isNativeRepresentation ? "native" : token.reference
-        if let saved = snapshot.holdings.first(where: { $0.networkID == token.network.id && $0.reference == reference }) {
+        if let saved = snapshot.holdings.first(where: { (accountID == nil || $0.accountID == account.id) && $0.networkID == token.network.id && $0.reference == reference }) {
             onSelected(saved, snapshot)
             return
         }

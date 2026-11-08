@@ -104,7 +104,7 @@ extension OathDatabase {
         }
         // Existing installations and a failed/invalid cache get one local repair.
         // There is no permanent negative cache, and no upload of its contents.
-        let data = try await pool.write { db -> Data in
+        let data = try await storageWrite { db -> Data in
             guard try Self.isSavedReceiveAddress(accountID: accountID, address: address, db: db) else {
                 throw StoreError.conflictingIdentity
             }

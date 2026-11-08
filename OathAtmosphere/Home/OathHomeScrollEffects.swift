@@ -5,6 +5,13 @@ import Observation
 /// modifier. The asset list and Metal renderer never observe the scroll position.
 @MainActor @Observable
 final class OathHomeScrollEffects {
+    private(set) var isDragging = false
+
+    func setDragging(_ value: Bool) {
+        guard isDragging != value else { return }
+        isDragging = value
+    }
+
     private(set) var pullProgress: Double = 0
     private(set) var toolbarForegroundProgress: Double = 0
     private(set) var usesScrolledStatusBar = false

@@ -45,9 +45,13 @@ public actor SuiSynchronizer {
                     return try await client.inventory(owner:account.address, atCheckpoint:max(saved,head))
                 }()
                 async let native = await OathDiagnostics.attempt("native_price") { try await markets.nativePrice() }
-                let catalog = await self.catalog()
+                async let freshCatalog = self.catalog()
+                let cachedCatalog: SuiCatalog = await database.refreshCatalog(key: "sui.catalog", fallback: .empty)
                 let value = try await inventory; try Task.checkCancellation()
-                try await database.commitSuiInventory(value,ticket:ticket,catalog:catalog)
+                try await database.commitSuiInventory(value,ticket:ticket,catalog:cachedCatalog)
+                let catalog = await freshCatalog
+                try Task.checkCancellation()
+                try await database.applyRefreshCatalog(account: ticket.account, runID: ticket.runID) { catalog.contains($0.reference) }
                 let quote = await native
                 if let quote { try Task.checkCancellation(); try await Self.save([quote],database:database) }
                 let refs = value.holdings.filter{$0.amount != "0" && ($0.reference != "native" || quote == nil)}.map(\.reference).sorted()

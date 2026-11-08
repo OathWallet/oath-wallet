@@ -35,9 +35,15 @@ public actor SolanaSynchronizer {
                 async let inventory = client.inventory(owner: ticket.owner)
                 async let directory = Self.catalog(database: database, markets: markets)
                 async let nativePrice = await OathDiagnostics.attempt("native_price") { try await markets.nativePrice() }
-                let (values, catalog) = try await (inventory, directory)
+                let values = try await inventory
+                let cached = await OathDiagnostics.attemptOptional("cached_refresh_catalog") { try await database.marketCache(key: "solana.coingecko.catalog.v1") }
+                let initialCatalog = cached.flatMap { saved in OathDiagnostics.attempt("decode_cached_catalog") { try SolanaMarkets.decodeCatalog(saved.payload) } } ?? [:]
                 try Task.checkCancellation()
-                try await database.commitSolanaInventory(values, ticket: ticket, catalog: catalog)
+                try await database.commitSolanaInventory(values, ticket: ticket, catalog: initialCatalog)
+                let catalog = try await directory
+                try await database.applyRefreshCatalog(account: ticket.account, runID: ticket.runID, owner: ticket.owner, enrichment: { asset in
+                    catalog[asset.reference].map { .init(name: $0.name, symbol: $0.symbol, logo: $0.logo) }
+                }) { catalog[$0.reference]?.decimals == $0.decimals }
                 // Launch resumable history only after the public addresses are registered.
                 self.startHistory(ticket, catalog: catalog)
                 if let price = await nativePrice { try await Self.save([price], database: database) }

@@ -68,18 +68,25 @@ enum HistorySafety {
         }
         for entry in try MarketCacheEntry.fetchAll(db, sql: """
             SELECT * FROM publicMarketCache WHERE key IN ('tron.coingecko.catalog.v1','solana.coingecko.catalog.v1',
-                'aptos.catalog','sui.catalog','near.catalog','xrpl.catalog','stellar.catalog','arc.catalog','robinhood.catalog','hyperevm.catalog','monad.catalog','unichain.catalog','celo.catalog','chiliz.catalog','filecoin.catalog','sei.catalog','zerog.catalog','iotex.catalog')
+                'aptos.catalog','sui.catalog','near.catalog','xrpl.catalog','stellar.catalog','arc.catalog','robinhood.catalog','hyperevm.catalog','monad.catalog','unichain.catalog','celo.catalog','chiliz.catalog','filecoin.catalog','sei.catalog','zerog.catalog','iotex.catalog','story.catalog')
                 OR key LIKE 'ton.token.%' OR key LIKE 'evm.verified.%'
             """) { try ingestCatalog(entry, db: db) }
         try createVisibilityView(db)
     }
 
-    static func createVisibilityView(_ db: Database, indexedMetadata: Bool = false) throws {
+    static func createVisibilityView(_ db: Database, indexedMetadata: Bool = false, thorchainActions: Bool = false) throws {
         // v28 is also used when upgrading older stores. v58 backfills the
         // metadata flag before replacing the view with the indexed form.
         let safeMetadata = indexedMetadata ? "s.historyMetadataSafe=1" : "NOT oath_phishing_metadata(s.name,s.symbol)"
         let walletOptIn = indexedMetadata
             ? "OR EXISTS(SELECT 1 FROM walletPortfolioFilters f WHERE f.walletID=a.walletID AND f.hidesUnverifiedTokens=0)" : ""
+        // Only the archive adapter's validated node/provider action marker
+        // bypasses the zero-value filter. Ordinary zero-value sends still hide.
+        let protocolActions = thorchainActions ? """
+            OR (a.networkID='thorchain' AND s.reference='native' AND EXISTS(
+                SELECT 1 FROM transactions protocolTx WHERE protocolTx.id=a.transactionID
+                AND a.id=a.accountID||':'||protocolTx.hash||':archive:action'))
+            """ : ""
         try db.execute(sql: """
             CREATE VIEW visibleActivity AS
             SELECT a.* FROM activity a JOIN assets s ON s.id=a.assetID
@@ -90,7 +97,7 @@ enum HistorySafety {
                 OR EXISTS(SELECT 1 FROM trackedAssets tr WHERE tr.accountID=a.accountID AND tr.assetID=a.assetID)
                 OR EXISTS(SELECT 1 FROM tokenHistoryTrust v WHERE v.networkID=s.networkID AND v.reference=s.reference
                     AND (v.decimals IS NULL OR v.decimals=s.decimals)))
-            AND (a.amountAtomic<>'0' OR
+            AND (a.amountAtomic<>'0' \(protocolActions) OR
                 (s.reference='native' AND a.direction IN ('outgoing','self')) OR
                 (a.direction IN ('outgoing','self') AND EXISTS(SELECT 1 FROM transactions t
                     LEFT JOIN transactionEvidence e ON e.transactionID=t.id AND e.accountID=a.accountID
@@ -127,7 +134,7 @@ enum HistorySafety {
             tokens += list.aliases.compactMap { alias, canonical in
                 list.tokens[canonical].flatMap { $0.verified ? (alias,$0.decimals) : nil }
             }
-        case "sui.catalog", "near.catalog", "xrpl.catalog", "stellar.catalog", "arc.catalog", "robinhood.catalog", "hyperevm.catalog", "monad.catalog", "unichain.catalog", "celo.catalog", "chiliz.catalog", "filecoin.catalog", "sei.catalog", "zerog.catalog", "iotex.catalog":
+        case "sui.catalog", "near.catalog", "xrpl.catalog", "stellar.catalog", "arc.catalog", "robinhood.catalog", "hyperevm.catalog", "monad.catalog", "unichain.catalog", "celo.catalog", "chiliz.catalog", "filecoin.catalog", "sei.catalog", "zerog.catalog", "iotex.catalog", "story.catalog":
             struct IDs: Decodable { let ids: [String: String] }
             guard let list = OathDiagnostics.attempt("index_cached_metadata", body: { try decoder.decode(IDs.self, from: entry.payload) }) else { return }
             network = String(entry.key.prefix(while: { $0 != "." })); tokens = list.ids.keys.map { ($0,nil) }

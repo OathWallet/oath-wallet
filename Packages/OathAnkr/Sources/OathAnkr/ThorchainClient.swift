@@ -9,17 +9,19 @@ public struct ThorchainClient: Sendable {
     public static let midgard = URL(string:"https://gateway.liquify.com/chain/thorchain_midgard")!
     private let transport:any AnkrTransport
     let catalogRequests: ThorchainCatalogRequests
+    let archiveRequests: ThorchainArchiveRequests
     public init() {
-        self.init(transport: AnkrHTTPTransport(), catalogRequests: .shared)
+        self.init(transport: AnkrHTTPTransport(), catalogRequests: .shared, archiveRequests: .shared)
     }
     public init(transport: any AnkrTransport) {
         // Injected transports retain isolated caches (fixtures and other hosts
         // must never populate the production process's public market cache).
         self.init(transport: transport, catalogRequests: ThorchainCatalogRequests())
     }
-    init(transport: any AnkrTransport, catalogRequests: ThorchainCatalogRequests) {
+    init(transport: any AnkrTransport, catalogRequests: ThorchainCatalogRequests, archiveRequests: ThorchainArchiveRequests = ThorchainArchiveRequests()) {
         self.transport = transport
         self.catalogRequests = catalogRequests
+        self.archiveRequests = archiveRequests
     }
     func read(_ base:URL, path:String, query:[URLQueryItem] = [], height:Int64?=nil) async throws -> SolanaJSON {
         try await OathDiagnostics.$chain.withValue("thorchain") {
@@ -34,6 +36,8 @@ public struct ThorchainClient: Sendable {
         var request = URLRequest(url:url.url!); request.timeoutInterval=20
         if let height { guard height>0 else {throw ThorchainError.malformed};request.setValue(String(height),forHTTPHeaderField:"x-cosmos-block-height") }
         request.setValue("OathWallet/1.0",forHTTPHeaderField:"User-Agent")
+        // ViewBlock serves its public RuneScan routes under this origin.
+        if base == Self.historyArchive { request.setValue("https://runescan.io", forHTTPHeaderField: "Origin") }
         // Liquify asks for this identifier. Sending it to public price APIs
         // bypasses PublicMarketRequests' anonymous-request admission rules.
         if base.host == Self.node.host { request.setValue("oath-wallet",forHTTPHeaderField:"x-client-id") }
@@ -41,15 +45,10 @@ public struct ThorchainClient: Sendable {
             for attempt in 0..<3 {
                 try Task.checkCancellation()
                 let data: Data, status: Int
-                do { (data,status) = try await transport.send(request) }
+                do { (data,status) = try await transport.sendPreservingTransportError(request) }
                 catch {
                     if error is CancellationError || Task.isCancelled || (error as? URLError)?.code == .cancelled { throw CancellationError() }
-                    let transient: Bool
-                    switch error {
-                    case AnkrError.transport: transient = true
-                    case let error as URLError: transient = [.timedOut,.networkConnectionLost,.cannotConnectToHost].contains(error.code)
-                    default: transient = false
-                    }
+                    let transient = AnkrReadRetry.transientTransport(error)
                     // Node/RPC reads are GET-only. Replay the identical request
                     // once, retaining its pinned block and pagination cursor.
                     // Share the HTTP retry budget; public price requests retain
@@ -69,6 +68,13 @@ public struct ThorchainClient: Sendable {
                 let heightLag = base == Self.node && height != nil && status == 500 &&
                     envelope?["code"].integer == 2 &&
                     envelope?["message"].string == "cannot query with height in the future; please provide a valid height: invalid height"
+                if status == 429, base == Self.historyArchive {
+                    // Public explorer responses supply a remaining cooldown in
+                    // milliseconds. Honor it across wallets; do not hot-retry.
+                    let rate = try? JSONDecoder().decode(SolanaJSON.self, from: data)
+                    await archiveRequests.deferRequests(milliseconds: rate?["value"].text.flatMap(Int.init) ?? 120_000)
+                    throw ThorchainError.http(429)
+                }
                 let publicRateLimit = status == 429 && (PublicMarketRequests.accepts(request) || base.host == "api.rujira.network")
                 if (heightLag && attempt < 2) ||
                     (attempt == 0 && [429,502,503,504].contains(status) && !publicRateLimit) {
@@ -148,7 +154,8 @@ public struct ThorchainClient: Sendable {
     }
     public func history(owner:String, stream:String, height:Int64, lowerHeight:Int64 = 0, page:Int = 1) async throws -> ThorchainHistoryPage {
         let owner = try ThorchainIdentity.address(owner)
-        guard ["transfer.sender","transfer.recipient","message.sender"].contains(stream), height > 0, lowerHeight >= 0, lowerHeight <= height, page > 0 else { throw ThorchainError.malformed }
+        guard ["transfer.sender","transfer.recipient","message.sender","archive"].contains(stream), height > 0, lowerHeight >= 0, lowerHeight <= height, page > 0 else { throw ThorchainError.malformed }
+        if stream == "archive" { return try await archivedHistory(owner: owner, height: height, lowerHeight: lowerHeight, page: page) }
         let query = "\(stream)='\(owner)' AND tx.height<=\(height) AND tx.height>=\(lowerHeight)"
         let q:[URLQueryItem] = [.init(name:"query",value:query),.init(name:"limit",value:"50"),.init(name:"page",value:String(page)),.init(name:"order_by",value:"ORDER_BY_DESC")]
         return try Self.decodeTransactions(await read(Self.node,path:"cosmos/tx/v1beta1/txs",query:q),owner:owner,page:page,upperHeight:height,lowerHeight:lowerHeight)

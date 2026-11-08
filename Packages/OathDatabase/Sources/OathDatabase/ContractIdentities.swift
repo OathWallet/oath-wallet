@@ -27,7 +27,7 @@ extension OathDatabase {
     }
     public func saveContractIdentities(_ identities: [ContractIdentity]) async throws {
         guard identities.count <= 1_000 else { throw StoreError.invalidValue("identity count") }
-        try await pool.write { db in
+        try await storageWrite { db in
             for identity in identities {
                 // Revalidate decoded values too; Codable must not bypass bounds.
                 let value = try ContractIdentity(network: identity.network, address: identity.address, name: identity.name,

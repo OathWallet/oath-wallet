@@ -30,7 +30,7 @@ extension OathDatabase {
         try String.fetchOne(db, sql: "SELECT address FROM solanaReceiveAddresses WHERE accountID=? AND isSelected=1", arguments: [account.id]) ?? account.address
     }
     public func beginSolanaSync(accountID: String) async throws -> SolanaSyncTicket {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard let account = try AccountRecord.fetchOne(db, key: accountID), account.networkID == "solana" else { throw StoreError.missingRecord }
             let owner = try Self.solanaOwner(account, db: db)
             guard SolanaIdentity.isAddress(owner) else { throw SolanaError.invalidAddress }
@@ -51,7 +51,7 @@ extension OathDatabase {
         }
     }
     public func failSolanaSync(_ ticket: SolanaSyncTicket, history: Bool, code: String = "unavailable") async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateSolana(ticket, db: db)
             try db.execute(sql: "UPDATE solanaSync SET \(history ? "historyFailure" : "failure")=? WHERE accountID=? AND owner=?",
                 arguments: [String(code.prefix(100)),ticket.account.id,ticket.owner])
@@ -103,7 +103,7 @@ extension OathDatabase {
         }
         let holdings = grouped
         let payload = try JSONEncoder().encode(inventory)
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateSolana(ticket, db: db)
             if let oldData = try Data.fetchOne(db, sql: "SELECT inventory FROM solanaSync WHERE accountID=? AND owner=?", arguments: [ticket.account.id,ticket.owner]) {
                 let old = try JSONDecoder().decode(SolanaInventory.self, from: oldData)
@@ -120,7 +120,7 @@ extension OathDatabase {
                 try db.execute(sql: """
                     INSERT INTO solanaHoldings(accountID,owner,assetID,amountAtomic,observedAt,slot,verified) VALUES(?,?,?,?,?,?,?)
                     ON CONFLICT(accountID,owner,assetID) DO UPDATE SET amountAtomic=excluded.amountAtomic,
-                        observedAt=excluded.observedAt,slot=excluded.slot,verified=excluded.verified
+                        observedAt=excluded.observedAt,slot=excluded.slot,verified=\(catalog.isEmpty ? "MAX(solanaHoldings.verified,excluded.verified)" : "excluded.verified")
                     """, arguments: [ticket.account.id,ticket.owner,assetID,amount,now,inventory.minimumSlot,verified])
             }
             try save(native.id, amount: inventory.lamports, verified: true)
@@ -168,7 +168,7 @@ extension OathDatabase {
                   page.signatures.contains { $0.signature == transaction.signature && $0.slot == transaction.slot && $0.failed == transaction.failed }
               }) else { throw SolanaError.incompleteHistory }
         let now = Date().timeIntervalSince1970
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateSolana(ticket, db: db)
             guard cursor.accountID == ticket.account.id, cursor.owner == ticket.owner,
                   let current = try SolanaHistoryCursor.fetchOne(db, key: ["accountID":cursor.accountID,"owner":cursor.owner,"address":cursor.address]) else { throw StoreError.staleSync }

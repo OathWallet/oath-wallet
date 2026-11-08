@@ -161,9 +161,9 @@ final class TonReadRecoveryTests: XCTestCase, @unchecked Sendable {
 final class TonReadRecoveryDiagnosticsTests: XCTestCase, @unchecked Sendable {
     func testOriginalTLSAndRecoveryReportsRemainPrivacyFiltered() async throws {
         let operation = UUID()
-        let ready = expectation(description: "Both malformed and transport boundary failures delivered")
+        let ready = expectation(description: "Original malformed response delivered")
         let reports = CorrelatedDiagnosticTestCapture(operation: operation, ready: ready) { events in
-            events.contains { $0.error.message == "malformed" } &&
+            events.contains { $0.error.message == "Corrupt response data" } &&
                 events.contains { $0.operation == "ton_read" && $0.context["attempt"] == "1" }
         }
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -188,7 +188,7 @@ final class TonReadRecoveryDiagnosticsTests: XCTestCase, @unchecked Sendable {
         XCTAssertEqual(calls, 1, "Malformed replies must not retry or switch providers")
         await fulfillment(of: [ready], timeout: 10)
         let events = await reports.events
-        XCTAssertTrue(events.contains { $0.error.message == "malformed" })
+        XCTAssertTrue(events.contains { $0.error.message == "Corrupt response data" })
         XCTAssertTrue(events.contains { $0.operation == "ton_read" && $0.context["attempt"] == "1" })
         XCTAssertFalse(events.contains { $0.error.domain == NSURLErrorDomain || $0.operation == "ton_read_recovery" })
         XCTAssertTrue(events.allSatisfy { $0.privacyFiltered && $0.context["chain"] == "ton" })

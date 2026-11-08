@@ -21,7 +21,7 @@ extension OathDatabase {
     /// Commit BEFORE the request. A terminated/offline attempt stays unknown,
     /// never "clear", and is not automatically retried on the next Home render.
     func claimRestrictionChecks(walletID: String, account: StablecoinRestrictionAccount) async throws -> [StablecoinRestrictionToken] {
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.requireSecurityWallet(db, walletID)
             var claimed: [StablecoinRestrictionToken] = []
             for token in StablecoinRestrictionRegistry.tokens(network: account.network) {
@@ -35,7 +35,7 @@ extension OathDatabase {
         }
     }
     func saveRestrictionChecks(walletID: String, account: StablecoinRestrictionAccount, results: [StablecoinRestrictionResult]) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.requireSecurityWallet(db, walletID)
             for result in results {
                 guard result.token.network == account.network, StablecoinRestrictionRegistry.tokens.contains(result.token) else { throw StoreError.invalidValue("restriction identity") }
@@ -55,7 +55,7 @@ extension OathDatabase {
         }
     }
     public func acknowledgeStablecoinSecurity(walletID: String) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.requireSecurityWallet(db, walletID)
             try db.execute(sql: """
                 INSERT INTO stablecoinSecurityNotices(walletID,acknowledged) VALUES(?,1)

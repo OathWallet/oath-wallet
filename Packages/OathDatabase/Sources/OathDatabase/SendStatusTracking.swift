@@ -13,7 +13,7 @@ extension OathDatabase {
     /// A previous process cannot finish an unsigned authorization. Release only
     /// those old reservations; a current authentication flow is never touched.
     public func cancelAbandonedUnsignedSends(before launch: Double) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard try Bool.fetchOne(db, sql: "SELECT EXISTS(SELECT 1 FROM metadata WHERE key='walletReset')") != true else { return }
             try db.execute(sql: """
                 UPDATE utxos SET reservedBy=NULL WHERE reservedBy IN
@@ -53,7 +53,7 @@ extension OathDatabase {
     /// Only a new process discards abandoned leases. Concurrent workers in the
     /// same process retain each other's leases and cannot duplicate a check.
     public func resumeSendStatusChecks(owner: String) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try db.execute(sql: """
                 UPDATE sendStatusChecks SET leaseToken=NULL,leaseOwner=NULL,leaseUntil=NULL,nextAttemptAt=0
                 WHERE leaseOwner IS NOT NULL AND leaseOwner<>?
@@ -62,7 +62,7 @@ extension OathDatabase {
     }
     public func claimSendStatusChecks(owner: String, now: Double = Date.now.timeIntervalSince1970,
                                       limit: Int = 4, excluding ids: [String] = []) async throws -> [SendStatusCheck] {
-        try await pool.write { db in
+        try await storageWrite { db in
             let rows = try Row.fetchAll(db, sql: "SELECT s.*,c.attempts " + Self.statusEligibility + Self.exclusion(ids) + """
                  AND c.availableAt<=?
                  ORDER BY c.availableAt,c.sendID LIMIT ?
@@ -79,7 +79,7 @@ extension OathDatabase {
                                       now: Double = Date.now.timeIntervalSince1970) async throws {
         let exponent = min(check.attempts,6)
         let delay = cancelled ? 0 : min(failed ? 300.0 : 60.0, (failed ? 15.0 : 2.0) * pow(2,Double(exponent)))
-        try await pool.write { db in
+        try await storageWrite { db in
             // Terminal settlement deletes the job in the SAME transaction as
             // history/send updates. A late check never recreates completed work.
             try db.execute(sql: """

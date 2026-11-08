@@ -19,7 +19,7 @@ public struct IndexedEVMHistoryCursor: Codable, FetchableRecord, Sendable {
 }
 extension OathDatabase {
     public func beginIndexedEVMSync(accountID: String, now: Date = .now) async throws -> IndexedEVMSyncTicket {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard let account = try AccountRecord.fetchOne(db, key: accountID), IndexedEVMChain(rawValue: account.networkID) != nil else { throw StoreError.missingRecord }
             let id = UUID().uuidString, end = now.timeIntervalSince1970, recent = max(0, end - 86_400)
             try db.execute(sql: """
@@ -63,7 +63,7 @@ extension OathDatabase {
         guard value.chain.rawValue == ticket.account.networkID, catalog.chain == value.chain, value.owner.lowercased() == ticket.account.address.lowercased(), value.block >= 0,
               value.holdings.contains(where: { $0.token.reference == "native" && $0.amount != nil }),
               Set(value.holdings.map { $0.token.reference }).count == value.holdings.count else { throw StoreError.conflictingIdentity }
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateIndexedEVM(ticket, db: db)
             let previous = try Int64.fetchOne(db, sql: "SELECT checkpoint FROM indexedEVMSync WHERE accountID=?", arguments: [ticket.account.id])
             guard previous.map({ $0 <= value.block }) ?? true else { throw StoreError.staleSync }
@@ -101,7 +101,7 @@ extension OathDatabase {
     }
     public func commitIndexedEVMPage(_ page: IndexedEVMHistoryPage, cursor: IndexedEVMHistoryCursor, ticket: IndexedEVMSyncTicket) async throws {
         guard page.chain.rawValue == ticket.account.networkID, page.next == nil || page.next != cursor.cursor else { throw AnkrError.paginationLoop }
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateIndexedEVM(ticket, db: db)
             guard let current = try IndexedEVMHistoryCursor.fetchOne(db, sql: "SELECT * FROM indexedEVMHistoryCursors WHERE accountID=? AND stream=? AND lane=?", arguments: [ticket.account.id,cursor.stream,cursor.lane]),
                   current.cursor == cursor.cursor, current.startTime == cursor.startTime, current.endTime == cursor.endTime,
@@ -163,7 +163,7 @@ extension OathDatabase {
     /// An expired index cursor can replay its fixed time window safely because
     /// events are upserted by transaction/log identity. Never discard history.
     public func restartIndexedEVMHistory(_ cursor: IndexedEVMHistoryCursor, ticket: IndexedEVMSyncTicket) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateIndexedEVM(ticket, db: db)
             guard cursor.cursor != nil, let current = try IndexedEVMHistoryCursor.fetchOne(db,
                 sql: "SELECT * FROM indexedEVMHistoryCursors WHERE accountID=? AND stream=? AND lane=?",
@@ -175,7 +175,7 @@ extension OathDatabase {
         }
     }
     public func failIndexedEVMSync(_ ticket: IndexedEVMSyncTicket, cursor: IndexedEVMHistoryCursor? = nil, code: String) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateIndexedEVM(ticket, db: db)
             if let cursor {
                 try db.execute(sql: "UPDATE indexedEVMHistoryCursors SET failure=? WHERE accountID=? AND stream=? AND lane=?", arguments: [code,ticket.account.id,cursor.stream,cursor.lane])

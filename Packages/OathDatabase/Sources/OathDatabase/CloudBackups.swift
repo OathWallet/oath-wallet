@@ -56,7 +56,7 @@ extension OathDatabase {
 
     /// Only the caller that consumes an eligible offer may present it.
     public func claimBackupOffer(walletID: String) async throws -> WalletBackupOffer? {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard let offer = try WalletBackupOffer.fetchOne(db, sql: """
                 SELECT pendingBackupOffer FROM wallets WHERE id = ? AND deletedAt IS NULL
                 """, arguments: [walletID]),
@@ -69,7 +69,7 @@ extension OathDatabase {
     }
 
     public func finishBackupOfferReview(walletID: String, previouslyUntrackedOffer: WalletBackupOffer?) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try db.execute(sql: """
                 UPDATE wallets SET pendingBackupOffer = COALESCE(pendingBackupOffer, ?), needsBackupOfferReview = NULL
                 WHERE id = ? AND needsBackupOfferReview = 1
@@ -92,7 +92,7 @@ extension OathDatabase {
     /// May narrow an outstanding offer after a matching import, or suppress it after a cloud restore.
     /// A cleared offer stays cleared even when the wallet is imported again.
     public func updatePendingBackupOffer(walletID: String, to offer: WalletBackupOffer?) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try db.execute(sql: """
                 UPDATE wallets SET pendingBackupOffer = ?, needsBackupOfferReview = NULL
                 WHERE id = ? AND (pendingBackupOffer IS NOT NULL OR (? IS NULL AND needsBackupOfferReview = 1))
@@ -107,7 +107,7 @@ extension OathDatabase {
               let data = record.encryptedDocument, !data.isEmpty, data.count <= 1_048_576 else {
             throw StoreError.invalidValue("cloud backup")
         }
-        try await pool.write { db in
+        try await storageWrite { db in
             guard let wallet = try WalletRecord.fetchOne(db, key: record.walletID), wallet.deletedAt == nil else {
                 throw StoreError.missingRecord
             }
@@ -115,7 +115,7 @@ extension OathDatabase {
         }
     }
     public func disableCloudBackup(walletID: String) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             // Existing iCloud files remain recoverable. Turning off the switch
             // never silently deletes a user's only remote recovery copy.
             try db.execute(sql: "UPDATE cloudBackups SET enabled=0, encryptedDocument=NULL WHERE walletID=?", arguments: [walletID])
@@ -127,7 +127,7 @@ extension OathDatabase {
     /// before publishing them to settings. Match a newly observed removal by
     /// backup ID and uploaded state so it cannot disable a replacement upload.
     public func reconcileRemovedCloudBackups(confirmedMissingBackupID: String? = nil) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try db.execute(sql: """
                 UPDATE cloudBackups
                 SET enabled=0, state='failed', encryptedDocument=NULL, percent=NULL, failureCode=NULL
@@ -137,7 +137,7 @@ extension OathDatabase {
         }
     }
     public func invalidateCloudBackup(backupID: String, failureCode: String) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try db.execute(sql: "UPDATE cloudBackups SET state='failed', failureCode=? WHERE backupID=? AND enabled=1",
                            arguments: [failureCode, backupID])
         }
@@ -148,7 +148,7 @@ extension OathDatabase {
               percent.map({ $0.isFinite && (0...100).contains($0) }) ?? true else {
             throw StoreError.invalidValue("cloud backup state")
         }
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var record = try CloudBackupRecord.fetchOne(db, sql: "SELECT * FROM cloudBackups WHERE backupID=? AND enabled=1", arguments: [backupID]) else { return }
             // A late upload callback cannot downgrade a confirmed backup.
             guard record.state != "uploaded" else { return }

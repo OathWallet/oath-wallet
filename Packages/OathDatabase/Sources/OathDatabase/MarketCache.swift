@@ -36,7 +36,7 @@ extension OathDatabase {
             guard price.currency == "USD", price.observedAt == entry.fetchedAt,
                   price.source == entry.source else { throw StoreError.invalidValue("market quote") }
         }
-        return try await pool.write { db in
+        return try await storageWrite { db in
             if let previous = try MarketCacheEntry.fetchOne(db, key: entry.key), previous.fetchedAt > entry.fetchedAt {
                 return previous
             }

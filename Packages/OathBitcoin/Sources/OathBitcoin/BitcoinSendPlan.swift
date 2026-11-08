@@ -1,4 +1,5 @@
 import Foundation
+import OathDiagnostics
 internal import BitcoinDevKit
 
 public enum BitcoinSendNetwork: String, Codable, Sendable {
@@ -12,6 +13,14 @@ public enum BitcoinSendError: String, Error, Codable, Sendable {
     case invalidAmount, invalidRecipient, invalidInput, duplicateInput, insufficientFunds
     case feeUnavailable, feeTooHigh, tooLarge, changed, expired, signing, busy, submissionUnknown
     case invalidOptions, messageTooLarge
+}
+
+// The planner still throws when verified spendable outputs cannot fund the
+// requested amount and fees. This is form feedback, not an app failure. Keep
+// all other outcomes reportable, including malformed inputs, fee-provider
+// failures and broadcast rejections; provider text cannot claim this exemption.
+extension BitcoinSendError: DiagnosticControlFlowError {
+    public var isExpectedDiagnosticControlFlow: Bool { self == .insufficientFunds }
 }
 
 /// A funding output is anchored to its full, hash-checked previous transaction.

@@ -311,21 +311,27 @@ private actor FilecoinArchiveReader {
             nextStart = start.addingTimeInterval(0.55)
             try await Task.sleep(for: .seconds(max(0, start.timeIntervalSinceNow)))
             do {
-                let (data, status) = try await transport.send(request)
+                let (data, status) = try await transport.sendPreservingTransportError(request)
                 guard status == 200 else { throw AnkrError.http(status) }
                 guard data.count <= 2 * 1024 * 1024 else { throw AnkrError.responseTooLarge }
                 let result = try JSONDecoder().decode(SolanaJSON.self, from: data)
                 return result
             } catch {
-                if error is CancellationError || Task.isCancelled { throw CancellationError() }
-                OathDiagnostics.record(error, component: "history", operation: "filecoin_archive_read", context: ["chain": "filecoin", "source": "Filfox"])
+                if error is CancellationError || Task.isCancelled || (error as? URLError)?.code == .cancelled { throw CancellationError() }
+                OathDiagnostics.record(error, component: "history", operation: "filecoin_archive_read",
+                    context: ["chain": "filecoin", "source": "Filfox", "host": "filfox.info", "attempt": String(attempt + 1)])
                 let retry: Bool
                 switch error {
                 case AnkrError.http(let status): retry = status == 429 || (500...599).contains(status)
-                case AnkrError.transport: retry = true
-                default: retry = false
+                default: retry = AnkrReadRetry.transientTransport(error)
                 }
-                guard retry && attempt < 3 else { throw error }
+                guard retry && attempt < 3 else {
+                    // Classify the original cause before returning the existing
+                    // transport contract. TLS/offline failures cannot benefit
+                    // from replaying this same request four times.
+                    if error is URLError { throw AnkrError.transport }
+                    throw error
+                }
                 try await Task.sleep(for: .seconds(2 << attempt))
             }
         }

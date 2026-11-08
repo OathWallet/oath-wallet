@@ -169,19 +169,20 @@ private actor MarketCancellationReports: DiagnosticTransport {
                 if chain == "solana" { _ = try await SolanaMarkets(transport: outage).nativePrice() }
                 else { _ = try await TronMarkets(transport: outage).nativePrice() }
             }
-            // A non-availability failure still exercises both production
-            // reporting boundaries before independent, identity-checked fallback.
+            // TRON reports once at the owning read boundary; Solana retains
+            // its two existing boundaries before identity-checked fallback.
+            let expectedReports = chain == "tron" ? 1 : 2
             let malformed = InterruptedMarketFeed(host: "api.coinbase.com", failure: AnkrError.invalidResponse)
             try await OathDiagnostics.withChain(chain) {
                 if chain == "solana" { _ = try await SolanaMarkets(transport: malformed).nativePrice() }
                 else { _ = try await TronMarkets(transport: malformed).nativePrice() }
             }
             for _ in 0..<100 {
-                if await reports.events.count >= countBefore + 2 { break }
+                if await reports.events.count >= countBefore + expectedReports { break }
                 try await Task.sleep(for: .milliseconds(10))
             }
             let events = Array(await reports.events.dropFirst(countBefore))
-            XCTAssertEqual(events.count, 2)
+            XCTAssertEqual(events.count, expectedReports)
             let operation = try XCTUnwrap(events.first?.operationID)
             XCTAssertTrue(events.allSatisfy { $0.error.domain == "OathAnkr.AnkrError" && $0.error.message == "invalidResponse" && $0.operationID == operation && $0.context["chain"] == chain && $0.privacyFiltered })
         }

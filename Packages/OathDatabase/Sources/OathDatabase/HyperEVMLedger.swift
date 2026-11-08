@@ -19,7 +19,7 @@ public struct HyperEVMHistoryCursor: Codable, FetchableRecord, Sendable {
 }
 extension OathDatabase {
     public func beginHyperEVMSync(accountID: String, now: Date = .now) async throws -> HyperEVMSyncTicket {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard let account = try AccountRecord.fetchOne(db, key: accountID), account.networkID == "hyperevm" else { throw StoreError.missingRecord }
             let id = UUID().uuidString, end = now.timeIntervalSince1970, recent = max(0, end - 86_400)
             try db.execute(sql: """
@@ -61,7 +61,7 @@ extension OathDatabase {
         guard value.owner.lowercased() == ticket.account.address.lowercased(), value.block >= 0,
               value.holdings.contains(where: { $0.token.reference == "native" && $0.amount != nil }),
               Set(value.holdings.map { $0.token.reference }).count == value.holdings.count else { throw StoreError.conflictingIdentity }
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateHyperEVM(ticket, db: db)
             let previous = try Int64.fetchOne(db, sql: "SELECT checkpoint FROM hyperevmSync WHERE accountID=?", arguments: [ticket.account.id])
             guard previous.map({ $0 <= value.block }) ?? true else { throw StoreError.staleSync }
@@ -95,7 +95,7 @@ extension OathDatabase {
     }
     public func commitHyperEVMPage(_ page: HyperEVMHistoryPage, cursor: HyperEVMHistoryCursor, ticket: HyperEVMSyncTicket) async throws {
         guard page.next == nil || page.next != cursor.cursor else { throw AnkrError.paginationLoop }
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateHyperEVM(ticket, db: db)
             guard let current = try HyperEVMHistoryCursor.fetchOne(db, sql: "SELECT * FROM hyperevmHistoryCursors WHERE accountID=? AND stream=? AND lane=?", arguments: [ticket.account.id,cursor.stream,cursor.lane]),
                   current.cursor == cursor.cursor, current.startTime == cursor.startTime, current.endTime == cursor.endTime,
@@ -138,7 +138,7 @@ extension OathDatabase {
     /// An expired index cursor can replay its fixed time window safely because
     /// events are upserted by transaction/log identity. Never discard history.
     public func restartHyperEVMHistory(_ cursor: HyperEVMHistoryCursor, ticket: HyperEVMSyncTicket) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateHyperEVM(ticket, db: db)
             guard cursor.cursor != nil, let current = try HyperEVMHistoryCursor.fetchOne(db,
                 sql: "SELECT * FROM hyperevmHistoryCursors WHERE accountID=? AND stream=? AND lane=?",
@@ -150,7 +150,7 @@ extension OathDatabase {
         }
     }
     public func failHyperEVMSync(_ ticket: HyperEVMSyncTicket, cursor: HyperEVMHistoryCursor? = nil, code: String) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateHyperEVM(ticket, db: db)
             if let cursor {
                 try db.execute(sql: "UPDATE hyperevmHistoryCursors SET failure=? WHERE accountID=? AND stream=? AND lane=?", arguments: [code,ticket.account.id,cursor.stream,cursor.lane])

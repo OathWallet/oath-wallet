@@ -30,7 +30,7 @@ extension OathDatabase {
     /// operation ID survives the database queue hop. Public error semantics
     /// stay unchanged; unexpected storage errors propagate without relabeling.
     private func thorchainWrite<T: Sendable>(_ updates: @escaping @Sendable (Database) throws -> T) async throws -> T {
-        do { return try await pool.write(updates) }
+        do { return try await storageWrite(updates) }
         catch let rejection as ThorchainSyncRejection {
             // Already-observed lifecycle teardown is not a new app failure.
             if !Task.isCancelled {
@@ -41,7 +41,7 @@ extension OathDatabase {
         }
     }
     public func beginThorchainSync(accountID:String) async throws -> ThorchainSyncTicket {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard let account=try AccountRecord.fetchOne(db,key:accountID), account.networkID == "thorchain",
                   let wallet=try WalletRecord.fetchOne(db,key:account.walletID), wallet.deletedAt == nil else { throw StoreError.missingRecord }
             _ = try ThorchainIdentity.address(account.address)
@@ -152,6 +152,9 @@ extension OathDatabase {
                     try db.execute(sql:"DELETE FROM thorchainPendingEvents WHERE accountID=? AND eventID=?",arguments:[ticket.account.id,event.id])
                 }
             }
+            for hash in try String.fetchAll(db, sql: "SELECT DISTINCT t.hash FROM activity a JOIN transactions t ON t.id=a.transactionID WHERE a.accountID=? AND a.networkID='thorchain' AND instr(a.id,':archive:')>0", arguments: [ticket.account.id]) {
+                try Self.retireThorchainArchive(hash: hash, accountID: ticket.account.id, db: db)
+            }
             let assets=try AssetRecord.fetchAll(db,sql:"SELECT * FROM assets WHERE networkID='thorchain'")
             for old in assets {
                 guard let asset=try Self.thorchainAsset(old.reference,catalog:catalog,db:db) else { continue }
@@ -166,12 +169,12 @@ extension OathDatabase {
         }
     }
     public func thorchainCursor(ticket:ThorchainSyncTicket, stream:String, lane:String, height:Int64) async throws -> ThorchainCursor {
-        guard ["transfer.sender","transfer.recipient","message.sender"].contains(stream), ["recent","backfill"].contains(lane), height>0 else { throw StoreError.invalidValue("history cursor") }
+        guard ["transfer.sender","transfer.recipient","message.sender","archive"].contains(stream), ["recent","backfill"].contains(lane), height>0 else { throw StoreError.invalidValue("history cursor") }
         return try await thorchainWrite { db in
             try Self.validateThorchain(ticket,db:db)
             var cursor=try ThorchainCursor.fetchOne(db,key:["accountID":ticket.account.id,"stream":stream,"lane":lane]) ?? .init(accountID:ticket.account.id,stream:stream,lane:lane,height:height,lowerHeight:lane == "recent" ? max(0,height-100):0,page:1,complete:false)
-            if lane == "recent", cursor.complete, height>cursor.height {
-                cursor.lowerHeight=max(0,cursor.height-100); cursor.height=height; cursor.page=1; cursor.complete=false
+            if (lane == "recent" || stream == "archive"), cursor.complete, height>cursor.height {
+                cursor.lowerHeight=stream == "archive" ? 0 : max(0,cursor.height-100); cursor.height=height; cursor.page=1; cursor.complete=false
             }
             try cursor.upsert(db); return cursor
         }
@@ -190,6 +193,9 @@ extension OathDatabase {
                     try db.execute(sql:"INSERT INTO thorchainPendingEvents(accountID,eventID,reference,payload) VALUES(?,?,?,?) ON CONFLICT(accountID,eventID) DO UPDATE SET payload=excluded.payload",arguments:[ticket.account.id,event.id,event.reference,try JSONEncoder().encode(event)])
                 }
             }
+            for hash in Set(page.events.map(\.hash)) {
+                try Self.retireThorchainArchive(hash: hash, accountID: ticket.account.id, db: db)
+            }
             var next=cursor
             if let value=page.next, let number=Int(value), number == cursor.page+1 { next.page=number }
             else if page.next == nil { next.complete=true }
@@ -197,16 +203,45 @@ extension OathDatabase {
             try next.update(db)
         }
     }
+    private static func hasCanonicalThorchainHistory(hash: String, accountID: String, db: Database) throws -> Bool {
+        let prefix = accountID + ":" + hash + ":"
+        // Signed-send activity is retained separately. Only event-index or
+        // execution IDs establish that the node's full transaction was read.
+        let ids = try String.fetchAll(db, sql: "SELECT id FROM activity WHERE accountID=? AND transactionID=?", arguments: [accountID, "thorchain:" + hash])
+        let canonical = ids.contains { id in
+            guard id.hasPrefix(prefix) else { return false }
+            let suffix = id.dropFirst(prefix.count)
+            return suffix == "execution" || suffix.first?.isNumber == true
+        }
+        guard canonical else { return false }
+        return try !Bool.fetchOne(db, sql: "SELECT EXISTS(SELECT 1 FROM thorchainPendingEvents WHERE accountID=? AND substr(eventID,1,65)=? AND substr(eventID,66,8)!='archive:')", arguments: [accountID, hash + ":"])!
+    }
+    private static func retireThorchainArchive(hash: String, accountID: String, db: Database) throws {
+        guard try hasCanonicalThorchainHistory(hash: hash, accountID: accountID, db: db) else { return }
+        let prefix = accountID + ":" + hash + ":archive:"
+        // Only replace this adapter's generated activities. Never touch wallet,
+        // balance, key, signed-send, transaction or other provider records.
+        try db.execute(sql: "DELETE FROM activity WHERE accountID=? AND substr(id,1,?)=?", arguments: [accountID, prefix.count, prefix])
+        let eventPrefix = hash + ":archive:"
+        try db.execute(sql: "DELETE FROM thorchainPendingEvents WHERE accountID=? AND substr(eventID,1,?)=?", arguments: [accountID, eventPrefix.count, eventPrefix])
+    }
     private static func projectThorchainEvent(_ event:ThorchainEvent,ticket:ThorchainSyncTicket,catalog:ThorchainCatalog,db:Database) throws -> Bool {
+        let archive = event.id.hasPrefix(event.hash + ":archive:")
+        if archive, try Bool.fetchOne(db, sql: "SELECT EXISTS(SELECT 1 FROM sends WHERE accountID=? AND transactionID=? AND signedPayload IS NOT NULL)", arguments: [ticket.account.id, "thorchain:" + event.hash]) == true { return true }
+        if archive, try Self.hasCanonicalThorchainHistory(hash: event.hash, accountID: ticket.account.id, db: db) { return true }
         guard let asset=try thorchainAsset(event.reference,catalog:catalog,db:db) else { return false }
         let txID="thorchain:"+event.hash
-        try TransactionRecord(id:txID,networkID:"thorchain",hash:event.hash,state:event.state,blockHeight:event.height,timestamp:event.timestamp,feeAtomic:event.fee,updatedAt:Date().timeIntervalSince1970).upsert(db)
+        if try !archive || TransactionRecord.fetchOne(db, key: txID) == nil {
+            try TransactionRecord(id:txID,networkID:"thorchain",hash:event.hash,state:event.state,blockHeight:event.height,timestamp:event.timestamp,feeAtomic:event.fee,updatedAt:Date().timeIntervalSince1970).upsert(db)
+        }
         var activityID=ticket.account.id+":"+event.id
         if let send=try SendRecord.fetchOne(db,sql:"SELECT * FROM sends WHERE accountID=? AND transactionID=? AND signedPayload IS NOT NULL LIMIT 1",arguments:[ticket.account.id,txID]) {
             // Failed history has no payment event. Preserve the reviewed intent
             // while the transaction state explains that no transfer occurred.
             if event.state=="failed" {return true}
             if event.direction=="outgoing",send.assetID==asset.id,send.recipient==event.counterparty,send.amountAtomic==event.amount {
+                // Preserve the exact reviewed send and its stable activity ID.
+                if archive { return true }
                 activityID=ticket.account.id+":"+event.hash+":"+event.reference
             }
         }

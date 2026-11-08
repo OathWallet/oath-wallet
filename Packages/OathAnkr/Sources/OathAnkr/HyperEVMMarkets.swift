@@ -6,26 +6,35 @@ public struct HyperEVMMarkets: Sendable {
     public init(transport: any AnkrTransport = AnkrHTTPTransport()) { self.transport = transport }
     private func read(_ url: URL) async throws -> Data {
         var request = URLRequest(url: url); request.timeoutInterval = 25
-        for attempt in 0..<3 {
-            do {
-                let (data, status) = try await transport.send(request)
-                guard status == 200 else { throw AnkrError.http(status) }
-                guard data.count <= 32 * 1024 * 1024 else { throw AnkrError.responseTooLarge }
-                try Task.checkCancellation(); return data
-            } catch {
-                OathDiagnostics.record(error, operation: "market_read", context: ["chain": "hyperevm"])
-                if Task.isCancelled || error is CancellationError { throw CancellationError() }
-                let transient: Bool
-                switch error {
-                case AnkrError.http(let code): transient = (500...599).contains(code)
-                case AnkrError.transport: transient = true
-                default: transient = false
+        return try await OathDiagnostics.withChain("hyperevm") {
+            for attempt in 0..<3 {
+                do {
+                    try Task.checkCancellation()
+                    let (data, status) = try await transport.sendPreservingTransportError(request)
+                    guard status == 200 else { throw AnkrError.http(status) }
+                    guard data.count <= 32 * 1024 * 1024 else { throw AnkrError.responseTooLarge }
+                    try Task.checkCancellation(); return data
+                } catch {
+                    if Task.isCancelled || error is CancellationError || (error as? URLError)?.code == .cancelled {
+                        throw CancellationError()
+                    }
+                    OathDiagnostics.record(error, operation: "market_read", context: DiagnosticHTTP.context(request))
+                    let transient: Bool
+                    switch error {
+                    case AnkrError.http(let code): transient = (500...599).contains(code)
+                    default: transient = AnkrReadRetry.transientTransport(error)
+                    }
+                    guard transient && attempt < 2 else {
+                        // Classify and report the native cause first. Preserve the
+                        // existing availability fallback and public error contract.
+                        if error is URLError { throw AnkrError.transport }
+                        throw error
+                    }
+                    try await Task.sleep(for: .seconds(attempt + 1))
                 }
-                guard transient && attempt < 2 else { throw error }
-                try await Task.sleep(for: .seconds(attempt + 1))
             }
+            throw AnkrError.transport
         }
-        throw AnkrError.transport
     }
 
     public func catalog() async throws -> HyperEVMCatalog {

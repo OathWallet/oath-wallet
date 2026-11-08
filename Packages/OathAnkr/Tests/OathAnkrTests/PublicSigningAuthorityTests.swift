@@ -169,9 +169,11 @@ final class PublicSigningAuthorityTests: XCTestCase {
             XCTAssertEqual(calls, 1, "Wrong-chain providers must not be queried for account code")
         }
     }
-    func testAllCurrentEVMMainnetsHaveAnAdapter() {
+    func testAllEnabledEVMMainnetsHaveAnAdapter() {
         XCTAssertEqual(Set(Checker.evmEndpoints.keys),
-                       Set(EVMSendNetwork.allCases.filter { !$0.isTestnet }.map(\.rawValue)).union(["arc"]))
+                       Set(EVMSendNetwork.allCases.filter { !$0.isTestnet && $0 != .cronos }.map(\.rawValue)).union(["arc"]))
+        // Cronos remains unavailable in the app catalog; its account-policy adapter is disabled too.
+        XCTAssertNil(Checker.evmEndpoints["cronos"])
     }
 }
 private actor AuthorityTransport: AnkrTransport {

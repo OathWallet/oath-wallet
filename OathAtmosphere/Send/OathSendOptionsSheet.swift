@@ -5,6 +5,7 @@ struct OathSendOptionsSheet: View {
     let network: UTXONetwork
     @State var replaceable: Bool
     @State var message: String
+    @State private var messageFocused = false
     let apply: (Bool, String) -> Void
     @Environment(\.dismiss) private var dismiss
     @Environment(\.oathLocalizer) private var strings
@@ -25,9 +26,11 @@ struct OathSendOptionsSheet: View {
                     }
                 }
                 Section {
-                    TextField(strings.text(.sendPublicMessage), text: $message, axis: .vertical)
-                        .lineLimit(4...10).textInputAutocapitalization(.sentences).autocorrectionDisabled()
-                        .oathInputRow()
+                    OathMultilineTextInput(text: $message, focused: $messageFocused,
+                        title: strings.text(.sendPublicMessage), identifier: "send.options.message", visibleLines: 4)
+                        // Keep the padding outside the scrolling four-line area
+                        // so long messages never scroll into the rounded edges.
+                        .padding(OathInputMetrics.horizontalInset)
                         .oathInputBackground()
                         .listRowInsets(EdgeInsets())
                         .listRowBackground(Color.clear)
@@ -40,6 +43,7 @@ struct OathSendOptionsSheet: View {
                         if !message.isEmpty {
                             OathButton(strings.text(.clear), feedback: .selection) { message = "" }
                                 .oathNeutralControl()
+                                .accessibilityIdentifier("send.options.clear")
                         }
                     }.oathFont(.footnote)
                         .listRowBackground(Color.clear)
@@ -61,16 +65,17 @@ struct OathSendOptionsSheet: View {
             .oathFont(.body).scrollDismissesKeyboard(.interactively)
             .navigationTitle(strings.text(.sendOptions)).navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { OathCloseButton { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { OathCloseButton { dismiss() }.accessibilityIdentifier("send.options.close") }
                 ToolbarItem(placement: .topBarTrailing) {
                     OathDoneButton(label: .apply) {
                         apply(BitcoinSendOptions.supportsRBF(network) && replaceable, message)
                         dismiss()
-                    }.disabled(byteCount > limit)
+                    }.disabled(byteCount > limit).accessibilityIdentifier("send.options.apply")
                 }
             }
         }
         .oathNativeLocalization()
+        .onDisappear { messageFocused = false }
         .presentationBackground(Color(uiColor: OathSurfaceColors.canvas))
         .presentationDragIndicator(.visible)
     }

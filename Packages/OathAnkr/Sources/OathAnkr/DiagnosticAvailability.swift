@@ -41,12 +41,18 @@ extension AptosError: DiagnosticAvailabilityError {
 extension TonError: DiagnosticAvailabilityError {
     public var isDiagnosticAvailabilityFailure: Bool {
         switch self {
-        case .transport: return true
+        case .transport, .indexCooldown: return true
         case .http(let status): return availabilityStatus(status)
         case .rpc(429), .rpc(-32005): return true
         default: return false
         }
     }
+}
+
+extension TonError: DiagnosticControlFlowError {
+    /// Only a cooldown following an already-reported HTTP 429 is expected.
+    /// The initial rejection and every other provider failure remain reportable.
+    public var isExpectedDiagnosticControlFlow: Bool { self == .indexCooldown }
 }
 
 extension TronError: DiagnosticAvailabilityError {

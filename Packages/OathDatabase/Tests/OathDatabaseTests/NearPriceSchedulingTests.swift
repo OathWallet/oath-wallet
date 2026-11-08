@@ -10,6 +10,8 @@ private actor NearPriceScheduleTransport: AnkrTransport {
     let zeroBalances: Bool
     let fallbackFails: Bool
     let stallPrimary: Bool
+    var round = 1, discoveryFails = false
+    func advance(failDiscovery: Bool = false) { round += 1; discoveryFails = failDiscovery }
     var primaryCalls = 0, fallbackCalls = 0, primaryActive = 0, primaryMaximum = 0
     var sequence: [String] = []
     let blockHash = "HJcKVPta9MX2cZ2wQ9jZSRxa7f6WABptK6iv98DxA3U4"
@@ -44,6 +46,7 @@ private actor NearPriceScheduleTransport: AnkrTransport {
                 ($0, .object(["decimal": .number("24"), "price": .string("9")]))
             })))
         case "api.fastnear.com":
+            if discoveryFails { return (Data(), 401) }
             return try encode(.object(["account_id": .string("root.near"), "tokens": .array(references.map {
                 .object(["contract_id": .string($0), "balance": .string(zeroBalances ? "0" : "100")])
             })]))
@@ -61,11 +64,11 @@ private actor NearPriceScheduleTransport: AnkrTransport {
             let params = body["params"]
             var output: [String: NearJSON] = ["block_hash": .string(blockHash), "block_height": .number("123")]
             if params["request_type"].string == "view_account" {
-                output.merge(["amount": .string("1000000000000000000000000"), "locked": .string("0"), "storage_usage": .number("123")]) { _, new in new }
+                output.merge(["amount": .string(String(round) + "000000000000000000000000"), "locked": .string("0"), "storage_usage": .number("123")]) { _, new in new }
             } else {
                 let payload: NearJSON = params["method_name"].string == "ft_metadata"
                     ? .object(["spec": .string("ft-1.0.0"), "name": .string("Fixture Token"), "symbol": .string("TEST"), "decimals": .number("24")])
-                    : .string(zeroBalances ? "0" : "100")
+                    : .string(zeroBalances ? "0" : String(round * 100))
                 output["result"] = .array(try JSONEncoder().encode(payload).map { .number(String($0)) })
             }
             return try result(.object(output))
@@ -247,5 +250,28 @@ private actor LiveNearSchedulingTransport: AnkrTransport {
             XCTAssertEqual(offline?.holdings, inventory.holdings)
             print("NEAR_PRICE_SCHEDULING_LIVE eligibleTokens=\(eligible.count) recoveredQuotes=\(recovered) bulkFallbackReads=\(reads) offlineInventoryMatched=true")
         } catch { await sync.cancel(); throw error }
+    }
+}
+
+extension NearPriceSchedulingTests {
+    func testChangedNativeAndKnownTokenSurviveDiscoveryFailureWithoutReopening() async throws {
+        let feed = NearPriceScheduleTransport(references: ["token.near"])
+        let (db, service, folder) = try await Self.fixture(feed, refs: ["token.near"])
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let publication = RefreshPublicationProbe(db, wallet: "fixture-wallet")
+        defer { publication.stop() }
+        try await service.refresh(accountID: "fixture-account")
+        try await publication.expect(amount: "1000000000000000000000000", network: "near")
+        await feed.advance(failDiscovery: true)
+        do { try await service.refresh(accountID: "fixture-account"); XCTFail("Discovery outage is partial") }
+        catch { XCTAssertEqual(error as? BalanceRefreshError, .incomplete) }
+        try await publication.expect(amount: "2000000000000000000000000", network: "near")
+        try await publication.expect("token.near", amount: "200", network: "near")
+        let inventory = try await db.nearInventory(accountID: "fixture-account")
+        XCTAssertEqual(inventory?.discoveryComplete, false)
+        await feed.advance()
+        try await service.refresh(accountID: "fixture-account")
+        try await publication.expect(amount: "3000000000000000000000000", network: "near")
+        await service.cancel()
     }
 }

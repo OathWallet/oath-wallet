@@ -35,4 +35,4 @@ let package = Package(name: "HomeChecks", platforms: [.macOS("15.5")],
     swiftLanguageModes: [.v6])
 ''' % (json.dumps(str(root / "Packages/OathDatabase")), json.dumps(str(root / "Packages/OathDiagnostics"))))
     subprocess.run(["swift", "run", "--package-path", str(work), "--scratch-path", "/tmp/oath-home-portfolio-host-build",
-                    "--build-system", "native", "HomeChecks"], check=True)
+                    "--build-system", "native", "HomeChecks", str(root / "Tools/BalanceRefreshCoverage.json")], check=True)

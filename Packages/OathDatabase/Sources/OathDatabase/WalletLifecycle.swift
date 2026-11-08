@@ -11,7 +11,7 @@ public struct WalletLifecycle: Sendable {
 extension OathDatabase {
     public func reorderWallets(_ ids: [String]) async throws {
         guard Set(ids).count == ids.count else { throw StoreError.invalidValue("wallet order") }
-        try await pool.write { db in
+        try await storageWrite { db in
             let active = try String.fetchAll(db, sql: "SELECT id FROM wallets WHERE deletedAt IS NULL")
             guard Set(active) == Set(ids) else { throw StoreError.staleSync }
             for (index, id) in ids.enumerated() {
@@ -56,7 +56,7 @@ extension OathDatabase {
 
     public func reconcileWalletLifecycle(_ states: [WalletLifecycle]) async throws {
         guard states.allSatisfy({ $0.deletedAt?.isFinite != false }) else { throw StoreError.invalidValue("wallet deletion date") }
-        try await pool.write { db in
+        try await storageWrite { db in
             for state in states {
                 guard let wallet = try WalletRecord.fetchOne(db, key: state.id) else { throw StoreError.missingRecord }
                 guard wallet.deletedAt != state.deletedAt else { continue }

@@ -23,7 +23,7 @@ extension OathDatabase {
     public func queueStellarSend(sendID: String, plan: StellarSendPlan) async throws {
         try plan.validate()
         guard plan.network == .mainnet else { throw StellarSendError.wrongNetwork }
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send = try SendRecord.fetchOne(db,key:sendID), send.state == "draft", send.networkID == "stellar",
                   let account = try AccountRecord.fetchOne(db,key:send.accountID), account.walletID == send.walletID,
                   account.networkID == "stellar", try StellarIdentity.address(account.address) == plan.sender,
@@ -44,7 +44,7 @@ extension OathDatabase {
         }
     }
     public func journalStellarSignature(sendID: String, signed: StellarSignedSend) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send = try SendRecord.fetchOne(db,key:sendID), send.state == "queued", send.networkID == "stellar",
                   let bytes = try Data.fetchOne(db,sql:"SELECT plan FROM stellarSendPlans WHERE sendID=?",arguments:[sendID]) else { throw StoreError.invalidTransition }
             let plan = try JSONDecoder().decode(StellarSendPlan.self,from:bytes)
@@ -68,7 +68,7 @@ extension OathDatabase {
     /// A timeout or local quote expiration never releases a signed sequence.
     public func settleStellarSend(sendID: String, receipt: StellarSendReceipt) async throws {
         guard receipt.outcome != .unknown else { return }
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send = try SendRecord.fetchOne(db,key:sendID), send.networkID == "stellar",
                   ["signed","broadcast","confirmed","failed"].contains(send.state),
                   send.transactionID == "stellar:"+receipt.hash, let raw = send.signedPayload else { throw StoreError.invalidTransition }

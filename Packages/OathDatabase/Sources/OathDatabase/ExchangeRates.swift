@@ -70,7 +70,7 @@ extension OathDatabase {
                 throw StoreError.invalidValue("exchange rate")
             }
         }
-        try await pool.write { db in
+        try await storageWrite { db in
             // Publication time determines the version. The device's fetch
             // clock can move backwards; it must not prevent revalidation.
             if let current = try Self.exchangeRates(db), current.observedAt > snapshot.observedAt {
@@ -91,7 +91,7 @@ extension OathDatabase {
     /// UI selection is a local transaction, never a network request.
     public func selectDisplayCurrency(_ code: String) async throws {
         try Validation.currency(code)
-        try await pool.write { db in
+        try await storageWrite { db in
             if code != "USD", try Bool.fetchOne(db, sql: "SELECT EXISTS(SELECT 1 FROM exchangeRates WHERE currency=?)", arguments: [code]) != true {
                 throw StoreError.missingRecord
             }

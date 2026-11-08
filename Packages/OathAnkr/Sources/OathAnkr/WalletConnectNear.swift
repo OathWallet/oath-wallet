@@ -72,6 +72,13 @@ public struct WalletConnectNearTransaction: Codable, Sendable, Equatable {
     public struct Action:Codable, Sendable, Equatable {
         public let kind:UInt8, description:String, deposit:String, gas:UInt64, byteCount:Int, methodCount:Int
         public let fullAccess:Bool
+        /// Structured display data. Descriptions remain stable for existing stored
+        /// reviews; native UI reparses the signed bytes and localizes these fields.
+        public var display: Display? = nil
+        public struct Display: Codable, Sendable, Equatable {
+            public var codeHash: String?, method: String?, arguments: Data?, publicKey: String?
+            public var contract: String?, methods: [String]?, allowance: String?, beneficiary: String?
+        }
     }
     public init(_ bytes:Data) throws {
         guard bytes.count <= 131_072 else { throw NearSendError.malformed }
@@ -83,22 +90,28 @@ public struct WalletConnectNearTransaction: Codable, Sendable, Equatable {
         for _ in 0..<count {
             let kind = UInt8(try r.uint(1))
             var deposit = "0", gas:UInt64 = 0, size = 0, methods = 0, description = "", fullAccess = false
+            var display = Action.Display()
             switch kind {
             case 0: description = "Create account"
             case 1:
                 let code = try r.blob(131_072); size = code.count
-                description = "Deploy contract · SHA256 " + SHA256.hash(data:code).map{String(format:"%02x",$0)}.joined()
+                display.codeHash = SHA256.hash(data:code).map{String(format:"%02x",$0)}.joined()
+                description = "Deploy contract · SHA256 " + display.codeHash!
             case 2:
                 let method = try r.text(256), args = try r.blob(65_536)
                 gas = try r.uint(8); deposit = try r.amount(); size = method.utf8.count + args.count
                 guard !method.isEmpty, gas > 0, gas <= 300_000_000_000_000 else { throw NearSendError.malformed }
+                display.method = method; display.arguments = args
                 description = "Call " + method + "\nDeposit: " + deposit + " yoctoNEAR\nGas: " + String(gas) + "\nArguments (base64): " + args.base64EncodedString()
             case 3: deposit = try r.amount(); description = "Transfer " + deposit + " yoctoNEAR"
-            case 4: deposit = try r.amount(); description = "Stake " + deposit + " yoctoNEAR\nValidator key: " + NearSendCrypto.keyString(try r.key())
+            case 4:
+                deposit = try r.amount(); display.publicKey = NearSendCrypto.keyString(try r.key())
+                description = "Stake " + deposit + " yoctoNEAR\nValidator key: " + display.publicKey!
             case 5:
                 let key = try r.key(), nonce = try r.uint(8), permission = try r.uint(1)
                 guard nonce == 0 else { throw NearSendError.malformed }
-                description = "Add access key " + NearSendCrypto.keyString(key)
+                display.publicKey = NearSendCrypto.keyString(key)
+                description = "Add access key " + display.publicKey!
                 if permission == 1 { fullAccess = true; description += "\nFULL ACCESS: this key can control the entire account." }
                 else if permission == 0 {
                     let option = try r.uint(1); guard option <= 1 else { throw NearSendError.malformed }
@@ -106,13 +119,19 @@ public struct WalletConnectNearTransaction: Codable, Sendable, Equatable {
                     let contract = try NearIdentity.address(r.text(64)); methods = try r.length(128)
                     var names = [String]()
                     for _ in 0..<methods { let name = try r.text(256); guard !name.isEmpty else { throw NearSendError.malformed }; names.append(name); size += name.utf8.count }
+                    display.contract = contract; display.methods = names
+                    display.allowance = option == 1 ? allowance : nil
                     description += "\nContract: " + contract + "\nMethods: " + (names.isEmpty ? "All methods" : names.joined(separator:", ")) + "\nGas allowance (yoctoNEAR): " + allowance
                 } else { throw NearSendError.malformed }
-            case 6: description = "Delete access key " + NearSendCrypto.keyString(try r.key())
-            case 7: description = "DELETE ACCOUNT\nRemaining balance goes to " + (try NearIdentity.address(r.text(64)))
+            case 6:
+                display.publicKey = NearSendCrypto.keyString(try r.key())
+                description = "Delete access key " + display.publicKey!
+            case 7:
+                display.beneficiary = try NearIdentity.address(r.text(64))
+                description = "DELETE ACCOUNT\nRemaining balance goes to " + display.beneficiary!
             default: throw NearSendError.unsupportedAccount
             }
-            actions.append(.init(kind:kind,description:description,deposit:deposit,gas:gas,byteCount:size,methodCount:methods,fullAccess:fullAccess))
+            actions.append(.init(kind:kind,description:description,deposit:deposit,gas:gas,byteCount:size,methodCount:methods,fullAccess:fullAccess,display:display))
         }
         guard r.offset == bytes.count else { throw NearSendError.malformed }
         self.actions = actions

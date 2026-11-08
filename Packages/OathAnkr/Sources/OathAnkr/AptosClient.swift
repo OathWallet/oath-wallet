@@ -31,6 +31,7 @@ public actor AptosClient {
     private func request(_ url:URL,body:AptosJSON?=nil,index:Bool=false,attempts:Int=3) async throws -> AptosJSON {
         let gate=index ? indexGate:nodeGate
         try await gate.acquire()
+        var failureReported = false
         do {
             if index,Date()<indexRetryAt {throw AptosError.http(429)}
             var request=URLRequest(url:url);request.timeoutInterval=30
@@ -42,7 +43,7 @@ public actor AptosClient {
                 try Task.checkCancellation()
                 if index {let delay=indexInterval-Date().timeIntervalSince(lastIndex);if delay>0 {try await Task.sleep(for:.seconds(delay))};lastIndex = .now}
                 do {
-                    let (data,status)=try await transport.send(request)
+                    let (data,status)=try await transport.sendPreservingTransportError(request)
                     // An indexer timeout can consume the public compute quota.
                     // Do not amplify it with immediate expensive retries.
                     if index,status==429 || status==408 {indexRetryAt=Date().addingTimeInterval(300)}
@@ -51,18 +52,28 @@ public actor AptosClient {
                     let value=try JSONDecoder().decode(AptosJSON.self,from:data)
                     if index,!value["errors"].isNull {throw AptosError.indexer}
                     await gate.release();return value
-                } catch { OathDiagnostics.record(error);
-                    if Task.isCancelled || error is CancellationError {throw CancellationError()}
+                } catch {
+                    if Task.isCancelled || error is CancellationError || (error as? URLError)?.code == .cancelled { throw CancellationError() }
+                    failureReported = true
+                    OathDiagnostics.record(error, component: "provider", operation: "aptos_read",
+                        context: ["chain": "aptos", "stage": index ? "index" : "node", "host": url.host ?? "", "attempt": String(attempt + 1)])
                     let retry:Bool
                     switch error {case AptosError.http(let n):retry=(!index && n==408) || n>=500
-                    case AnkrError.transport:retry=true
-                    default:retry=false}
+                    default:retry=AnkrReadRetry.transientTransport(error)}
                     if retry,attempt<attempts-1 {try await Task.sleep(for:.seconds(1<<attempt));continue}
-                    if let e=error as? AptosError {throw e};throw AptosError.transport
+                    if let e=error as? AptosError {throw e}
+                    if error is DecodingError { throw AptosError.malformed }
+                    if error is URLError || (error as? AnkrError) == .transport { throw AptosError.transport }
+                    throw error
                 }
             }
             throw AptosError.transport
-        } catch { OathDiagnostics.record(error);await gate.release();throw error}
+        } catch {
+            // Preparation failures need a report; releasing a permit must not
+            // record a second copy of an already reported request failure.
+            if !failureReported { OathDiagnostics.record(error) }
+            await gate.release();throw error
+        }
     }
     func node(_ path:String,version:Int64?=nil,body:AptosJSON?=nil) async throws -> AptosJSON {
         let archive=URL(string:"https://archive.mainnet.aptoslabs.com/v1")!

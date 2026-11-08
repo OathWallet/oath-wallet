@@ -16,7 +16,7 @@ public struct StellarHistoryCursor: Codable, Sendable, Equatable, FetchableRecor
 }
 extension OathDatabase {
     public func beginStellarSync(accountID:String, latestLedger:Int64) async throws -> StellarSyncTicket {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard let account = try AccountRecord.fetchOne(db,key:accountID), account.networkID == "stellar" else { throw StoreError.missingRecord }
             _ = try StellarIdentity.address(account.address)
             let run = UUID().uuidString
@@ -41,7 +41,7 @@ extension OathDatabase {
               try String.fetchOne(db,sql:"SELECT runID FROM stellarSync WHERE accountID=?",arguments:[ticket.account.id]) == ticket.runID else { throw StoreError.staleSync }
     }
     public func failStellarSync(_ ticket:StellarSyncTicket, history:Bool, code:String) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateStellar(ticket,db:db)
             try db.execute(sql:"UPDATE stellarSync SET \(history ? "historyFailure":"failure")=? WHERE accountID=?",arguments:[code,ticket.account.id])
         }
@@ -63,7 +63,7 @@ extension OathDatabase {
         guard token.reference == reference else { throw StoreError.conflictingIdentity }; return token
     }
     public func saveStellarMetadata(_ tokens:[StellarToken],ticket:StellarSyncTicket) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateStellar(ticket,db:db)
             for token in tokens { _ = try Self.stellarAsset(token,db:db) }
         }
@@ -86,7 +86,7 @@ extension OathDatabase {
         guard value.observedAt.timeIntervalSince1970.isFinite, value.ledger.height >= 0, value.owner == (try StellarIdentity.address(ticket.account.address)),
               Set(value.holdings.map(\.reference)).count == value.holdings.count,
               value.holdings.filter({$0.reference == "native"}).count == 1 else { throw StellarError.wrongOwner }
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateStellar(ticket,db:db)
             let time = value.observedAt.timeIntervalSince1970
             let previous = try Double.fetchOne(db,sql:"SELECT observedAt FROM stellarSync WHERE accountID=?",arguments:[ticket.account.id]) ?? 0
@@ -102,7 +102,7 @@ extension OathDatabase {
                 let asset = try token.map{try Self.stellarAsset($0,db:db)}
                 try db.execute(sql:"""
                     INSERT INTO stellarHoldings(accountID,reference,assetID,amountAtomic,observedAt,checkpoint,verified) VALUES(?,?,?,?,?,?,?)
-                    ON CONFLICT(accountID,reference) DO UPDATE SET assetID=excluded.assetID,amountAtomic=excluded.amountAtomic,observedAt=excluded.observedAt,checkpoint=excluded.checkpoint,verified=excluded.verified
+                    ON CONFLICT(accountID,reference) DO UPDATE SET assetID=excluded.assetID,amountAtomic=excluded.amountAtomic,observedAt=excluded.observedAt,checkpoint=excluded.checkpoint,verified=\(catalog.ids.isEmpty ? "MAX(stellarHoldings.verified,excluded.verified)" : "excluded.verified")
                     """,arguments:[ticket.account.id,holding.reference,asset?.id,holding.amount,time,value.ledger.height,catalog.contains(holding.reference) || value.verified.contains(holding.reference)])
             }
             try db.execute(sql:"UPDATE stellarSync SET inventory=?,observedAt=?,checkpoint=?,failure=NULL WHERE accountID=?",arguments:[try JSONEncoder().encode(value),time,value.ledger.height,ticket.account.id])
@@ -154,7 +154,7 @@ extension OathDatabase {
         guard cursor.accountID == ticket.account.id, cursor.startLedger == page.startLedger, cursor.endLedger == page.endLedger,
               page.events.allSatisfy({$0.checkpoint >= page.startLedger && $0.checkpoint <= page.endLedger}),
               page.complete || (page.next != nil && page.next != cursor.cursor), Set(page.events.map(\.id)).count == page.events.count else { throw StellarError.paginationLoop }
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateStellar(ticket,db:db)
             guard try StellarHistoryCursor.fetchOne(db,key:["accountID":cursor.accountID,"lane":cursor.lane]) == cursor else { throw StoreError.staleSync }
             for event in page.events {

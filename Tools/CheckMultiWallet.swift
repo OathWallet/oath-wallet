@@ -151,7 +151,7 @@ private struct CredentialIdentity: Decodable, Equatable {
         let root = try await vault.unlockedProfile()
         let credential = try await vault.biometricCredential()
         await biometrics.enroll(credential)
-        check(root.addresses.count == OathImportChain.allCases.count, "Initial metadata must contain the supported networks")
+        check(root.addresses.count == OathImportChain.enabledCases.count, "Initial metadata must contain the supported networks")
         let session = OathWalletSession(vault: vault)
         await session.finishedSetup()
         check(session.isUnlocked && session.wallets.count == 1, "Initial session must contain its first wallet")

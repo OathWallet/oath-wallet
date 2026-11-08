@@ -55,11 +55,11 @@ final class PortfolioFilterTests: XCTestCase {
                     holding("quiet", token: true), holding("other", network: "solana", token: true, activity: 1)]
         var filter = PortfolioFilter()
         filter.kind = .tokens; filter.networkIDs = ["ethereum", "sui"]
-        filter.hidesZeroBalances = true; filter.onlyWithActivity = true
-        XCTAssertEqual(Set(result(filter, rows)), ["USDC", "token"])
+        filter.hidesZeroBalances = true
+        XCTAssertEqual(Set(result(filter, rows)), ["USDC", "token", "quiet"])
         filter.networkIDs = ["ethereum"]
-        XCTAssertEqual(result(filter, rows), ["USDC"])
-        filter.kind = .coins; filter.onlyWithActivity = false
+        XCTAssertEqual(Set(result(filter, rows)), ["USDC", "quiet"])
+        filter.kind = .coins
         XCTAssertEqual(result(filter, rows), ["ETH"])
         XCTAssertEqual(filter.activeCount, 3)
     }
@@ -110,8 +110,6 @@ final class PortfolioFilterTests: XCTestCase {
                     holding("active", amount: "0", activity: 20), holding("some", activity: 2)]
         var filter = PortfolioFilter(); filter.sort = .mostActive
         XCTAssertEqual(result(filter, rows), ["active", "some", "rich"])
-        filter.onlyWithActivity = true
-        XCTAssertEqual(result(filter, rows), ["active", "some"])
     }
 
     func testLocalCurrencyRangeIsInclusiveAndUnknownValuesAreNotZero() {

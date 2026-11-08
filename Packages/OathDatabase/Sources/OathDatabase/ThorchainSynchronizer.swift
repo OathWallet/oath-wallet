@@ -63,9 +63,10 @@ public actor ThorchainSynchronizer {
                 // page commits atomically and resumes after relaunch. Historical
                 // work is capped per refresh, never an unbounded hot-phone loop.
                 try await withThrowingTaskGroup(of:Void.self) { group in
-                    for stream in ["transfer.sender","transfer.recipient","message.sender"] {
+                    for stream in ["transfer.sender","transfer.recipient","message.sender","archive"] {
                         group.addTask {
-                            for lane in ["recent","backfill"] {
+                          do {
+                            for lane in stream == "archive" ? ["backfill"] : ["recent","backfill"] {
                                 var cursor=try await database.thorchainCursor(ticket:ticket,stream:stream,lane:lane,height:height)
                                 for _ in 0..<10 where !cursor.complete {
                                     try Task.checkCancellation()
@@ -76,6 +77,13 @@ public actor ThorchainSynchronizer {
                                     cursor=try await database.thorchainCursor(ticket:ticket,stream:stream,lane:lane,height:height)
                                 }
                             }
+                          } catch {
+                            if error is CancellationError || Task.isCancelled { throw CancellationError() }
+                            // A failed source keeps its cursor and saved activity;
+                            // it must not cancel independently useful sources.
+                            OathDiagnostics.record(error, component: "ThorchainSynchronizer", operation: "history_stream",
+                                                   context: ["chain": "thorchain", "stage": stream])
+                          }
                         }
                     }
                     try await group.waitForAll()

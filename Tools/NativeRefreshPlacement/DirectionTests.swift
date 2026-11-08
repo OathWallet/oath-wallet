@@ -7,7 +7,7 @@ import OathNativeRefresh
 @MainActor final class DirectionTests: XCTestCase {
     override func setUp() { continueAfterFailure = false }
 
-    func testRingCheckmarkKeepsNativeShapeOnHomeAndAsset() async throws {
+    func testRingCheckmarkMirrorsInRTLOnHomeAndAsset() async throws {
         for screen in ["home", "asset"] {
             for direction in [LayoutDirection.rightToLeft, .leftToRight] {
                 try await checkResult(screen: screen, direction: direction)
@@ -91,8 +91,13 @@ import OathNativeRefresh
         attachment.lifetime = .keepAlways
         add(attachment)
         let upperArm = try upperArmPosition(try XCTUnwrap(image.cgImage))
-        XCTAssertGreaterThan(upperArm, 0.58,
-            "The universal checkmark keeps its native right-facing long arm in both directions on \(screen)")
+        if rtl {
+            XCTAssertLessThan(upperArm, 0.42,
+                "The refresh check's long arm must point left in RTL on \(screen)")
+        } else {
+            XCTAssertGreaterThan(upperArm, 0.58,
+                "The refresh check's long arm must point right in LTR on \(screen)")
+        }
     }
 
     /// Independently measure the check's handedness from its rendered white

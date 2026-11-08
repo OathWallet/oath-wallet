@@ -27,7 +27,7 @@ extension OathDatabase {
     public func queueXrplSend(sendID: String, plan: XrplSendPlan) async throws {
         try plan.validate()
         guard plan.network == .mainnet else { throw XrplSendError.wrongNetwork }
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send = try SendRecord.fetchOne(db,key:sendID), send.state == "draft", send.networkID == "xrpl",
                   let account = try AccountRecord.fetchOne(db,key:send.accountID), account.walletID == send.walletID,
                   account.networkID == "xrpl", try XrplIdentity.address(account.address) == plan.sender,
@@ -48,7 +48,7 @@ extension OathDatabase {
         }
     }
     public func journalXrplSignature(sendID: String, signed: XrplSignedSend) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send = try SendRecord.fetchOne(db,key:sendID), send.state == "queued", send.networkID == "xrpl",
                   let bytes = try Data.fetchOne(db,sql:"SELECT plan FROM xrplSendPlans WHERE sendID=?",arguments:[sendID]) else { throw StoreError.invalidTransition }
             let plan = try JSONDecoder().decode(XrplSendPlan.self,from:bytes)
@@ -72,7 +72,7 @@ extension OathDatabase {
     /// A timeout or local quote expiration never releases a signed sequence.
     public func settleXrplSend(sendID: String, receipt: XrplSendReceipt) async throws {
         guard receipt.outcome != .unknown else { return }
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send = try SendRecord.fetchOne(db,key:sendID), send.networkID == "xrpl",
                   ["signed","broadcast","confirmed","failed"].contains(send.state),
                   send.transactionID == "xrpl:"+receipt.hash, let raw = send.signedPayload else { throw StoreError.invalidTransition }

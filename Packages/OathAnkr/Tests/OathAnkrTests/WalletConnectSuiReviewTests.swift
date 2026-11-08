@@ -21,6 +21,12 @@ private actor SuiConnectTransport: AnkrTransport {
             "epoch":["epochId":"100"],
             "simulateTransaction":["effects":["status":mode == .failure ? "FAILURE":"SUCCESS","executionError":["message":"Test execution rejected"],
                 "gasEffects":["gasSummary":["computationCost":"1000","storageCost":"500","storageRebate":"100"]],
+                "objectChanges":["pageInfo":["hasNextPage":false],"nodes":[[
+                    "address":"0xcafe", "idCreated":true, "idDeleted":false, "inputState":NSNull(),
+                    "outputState":["address":"0xcafe", "version":1, "digest":SuiSendCrypto.base58(Data(repeating:0,count:32)),
+                        "owner":["__typename":"AddressOwner","address":["address":owner]],
+                        "asMoveObject":["contents":["type":["repr":"0x2::coin::Coin<0x2::sui::SUI>"]]],"asMovePackage":NSNull()]
+                ]]],
                 "balanceChanges":["pageInfo":["hasNextPage":mode == .truncated],"nodes":[["owner":["address":owner],"coinType":["repr":mode == .token ? tokenType:"0x2::sui::SUI"],"amount":amount]]]
             ]]]]
         return (try JSONSerialization.data(withJSONObject:value),200)

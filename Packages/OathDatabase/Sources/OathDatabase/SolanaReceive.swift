@@ -50,7 +50,7 @@ extension OathDatabase {
                   $0.address.utf8.allSatisfy { "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".utf8.contains($0) } }) else {
             throw StoreError.invalidValue("Solana receive addresses")
         }
-        return try await pool.write { db in
+        return try await storageWrite { db in
             guard let account = try AccountRecord.fetchOne(db, key: accountID), account.networkID == "solana",
                   addresses.contains(.init(path: account.derivationPath, address: account.address)) else { throw StoreError.conflictingIdentity }
             if account.derivationPath == "solana-multisig-v1" {
@@ -81,7 +81,7 @@ extension OathDatabase {
 
     /// Both the selection and returned address come from one transaction.
     public func selectSolanaReceivePath(accountID: String, path: String) async throws -> SolanaReceiveState {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard let state = try Self.solanaReceiveState(accountID: accountID, db: db),
                   state.addresses.contains(where: { $0.path == path }) else { throw StoreError.missingRecord }
             if state.selected.path != path {

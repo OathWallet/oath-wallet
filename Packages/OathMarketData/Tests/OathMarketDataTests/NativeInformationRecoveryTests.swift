@@ -211,6 +211,7 @@ private actor LiveNativeInformationFeed: MarketTransport {
                 try await MarketDataService(database: database, transport: feed, now: { date }).information(for: asset)
             }
             for _ in 0..<100 {
+                await OathDiagnostics.flush()
                 if await reports.events(for: id).count >= 2 { break }
                 try await Task.sleep(for: .milliseconds(10))
             }

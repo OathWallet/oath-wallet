@@ -534,7 +534,7 @@
       "fingerprints": [
         "Packages/OathAnkr/Tests/OathAnkrTests/TokenDiscoveryTests.swift:generic-api-key:187"
       ],
-      "sha256": "0424c7925e7ce15f1871be2dc30acfea5ddf1b67b62b574eec0632ee6445e054"
+      "sha256": "a3b663df058d543a45bd301b9a974f17742c30d3a3f889191356dd6abf3d29cf"
     },
     {
       "path": "Packages/OathAnkr/Tests/OathAnkrTests/TonReadRecoveryTests.swift",
@@ -543,7 +543,7 @@
         "Packages/OathAnkr/Tests/OathAnkrTests/TonReadRecoveryTests.swift:generic-api-key:175",
         "Packages/OathAnkr/Tests/OathAnkrTests/TonReadRecoveryTests.swift:generic-api-key:182"
       ],
-      "sha256": "4ad16249c6d438f9e13025d4077e0468d993dc1b9ea20e8a585266984c814354"
+      "sha256": "e97fb81f60a6eaba056bdf7a036d5f21fa8df672402fbfb3d84db805c047c8f6"
     },
     {
       "path": "Packages/OathBitcoin/Tests/OathBitcoinTests/AlchemyUTXOTests.swift",
@@ -571,7 +571,7 @@
     },
     {
       "path": "Packages/OathDatabase/Tests/OathDatabaseTests/SolanaLedgerTests.swift",
-      "sha256": "a001f6a0d6596e46b19bace716a4518093b958aa825d0fb27c2137aac3d14dd4",
+      "sha256": "dc42f96c16ec33db4cfd308dde9c91039bf8c60a5b5395508c64a4e157a1aa9e",
       "reason": "Public Solana mint addresses assigned to token-named fixture variables.",
       "fingerprints": [
         "Packages/OathDatabase/Tests/OathDatabaseTests/SolanaLedgerTests.swift:generic-api-key:12",

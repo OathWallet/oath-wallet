@@ -46,19 +46,14 @@ public actor NearClient {
             try Task.checkCancellation()
             try await permits.acquire()
             let response:AnkrHTTPResponse
-            do { response = try await transport.sendResponse(request) }
+            do { response = try await transport.sendResponsePreservingTransportError(request) }
             catch {
                 await permits.release()
                 if Task.isCancelled || error is CancellationError || (error as? URLError)?.code == .cancelled { throw CancellationError() }
                 OathDiagnostics.record(error, operation:"near_read", context:[
                     "chain":"near", "stage":indexStage ?? "rpc", "host":request.url?.host ?? "",
                     "attempt":String(attempt)])
-                let transient:Bool
-                switch error {
-                case AnkrError.transport: transient = true
-                case let error as URLError: transient = [.networkConnectionLost,.timedOut,.cannotConnectToHost].contains(error.code)
-                default: transient = false
-                }
+                let transient = AnkrReadRetry.transientTransport(error)
                 if indexStage != nil, attempt == 1, transient {
                     attempt += 1
                     try await Task.sleep(for:.milliseconds(500))
@@ -113,15 +108,38 @@ public actor NearClient {
         return max(delay,fallback)
     }
     private func rpc(_ method:String, params:NearJSON) async throws -> NearJSON {
+        try await OathDiagnostics.withChain("near") {
+            try await rpcWithRecovery(method, params:params)
+        }
+    }
+    private func rpcWithRecovery(_ method:String, params:NearJSON) async throws -> NearJSON {
         let body:NearJSON = .object(["jsonrpc":.string("2.0"),"id":.number("1"),"method":.string(method),"params":params])
         let data:Data
+        var usedFallback = false
         do { data = try await request(endpoint,body:body) }
         catch { OathDiagnostics.record(error);
             let retry:Bool
             switch error { case NearError.http(let n): retry = n == 408 || n == 429 || n >= 500; case NearError.transport: retry = true; default: retry = false }
             guard retry, let fallback else { throw error }
+            usedFallback = true
             data = try await request(fallback,body:body)
         }
+        do { return try decodeRPC(data, params:params) }
+        catch {
+            // HTTP 200 can still contain a node failure. Recover only a pinned
+            // read, once, with exactly the same request. query() validates the
+            // returned block hash and height before any balance is accepted.
+            // Missing accounts/contracts and invalid requests keep their typed
+            // outcomes; never turn an arbitrary -32000 into a zero balance.
+            guard !usedFallback, let fallback, method == "query", params["block_id"].string != nil,
+                  error as? NearError == .rpc(-32000) || error as? NearError == .rpc(-32603) else { throw error }
+            OathDiagnostics.record(error, operation:"near_rpc_recovery", context:[
+                "chain":"near", "stage":"pinned_query", "method":method,
+                "host":endpoint.host ?? "", "rpc_code":error as? NearError == .rpc(-32000) ? "-32000":"-32603"])
+            return try decodeRPC(await request(fallback,body:body), params:params)
+        }
+    }
+    private func decodeRPC(_ data:Data, params:NearJSON) throws -> NearJSON {
         let json = try JSONDecoder().decode(NearJSON.self,from:data)
         guard json["id"].integer == 1, json["jsonrpc"].string == "2.0" else { throw NearError.malformed }
         if !json["error"].isNull {
@@ -254,7 +272,16 @@ public actor NearClient {
         let state:NearJSON, exists:Bool
         do { state = try await account(owner:owner,block:block); exists = true }
         catch NearError.accountMissing { state = .object(["amount":.string("0"),"locked":.string("0"),"storage_usage":.number("0")]); exists = false }
-        let discovery = try await discovered
+        let discovery: NearJSON
+        let discoveryComplete: Bool
+        do { discovery = try await discovered; discoveryComplete = true }
+        catch is CancellationError { throw CancellationError() }
+        catch {
+            try Task.checkCancellation()
+            OathDiagnostics.record(error, component: "near", operation: "inventory", context: ["stage": "discovery"])
+            discovery = .object(["tokens": .array([])])
+            discoveryComplete = false
+        }
         var indexed:[String:String] = [:], refs:Set<String> = []
         for item in discovery["tokens"].array! {
             guard let s = item["contract_id"].string else { throw NearError.malformed }
@@ -290,7 +317,7 @@ public actor NearClient {
             for _ in 0..<6 { enqueue() }; for await value in group { holdings.append(value); enqueue() }
         }
         try Task.checkCancellation()
-        return try .init(owner:owner,block:block,exists:exists,liquid:liquid,locked:locked,storageBytes:NearIdentity.height(state["storage_usage"]),holdings:holdings.sorted{$0.reference<$1.reference},observedAt:.now,raw:JSONEncoder().encode(NearJSON.object(["state":state,"discovery":discovery])))
+        return try .init(discoveryComplete:discoveryComplete,owner:owner,block:block,exists:exists,liquid:liquid,locked:locked,storageBytes:NearIdentity.height(state["storage_usage"]),holdings:holdings.sorted{$0.reference<$1.reference},observedAt:.now,raw:JSONEncoder().encode(NearJSON.object(["state":state,"discovery":discovery])))
     }
     public func history(owner:String, stream:String, before:String? = nil, limit:Int = 50) async throws -> NearHistoryPage {
         let owner = try NearIdentity.address(owner)

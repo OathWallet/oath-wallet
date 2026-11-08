@@ -41,6 +41,8 @@ import OathDiagnostics
         await sink.configure()
         for status in [429, 403] {
             let (db, folder) = try await fixture()
+            let publication = RefreshPublicationProbe(db, wallet: "w1")
+            defer { publication.stop() }
             defer { try? FileManager.default.removeItem(at: folder) }
             let ticket = try await db.beginAptosSync(accountID: "a1")
             try await db.commitAptosInventory(inventory(), ticket: ticket, catalog: catalog)
@@ -73,6 +75,9 @@ import OathDiagnostics
                 let reports = events.map { [$0.sourceFile, $0.operation, $0.error.domain, String($0.error.code), $0.error.message, $0.context["chain"] ?? "none"].joined(separator: "|") }
                 XCTAssertTrue(events.isEmpty, "Rate-limited inventory emitted: \(reports)")
             }
+            else { XCTAssertTrue(events.contains { $0.error.message == "http(403)" }, "Access denial must remain visible") }
+            try await publication.expect(amount: "10", network: "aptos")
+            try await publication.expect(ref, amount: "12345678901234567890", network: "aptos")
             await sync.cancel()
         }
     }
@@ -267,6 +272,8 @@ private actor AptosOrderingTransport:AnkrTransport {
     var processorReads = 0, inventoryPages = 0
     func setProcessorVersions(_ versions: [Int]) { processorVersions = versions }
     let tokenFailure: Int?
+    var includesToken = false
+    func includeToken() { includesToken = true }
     var sawHistory=false,balanceWasCommitted=false,historyLimit:UInt64=0
     init(database:OathDatabase, indexFailure: Int? = nil, nodeVersion: Int = 1000, tokenFailure: Int? = nil){self.database=database;self.indexFailure=indexFailure;self.nodeVersion=nodeVersion;self.tokenFailure=tokenFailure}
     func result()->(Bool,Bool,UInt64){(sawHistory,balanceWasCommitted,historyLimit)}
@@ -290,7 +297,7 @@ private actor AptosOrderingTransport:AnkrTransport {
             } else {
                 inventoryPages += 1
                 let row: AptosJSON = .object(["storage_id": .string(try AptosIdentity.address("0xffff")), "owner_address": .string(try AptosIdentity.address("0x1234")), "asset_type": .string(try AptosIdentity.reference("0xabcd")), "is_primary": .bool(true), "metadata": .object(["name": .string("Example"), "symbol": .string("EX"), "decimals": .number("6")])])
-                value = .object(["data":.object(["current_fungible_asset_balances":.array(tokenFailure == nil ? [] : [row])])])
+                value = .object(["data":.object(["current_fungible_asset_balances":.array(tokenFailure == nil && !includesToken ? [] : [row])])])
             }
         } else if request.url!.path.hasSuffix("view") {
             if body["function"].string == "0x1::primary_fungible_store::balance", let tokenFailure { return (Data(), tokenFailure) }
@@ -301,5 +308,24 @@ private actor AptosOrderingTransport:AnkrTransport {
             value = .object(["data":.object(["base":.string("APT"),"currency":.string("USD"),"amount":.string("1")])])
         } else {value = .object(["chain_id":.number("1"),"ledger_version":.string(String(nodeVersion))])}
         return (try JSONEncoder().encode(value),200)
+    }
+}
+
+extension AptosLedgerTests {
+    func testChangedNativeAndTokenPublishWithoutReopening() async throws {
+        let (db, folder) = try await fixture()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let ticket = try await db.beginAptosSync(accountID: "a1")
+        try await db.commitAptosInventory(inventory(), ticket: ticket, catalog: catalog)
+        try await db.saveMarketCache(.init(key: "aptos.catalog", source: "fixture", payload: JSONEncoder().encode(catalog), fetchedAt: Date().timeIntervalSince1970))
+        let feed = AptosOrderingTransport(database: db)
+        await feed.includeToken()
+        let service = AptosSynchronizer(database: db, client: AptosClient(testTransport: feed), markets: AptosMarkets(transport: feed))
+        let publication = RefreshPublicationProbe(db, wallet: "w1")
+        defer { publication.stop() }
+        try await service.refresh(accountID: "a1")
+        try await publication.expect(amount: "10", network: "aptos")
+        try await publication.expect(ref, amount: "10", network: "aptos")
+        await service.cancel()
     }
 }

@@ -1,4 +1,5 @@
 import Foundation
+import LocalAuthentication
 import OathDatabase
 import OathDiagnostics
 import Security
@@ -83,6 +84,38 @@ private actor AuthenticationReports: DiagnosticTransport {
         try await vault.disableBiometrics()
         try await exercise(nil)
         check(await biometrics.reads == 0, "Passcode-only flows never invoke the biometric store")
+        let wrongPIN: [UInt8] = [4, 8, 2, 9, 6, 1]
+        access.begin(reason: "Synthetic Security access")
+        try await wait { !access.busy }
+        access.submit(wrongPIN)
+        try await wait { !access.busy }
+        check(access.phase == .passcode && !access.isAuthorized && access.notice == .unlockIncorrect,
+              "Rejected PIN cannot authorize Security")
+        access.submit(pin)
+        try await wait { !access.busy }
+        check(access.isAuthorized, "Correct PIN still authorizes Security after rejection")
+        access.cancel()
+
+        privateKey.select(account, reason: "Synthetic key access")
+        try await wait { !privateKey.busy }
+        privateKey.submit(wrongPIN)
+        try await wait { !privateKey.busy }
+        check(privateKey.phase == .passcode && privateKey.key == nil && privateKey.notice == .unlockIncorrect,
+              "Rejected PIN keeps the private key hidden")
+        privateKey.submit(pin)
+        try await wait { !privateKey.busy }
+        check(privateKey.phase == .warning && privateKey.key == nil,
+              "Correct PIN still requires the private-key warning acknowledgement")
+        privateKey.returnToChains()
+
+        recovery.acknowledge(reason: "Synthetic recovery access")
+        try await wait { !recovery.busy }
+        recovery.submit(wrongPIN)
+        try await wait { !recovery.busy }
+        check(recovery.phase == .passcode && recovery.words.isEmpty && recovery.notice == .unlockIncorrect,
+              "Rejected PIN keeps recovery material hidden")
+        recovery.returnToWarning()
+        try await vault.authenticateSecurityAccess(digits: pin, reason: "")
         await biometrics.allowEnrollment()
         _ = try await vault.enableBiometrics(strings: .current)
         for outcome in [OathBiometricCredentialError.missing, .cancelled, .unavailable, .keychain(errSecAuthFailed)] {
@@ -108,14 +141,41 @@ private actor AuthenticationReports: DiagnosticTransport {
         await OathDiagnostics.$operationID.withValue(UUID()) {
             await OathSendDiagnostics.shared.record(stage: "preflight", error: OathBiometricCredentialError.missing)
         }
+        let enrollmentCases: [(LAError.Code, OathBiometricSetupError)] = [
+            (.biometryNotAvailable, .unavailable),
+            (.invalidContext, .interrupted),
+            (.notInteractive, .interrupted),
+            (.authenticationFailed, .notRecognized)
+        ]
+        for (code, reason) in enrollmentCases {
+            let error = LAError(code)
+            let result = OathBiometricCredentialStore.enrollmentFailure(error, kind: .faceID)
+            check(result == .failed(kind: .faceID, reason: reason),
+                  "Enrollment failure retains its existing user-facing result")
+        }
+        // The same OS error outside optional enrollment must remain observable.
+        OathDiagnostics.record(LAError(.biometryNotAvailable), component: "authentication",
+                               operation: "required_authentication_negative_control")
         for _ in 0..<100 {
             await OathDiagnostics.flush()
-            if await reports.events.count >= 13 { break }
+            if await reports.events.count >= 17 { break }
             try await Task.sleep(for: .milliseconds(10))
         }
         try await Task.sleep(for: .milliseconds(200))
         await OathDiagnostics.flush()
         let events = await reports.events
+        let enrollmentReports = events.filter { $0.operation == "enable_biometrics" }
+        check(enrollmentReports.count == 3, "Optional enrollment excludes only unavailable biometry")
+        check(Set(enrollmentReports.compactMap { $0.error.code }) == Set([
+            LAError.Code.invalidContext.rawValue, LAError.Code.notInteractive.rawValue,
+            LAError.Code.authenticationFailed.rawValue
+        ]), "Unexpected enrollment errors retain their original OS codes")
+        check(enrollmentReports.allSatisfy { $0.operationID != nil && $0.privacyFiltered },
+              "Enrollment errors retain correlation and privacy filtering")
+        check(events.filter { $0.operation == "required_authentication_negative_control" }.count == 1,
+              "Unavailable biometry is not suppressed outside optional enrollment")
+        check(events.filter { $0.error.message == "wrongPasscode" }.isEmpty,
+              "User-entered incorrect PINs do not become app failure reports")
         let expected = events.filter { $0.operation != "preflight" && ["missing", "cancelled", "unavailable", "keychain(\(errSecAuthFailed))"].contains($0.error.message) }
         check(expected.isEmpty, "Expected biometric/PIN fallback must not create app errors")
         let sendFailures = events.filter { $0.component == "send" && $0.operation == "authenticate" }

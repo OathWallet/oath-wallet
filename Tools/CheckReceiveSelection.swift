@@ -45,6 +45,7 @@ import Vision
     }
 
     static func main() async throws {
+        try checkChainScope()
         try checkSearchRanking()
         if CommandLine.arguments.contains("--search-ranking-only") { return }
         try await checkFeeFunding()
@@ -78,7 +79,7 @@ import Vision
         check(OathReceiveAsset.directAddress(in: []) == nil, "Empty wallets retain the picker")
         check(OathReceiveAsset.directAddress(in: [first, second]) == nil, "Two accounts on one chain are still distinct choices")
         check(OathReceiveAsset.directAddress(in: [first, solana]) == nil, "Multiple networks retain the picker")
-        for chain in OathImportChain.allCases {
+        for chain in OathImportChain.enabledCases {
             let only = OathWalletAddress(chain: chain, address: "public-fixture", path: "imported", accountID: chain.id)
             let nativeOnly = [OathImportChain.bitcoin, .bitcoincash, .dogecoin, .litecoin].contains(chain)
             check(OathReceiveAsset.directAddress(in: [only]) == (nativeOnly ? only : nil),
@@ -98,7 +99,7 @@ import Vision
         check(OathReceiveAsset.available(holdings: holdings, addresses: [], query: "").isEmpty, "No fallback to another wallet")
         check(OathReceiveAsset.available(holdings: holdings, addresses: accounts + [first], query: "").count == rows.count, "Repeated account metadata never duplicates assets or crashes")
 
-        for chain in OathImportChain.allCases {
+        for chain in OathImportChain.enabledCases {
             // Distinct address vs contract ensures QR never encodes a token's contract.
             let owner = "public-receive-fixture-" + chain.id
             let account = OathWalletAddress(chain: chain, address: owner, path: "fixture-path", accountID: chain.id)
@@ -150,7 +151,27 @@ import Vision
                 }
             }
         }
-        print("Passed \(checks) receive-selection checks, \(OathImportChain.allCases.count) network QR round-trips and \(brandedDecodes) branded QR decodes at 1x/2x/3x. Host only.")
+        print("Passed \(checks) receive-selection checks, \(OathImportChain.enabledCases.count) network QR round-trips and \(brandedDecodes) branded QR decodes at 1x/2x/3x. Host only.")
+    }
+
+    static func checkChainScope() throws {
+        let chains = OathImportChain.enabledCases
+        let addresses = chains.map { OathWalletAddress(chain: $0, address: "fixture", path: "fixture", accountID: $0.id) }
+        let holdings = try chains.flatMap { chain in
+            try ["native", "fixture-token"].map {
+                try holding(account: chain.id, network: chain.id, address: "fixture", reference: $0)
+            }
+        }
+        precondition(OathReceiveAsset.available(holdings: holdings, addresses: addresses, query: "").count == chains.count * 2)
+        for chain in chains {
+            for query in ["", "USDC", "fixture-token"] {
+                let result = OathReceiveAsset.available(holdings: holdings, addresses: addresses, query: query, scope: .init(chain: chain))
+                precondition(!result.isEmpty && result.allSatisfy { $0.holding.networkID == chain.id })
+            }
+        }
+        precondition(OathReceiveAsset.available(holdings: holdings, addresses: addresses, query: "", scope: .init(chain: .cronos)).isEmpty)
+        precondition(OathAssetSearchScope.all.networks(permitted: []).isEmpty)
+        print("PASS: Receive chain filtering covers all \(chains.count) enabled chains, native assets and tokens")
     }
 
     static func checkSearchRanking() throws {
@@ -158,7 +179,7 @@ import Vision
         func check(_ value: @autoclosure () -> Bool, _ message: String) {
             checks += 1; precondition(value(), message)
         }
-        for chain in OathImportChain.allCases {
+        for chain in OathImportChain.enabledCases {
             let account = OathWalletAddress(chain: chain, address: "public-first", path: "first-path", accountID: "first")
             let second = OathWalletAddress(chain: chain, address: "public-second", path: "second-path",
                                           accountIndex: 1, accountID: "second")
@@ -192,7 +213,7 @@ import Vision
                       "Clearing search restores the portfolio order: \(chain.id)")
             }
         }
-        print("Passed \(checks) Receive search-ranking checks across \(OathImportChain.allCases.count) networks. Host only.")
+        print("Passed \(checks) Receive search-ranking checks across \(OathImportChain.enabledCases.count) networks. Host only.")
     }
 
     static func checkFeeFunding() async throws {

@@ -101,7 +101,7 @@ public struct SuiToken: Codable, Sendable, Equatable {
     static func decode(_ value: SuiJSON, reference: String) throws -> Self {
         if reference == "native" { return .native }
         guard let d = value["decimals"].integer, d <= 255, let name = value["name"].string, let symbol = value["symbol"].string else { throw SuiError.malformed }
-        return .init(reference:reference,name:(try? TronIdentity.clean(name)) ?? "Token",symbol:(try? TronIdentity.clean(symbol,limit:64)) ?? "TOKEN",decimals:Int(d),logo:ArtworkSource.normalized(value["iconUrl"].string),description:value["description"].string)
+        return .init(reference:reference,name:TokenMetadataName.name(name, symbol: symbol, reference: reference),symbol:(try? TronIdentity.clean(symbol,limit:64)) ?? "TOKEN",decimals:Int(d),logo:ArtworkSource.normalized(value["iconUrl"].string),description:value["description"].string)
     }
 }
 public struct SuiHolding: Codable, Sendable, Equatable {

@@ -109,20 +109,20 @@ final class OathWalletConnectVisualUITests: XCTestCase {
         for state in ["send", "approve", "swap", "nft", "contract", "pending", "success", "transactionFailed", "gas", "simulation", "submitting"] {
             open(state, app); capture("state-" + state, app)
             if ["send", "approve", "swap", "nft", "contract"].contains(state) {
-                for detail in ["recipient", "fees", "data"] {
+                for detail in (state == "approve" ? ["spender", "fees"] : ["recipient", "fees", "data"]) {
                     let row = app.buttons["walletconnect.transaction." + detail]
                     reveal(row, app: app, footer: "wc.fixture.sign"); row.tap(); capture(state + "-" + detail, app); back(app)
                 }
                 if state == "approve" {
                     app.scrollViews.firstMatch.swipeDown()
-                    let row = app.buttons["walletconnect.transaction.limit"]
+                    let row = app.links["Unlimited"]
                     reveal(row, app: app, footer: "wc.fixture.sign"); row.tap(); capture("approval-limit", app)
                     app.switches["walletconnect.limit.unlimited"].tap()
                     let input = app.textFields["walletconnect.limit.input"]
                     input.tap(); input.typeText(XCUIKeyboardKey.delete.rawValue + "1.25")
                     let save = app.buttons["walletconnect.limit.save"]
                     XCTAssertTrue(save.isEnabled); save.tap()
-                    XCTAssertTrue(app.staticTexts["1.25"].waitForExistence(timeout: 5))
+                    XCTAssertTrue(app.links["1.25"].waitForExistence(timeout: 5))
                     capture("approval-edited-limit", app)
                 }
                 if state == "swap" {

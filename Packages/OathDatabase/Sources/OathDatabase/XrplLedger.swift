@@ -17,7 +17,7 @@ public struct XrplHistoryCursor: Codable, Sendable, Equatable, FetchableRecord, 
 }
 extension OathDatabase {
     public func beginXrplSync(accountID:String) async throws -> XrplSyncTicket {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard let account = try AccountRecord.fetchOne(db,key:accountID), account.networkID == "xrpl" else { throw StoreError.missingRecord }
             _ = try XrplIdentity.address(account.address)
             let run = UUID().uuidString
@@ -38,7 +38,7 @@ extension OathDatabase {
               try String.fetchOne(db,sql:"SELECT runID FROM xrplSync WHERE accountID=?",arguments:[ticket.account.id]) == ticket.runID else { throw StoreError.staleSync }
     }
     public func failXrplSync(_ ticket:XrplSyncTicket, history:Bool, code:String) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateXrpl(ticket,db:db)
             try db.execute(sql:"UPDATE xrplSync SET \(history ? "historyFailure":"failure")=? WHERE accountID=?",arguments:[code,ticket.account.id])
         }
@@ -78,7 +78,7 @@ extension OathDatabase {
         guard value.observedAt.timeIntervalSince1970.isFinite, value.ledger.height >= 0, value.owner == (try XrplIdentity.address(ticket.account.address)),
               Set(value.holdings.map(\.reference)).count == value.holdings.count,
               value.holdings.filter({$0.reference == "native"}).count == 1 else { throw XrplError.wrongOwner }
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateXrpl(ticket,db:db)
             let time = value.observedAt.timeIntervalSince1970
             let previous = try Double.fetchOne(db,sql:"SELECT observedAt FROM xrplSync WHERE accountID=?",arguments:[ticket.account.id]) ?? 0
@@ -94,7 +94,7 @@ extension OathDatabase {
                 let asset = try token.map{try Self.xrplAsset($0,db:db)}
                 try db.execute(sql:"""
                     INSERT INTO xrplHoldings(accountID,reference,assetID,amountAtomic,signedAmount,observedAt,checkpoint,verified) VALUES(?,?,?,?,?,?,?,?)
-                    ON CONFLICT(accountID,reference) DO UPDATE SET assetID=excluded.assetID,amountAtomic=excluded.amountAtomic,signedAmount=excluded.signedAmount,observedAt=excluded.observedAt,checkpoint=excluded.checkpoint,verified=excluded.verified
+                    ON CONFLICT(accountID,reference) DO UPDATE SET assetID=excluded.assetID,amountAtomic=excluded.amountAtomic,signedAmount=excluded.signedAmount,observedAt=excluded.observedAt,checkpoint=excluded.checkpoint,verified=\(catalog.ids.isEmpty ? "MAX(xrplHoldings.verified,excluded.verified)" : "excluded.verified")
                     """,arguments:[ticket.account.id,holding.reference,asset?.id,holding.amount.hasPrefix("-") ? "0":holding.amount,holding.amount,time,value.ledger.height,catalog.contains(holding.reference)])
             }
             try db.execute(sql:"UPDATE xrplSync SET inventory=?,observedAt=?,checkpoint=?,failure=NULL WHERE accountID=?",arguments:[try JSONEncoder().encode(value),time,value.ledger.height,ticket.account.id])
@@ -115,7 +115,7 @@ extension OathDatabase {
     /// Cursors can expire on a provider. Restart at the last checkpoint with
     /// overlap, so transactions sharing its boundary are never skipped.
     public func restartXrplHistory(_ cursor:XrplHistoryCursor, ticket:XrplSyncTicket) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateXrpl(ticket,db:db)
             guard cursor.accountID == ticket.account.id,
                   try XrplHistoryCursor.fetchOne(db,key:["accountID":cursor.accountID,"lane":cursor.lane]) == cursor, cursor.beforeCursor != nil else { throw StoreError.staleSync }
@@ -126,7 +126,7 @@ extension OathDatabase {
     /// ANKR's rolling window can pass an offline cursor. Finish expired
     /// backfill or restart the recent lane; never erase saved transactions.
     public func expireXrplHistoryWindow(_ cursor:XrplHistoryCursor, ticket:XrplSyncTicket) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateXrpl(ticket,db:db)
             guard cursor.accountID == ticket.account.id,
                   try XrplHistoryCursor.fetchOne(db,key:["accountID":cursor.accountID,"lane":cursor.lane]) == cursor,
@@ -157,7 +157,7 @@ extension OathDatabase {
     public func commitXrplPage(_ page:XrplHistoryPage, cursor:XrplHistoryCursor, ticket:XrplSyncTicket) async throws {
         guard cursor.accountID == ticket.account.id, (cursor.upperLedger == nil || cursor.upperLedger == page.upperLedger), page.transactions.allSatisfy({$0.checkpoint <= page.upperLedger}), page.next == nil || (page.next != cursor.beforeCursor && !page.transactions.isEmpty),
               page.head == page.transactions.first?.hash, Set(page.transactions.map(\.hash)).count == page.transactions.count else { throw XrplError.paginationLoop }
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateXrpl(ticket,db:db)
             guard try XrplHistoryCursor.fetchOne(db,key:["accountID":cursor.accountID,"lane":cursor.lane]) == cursor else { throw StoreError.staleSync }
             for tx in page.transactions { try Self.projectXrpl(tx,ticket:ticket,db:db) }

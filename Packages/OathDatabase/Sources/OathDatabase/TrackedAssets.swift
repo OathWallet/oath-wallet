@@ -11,7 +11,7 @@ extension OathDatabase {
               !input.name.isEmpty, input.name.utf8.count <= 512,
               !input.symbol.isEmpty, input.symbol.utf8.count <= 512,
               !input.reference.isEmpty, input.reference.count <= 4096 else { throw StoreError.invalidValue("token") }
-        return try await pool.write { db in
+        return try await storageWrite { db in
             guard let network = try NetworkRecord.fetchOne(db, key: input.networkID), network.enabled,
                   let wallet = try WalletRecord.fetchOne(db, key: walletID), wallet.deletedAt == nil else { throw StoreError.missingRecord }
             let accounts = try AccountRecord.fetchAll(db, sql: "SELECT * FROM walletAccounts WHERE walletID=? AND networkID=?",

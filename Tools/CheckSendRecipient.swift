@@ -31,7 +31,7 @@ import OathDatabase
         check(Set(OathTrackedSendChain.allCases.map(\.rawValue)) == Set(addresses.keys.map(\.rawValue)), "All send chains audited")
         typealias Rule = OathSendRecipientRules
         let allowed: Set<OathImportChain> = [.bitcoin, .bitcoincash, .litecoin, .dogecoin, .sui, .polkadot]
-        for chain in OathImportChain.allCases {
+        for chain in OathImportChain.enabledCases {
             let owner = addresses[chain]!
             check(OathScanAddress.decode(owner, chain: chain) != nil, "Valid vector: " + chain.id)
             for reference in ["native", "fixture-token"] {
@@ -101,20 +101,20 @@ import OathDatabase
             (.dogecoin, try DogecoinKeys.singleKey(bytes: secondKey, compressed: true))] {
             otherAddresses[chain] = try BitcoinKeys.addresses(branch: descriptor.branches[0], range: 0..<1)[0].address
         }
-        for chain in OathImportChain.allCases where chain.isEVM { otherAddresses[chain] = "0x3333333333333333333333333333333333333333" }
+        for chain in OathImportChain.enabledCases where chain.isEVM { otherAddresses[chain] = "0x3333333333333333333333333333333333333333" }
 
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("recipient-" + UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: folder) }
         let db = try await OathDatabase.open(at: folder.appendingPathComponent("wallet.sqlite"))
         await OathDataEnvironment.shared.set(db)
-        for chain in OathImportChain.allCases {
+        for chain in OathImportChain.enabledCases {
             let decimals = chain == .aptos ? 8 : 6
             try await db.seed(networks: [.init(id: chain.id, name: chain.name, family: "account", symbol: "TEST", decimals: decimals,
                 derivationPath: "test", logo: "test", sortOrder: 0)], assets: [.init(id: chain.id + ":native", networkID: chain.id,
                 reference: "native", name: "Fixture", symbol: "TEST", decimals: decimals)])
         }
         for (wallet, tronAddress) in [("one", tron), ("two", otherTron)] {
-            let accounts = OathImportChain.allCases.map { chain in AccountRecord(id: wallet + chain.id, walletID: wallet,
+            let accounts = OathImportChain.enabledCases.map { chain in AccountRecord(id: wallet + chain.id, walletID: wallet,
                 networkID: chain.id, address: chain == .tron ? tronAddress : addresses[chain]!, derivationPath: "test") }
             try await db.importWalletIfNeeded(.init(id: wallet, name: "Fixture", kind: "hd", vaultReference: "test-" + wallet, createdAt: 1), accounts: accounts)
         }
@@ -152,7 +152,7 @@ import OathDatabase
         try await db.commitAptosInventory(aptosInventory, ticket: aptosTicket, catalog: aptosCatalog)
         let defaults = UserDefaults(suiteName: "recipient-tests-" + UUID().uuidString)!
         checks += try await checkRemovedSender(db, address: evm, defaults: defaults)
-        for chain in OathImportChain.allCases {
+        for chain in OathImportChain.enabledCases {
             let multisigKind = chain.isEVM ? "evmMultisig" : chain == .bitcoincash ? "bitcoinCashMultisig" : chain.id + "Multisig"
             for kind in chain == .polkadot ? ["privateKey"] : ["privateKey", multisigKind] {
                 let id = "direct-" + chain.id + kind
@@ -168,13 +168,19 @@ import OathDatabase
                 direct.path = []
                 direct.prepareInitialSelection(from: snapshot)
                 check(direct.path.isEmpty, "Back navigation is not redirected by another snapshot")
+                direct.searchScope = .init(chain: chain)
+                check(direct.holdings.contains { $0.networkID == chain.id }, "Selected chain remains available: " + chain.id)
+                direct.searchScope = .init(chain: chain == .ethereum ? .bitcoin : .ethereum)
+                check(direct.holdings.isEmpty, "A different chain cannot expose the original asset: " + chain.id)
+                direct.searchScope = .all
+                check(direct.holdings.contains { $0.networkID == chain.id }, "All restores the sender's assets: " + chain.id)
             }
         }
         // Actual parser -> asset selection -> recipient/amount model, backed by
         // SQLite for every supported native chain and every token-capable chain.
         let networkIDs = Dictionary(uniqueKeysWithValues: OathTokenNetwork.all.filter { $0.chain.isEVM }.compactMap { row in row.chainID.map { ($0, row.chain) } })
         let paymentParser = OathScanParser(validator: nil, evmNetworks: networkIDs)
-        for chain in OathImportChain.allCases {
+        for chain in OathImportChain.enabledCases {
             let id = "payment-" + chain.id, destination = addresses[chain]!
             try await db.importWalletIfNeeded(.init(id: id, name: "Fixture", kind: "privateKey", vaultReference: id, createdAt: 1),
                 accounts: [.init(id: id, walletID: id, networkID: chain.id, address: destination, derivationPath: "fixture")])
@@ -266,7 +272,7 @@ import OathDatabase
             composer.prepareInitialSelection(from: arcSnapshot)
             check(composer.path.isEmpty, "Portfolio refresh must not redirect back navigation")
         }
-        for chain in OathImportChain.allCases {
+        for chain in OathImportChain.enabledCases {
             guard case .recipient(let payment) = paymentParser.parse(otherAddresses[chain]! + "?amount=1.125") else { preconditionFailure("Bare payment") }
             let snapshot = try await db.snapshot(walletID: "payment-" + chain.id, currency: "USD")
             let composer = OathSendModel(walletID: snapshot.wallet.id, scannedRecipient: payment, preferences: defaults)
@@ -604,7 +610,7 @@ import OathDatabase
         check(model.address == "0x3333333333333333333333333333333333333333" && model.path == [.recipient],
               "Background tracking preserves recipient entry and does not navigate again")
         check(model.amount == "1.2345", "Deferred scanned amounts use the resolved six-decimal scale")
-        for chain in OathImportChain.allCases {
+        for chain in OathImportChain.enabledCases {
             let holding = model.holdings.first { $0.networkID == chain.id }!
             model.choose(holding)
             model.address = addresses[chain]!
@@ -786,7 +792,28 @@ import OathDatabase
         check(model.validateRecipient() && model.selfTransferRestriction == nil, "Switching sender does not keep stale self warning")
         model.address = otherTron
         check(!model.validateRecipient() && model.selfTransferRestriction == .network, "Active account is used after wallet switch")
-        print("Passed \(checks) recipient checks across \(OathImportChain.allCases.count) networks. Host only; no simulator, device or network.")
+        let memoSnapshot = try await db.snapshot(walletID: "one", currency: "USD")
+        for (chain, value, type) in [(OathImportChain.xrpl, "0", nil), (.xrpl, "4294967295", nil),
+            (.stellar, "Invoice أحمد", "text"), (.stellar, "18446744073709551615", "id"),
+            (.stellar, String(repeating: "ab", count: 32), "hash"), (.stellar, String(repeating: "cd", count: 32), "returnHash")] as [(OathImportChain, String, String?)] {
+            let saved = try await db.saveContact(id: UUID().uuidString, name: "Memo fixture", addresses: [
+                .init(networkID: chain.id, address: otherAddresses[chain]!, memo: value, memoType: type)])
+            let entries = try await db.sendRecipients(networkID: chain.id)
+            let entry = entries.first { $0.contactID == saved.contact.id }!
+            let native = memoSnapshot.holdings.first { $0.networkID == chain.id && $0.reference == "native" }!
+            let composer = OathSendModel(walletID: "one", preferences: defaults)
+            composer.choose(native, from: memoSnapshot); composer.setRecipient(entry)
+            check(composer.memo == value && composer.stellarMemoType.rawValue == (type ?? "text") && composer.validateRecipient(), "Saved contact routing reaches the send composer intact")
+            check(composer.recipientDetails.first?.value == value, "Saved routing is visible in the amount/review details")
+            let direct = OathSendModel(walletID: "one", recipient: SendRecipient(address: saved.addresses[0], contactName: saved.contact.name), preferences: defaults)
+            direct.choose(native, from: memoSnapshot)
+            check(direct.path == [.amount] && direct.memo == value && direct.stellarMemoType == composer.stellarMemoType, "Address-book Send preserves routing when it advances to Amount")
+            let blank = try await db.saveContact(id: UUID().uuidString, name: "No memo", addresses: [.init(networkID: chain.id, address: otherAddresses[chain]!)])
+            composer.setRecipient(SendRecipient(address: blank.addresses[0], contactName: blank.contact.name))
+            check(composer.memo.isEmpty && composer.stellarMemoType == .text, "Choosing an untagged contact clears the previous contact's routing")
+        }
+        checks += try await SharedPaymentLinkChecks.run(addresses: addresses, recipients: otherAddresses, defaults: defaults)
+        print("Passed \(checks) recipient checks across \(OathImportChain.enabledCases.count) networks. Host only; no simulator, device or network.")
     }
     @MainActor private static func checkRemovedSender(_ database: OathDatabase, address: String, defaults: UserDefaults) async throws -> Int {
         let wallet = WalletRecord(id: "removed-sender", name: "Fixture", kind: "hd", vaultReference: "removed-fixture", createdAt: 1)

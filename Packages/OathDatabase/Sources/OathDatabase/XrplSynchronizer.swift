@@ -40,9 +40,13 @@ public actor XrplSynchronizer {
             do {
                 async let inventory = client.inventory(owner:account.address)
                 async let native = await OathDiagnostics.attempt("native_price") { try await markets.nativePrice() }
-                let catalog = await self.catalog()
+                async let freshCatalog = self.catalog()
+                let cachedCatalog: XrplCatalog = await database.refreshCatalog(key: "xrpl.catalog", fallback: .empty)
                 let value = try await inventory; try Task.checkCancellation()
-                try await database.commitXrplInventory(value,ticket:ticket,catalog:catalog)
+                try await database.commitXrplInventory(value,ticket:ticket,catalog:cachedCatalog)
+                let catalog = await freshCatalog
+                try Task.checkCancellation()
+                try await database.applyRefreshCatalog(account: ticket.account, runID: ticket.runID) { catalog.contains($0.reference) }
                 let quote = await native
                 if let quote { try Task.checkCancellation(); try await Self.save([quote],database:database) }
                 let refs = value.holdings.filter{$0.amount != "0" && !$0.amount.hasPrefix("-") && ($0.reference != "native" || quote == nil)}.map(\.reference).sorted()

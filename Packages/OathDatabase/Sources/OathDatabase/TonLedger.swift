@@ -15,7 +15,7 @@ public struct TonHistoryCursor: Codable, Sendable, Equatable, FetchableRecord, P
 }
 extension OathDatabase {
     public func beginTonSync(accountID: String) async throws -> TonSyncTicket {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard let account = try AccountRecord.fetchOne(db,key:accountID), account.networkID == "ton" else { throw StoreError.missingRecord }
             _ = try TonIdentity.raw(account.address)
             let run = UUID().uuidString
@@ -37,7 +37,7 @@ extension OathDatabase {
               try String.fetchOne(db,sql:"SELECT runID FROM tonSync WHERE accountID=?",arguments:[ticket.account.id]) == ticket.runID else { throw StoreError.staleSync }
     }
     public func failTonSync(_ ticket: TonSyncTicket, history: Bool, code: String) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateTon(ticket,db:db)
             try db.execute(sql:"UPDATE tonSync SET \(history ? "historyFailure" : "failure")=? WHERE accountID=?",arguments:[code,ticket.account.id])
         }
@@ -67,7 +67,7 @@ extension OathDatabase {
     public func commitTonInventory(_ value: TonInventory, ticket: TonSyncTicket) async throws {
         guard value.owner == (try TonIdentity.raw(ticket.account.address)), Set(value.holdings.map{$0.token.reference}).count == value.holdings.count,
               value.holdings.filter({$0.token.reference == "native"}).count == 1 else { throw TonError.wrongOwner }
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateTon(ticket,db:db)
             let time = value.observedAt.timeIntervalSince1970
             let previous = try Double.fetchOne(db,sql:"SELECT observedAt FROM tonSync WHERE accountID=?",arguments:[ticket.account.id]) ?? 0
@@ -103,7 +103,7 @@ extension OathDatabase {
         guard page.head == page.transactions.map(\.lt).max(), page.next == nil || !page.transactions.isEmpty,
               page.transactions.allSatisfy({ $0.lt > 0 && (cursor.beforeLT == nil || $0.lt < cursor.beforeLT!) }) else { throw TonError.malformed }
         let owner = try TonIdentity.raw(ticket.account.address)
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateTon(ticket,db:db)
             guard try TonHistoryCursor.fetchOne(db,key:["accountID":cursor.accountID,"stream":cursor.stream,"lane":cursor.lane]) == cursor else { throw StoreError.staleSync }
             let now = Date().timeIntervalSince1970

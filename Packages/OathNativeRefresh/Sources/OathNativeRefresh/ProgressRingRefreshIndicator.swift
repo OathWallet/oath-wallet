@@ -79,6 +79,9 @@ private struct RingPresentation: View {
                     .font(.system(size: 24, weight: .medium))
                     .foregroundStyle(Color(uiColor: state.tint))
                     .frame(width: 28, height: 28)
+                    // Refresh completion follows the app's reading direction;
+                    // SF Symbols does not mirror this non-directional glyph.
+                    .flipsForRightToLeftLayoutDirection(state.cycle.phase != .failed)
                     .accessibilityIdentifier(state.cycle.phase == .failed
                         ? "refresh.ring.failure" : "refresh.ring.success")
                     .transition(.blurReplace)
@@ -91,7 +94,7 @@ private struct RingPresentation: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         // UIHostingConfiguration starts a separate SwiftUI environment. Carry
         // the app's language through for directional content and labels.
-        // Universal marks such as the checkmark keep their native orientation.
+        // The completion symbol above explicitly opts into RTL mirroring.
         .environment(\.layoutDirection, state.layoutDirection)
         .environment(\.locale, state.locale)
         .accessibilityElement(children: .contain)
