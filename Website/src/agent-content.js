@@ -66,9 +66,20 @@ export function searchHelp(query) {
 }
 // Explicit MIME preferences only; ordinary browsers and wildcard Accept keep HTML.
 export function wantsMarkdown(accept='') {
- const entries=accept.toLowerCase().split(',').map(x=>{const [type,...params]=x.trim().split(';');const q=params.find(p=>p.trim().startsWith('q='));return {type,q:q?Number(q.trim().slice(2)):1}});
- const md=entries.find(x=>x.type==='text/markdown');
- return !!md && md.q>0 && md.q>Math.max(0,...entries.filter(x=>x.type==='text/html'||x.type==='application/xhtml+xml').map(x=>x.q));
+ const entries=accept.toLowerCase().split(',').map(x=>{
+  const [type,...params]=x.trim().split(';'),raw=params.map(p=>p.trim()).find(p=>p.startsWith('q='))?.slice(2);
+  return {type:type.trim(),q:raw===undefined?1:/^(?:0(?:\.\d{0,3})?|1(?:\.0{0,3})?)$/.test(raw)?Number(raw):0};
+ });
+ const quality=type=>{
+  for(const range of [type,type.split('/')[0]+'/*','*/*']){
+   const matches=entries.filter(x=>x.type===range);
+   if(matches.length)return Math.max(...matches.map(x=>x.q));
+  }
+  return 0;
+ };
+ // Require explicit Markdown preference; a stronger wildcard HTML preference
+ // must not accidentally switch a browser or search client to another format.
+ return entries.some(x=>x.type==='text/markdown')&&quality('text/markdown')>Math.max(quality('text/html'),quality('application/xhtml+xml'));
 }
 export async function handleAgentContent(request,env) {
  const u=new URL(request.url);
@@ -84,13 +95,18 @@ export async function handleAgentContent(request,env) {
  } else {
   const d=documents.find(d=>d.markdown_url===u.origin+u.pathname || d.url===u.origin+u.pathname);
   if(!d)return null;
-  if(['feature','decision-guide'].includes(d.kind))headers['X-Robots-Tag']='noindex';
   const negotiated=d.url===u.origin+u.pathname;
   if(negotiated&&!wantsMarkdown(request.headers.get('Accept')||''))return null;
-  const asset=d.file?await env.ASSETS.fetch(new Request(main+d.file)):undefined;
-  if(asset){for(const [k,v] of asset.headers)if(!['content-length','content-encoding','etag','last-modified','content-type','link','vary','cache-control','access-control-allow-origin','x-content-type-options'].includes(k))headers[k]=v;}
-  body=await documentText(d,env,asset);headers.Link=`<${d.url}>; rel="canonical"`;
   if(negotiated)headers.Vary='Accept';
+  else if(['feature','decision-guide'].includes(d.kind))headers['X-Robots-Tag']='noindex';
+  try {
+   const asset=d.file?await env.ASSETS.fetch(new Request(main+d.file)):undefined;
+   if(asset){for(const [k,v] of asset.headers)if(!['content-length','content-encoding','etag','last-modified','content-type','link','vary','cache-control','access-control-allow-origin','x-content-type-options','x-robots-tag'].includes(k))headers[k]=v;}
+   body=await documentText(d,env,asset);headers.Link=`<${d.url}>; rel="canonical"`;
+  } catch {
+   // A temporary asset failure is retryable, not an empty published document.
+   return new Response(request.method==='HEAD'?null:'Documentation temporarily unavailable. Please try again shortly.',{status:503,headers:{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store','Retry-After':'60',...(negotiated?{Vary:'Accept'}:{})}});
+  }
  }
  return new Response(request.method==='HEAD'?null:body,{headers});
 }

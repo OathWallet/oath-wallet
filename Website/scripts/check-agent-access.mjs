@@ -14,10 +14,11 @@ await Promise.all(Array.from({length:4},async()=>{
  while(queue.length){const d=queue.shift();
   const md=await request(d.markdown_url),neg=await request(d.url,{headers:{Accept:'text/markdown'}});
   assert.match(md.headers.get('content-type'),/text\/markdown/);assert.match(neg.headers.get('vary'),/Accept/i);
+  assert.doesNotMatch(neg.headers.get('x-robots-tag')||'',/noindex|none/i,d.url+' negotiated indexing');
   const expected=await md.text();assert.equal(expected,await neg.text(),d.url);
   const plainClient=await request(d.markdown_url,{headers:{'User-Agent':'Python-urllib/3.14'}});
   assert.equal(await plainClient.text(),expected,d.markdown_url);
-  const html=await request(d.url,{headers:{Accept:'text/html'}});assert.match(html.headers.get('content-type'),/text\/html/);assert.ok(html.headers.get('link')?.includes(d.markdown_url));completed++;
+  const html=await request(d.url,{headers:{Accept:'text/html'}});assert.match(html.headers.get('content-type'),/text\/html/);assert.ok(html.headers.get('link')?.includes(d.markdown_url));assert.doesNotMatch(html.headers.get('x-robots-tag')||'',/noindex|none/i,d.url);completed++;
  }
 }));
 for(const host of ['oathwallet.org','help.oathwallet.org','articles.oathwallet.org']){

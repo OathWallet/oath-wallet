@@ -87,7 +87,9 @@ async function pageResponse(request,env,model,path,{status=200,noindex=false,md=
   const canonical=origin+path;
   const headers={'Content-Type':md?'text/markdown; charset=utf-8':'text/html; charset=utf-8','Cache-Control':noindex||status!==200?'no-store':'public, max-age=300, stale-while-revalidate=3600','Vary':'Accept','X-Content-Type-Options':'nosniff','Link':`<${canonical}>; rel="canonical"`};
   headers['X-Oath-Catalog-Version']=manifest.version;
-  if(noindex||md||status!==200)headers['X-Robots-Tag']='noindex, follow';
+  // A negotiated representation belongs to the same canonical URL as HTML.
+  // Only the separate .md address (or an excluded/error page) is noindex.
+  if(noindex||(md&&new URL(request.url).pathname.endsWith('.md'))||status!==200)headers['X-Robots-Tag']='noindex, follow';
   if(md){headers['Access-Control-Allow-Origin']='*';return new Response(request.method==='HEAD'?null:`Canonical: ${canonical}\n\n${markdown(model.content)}\n`,{status,headers});}
   const chrome=await data(env,'chrome.json');
   const trail=[['/', 'Home'],['/tokens','Tokens'],...crumbs];
@@ -104,10 +106,14 @@ export async function handleTokens(request,env){
   if(u.pathname.startsWith('/token-data/')){const r=await env.ASSETS.fetch(request);const headers=new Headers(r.headers);headers.set('X-Robots-Tag','noindex');headers.set('Cache-Control',r.ok?'public, max-age=31536000, immutable':'no-store');return new Response(request.method==='HEAD'?null:r.body,{status:r.status,headers});}
   const explicitMD=u.pathname.endsWith('.md'), md=explicitMD||wantsMarkdown(request.headers.get('Accept')||'');
   let path=u.pathname.replace(/\.md$/,'');
-  const redirect=target=>new Response(null,{status:308,headers:{Location:origin+target,'Cache-Control':'public, max-age=300'}});
+  const redirect=target=>new Response(null,{status:308,headers:{Location:origin+target,'Cache-Control':u.searchParams.has('q')?'no-store':'public, max-age=300'}});
+  const address=(p,params=u.searchParams)=>p+(explicitMD?'.md':'')+(params.size?'?'+params:'');
+  const routeParams=['page','q','network'];
   const failure=status=>pageResponse(request,env,{title:status===404?'Token page not found | Oath':'Catalog temporarily unavailable | Oath',description:'Browse Oath’s released token catalog.',content:`<header class="token-hero"><h1>${status===404?'This token page is unavailable.':'Please try again shortly.'}</h1><p>${status===404?'The requested identity or page is not in the published catalog.':'The published catalog could not be loaded.'}</p>${link('/tokens','Browse tokens')}</header>`},path,{status,noindex:true,md});
   try{
-    if(path.endsWith('/')||path.endsWith('.html'))return redirect(path.replace(/\/$/,'').replace(/\.html$/,'')+u.search);
+    if(path.endsWith('/')||path.endsWith('.html'))return redirect(address(path.replace(/\/$/,'').replace(/\.html$/,'')));
+    // Ambiguous filters must not render or populate a separate cache entry.
+    if(routeParams.some(key=>u.searchParams.getAll(key).length>1))return failure(404);
     const rawpage=u.searchParams.get('page')||'1';
     if(!/^[1-9][0-9]{0,5}$/.test(rawpage))return failure(404);
     const page=Number(rawpage);
@@ -122,8 +128,15 @@ export async function handleTokens(request,env){
       if(match&&!network)return failure(404);
       const q=(u.searchParams.get('q')||'').trim();
       const filter=u.searchParams.get('network')||network?.id||'';
-      if(q.length>160 || (filter&&!manifest.networks[filter]))return failure(404);
-      if(filter&&!q&&(!network||network.id!==filter))return redirect('/networks/'+manifest.networks[filter].slug+'/tokens'+(page>1?'?page='+page:''));
+      if(q.length>160 || (filter&&!Object.hasOwn(manifest.networks,filter)))return failure(404);
+      const target=filter?'/networks/'+manifest.networks[filter].slug+'/tokens':'/tokens';
+      const params=new URLSearchParams(u.searchParams);
+      for(const key of routeParams)params.delete(key);
+      if(q)params.set('q',q);
+      if(page>1)params.set('page',String(page));
+      // Use one network address for both search and browsing; retain tracking
+      // parameters and the explicitly requested representation when redirecting.
+      if(path!==target||params.toString()!==u.searchParams.toString())return redirect(address(target,params));
       let rows,total,pages;
       if(q){
         const words=q.toLocaleLowerCase('en').split(/\s+/);
@@ -132,9 +145,8 @@ export async function handleTokens(request,env){
         rows=matches.slice((page-1)*50,page*50).map(a=>({name:a[0],symbol:a[1],path:a[2],network:a[3],artwork:a[6]}));
       }else{total=network?.count||manifest.coinCount;pages=network?.pages||manifest.pages;if(page<=pages)rows=await data(env,network?`networks/${network.slug}/${page}.json`:`directory/${page}.json`);}
       if(page>pages)return failure(404);
-      const query=q?new URLSearchParams({q,...filter?{network:filter}:{}}).toString():'';
+      const query=q?new URLSearchParams({q}).toString():'';
       const canonical=path+(page>1?'?page='+page:'');
-      if(!q&&u.searchParams.has('page')&&page===1)return redirect(path+(explicitMD?'.md':''));
       const title=q?'Search the token catalog':network?`${network.name} tokens`:'Find your token. Choose its network.';
       const summary=network?`Browse ${count(total)} ${network.name} token entries from Oath’s released catalog, with exact identifiers and network fee guidance.`:`Explore ${count(manifest.coinCount)} assets and ${count(manifest.count)} token/network entries across ${networks.length} networks in Oath’s released catalog.`;
       const description=summary+(pages>1?` Page ${page} of ${pages}: entries ${count((page-1)*50+1)}–${count(Math.min(page*50,total))}.`:'');
@@ -145,8 +157,13 @@ export async function handleTokens(request,env){
     const parts=/^\/tokens\/([a-z0-9-]+)(?:\/([a-z0-9-]+))?$/.exec(path);
     if(!parts)return failure(404);
     const c=await coin(env,parts[1]);if(!c)return failure(404);
-    if(parts[2]){const a=c.assets.find(a=>a.path===path);if(!a)return failure(404);return pageResponse(request,env,detailContent(c,a),path,{md,crumbs:[['/tokens/'+c.slug,c.name],[path,manifest.networks[a.network].name]]});}
-    if(c.assets.length===1)return redirect(c.assets[0].path+(explicitMD?'.md':''));
+    const a=parts[2]?c.assets.find(a=>a.path===path):null;
+    if(parts[2]&&!a)return failure(404);
+    const params=new URLSearchParams(u.searchParams);
+    for(const key of routeParams)params.delete(key);
+    const target=!parts[2]&&c.assets.length===1?c.assets[0].path:path;
+    if(target!==path||params.toString()!==u.searchParams.toString())return redirect(address(target,params));
+    if(a)return pageResponse(request,env,detailContent(c,a),path,{md,crumbs:[['/tokens/'+c.slug,c.name],[path,manifest.networks[a.network].name]]});
     const description=`Compare ${c.name} (${c.symbol}) on ${c.assets.length} networks in Oath. Choose the exact network to check its token identifier, receiving steps and fee requirements.`;
     return pageResponse(request,env,{title:tokenPageTitle(c),description,content:`<header class="token-hero"><p class="token-eyebrow">${c.assets.length} networks · One catalog asset group</p>${tokenArtwork(c,64,true)}<h1>${h(c.name)} (${h(c.symbol)}) wallet for iPhone</h1><p>${h(description)}</p>${link(download,'Get Oath for iPhone','token-button')}</header><section><h2>Choose your network</h2><p>The sender and recipient must use the same network. These entries share the catalog’s asset ID; each has its own token identity. Bridged versions and separate issuer records are kept distinct.</p>${tokenRows(c.assets)}</section>${priorityHTML(path)}${listingNote}${sourceNote()}`},path,{md,crumbs:[[path,c.name]]});
   }catch{return new Response(request.method==='HEAD'?null:'The catalog is temporarily unavailable. Please try again shortly.',{status:503,headers:{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store','X-Robots-Tag':'noindex','Retry-After':'60'}});}

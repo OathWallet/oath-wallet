@@ -116,6 +116,11 @@ async function serveRequest(request, env, ctx) {
   }
 
   const asset = await env.ASSETS.fetch(request);
+  if (url.pathname === '/404.html') {
+    const headers=new Headers(asset.headers);
+    headers.set('X-Robots-Tag','noindex');headers.set('Cache-Control','no-store');
+    return new Response(request.method==='HEAD'?null:asset.body,{status:404,headers});
+  }
   if (asset.ok && url.pathname === '/sitemap.xml') {
     // Keep only canonical main-site URLs. Article editions belong to their
     // own sitemap, including articles authored directly on the new subdomain.

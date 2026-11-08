@@ -19,6 +19,14 @@ const env={ASSETS:{async fetch(req){const p=new URL(req.url).pathname;try{return
 const get=p=>worker.fetch(new Request(origin+p),env);
 const nodes=html=>[...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].flatMap(m=>{const j=JSON.parse(m[1]);return j['@graph']||[j];});
 const escape=s=>s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
+test('direct error documents return 404 while intentional private pages remain excluded',async()=>{
+ for(const method of ['GET','HEAD']){
+  const response=await worker.fetch(new Request(origin+'/404.html',{method}),env);
+  assert.equal(response.status,404);assert.match(response.headers.get('X-Robots-Tag'),/noindex/);assert.equal(response.headers.get('Cache-Control'),'no-store');
+  if(method==='HEAD')assert.equal(await response.text(),'');else assert.match(await response.text(),/A little off course/);
+ }
+ for(const path of ['/news/index.html','/news/admin.html','/news/preferences.html'])assert.match(await(await get(path)).text(),/<meta name="robots" content="noindex/);
+});
 test('site names agree and imported App Store ratings are not review markup',async()=>{
  const main=await read('/index.html');
  for(const [html,name]of [[main,'Oath Wallet'],[await read('/articles.html'),'Oath Wallet Articles'],[helpHome(help),'Oath Wallet Help']]){

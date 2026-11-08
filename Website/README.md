@@ -143,6 +143,12 @@ breadcrumbs and the archive's WebSite identity. `build:search` then renders the
 same useful content in the initial HTML. Both run before deployment. Keep actual
 editorial modification dates; do not replace dates with the deployment time.
 Article and Help Center sitemaps derive their dates from published content.
+Token directories give each valid page its own canonical URL. Network filters
+redirect to the matching network directory, retaining search terms, attribution
+and explicit Markdown addresses. Empty filters and ignored detail-page filters
+are consolidated; ambiguous parameters and unknown identities return 404.
+Search results remain noindex and are not cached as public catalog pages.
+The direct `/404.html` error document also returns HTTP 404, never 200.
 The readable-page build defers `support.js` and preloads its two required local
 React dependencies with matching integrity/CORS settings, keeping the existing
 interactive design while removing a parser-blocking enhancement script.
@@ -286,12 +292,24 @@ Screenshots retain their capture version independently of the text's app version
 
 ## Unified public documentation interfaces
 
-`src/agent-content.js` derives a 191-document catalog from the published core
+`src/agent-content.js` derives the public document catalog from the published core
 Markdown, article routes/metadata, and Help Center JSON used by the HTML renderer.
 Every catalog entry has a canonical URL and a Markdown URL. `GET`/`HEAD` with
 `Accept: text/markdown` serves the same document; HTML advertises the alternate
 through a Link header. Both negotiated formats use `Vary: Accept`. Wildcard or
 HTML-preferred requests retain HTML. No User-Agent determines document content.
+Canonical URLs retain the same indexing eligibility in HTML and negotiated
+Markdown. Existing noindex policies for separate token/feature/decision `.md`
+URLs, search results and private routes remain in place. Unavailable Markdown
+assets return a retryable, uncached 503 instead of an unhandled Worker error.
+Deployment checks enforce these headers as well as content equivalence.
+
+These rules follow [Google's canonical guidance](https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls),
+[HTTP status guidance](https://developers.google.com/crawling/docs/troubleshooting/http-status-codes),
+and [Bing's webmaster guidelines](https://www.bing.com/webmasters/help/webmaster-guidelines-30fba23a).
+[Google's AI-search guidance](https://developers.google.com/search/docs/appearance/ai-features)
+uses the same crawlability and indexing foundation; an optional Markdown or
+`llms.txt` interface is not a ranking requirement or inclusion guarantee.
 
 All three hosts expose `/llms.txt` and `/agent-documents.json`. The build generates
 the main guide, complete text, index, and MCP card. Help text, steps, related links,
