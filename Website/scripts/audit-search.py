@@ -6,6 +6,7 @@ import datetime
 from sitemaps import collect_sitemaps
 from html.parser import HTMLParser
 import json
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -13,6 +14,15 @@ from urllib.parse import urljoin, urlsplit
 import xml.etree.ElementTree as ET
 
 HOSTS = ('oathwallet.org', 'articles.oathwallet.org', 'help.oathwallet.org')
+def is_labyrinth_link(attrs):
+    # Do not follow Cloudflare's hidden nofollow honeypot into generated pages.
+    # Ordinary internal links (including nofollow links) remain in the audit.
+    return (set(attrs) == {'href', 'aria-hidden', 'rel', 'style'}
+            and attrs.get('aria-hidden') == 'true'
+            and attrs.get('rel') == 'nofollow noopener'
+            and attrs.get('style') == 'display: none !important; visibility: hidden !important'
+            and bool(re.fullmatch(r'https://(?:oathwallet\.org|help\.oathwallet\.org|articles\.oathwallet\.org)/cdn-cgi/content\?id=[A-Za-z0-9._-]{1,1024}', attrs.get('href', ''))))
+
 class Page(HTMLParser):
     def __init__(self):
         super().__init__(); self.canonical=[]; self.lang=None; self.h1=[]; self.links=[]; self.images=[]; self.alternates=[]; self.meta={}; self.schemas=[]; self.title=''; self.active=None; self.template=0; self.script=None
@@ -24,7 +34,7 @@ class Page(HTMLParser):
         if tag=='meta': self.meta[a.get('name',a.get('property',''))]=a.get('content','')
         if tag=='link' and a.get('rel')=='canonical': self.canonical.append(a.get('href'))
         if tag=='link' and a.get('hreflang'): self.alternates.append(a)
-        if tag=='a' and a.get('href'): self.links.append(a['href'])
+        if tag=='a' and a.get('href') and not is_labyrinth_link(a): self.links.append(a['href'])
         if tag=='img' and a.get('src'): self.images.append(a)
         if tag in ('title','h1'): self.active=tag
         if tag=='h1': self.h1.append('')
