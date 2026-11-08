@@ -1,9 +1,9 @@
 {
   "name": "Oath Wallet",
-  "updated": "2026-11-06",
+  "updated": "2026-11-08",
   "facts": {
     "name": "Oath Wallet",
-    "slogan": "A wallet, not a marketplace.",
+    "slogan": "Made for your independence.",
     "category": "Self-custody (non-custodial) crypto wallet",
     "platform": "iPhone and iPad; Apple App Store",
     "price": "Free to download; users pay only blockchain network fees",
@@ -189,7 +189,7 @@
       "language_name": "English",
       "reading_minutes": 2,
       "url": "https://articles.oathwallet.org/oath-wallet-release-history",
-      "cover_image_url": "https://articles.oathwallet.org/assets/articles/editorials/oath-wallet-release-history/cover.png",
+      "cover_image_url": "https://articles.oathwallet.org/assets/articles/editorials/oath-wallet-release-history/cover.png?v=daebc54046ed",
       "markdown_url": "https://articles.oathwallet.org/oath-wallet-release-history.md",
       "github_editorial": true
     },
