@@ -32,19 +32,21 @@ public struct HyperEVMClient: Sendable {
         for attempt in 0..<3 {
             try Task.checkCancellation()
             do {
-                let (data, status) = try await transport.send(request)
+                let (data, status) = try await transport.sendPreservingTransportError(request)
                 guard data.count <= 64 * 1024 * 1024 else { throw AnkrError.responseTooLarge }
                 guard status == 200 else { throw AnkrError.http(status) }
                 return Exchange(value: try JSONDecoder().decode(SolanaJSON.self, from: data), raw: data)
-            } catch { OathDiagnostics.record(error);
+            } catch {
+                if error is CancellationError || Task.isCancelled || (error as? URLError)?.code == .cancelled { throw CancellationError() }
+                OathDiagnostics.record(error, operation: "hyperevm_read", context: ["chain": "hyperevm", "host": request.url?.host ?? ""])
                 let retry: Bool
                 switch error {
                 case AnkrError.http(let code): retry = code == 429 || (500...599).contains(code)
-                case AnkrError.transport: retry = true
-                default: retry = false
+                default: retry = AnkrReadRetry.transientTransport(error)
                 }
                 if retry, attempt < 2 { try await Task.sleep(for: .milliseconds(500 * (1 << attempt))); continue }
                 if error is CancellationError || Task.isCancelled { throw CancellationError() }
+                if error is URLError { throw AnkrError.transport }
                 throw (error as? AnkrError) ?? .invalidResponse
             }
         }
@@ -59,8 +61,10 @@ public struct HyperEVMClient: Sendable {
         request.httpMethod = "POST"; request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode(body)
         try await permits.acquire()
+        var exchangeCompleted = false
         do {
             let result = try await exchange(request)
+            exchangeCompleted = true
             guard let rows = result.value.array, rows.count == calls.count else { throw AnkrError.invalidResponse }
             var ordered = [SolanaJSON?](repeating: nil, count: calls.count)
             for row in rows {
@@ -70,7 +74,10 @@ public struct HyperEVMClient: Sendable {
             }
             await permits.release()
             return (ordered.map { $0! }, result.raw)
-        } catch { OathDiagnostics.record(error); await permits.release(); throw error }
+        } catch {
+            if exchangeCompleted { OathDiagnostics.record(error, operation: "hyperevm_rpc_validation", context: ["chain": "hyperevm"]) }
+            await permits.release(); throw error
+        }
     }
     private static func result(_ row: SolanaJSON) throws -> SolanaJSON {
         if let code = row["error"]["code"].text.flatMap(Int.init) {
@@ -87,13 +94,18 @@ public struct HyperEVMClient: Sendable {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode(SolanaJSON.object(params))
         try await indexPermits.acquire()
+        var exchangeCompleted = false
         do {
             // Bound public index traffic independently of parallel ANKR state reads.
             try await Task.sleep(for: .milliseconds(250))
             let value = try await exchange(request)
+            exchangeCompleted = true
             guard value.value["success"] == .bool(true) else { throw AnkrError.invalidResponse }
             await indexPermits.release(); return value
-        } catch { OathDiagnostics.record(error, operation: "index"); await indexPermits.release(); throw error }
+        } catch {
+            if exchangeCompleted { OathDiagnostics.record(error, operation: "index", context: ["chain": "hyperevm"]) }
+            await indexPermits.release(); throw error
+        }
     }
     static func next(_ json: SolanaJSON) throws -> String? {
         guard case .object(let object) = json, let next = object["next_page_params"] else { throw AnkrError.invalidResponse }
@@ -219,25 +231,34 @@ public struct HyperEVMClient: Sendable {
                 guard next < chunks.count else { return }
                 let chunk = chunks[next]; next += 1
                 group.addTask {
-                    var calls: [(String, [SolanaJSON])] = []
-                    for token in chunk {
-                        if token.reference == "native" { calls.append(("eth_getBalance", [.string(owner), .string(blockNumber)])) }
-                        else {
-                            calls.append(("eth_call", [.object(["to": .string(token.reference), "data": .string(body)]), .string(blockNumber)]))
-                            calls.append(("eth_call", [.object(["to": .string(token.reference), "data": .string("0x313ce567")]), .string(blockNumber)]))
+                    do {
+                        var calls: [(String, [SolanaJSON])] = []
+                        for token in chunk {
+                            if token.reference == "native" { calls.append(("eth_getBalance", [.string(owner), .string(blockNumber)])) }
+                            else {
+                                calls.append(("eth_call", [.object(["to": .string(token.reference), "data": .string(body)]), .string(blockNumber)]))
+                                calls.append(("eth_call", [.object(["to": .string(token.reference), "data": .string("0x313ce567")]), .string(blockNumber)]))
+                            }
                         }
-                    }
-                    let (rows, raw) = try await rpc(calls)
-                    var i = 0, holdings: [HyperEVMHolding] = []
-                    for token in chunk {
-                        var amount = OathDiagnostics.attempt("balance_call") { try HyperEVMIdentity.amount(Self.result(rows[i])) }; i += 1
-                        if token.reference != "native" {
-                            let decimals = OathDiagnostics.attempt("token_decimals") { try HyperEVMIdentity.amount(Self.result(rows[i])) }; i += 1
-                            if decimals != String(token.decimals) { amount = nil }
+                        let (rows, raw) = try await rpc(calls)
+                        var i = 0, holdings: [HyperEVMHolding] = []
+                        for token in chunk {
+                            var amount = OathDiagnostics.attempt("balance_call") { try HyperEVMIdentity.amount(Self.result(rows[i])) }; i += 1
+                            if token.reference != "native" {
+                                let decimals = OathDiagnostics.attempt("token_decimals") { try HyperEVMIdentity.amount(Self.result(rows[i])) }; i += 1
+                                if decimals != String(token.decimals) { amount = nil }
+                            }
+                            holdings.append(.init(token: token, amount: amount))
                         }
-                        holdings.append(.init(token: token, amount: amount))
+                        return (holdings, raw)
+                    } catch {
+                        // A failed token-only batch must not discard successful
+                        // native/other batches. The native batch retains the
+                        // existing snapshot recovery and fallback behavior.
+                        guard !Task.isCancelled, !(error is CancellationError), !chunk.contains(where: { $0.reference == "native" }) else { throw error }
+                        OathDiagnostics.record(error, operation: "inventory_token_batch")
+                        return (chunk.map { .init(token: $0, amount: nil) }, Data())
                     }
-                    return (holdings, raw)
                 }
             }
             for _ in 0..<min(4, chunks.count) { enqueue() }

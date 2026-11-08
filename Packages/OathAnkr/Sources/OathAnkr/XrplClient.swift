@@ -25,8 +25,11 @@ public actor XrplClient {
         request.setValue("application/json",forHTTPHeaderField:"Content-Type"); request.httpBody = try JSONEncoder().encode(body)
         try await permits.acquire()
         let response:(Data,Int)
-        do { response = try await transport.send(request) }
-        catch { OathDiagnostics.record(error); await permits.release(); if Task.isCancelled || error is CancellationError { throw CancellationError() }; throw XrplError.transport }
+        do { response = try await transport.sendPreservingTransportError(request) }
+        catch {
+            // diagnostics: xrpl-read-permit-cleanup — readWithRecovery owns the original report.
+            await permits.release(); throw error
+        }
         await permits.release(); try Task.checkCancellation()
         guard response.1 == 200 else { throw XrplError.http(response.1) }
         guard let json = try? JSONDecoder().decode(XrplJSON.self,from:response.0), !json["result"].isNull else { throw XrplError.malformed }
@@ -83,11 +86,11 @@ public actor XrplClient {
                 do { return try await send(url,method:method,params:params) }
                 catch XrplError.accountMissing { throw XrplError.accountMissing }
                 catch {
-                    if Task.isCancelled || error is CancellationError { throw CancellationError() }
+                    if Task.isCancelled || error is CancellationError || (error as? URLError)?.code == .cancelled { throw CancellationError() }
                     var context = ["chain":"xrpl","method":method,"host":url.host ?? "","attempt":String(attempt+1)]
                     if case XrplError.rpc(let code) = error { context["rpc_code"] = code }
                     OathDiagnostics.record(error,component:"provider",operation:"xrpl_read",context:context)
-                    last = error
+                    last = (error as? XrplError) ?? XrplError.transport
                     if delayedReadRetry(error,method:method,params:params) { delayed.append(url) }
                 }
             }

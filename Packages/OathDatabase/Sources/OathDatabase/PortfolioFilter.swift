@@ -21,7 +21,6 @@ public struct PortfolioFilter: Codable, Equatable, Sendable {
     /// Inventory visibility is enforced by the database and provider sync.
     /// Turning this off does not mark any token as verified.
     public var hidesUnverifiedTokens = true
-    public var onlyWithActivity = false
     public var groupsTokensByChain = false
     public var minimumValue: Decimal?
     public var maximumValue: Decimal?
@@ -30,7 +29,7 @@ public struct PortfolioFilter: Codable, Equatable, Sendable {
     public init() {}
 
     private enum CodingKeys: String, CodingKey {
-        case sort, kind, networkIDs, hidesZeroBalances, hidesUnverifiedTokens, onlyWithActivity
+        case sort, kind, networkIDs, hidesZeroBalances, hidesUnverifiedTokens
         case groupsTokensByChain, minimumValue, maximumValue, rangeCurrency
     }
 
@@ -41,7 +40,8 @@ public struct PortfolioFilter: Codable, Equatable, Sendable {
         networkIDs = try values.decode(Set<String>.self, forKey: .networkIDs)
         hidesZeroBalances = try values.decode(Bool.self, forKey: .hidesZeroBalances)
         hidesUnverifiedTokens = try values.decode(Bool.self, forKey: .hidesUnverifiedTokens)
-        onlyWithActivity = try values.decode(Bool.self, forKey: .onlyWithActivity)
+        // The retired onlyWithActivity key is deliberately ignored in saved
+        // selections. It must not hide assets or count as an invisible filter.
         // Existing saved filters retain their flat presentation after upgrading.
         groupsTokensByChain = try values.decodeIfPresent(Bool.self, forKey: .groupsTokensByChain) ?? false
         minimumValue = try values.decodeIfPresent(Decimal.self, forKey: .minimumValue)
@@ -51,7 +51,7 @@ public struct PortfolioFilter: Codable, Equatable, Sendable {
 
     public var activeCount: Int {
         [sort != .recommended, kind != .all, !networkIDs.isEmpty,
-         hidesZeroBalances, !hidesUnverifiedTokens, onlyWithActivity, minimumValue != nil || maximumValue != nil]
+         hidesZeroBalances, !hidesUnverifiedTokens, minimumValue != nil || maximumValue != nil]
             .filter { $0 }.count
     }
 
@@ -86,8 +86,7 @@ public struct PortfolioFilter: Codable, Equatable, Sendable {
         guard selection.isValid else { return [] }
         let visible = holdings.filter { holding in
             guard selection.networkIDs.isEmpty || selection.networkIDs.contains(holding.networkID),
-                  selection.kind == .all || (holding.reference == "native" ? selection.kind == .coins : selection.kind == .tokens),
-                  !selection.onlyWithActivity || holding.transactionCount > 0 else { return false }
+                  selection.kind == .all || (holding.reference == "native" ? selection.kind == .coins : selection.kind == .tokens) else { return false }
             // Check exact atomic zero: a tiny positive holding must not disappear
             // because display rounding says zero. Missing balances remain visible.
             if selection.hidesZeroBalances, let amount = holding.amountAtomic,
@@ -154,7 +153,7 @@ extension OathDatabase {
             throw StoreError.invalidValue("portfolio filter")
         }
         let data = try JSONEncoder().encode(selection)
-        try await pool.write { db in
+        try await storageWrite { db in
             guard try Bool.fetchOne(db, sql: "SELECT EXISTS(SELECT 1 FROM wallets WHERE id=? AND deletedAt IS NULL)",
                                     arguments: [walletID]) == true,
                   try Bool.fetchOne(db, sql: "SELECT EXISTS(SELECT 1 FROM metadata WHERE key='walletReset')") == false else {

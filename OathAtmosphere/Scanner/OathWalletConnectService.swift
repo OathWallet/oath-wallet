@@ -14,9 +14,11 @@ import OathBitcoin
     struct Proposal {
         let value: Session.Proposal
         let verify: VerifyContext?
+        var browserHost: String? = nil
         var domain: String? { OathWalletConnectPolicy.safeHost(value.proposer.url) }
         var blocked: Bool {
             guard let domain else { return true }
+            if !OathBrowserPolicy.matchesPeer(browserHost: browserHost, peerHost: domain) { return true }
             if verify?.validation == .invalid || verify?.validation == .scam { return true }
             if verify?.validation == .valid { return verify?.origin.flatMap(OathWalletConnectPolicy.safeHost) != domain }
             return false
@@ -104,6 +106,7 @@ import OathBitcoin
     private(set) var connections = OathWalletConnectConnections()
     private(set) var disconnecting = Set<String>()
     @ObservationIgnored private weak var session: OathWalletSession?
+    @ObservationIgnored private var pairingBrowserHost: String?
     @ObservationIgnored private var observers = Set<AnyCancellable>()
     @ObservationIgnored private var timeout: Task<Void, Never>?
     @ObservationIgnored private var pairingTopic: String?
@@ -170,7 +173,7 @@ import OathBitcoin
                           self.pairingProgress.receiveProposal() else { return }
                     self.timeout?.cancel(); self.working = false
                     self.failed = false; self.connectionFailure = nil; self.presentationIssue = nil
-                    self.proposal = .init(value: item.proposal, verify: item.context)
+                    self.proposal = .init(value: item.proposal, verify: item.context, browserHost: self.pairingBrowserHost)
                 }
             }.store(in: &observers)
             Sign.instance.sessionsPublisher.receive(on: DispatchQueue.main).sink { [weak self] _ in
@@ -202,9 +205,10 @@ import OathBitcoin
         }
     }
     enum ConfigurationFailure: Error { case missing, invalid }
-    func pair(_ raw: String) async {
+    func pair(_ raw: String, browserHost: String? = nil) async {
         // A repeated presentation task must not turn in-flight work into failure.
         guard !working else { return }
+        pairingBrowserHost = browserHost
         timeout?.cancel()
         operation = UUID()
         pairingProgress = .idle; pairingTopic = nil
@@ -262,9 +266,10 @@ import OathBitcoin
               pairingProgress == .waiting || pairingProgress == .failed else { return false }
         if let pending = Sign.instance.getPendingProposals().first(where: { $0.proposal.pairingTopic == topic }) {
             _ = pairingProgress.receiveProposal()
-            proposal = .init(value: pending.proposal, verify: pending.context)
+            proposal = .init(value: pending.proposal, verify: pending.context, browserHost: pairingBrowserHost)
         } else if let existing = Sign.instance.getSessions().first(where: {
-            connections.isAssociated($0.topic, with: topic) && $0.expiryDate > .now && walletMapping[$0.topic] != nil
+            connections.isAssociated($0.topic, with: topic) && $0.expiryDate > .now && walletMapping[$0.topic] != nil &&
+            OathBrowserPolicy.matchesPeer(browserHost: pairingBrowserHost, peerHost: OathWalletConnectPolicy.safeHost($0.peer.url))
         }) {
             pairingProgress = .connected
             refreshSessions()

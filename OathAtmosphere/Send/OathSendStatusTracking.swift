@@ -10,7 +10,7 @@ import OathDiagnostics
 enum OathTrackedSendChain: String, CaseIterable {
     case bitcoin, bitcoincash, litecoin, dogecoin, sui, xrpl, stellar, tron, near, polkadot, aptos, thorchain, ton, solana, arc
 
-    case ethereum, arbitrum, avalanche, base, bnb, fantom, flare, somnia, story, gnosis, linea, optimism, polygon, chiliz, filecoin, sei, zerog, iotex, celo, monad, unichain, hyperevm, robinhood, scroll, taiko, telos, xlayer
+    case cronos, ethereum, arbitrum, avalanche, base, bnb, fantom, flare, somnia, story, gnosis, linea, optimism, polygon, chiliz, filecoin, sei, zerog, iotex, celo, monad, unichain, hyperevm, robinhood, scroll, taiko, telos, xlayer
 
     static func check(_ send: SendRecord, database: OathDatabase) async throws {
         if send.state == "confirmed",let removal=try await database.permissionRemoval(sendID:send.id),removal.status=="pending" {
@@ -27,7 +27,7 @@ enum OathTrackedSendChain: String, CaseIterable {
         case .tron: try await OathTronSendService.shared.check(send: send, database: database)
         case .ton: try await OathTonSendService.shared.check(send: send, database: database)
         case .solana: try await OathSolanaSendService.shared.check(send:send,database:database)
-        case .ethereum, .arbitrum, .avalanche, .base, .bnb, .fantom, .flare, .somnia, .story, .gnosis, .linea, .optimism, .polygon, .chiliz, .filecoin, .sei, .zerog, .iotex, .celo, .monad, .unichain, .hyperevm, .robinhood, .scroll, .taiko, .telos, .xlayer:
+        case .ethereum, .arbitrum, .avalanche, .base, .bnb, .fantom, .flare, .somnia, .story, .gnosis, .linea, .optimism, .polygon, .chiliz, .filecoin, .sei, .zerog, .iotex, .cronos, .celo, .monad, .unichain, .hyperevm, .robinhood, .scroll, .taiko, .telos, .xlayer:
             try await OathEVMSendService.shared.check(send:send,database:database)
         case .arc:
             if try await database.evmSendPlan(sendID: send.id) != nil {

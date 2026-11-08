@@ -147,6 +147,11 @@ public actor MarketDataService {
                           fetchedAt: Date(timeIntervalSince1970: entry.fetchedAt))
     }
 
+    func nativeMarketAsset(networkID: String) async throws -> MarketAsset? {
+        guard let asset = try await database.asset(networkID: networkID, reference: "native") else { return nil }
+        return MarketAsset(id: asset.id, networkID: asset.networkID, reference: asset.reference, decimals: asset.decimals)
+    }
+
     public func quote(for asset: MarketAsset, force: Bool = false) async throws -> CachedMarketValue<MarketQuote> {
         let previous = try await cachedQuote(for: asset)
         if !force, let previous,
@@ -162,11 +167,22 @@ public actor MarketDataService {
                                 return try ContractPriceDecoding.decode(bytes, request: request, asset: asset, now: now())
                             }
                         }
-                        candidates.append(.init(source: "Coinbase") {
-                            let code = try await self.coinbaseCode(for: asset)
-                            let data = try await transport.data(from: URL(string: "https://api.coinbase.com/v2/prices/\(code)-USD/spot")!)
-                            return .init(quote: try MarketDecoding.quote(data, code: code), date: now(), source: "Coinbase")
-                        })
+                        if let identity = NativeCoinPrice.identity(for: asset) {
+                            candidates.append(.init(source: "CoinPaprika") {
+                                let bytes = try await transport.data(from: identity.tickerURL)
+                                return try NativeCoinPrice.decode(bytes, for: asset, now: now())
+                            })
+                        }
+                        // Keep Coinbase in the race for existing supported
+                        // native coins; adding an independent source must not
+                        // replace a working route. Telos/OKB have no spot route.
+                        if !asset.isNative || !["telos", "xlayer"].contains(asset.networkID) {
+                            candidates.append(.init(source: "Coinbase") {
+                                let code = try await self.coinbaseCode(for: asset)
+                                let data = try await transport.data(from: URL(string: "https://api.coinbase.com/v2/prices/\(code)-USD/spot")!)
+                                return .init(quote: try MarketDecoding.quote(data, code: code), date: now(), source: "Coinbase")
+                            })
+                        }
                         let result = try await ParallelMarketPrice.first(candidates, network: asset.networkID)
                         return (try JSONEncoder().encode(result.quote), result.date.timeIntervalSince1970,
                             PriceRecord(assetID: asset.id, currency: "USD", value: result.quote.usd,
@@ -182,13 +198,12 @@ public actor MarketDataService {
             if let previous, previous.fetchedAt > refreshed.fetchedAt { return previous }
             return refreshed
         } catch {
+            // diagnostics: market-quote-recovery
             // load records original non-coverage failures. Offline/outage never
             // replaces a saved quote with zero or invents a new freshness date.
             if error is CancellationError || Task.isCancelled { throw CancellationError() }
-            if error as? MarketDataError != .notListed {
-                OathDiagnostics.record(error, component: "market_price", operation: "quote_cache_fallback",
-                    context: ["chain": asset.networkID])
-            }
+            // The owning load/provider boundaries already report the original
+            // failure. Returning the saved quote is recovery, not another error.
             if let previous { return previous }
             throw error
         }

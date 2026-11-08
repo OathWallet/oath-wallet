@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 import Vision
 
-// python3 Tools/CheckRefinedRows.py
+// Run with python3 Tools/CheckRefinedRows.py.
 
 // Host-only UIKit/font bridges; the row layout and amount formatter below are
 // production sources. This checks sizing, not the iOS glass renderer or font.
@@ -23,9 +23,11 @@ struct OathNetworkLogo: View {
     let size: CGFloat
     var body: some View { Color.blue.frame(width: size, height: size) }
 }
-enum RowStringKey { case balanceHidden }
+enum RowStringKey { case balanceHidden, assetPriceUnavailable }
 struct RowLocalizer: Sendable {
-    func text(_ key: RowStringKey) -> String { "Balance hidden" }
+    func text(_ key: RowStringKey) -> String {
+        key == .assetPriceUnavailable ? "Price Untracked" : "Balance hidden"
+    }
 }
 private struct RowLocalizerKey: EnvironmentKey { static let defaultValue = RowLocalizer() }
 extension EnvironmentValues {
@@ -101,7 +103,9 @@ extension EnvironmentValues {
         for width: CGFloat in [320, 393, 440] {
             for rtl in [false, true] {
                 for price in ["$0.62", "Price Untracked", "Preis wird nicht erfasst"] {
-                    let subtitle = AnyView(Label(price, systemImage: "exclamationmark.circle"))
+                    // Render the actual production price component, not a replacement
+                    // Label whose accessibility text can pass while its title is hidden.
+                    let subtitle = AnyView(OathAssetUnitPrice(price: price == "Price Untracked" ? nil : price))
                     let row = OathRefinedListRow(title: "THORChain", subtitle: price, value: "$84.11",
                         primaryFontWeight: .medium, detail: "136.18908816 RUNE",
                         emphasizesBalanceSubtitle: true, customSubtitle: subtitle, emphasizesBalanceDetail: true
@@ -123,6 +127,31 @@ extension EnvironmentValues {
                     if price == "Price Untracked" { precondition(text.contains(price), "Untracked action must remain readable") }
                     checks += 1
                 }
+                // A surrounding control can select icon-only labels. The price
+                // warning must explicitly keep its localized title in that context.
+                let row = OathRefinedListRow(title: "Telos", subtitle: "Price Untracked", value: "$0.00",
+                    primaryFontWeight: .medium, detail: "0 TLOS", emphasizesBalanceSubtitle: true,
+                    customSubtitle: AnyView(OathAssetUnitPrice(price: nil)), emphasizesBalanceDetail: true
+                ) { size in Color.blue.frame(width: size, height: size) }
+                let content = Button {} label: { row }
+                    .buttonStyle(.plain)
+                    .labelStyle(.iconOnly)
+                    .frame(width: width).background(.white)
+                    .environment(\.colorScheme, .light)
+                    .environment(\.layoutDirection, rtl ? .rightToLeft : .leftToRight)
+                let renderer = ImageRenderer(content: content)
+                renderer.scale = 3
+                guard let image = renderer.cgImage else { preconditionFailure("Warning row failed to render") }
+                let request = VNRecognizeTextRequest()
+                request.recognitionLevel = .accurate
+                request.usesLanguageCorrection = false
+                try VNImageRequestHandler(cgImage: image).perform([request])
+                let text = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+                guard text.contains("Price Untracked") else {
+                    throw NSError(domain: "UntrackedPriceLabel", code: 1, userInfo: [NSLocalizedDescriptionKey:
+                        "Visible warning title missing at width \(width), RTL=\(rtl): \(text)"])
+                }
+                checks += 1
             }
         }
         print("Passed \(checks) production row sizing and visible amount/price checks (host fonts; no simulator)")

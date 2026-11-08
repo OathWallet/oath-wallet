@@ -10,6 +10,8 @@ public struct SendRecipient: Decodable, FetchableRecord, Sendable, Equatable, Id
     public let label: String
     public let address: String
     public let networkID: String
+    public let memo: String?
+    public let memoType: String?
 
     public init(address: ContactAddressRecord, contactName: String) {
         id = address.id
@@ -18,6 +20,8 @@ public struct SendRecipient: Decodable, FetchableRecord, Sendable, Equatable, Id
         label = address.label
         self.address = address.address
         networkID = address.networkID
+        memo = address.memo
+        memoType = address.memoType
     }
 }
 
@@ -32,7 +36,7 @@ extension OathDatabase {
 
     private static func fetchSendRecipients(_ db: Database, networkID: String) throws -> [SendRecipient] {
         try SendRecipient.fetchAll(db, sql: """
-            SELECT a.id, a.contactID, c.name, a.label, a.address, a.networkID
+            SELECT a.id, a.contactID, c.name, a.label, a.address, a.networkID, a.memo, a.memoType
             FROM contactAddresses a JOIN contacts c ON c.id = a.contactID
             WHERE a.networkID = ?
             ORDER BY c.name COLLATE NOCASE, c.id, a.position, a.id

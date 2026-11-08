@@ -14,6 +14,56 @@ public enum OathImportChain: String, CaseIterable, Identifiable, Hashable, Codab
     public var id: String { rawValue }
     public var logoAsset: String { "network-" + rawValue }
 
+    /// Compact chain identity for space-constrained search controls. Keep L2s
+    /// distinct instead of labeling every ETH-fee network as Ethereum.
+    public var shortName: String {
+        switch self {
+        case .cronos: "CRO"
+        case .aptos: "APT"
+        case .arbitrum: "ARB"
+        case .arc: "Arc"
+        case .avalanche: "AVAX"
+        case .base: "Base"
+        case .bitcoin: "BTC"
+        case .bitcoincash: "BCH"
+        case .bnb: "BNB"
+        case .dogecoin: "DOGE"
+        case .iotex: "IOTX"
+        case .zerog: "0G"
+        case .sei: "SEI"
+        case .chiliz: "CHZ"
+        case .filecoin: "FIL"
+        case .ethereum: "ETH"
+        case .fantom: "FTM"
+        case .flare: "FLR"
+        case .gnosis: "Gnosis"
+        case .hyperevm: "HYPE"
+        case .celo: "CELO"
+        case .monad: "MON"
+        case .unichain: "Unichain"
+        case .linea: "Linea"
+        case .litecoin: "LTC"
+        case .near: "NEAR"
+        case .optimism: "OP"
+        case .polygon: "POL"
+        case .robinhood: "Robinhood"
+        case .scroll: "Scroll"
+        case .solana: "SOL"
+        case .somnia: "SOMI"
+        case .story: "IP"
+        case .polkadot: "DOT"
+        case .stellar: "XLM"
+        case .sui: "SUI"
+        case .taiko: "Taiko"
+        case .telos: "TLOS"
+        case .thorchain: "RUNE"
+        case .ton: "GRAM"
+        case .tron: "TRX"
+        case .xlayer: "X Layer"
+        case .xrpl: "XRP"
+        }
+    }
+
     public var name: String {
         switch self {
         case .cronos: "Cronos"

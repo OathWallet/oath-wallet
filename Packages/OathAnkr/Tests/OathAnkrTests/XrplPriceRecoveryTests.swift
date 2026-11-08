@@ -97,6 +97,11 @@ final class XrplPriceRecoveryTests: XCTestCase, @unchecked Sendable {
         do { _ = try await XrplMarkets(transport: transport).nativePrice(); XCTFail("Unavailable fallback accepted") }
         catch { XCTAssertEqual(error as? XrplError, .http(429)) }
     }
+    func testExpiredFallbackRemainsUnavailableWithoutUsingItsPrice() async {
+        let transport = XrplQuoteReplies(.disconnected, fallback: xrplQuoteFixture(offset: -901))
+        do { _ = try await XrplMarkets(transport: transport).nativePrice(); XCTFail("Expired price accepted") }
+        catch { XCTAssertEqual(error as? DiagnosticDeferral, .publicMarketQuoteUnavailable) }
+    }
 }
 
 private actor XrplPriceReports: DiagnosticTransport {

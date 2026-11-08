@@ -3,6 +3,38 @@ import UIKit
 
 /// One device, only welcome startup. No wallet secrets, camera, or Keychain use.
 final class OathArtworkStartupUITests: XCTestCase {
+    /// The 27.0 startup check cannot exercise GeometryProxy.reservedRegions.
+    /// Verify the newer layout branch without fixed screenshot coordinates,
+    /// which differ between the Duo and the ordinary phone simulator.
+    @MainActor
+    func testOnboardingRemainsResponsiveOnReservedRegionRuntime() throws {
+        guard #available(iOS 27.1, *) else { throw XCTSkip("Requires the reserved-region runtime") }
+        continueAfterFailure = false
+        let app = launch(arguments: [])
+        defer { app.terminate(); XCUIDevice.shared.orientation = .portrait }
+        let create = app.buttons["onboarding.createWallet"]
+        XCTAssertTrue(create.waitForExistence(timeout: 5))
+        XCTAssertTrue(create.isHittable)
+        XCTAssertTrue(app.buttons["onboarding.importWallet"].isHittable)
+        XCTAssertTrue(app.descendants(matching: .any)["onboarding.consent"].firstMatch.exists)
+        XCUIDevice.shared.orientation = .landscapeLeft
+        XCTAssertTrue(create.waitForExistence(timeout: 5))
+        XCTAssertTrue(create.isHittable)
+        XCUIDevice.shared.orientation = .portrait
+        app.buttons["onboarding.importWallet"].tap()
+        XCTAssertTrue(app.textViews["recovery.phrase"].waitForExistence(timeout: 5))
+        // On the Duo, the native Back control lives beside the content rather
+        // than inside the top navigation bar. Select its system identifier.
+        let back = app.buttons["BackButton"]
+        XCTAssertTrue(back.waitForExistence(timeout: 5))
+        back.tap()
+        XCTAssertTrue(create.waitForExistence(timeout: 5))
+        XCUIDevice.shared.press(.home)
+        app.activate()
+        XCTAssertTrue(create.waitForExistence(timeout: 5))
+        XCTAssertTrue(create.isHittable)
+    }
+
     @MainActor
     func testArtworkPrecedesDelayedRendererAndSurvivesReturn() {
         continueAfterFailure = false

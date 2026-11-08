@@ -226,3 +226,16 @@ private struct OathHomeSettingsToolbarItem: View {
         .accessibilityIdentifier("home.settings")
     }
 }
+
+/// Read the gesture state only at the decorative surface. Scrolling must not
+/// rebuild Home's rows or replace the Metal renderer and its animation clock.
+struct OathHomeDragBlur: ViewModifier {
+    let effects: OathHomeScrollEffects
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content
+            .blur(radius: effects.isDragging ? 16 : 0, opaque: true)
+            .animation(reduceMotion ? nil : .smooth, value: effects.isDragging)
+    }
+}

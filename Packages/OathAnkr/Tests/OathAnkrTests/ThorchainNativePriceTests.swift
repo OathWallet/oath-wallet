@@ -59,7 +59,7 @@ private actor ThorchainNativePriceTransport: AnkrTransport {
                     let rows: [SolanaJSON] = assets.map { asset in
                         guard oracleAvailable else { return .null }
                         return .object(["asset": .string(asset), "price": .object([
-                            "current": .string("1200000000000"), "timestamp": .string(formatter.string(from: .now))
+                            "current": .string(asset == "BTC.BTC" ? "62000000000000000" : "1200000000000"), "timestamp": .string(formatter.string(from: .now))
                         ])])
                     }
                     reply = (try JSONEncoder().encode(SolanaJSON.object(["data": .object(["nodes": .array(rows)])])), 200)
@@ -88,10 +88,10 @@ final class ThorchainNativePriceTests: XCTestCase, @unchecked Sendable {
         let transport = ThorchainNativePriceTransport()
         let catalog = try await ThorchainClient(transport: transport).catalog()
         XCTAssertEqual(catalog.prices["native"], "0.6299796287243207")
-        XCTAssertEqual(catalog.prices["btc/btc"], "60000")
-        XCTAssertEqual(catalog.prices["btc-btc"], "90000")
+        XCTAssertEqual(catalog.prices["btc/btc"], "62000")
+        XCTAssertEqual(catalog.prices["btc-btc"], "93000")
         let assets = await transport.oracleAssets
-        XCTAssertEqual(Set(assets), ["THOR.TCY", "X/RUJI"])
+        XCTAssertEqual(Set(assets), ["THOR.TCY", "X/RUJI", "BTC.BTC"])
         let requests = await transport.requests
         XCTAssertEqual(requests.filter { $0.url?.path.hasSuffix("/v2/stats") == true }.count, 1)
         XCTAssertFalse(requests.contains { $0.url?.path.hasSuffix("/v2/network") == true })

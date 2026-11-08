@@ -73,7 +73,9 @@ public actor PublicMarketRequests {
                  "/v1/coins/bch-bitcoin-cash", "/v1/tickers/bch-bitcoin-cash",
                  "/v1/coins/sui-sui", "/v1/tickers/sui-sui",
                  "/v1/coins/apt-aptos", "/v1/tickers/apt-aptos",
-                 "/v1/coins/okb-okb", "/v1/tickers/okb-okb"].contains(url.path)
+                 "/v1/coins/okb-okb", "/v1/tickers/okb-okb",
+                 "/v1/tickers/tlos-telos", "/v1/tickers/ftm-fantom",
+                 "/v1/tickers/ltc-litecoin"].contains(url.path)
         }
         return VerifiedEVMTokenCatalog.independentURLs.contains(url)
     }
@@ -188,6 +190,8 @@ public actor PublicMarketRequests {
                 // A DNS/connectivity outage affects every symbol on this host.
                 // Record the attempted request, then let queued assets recover
                 // through their existing fallbacks without repeating the outage.
+                // Certificate failures also affect every symbol on this host.
+                // Defer briefly without bypassing TLS or blocking other hosts.
                 // Cancellation and malformed quote data never poison host health.
                 if !Task.isCancelled, Self.isTransportOutage(error) {
                     cooldown[host] = .now.advanced(by: transportCooldown)
@@ -203,7 +207,9 @@ public actor PublicMarketRequests {
         guard let error = error as? URLError else { return false }
         return [.timedOut, .cannotFindHost, .dnsLookupFailed, .cannotConnectToHost,
                 .networkConnectionLost, .notConnectedToInternet,
-                .secureConnectionFailed].contains(error.code)
+                .secureConnectionFailed, .serverCertificateUntrusted,
+                .serverCertificateHasBadDate, .serverCertificateHasUnknownRoot,
+                .serverCertificateNotYetValid].contains(error.code)
     }
 
     private func retain(_ response: Response, for url: URL, lifetime: Double) {

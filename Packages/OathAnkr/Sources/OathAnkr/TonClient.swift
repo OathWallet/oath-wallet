@@ -7,12 +7,11 @@ public actor TonClient {
     private let endpoint: URL
     private let transport: any AnkrTransport
     private let nodeGate = AnkrPermits(count: 4)
-    private let indexGate = AnkrPermits(count: 1)
+    private let indexRequests: TonIndexRequests
     private let recoveryGate = AnkrPermits(count: 1)
     private let recoveryEndpoint = URL(string: "https://toncenter.com/api/v2/jsonRPC")!
     private var lastRecovery = Date.distantPast
     private var recoveryVerified = false
-    private var lastIndex = Date.distantPast
     private var verified = false
     private let indexInterval: Double
     private var bindings: Set<String> = []
@@ -20,16 +19,19 @@ public actor TonClient {
         guard !apiKey.isEmpty, apiKey.count <= 256, apiKey.utf8.allSatisfy({ (48...57).contains($0) || (65...90).contains($0) || (97...122).contains($0) }) else { throw TonError.configuration }
         endpoint = URL(string: "https://rpc.ankr.com/ton_api_v2")!.appendingPathComponent(apiKey)
         self.transport = transport; indexInterval = 4.2
+        indexRequests = .shared
     }
     // Deterministic host fixtures need no public-provider pacing.
-    init(testTransport: any AnkrTransport) {
+    init(testTransport: any AnkrTransport, indexRequests: TonIndexRequests = TonIndexRequests()) {
         endpoint = URL(string: "https://rpc.ankr.com/ton_api_v2/fixture")!
         transport = testTransport; indexInterval = 0
+        self.indexRequests = indexRequests
     }
     private func request(_ url: URL, body: TonJSON? = nil, index: Bool = false) async throws -> TonJSON {
         let recovery = url == recoveryEndpoint
-        let gate = index ? indexGate : recovery ? recoveryGate : nodeGate
+        let gate = index ? indexRequests.permits : recovery ? recoveryGate : nodeGate
         try await gate.acquire()
+        var failureReported = false
         do {
             var req = URLRequest(url: url); req.timeoutInterval = 35
             req.setValue("OathWallet/1.0", forHTTPHeaderField: "User-Agent")
@@ -37,10 +39,7 @@ public actor TonClient {
             if let body { req.httpMethod = "POST"; req.httpBody = try JSONEncoder().encode(body) }
             for attempt in 0..<3 {
                 try Task.checkCancellation()
-                if index {
-                    let delay = indexInterval - Date().timeIntervalSince(lastIndex)
-                    if delay > 0 { try await Task.sleep(for: .seconds(delay)) }; lastIndex = .now
-                }
+                if index { try await indexRequests.reserve() }
                 // Public TON Center permits one request per second. Serialize
                 // all recovery reads, including retries and identity checks.
                 if recovery, indexInterval > 0 {
@@ -49,22 +48,30 @@ public actor TonClient {
                     lastRecovery = .now
                 }
                 do {
-                    let (data,status) = try await transport.send(req)
+                    let (data,status) = try await transport.sendPreservingTransportError(req)
                     guard status == 200 else { throw TonError.http(status) }
                     guard data.count <= 32 * 1024 * 1024 else { throw TonError.malformed }
                     let value = try JSONDecoder().decode(TonJSON.self, from: data)
                     await gate.release(); return value
                 } catch {
                     if error is CancellationError || Task.isCancelled || (error as? URLError)?.code == .cancelled { throw CancellationError() }
+                    failureReported = true
                     OathDiagnostics.record(error, component: "provider", operation: "ton_read",
                         context: ["chain": "ton", "host": url.host ?? "", "attempt": String(attempt + 1)])
+                    if index, error as? TonError == .http(429) {
+                        // Report the actual rejection once, then defer every
+                        // queued client. A short per-request retry would consume
+                        // the same shared quota and multiply the failure.
+                        await indexRequests.rateLimited()
+                        throw error
+                    }
                     let retry: Bool
                     switch error { case TonError.http(let n): retry = n == 429 || n >= 500
-                    case AnkrError.transport: retry = true
-                    default: retry = false }
+                    default: retry = AnkrReadRetry.transientTransport(error) }
                     if retry && attempt < 2 { try await Task.sleep(for: .seconds(index ? 5 * (1 << attempt) : 1 << attempt)); continue }
                     if let error = error as? TonError { throw error }
                     if error is DecodingError { throw TonError.malformed }
+                    if error is URLError { throw TonError.transport }
                     if case AnkrError.transport = error { throw TonError.transport }
                     // Unknown provider/validation failures must not become an
                     // apparent transport outage eligible for node recovery.
@@ -72,7 +79,11 @@ public actor TonClient {
                 }
             }
             throw TonError.transport
-        } catch { OathDiagnostics.record(error); await gate.release(); throw error }
+        } catch {
+            // Only pre-request preparation failures lack an owning report.
+            if !failureReported { OathDiagnostics.record(error) }
+            await gate.release(); throw error
+        }
     }
     func rpc(_ method: String, _ params: [String: TonJSON] = [:]) async throws -> TonJSON {
         do { return try await node(method, params, at: endpoint) }

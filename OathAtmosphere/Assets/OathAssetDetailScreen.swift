@@ -16,6 +16,7 @@ struct OathAssetDetailScreen: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @State private var model = OathAssetDetailModel()
+    @State private var scrollEffects = OathHomeScrollEffects()
     @State private var sheet: Sheet?
     @State private var showsScanner = false
     @State private var scannedRecipient: OathScannedRecipient?
@@ -101,6 +102,7 @@ struct OathAssetDetailScreen: View {
                 isEnabled: active && !session.changingWallet,
                 refreshIdentity: "\(route.walletID):\(holding.id):\(holding.address)",
                 action: refresh, onFailure: {}, onScroll: { _ in },
+                onDraggingChanged: { scrollEffects.setDragging($0) },
                 feedback: { event in
                     switch event {
                     case .pullStep: OathHaptics.shared.play(.selection)
@@ -137,6 +139,7 @@ struct OathAssetDetailScreen: View {
             .modifier(OathHeaderScrollBackground {
                 OathHomeHeaderSurface(animates: active && sheet == nil && !showsScanner,
                                       colorHex: session.portfolio?.wallet.colorHex)
+                    .modifier(OathHomeDragBlur(effects: scrollEffects))
             })
         }
         .background(Color(uiColor: OathSurfaceColors.groupedCanvas).ignoresSafeArea())
@@ -320,6 +323,7 @@ struct OathAssetDetailScreen: View {
                     } else {
                         OathButton { sheet = .priceUntracked } label: {
                             Label(strings.text(.assetPriceUnavailable), systemImage: "exclamationmark.circle")
+                                .labelStyle(OathPriceUntrackedLabelStyle())
                                 .oathFont(.body).foregroundStyle(.secondary)
                                 .frame(minHeight: 44).contentShape(Rectangle())
                         }

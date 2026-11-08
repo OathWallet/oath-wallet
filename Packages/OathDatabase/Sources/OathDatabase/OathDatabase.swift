@@ -6,6 +6,8 @@ import GRDB
 /// happen off the caller's actor. Only committed immutable values reach the UI.
 public final class OathDatabase: Sendable {
     let pool: DatabasePool
+    // Accessed exclusively on this pool's serialized writer queue.
+    let storageRecovery = DatabaseStorageRecovery()
 
     public static func open(at url: URL) async throws -> OathDatabase {
         try await Task.detached(priority: .userInitiated) { try OathDatabase(url: url) }.value
@@ -62,6 +64,9 @@ public final class OathDatabase: Sendable {
             // benchmarks that disable fsync. GRDB owns WAL/checkpoint access.
             try db.execute(sql: "PRAGMA synchronous = FULL")
             try db.execute(sql: "PRAGMA secure_delete = ON")
+            // Reclaim excess retained WAL space after SQLite safely resets it.
+            // Never delete/truncate database sidecars through FileManager.
+            try db.execute(sql: "PRAGMA journal_size_limit = 4194304")
         }
         pool = try DatabasePool(path: url.path, configuration: configuration)
         try Schema.migrator.migrate(pool)
@@ -78,7 +83,7 @@ public final class OathDatabase: Sendable {
     /// transaction. Identity, precision, derivation, ordering and user-enabled
     /// state survive an app update; all UI reads still come from the database.
     public func seed(networks: [NetworkRecord], assets: [AssetRecord]) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             for network in networks {
                 try network.insert(db, onConflict: .ignore)
                 try db.execute(sql: """
@@ -115,10 +120,10 @@ public final class OathDatabase: Sendable {
         }
     }
     public func saveNetwork(_ network: NetworkRecord) async throws {
-        try await pool.write { db in try network.upsert(db) }
+        try await storageWrite { db in try network.upsert(db) }
     }
     public func saveAsset(_ asset: AssetRecord) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             if let existing = try AssetRecord.fetchOne(db, key: asset.id),
                existing.networkID != asset.networkID || existing.reference != asset.reference {
                 throw StoreError.conflictingIdentity
@@ -157,7 +162,7 @@ public final class OathDatabase: Sendable {
         guard ["electrum", "electrum2fa", "aezeed", "hd", "imported", "privateKey", "watchOnly", "passphrase", "bitcoinMultisig", "litecoinMultisig", "bitcoinCashMultisig", "dogecoinMultisig", "evmMultisig", "tronMultisig", "solanaMultisig", "xrplMultisig", "stellarMultisig", "aptosMultisig", "tonMultisig", "thorchainMultisig", "nearMultisig", "suiMultisig"].contains(wallet.kind), wallet.createdAt.isFinite,
               !wallet.id.isEmpty, !wallet.vaultReference.isEmpty else { throw StoreError.invalidValue("wallet") }
         guard !["aezeed", "electrum", "electrum2fa"].contains(wallet.kind) || (!accounts.isEmpty && accounts.allSatisfy { $0.networkID == "bitcoin" }) else { throw StoreError.invalidValue("aezeed network") }
-        try await pool.write { db in
+        try await storageWrite { db in
             if let existing = try WalletRecord.fetchOne(db, key: wallet.id) {
                 guard existing.vaultReference == wallet.vaultReference else { throw StoreError.conflictingIdentity }
             } else {
@@ -204,13 +209,13 @@ public final class OathDatabase: Sendable {
         guard WalletRecord.isValidName(name) else {
             throw StoreError.invalidValue("wallet name")
         }
-        try await pool.write { db in
+        try await storageWrite { db in
             try db.execute(sql: "UPDATE wallets SET name = ?, confirmedName = ? WHERE id = ?", arguments: [name, name, id])
             guard db.changesCount == 1 else { throw StoreError.missingRecord }
         }
     }
     public func markBackedUp(_ id: String) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try db.execute(sql: "UPDATE wallets SET backedUp = 1 WHERE id = ?", arguments: [id])
             guard db.changesCount == 1 else { throw StoreError.missingRecord }
         }
@@ -227,7 +232,7 @@ public final class OathDatabase: Sendable {
             }
         }
         try Task.checkCancellation()
-        try await pool.write { db in
+        try await storageWrite { db in
             if keepDefaultName {
                 guard try WalletRecord.fetchOne(db, key: id)?.name.isEmpty == true else { throw StoreError.invalidTransition }
             }
@@ -238,7 +243,7 @@ public final class OathDatabase: Sendable {
     /// Removes public metadata only. The caller must separately erase the
     /// matching protected vault. Foreign keys remove wallet-owned child rows.
     public func deleteWalletMetadata(_ id: String) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.requireNoPendingWalletTransactions(id, db: db)
             let transactionIDs = try String.fetchAll(db, sql: """
                 SELECT transactionID FROM activity WHERE walletID=?
@@ -277,7 +282,7 @@ public final class OathDatabase: Sendable {
         if key == AppAppearance.settingKey, let value, AppAppearance(rawValue: value) == nil {
             throw StoreError.invalidValue("appearance")
         }
-        try await pool.write { db in
+        try await storageWrite { db in
             if let value {
                 if key == "activeWalletID", try WalletRecord.fetchOne(db, key: value) == nil { throw StoreError.missingRecord }
                 try SettingRecord(key: key, value: value, updatedAt: Date.now.timeIntervalSince1970).upsert(db)
@@ -287,7 +292,7 @@ public final class OathDatabase: Sendable {
     /// The database, rather than a potentially stale UI snapshot, decides the
     /// next value when several taps/writers arrive before observation delivery.
     public func toggleBalanceVisibility() async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try db.execute(sql: """
                 INSERT INTO settings(key,value,updatedAt) VALUES ('balancesHidden','true',?)
                 ON CONFLICT(key) DO UPDATE SET value=CASE settings.value WHEN 'true' THEN 'false' ELSE 'true' END,
@@ -298,7 +303,7 @@ public final class OathDatabase: Sendable {
     /// A retry-safe, one-way migration. Old preferences cease to be a read source
     /// even when the legacy value is absent or changed later.
     public func migrateLegacySettings(_ values: [String: String]) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard try String.fetchOne(db, sql: "SELECT value FROM metadata WHERE key = 'legacySettingsV1'") == nil else { return }
             for (key, value) in values {
                 try SettingRecord(key: key, value: value, updatedAt: Date.now.timeIntervalSince1970).insert(db, onConflict: .ignore)

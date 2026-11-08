@@ -55,7 +55,7 @@ extension OathDatabase {
         guard plan.request.broadcasts else { throw XrplSendError.changed }
         try plan.request.verify(signed, review: plan)
         let planData = try JSONEncoder().encode(plan), signedData = try JSONEncoder().encode(signed)
-        return try await pool.write { db in
+        return try await storageWrite { db in
             if let stored = try WalletConnectXrplSubmission.fetchOne(db, key: id) {
                 guard stored.fingerprint == plan.request.fingerprint, stored.walletID == walletID,
                       stored.accountID == accountID, try stored.decoded().1 == signed else { throw XrplSendError.changed }
@@ -79,7 +79,7 @@ extension OathDatabase {
         }
     }
     public func settleWalletConnectXrpl(_ id: String, outcome: XrplSendReceipt.Outcome) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var record = try WalletConnectXrplSubmission.fetchOne(db, key:id),
                   !["confirmed","failed","expired"].contains(record.state) else { return }
             if record.state == "accepted", outcome == .unknown { return }

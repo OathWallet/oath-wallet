@@ -32,11 +32,16 @@ public actor TronSynchronizer {
                 async let values = client.inventory(owner: account.address, additionalTokens: Array(Set(tracked + previous)))
                 async let directory = Self.catalog(database, markets)
                 async let quote = await OathDiagnostics.attempt("native_price") { try await markets.nativePrice() }
-                let catalog = await directory
-                self.startHistory(ticket, catalog: catalog)
+                let cached = await OathDiagnostics.attemptOptional("cached_refresh_catalog") { try await database.marketCache(key: "tron.coingecko.catalog.v1") }
+                let initialCatalog = cached.flatMap { saved in OathDiagnostics.attempt("decode_cached_catalog") { try TronMarkets.decodeCatalog(saved.payload) } } ?? [:]
                 let inventory = try await values
                 try Task.checkCancellation()
-                try await database.commitTronInventory(inventory, ticket: ticket, catalog: catalog)
+                try await database.commitTronInventory(inventory, ticket: ticket, catalog: initialCatalog)
+                let catalog = await directory
+                try await database.applyRefreshCatalog(account: ticket.account, runID: ticket.runID, enrichment: { asset in
+                    catalog[asset.reference].map { .init(name: $0.name, symbol: $0.symbol, logo: $0.logo) }
+                }) { catalog[$0.reference]?.decimals == $0.decimals }
+                self.startHistory(ticket, catalog: catalog)
                 if let quote = await quote { try await Self.save([quote], database: database) }
                 let refs = inventory.holdings.filter { $0.amount != "0" && TronIdentity.isToken($0.token.reference) && (catalog[$0.token.reference] != nil || tracked.contains($0.token.reference)) }.map { $0.token.reference }.sorted()
                 await withTaskGroup(of: Void.self) { group in

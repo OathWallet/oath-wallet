@@ -33,6 +33,7 @@ private struct OathReceiveFlow: View {
     private enum Step: Hashable { case receive, types, about }
     @State private var path: [Step] = []
     @State private var query = ""
+    @State private var searchScope: OathAssetSearchScope = .all
     @State private var selectedHolding: Holding?
     @State private var selectionID = UUID()
     @State private var qr: CGImage?
@@ -115,7 +116,7 @@ private struct OathReceiveFlow: View {
     private var tokenSearchRequest: OathTokenSearchRequest {
         .init(query: query, walletID: session.displayedProfile?.id.uuidString,
               active: allowed && !receiving && path.isEmpty, snapshot: session.portfolio,
-              permittedNetworks: Set(addresses.map(\.chain)))
+              permittedNetworks: Set(addresses.map(\.chain)), scope: searchScope)
     }
     private var readyIdentity: ReceiveIdentity? {
         guard allowed, receiving, !preparingAddress, currentHolding?.isCatalogPreview != true, let selected,
@@ -295,7 +296,7 @@ private struct OathReceiveFlow: View {
 
     private var assetPicker: some View {
         let assets = OathReceiveAsset.available(holdings: session.portfolio?.holdings ?? [],
-                                               addresses: addresses, query: query)
+                                               addresses: addresses, query: query, scope: searchScope)
         let firstID = assets.first?.id
         let searchRequest = tokenSearchRequest
         return OathEmptyStateScrollView(centersContent: assets.isEmpty && !searchRequest.hasQuery) {
@@ -327,7 +328,7 @@ private struct OathReceiveFlow: View {
                 }
             }.frame(maxWidth: 600).frame(maxWidth: .infinity)
         }
-        .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: strings.text(.searchAssets))
+        .modifier(OathAssetSearchFilter(query: $query, scope: $searchScope))
         .scrollDismissesKeyboard(.interactively)
     }
 
@@ -613,7 +614,9 @@ private struct OathReceiveContent: View {
                 case .qrCode: pendingShare = OathReceiveShareItem(items: [UIImage(cgImage: qr)])
                 case .address: pendingShare = OathReceiveShareItem(items: [payload])
                 case .link:
-                    guard let link = OathWalletLink.paymentURL(address: payload, chain: address.chain) else {
+                    guard holding == nil || (holding?.accountID == address.accountID && holding?.networkID == address.chain.id),
+                          let link = OathWalletLink.paymentURL(address: payload, chain: address.chain,
+                                                               reference: holding?.reference ?? "native") else {
                         OathDiagnostics.record(OathScanProblem.invalidAddress, component: "receive", operation: "share_payment_link",
                                                context: ["chain": address.chain.rawValue])
                         return

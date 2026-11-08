@@ -14,7 +14,7 @@ extension OathDatabase {
         guard send.state == "draft", send.nonce == nil, send.signedPayload == nil, send.transactionID == nil,
               !send.recipient.isEmpty, !send.idempotencyKey.isEmpty,
               send.createdAt.isFinite, send.updatedAt.isFinite else { throw StoreError.invalidValue("send draft") }
-        try await pool.write { db in
+        try await storageWrite { db in
             guard let wallet = try WalletRecord.fetchOne(db, key: send.walletID), wallet.deletedAt == nil else { throw StoreError.missingRecord }
             guard wallet.kind != "watchOnly" else { throw StoreError.readOnlyWallet }
             guard let account = try AccountRecord.fetchOne(db, key: send.accountID),
@@ -35,7 +35,7 @@ extension OathDatabase {
     /// tasks racing for an output cannot both acquire it, even after restart.
     public func queueSend(_ id: String, outputs: [Outpoint] = [], networkNonce: UInt64? = nil) async throws -> SendRecord {
         guard Set(outputs).count == outputs.count, outputs.count <= 1000 else { throw StoreError.invalidValue("outputs") }
-        return try await pool.write { db in
+        return try await storageWrite { db in
             guard var send = try SendRecord.fetchOne(db, key: id) else { throw StoreError.missingRecord }
             guard send.state == "draft",
                   let wallet = try WalletRecord.fetchOne(db, key: send.walletID), wallet.deletedAt == nil else { throw StoreError.invalidTransition }
@@ -90,7 +90,7 @@ extension OathDatabase {
             "signed": ["broadcast"], "broadcast": ["confirmed", "failed"]
         ]
         guard transitions[expected]?.contains(next) == true else { throw StoreError.invalidTransition }
-        return try await pool.write { db in
+        return try await storageWrite { db in
             guard var send = try SendRecord.fetchOne(db, key: id), send.state == expected else { throw StoreError.invalidTransition }
             if next == "signed" {
                 guard let signedPayload, !signedPayload.isEmpty, signedPayload.count <= 1_000_000 else {
@@ -168,7 +168,7 @@ extension OathDatabase {
         if let amount = request.amountAtomic { try Validation.amount(amount) }
         guard request.createdAt.isFinite, request.expiresAt?.isFinite != false,
               (request.memo?.count ?? 0) <= 20_000 else { throw StoreError.invalidValue("receive request") }
-        try await pool.write { db in
+        try await storageWrite { db in
             guard let account = try AccountRecord.fetchOne(db, key: request.accountID),
                   request.networkID == account.networkID else { throw StoreError.conflictingIdentity }
             let derivedBitcoin = try UTXONetwork(rawValue: request.networkID) != nil && (Bool.fetchOne(db,
@@ -197,7 +197,7 @@ extension OathDatabase {
 
     public func saveNote(_ note: NoteRecord) async throws {
         guard note.body.count <= 20_000, note.updatedAt.isFinite else { throw StoreError.invalidValue("note") }
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateSubject(db, walletID: note.walletID, type: note.subjectType, id: note.subjectID)
             if let old = try NoteRecord.fetchOne(db, key: note.id) {
                 guard old.walletID == note.walletID, old.subjectType == note.subjectType, old.subjectID == note.subjectID else { throw StoreError.conflictingIdentity }
@@ -224,11 +224,11 @@ extension OathDatabase {
             """, arguments: [walletID, match, Self.pageSize(limit)]) }
     }
     public func deleteNote(_ id: String, walletID: String) async throws {
-        try await pool.write { try $0.execute(sql: "DELETE FROM notes WHERE id=? AND walletID=?", arguments: [id, walletID]) }
+        try await storageWrite { try $0.execute(sql: "DELETE FROM notes WHERE id=? AND walletID=?", arguments: [id, walletID]) }
     }
     public func saveLabel(_ label: LabelRecord) async throws {
         guard !label.name.isEmpty, label.name.count <= 100, label.updatedAt.isFinite else { throw StoreError.invalidValue("label") }
-        try await pool.write { db in
+        try await storageWrite { db in
             if let old = try LabelRecord.fetchOne(db, key: label.id), old.walletID != label.walletID { throw StoreError.conflictingIdentity }
             try label.upsert(db)
         }
@@ -237,7 +237,7 @@ extension OathDatabase {
         try await pool.read { try LabelRecord.fetchAll($0, sql: "SELECT * FROM labels WHERE walletID=? ORDER BY name", arguments: [walletID]) }
     }
     public func assignLabel(_ assignment: LabelAssignment) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateSubject(db, walletID: assignment.walletID, type: assignment.subjectType, id: assignment.subjectID)
             try assignment.insert(db, onConflict: .ignore)
         }
@@ -249,10 +249,10 @@ extension OathDatabase {
             """, arguments: [walletID, subjectType, subjectID]) }
     }
     public func removeLabel(_ id: String, walletID: String) async throws {
-        try await pool.write { try $0.execute(sql: "DELETE FROM labels WHERE id=? AND walletID=?", arguments: [id, walletID]) }
+        try await storageWrite { try $0.execute(sql: "DELETE FROM labels WHERE id=? AND walletID=?", arguments: [id, walletID]) }
     }
     public func unassignLabel(_ assignment: LabelAssignment) async throws {
-        try await pool.write { try $0.execute(sql: "DELETE FROM labelAssignments WHERE labelID=? AND walletID=? AND subjectType=? AND subjectID=?",
+        try await storageWrite { try $0.execute(sql: "DELETE FROM labelAssignments WHERE labelID=? AND walletID=? AND subjectType=? AND subjectID=?",
                                              arguments: [assignment.labelID, assignment.walletID, assignment.subjectType, assignment.subjectID]) }
     }
     private static func validateSubject(_ db: Database, walletID: String, type: String, id: String) throws {

@@ -61,11 +61,13 @@ public actor TonSynchronizer {
                 }
                 if let cause = value.incompleteError { throw cause }
             } catch {
-                OathDiagnostics.record(error,component:"sync",operation:"inventory_refresh")
+                // Retry/domain decisions are complete. Carry the observed cause
+                // through shared-flight and presentation layers without new reports.
+                let reported = OathDiagnostics.recordedForPropagation(error, component: "sync", operation: "inventory_refresh")
                 if let ticket = ticketToFail {
                     await OathDiagnostics.attempt("failTonSync", body: { try await database.failTonSync(ticket,history:false,code:Self.code(error)) })
                 }
-                throw error
+                throw reported
             }
            }
           }

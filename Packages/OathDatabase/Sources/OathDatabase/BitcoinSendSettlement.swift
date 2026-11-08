@@ -5,7 +5,7 @@ import OathBitcoin
 extension OathDatabase {
     public func settleBitcoinSend(_ id: String, confirmation: BitcoinSendConfirmation) async throws {
         guard confirmation.height > 0, confirmation.timestamp.isFinite, confirmation.timestamp > 0 else { throw BitcoinError.invalidResponse }
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send = try SendRecord.fetchOne(db, key: id), ["signed", "broadcast"].contains(send.state) else { return }
             guard let chain = UTXONetwork(rawValue: send.networkID), let payload = send.signedPayload,
                   let txID = send.transactionID, var original = try TransactionRecord.fetchOne(db, key: txID),

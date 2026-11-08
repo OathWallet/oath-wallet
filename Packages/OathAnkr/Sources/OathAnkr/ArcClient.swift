@@ -135,27 +135,33 @@ public struct ArcClient: Sendable {
                 guard next < chunks.count else { return }
                 let chunk = chunks[next]; next += 1
                 group.addTask {
-                    let calls = chunk.flatMap { ref in [Self.call(ref,"0x06fdde03",height),Self.call(ref,"0x95d89b41",height),Self.call(ref,"0x313ce567",height),Self.call(ref,data,height)] }
-                    let (rows,raw) = try await rpc(calls)
-                    var result:[ArcHolding] = [], complete = true
-                    for (i,ref) in chunk.enumerated() {
-                        let offset = i*4
-                        let token: ArcToken?
-                        do {
-                            token = try Self.token(reference: ref, rows: rows[offset..<offset+3])
-                        } catch AnkrError.rpc {
-                            // The response diagnostic already identifies the failed decimals call.
-                            token = nil
-                        } catch {
-                            OathDiagnostics.record(error, operation: "decode_inventory_token")
-                            token = nil
+                    do {
+                        let calls = chunk.flatMap { ref in [Self.call(ref,"0x06fdde03",height),Self.call(ref,"0x95d89b41",height),Self.call(ref,"0x313ce567",height),Self.call(ref,data,height)] }
+                        let (rows,raw) = try await rpc(calls)
+                        var result:[ArcHolding] = [], complete = true
+                        for (i,ref) in chunk.enumerated() {
+                            let offset = i*4
+                            let token: ArcToken?
+                            do {
+                                token = try Self.token(reference: ref, rows: rows[offset..<offset+3])
+                            } catch AnkrError.rpc {
+                                // The response diagnostic already identifies the failed decimals call.
+                                token = nil
+                            } catch {
+                                OathDiagnostics.record(error, operation: "decode_inventory_token")
+                                token = nil
+                            }
+                            var amount = OathDiagnostics.attempt("decode_inventory_balance", body: { try Self.word(rows[offset+3]) })
+                            if token == nil || saved[ref].map({ $0.decimals != token?.decimals }) == true { amount = nil }
+                            if let token = token ?? saved[ref] { result.append(.init(token:token,amount:amount)) }
+                            if amount == nil { complete = false }
                         }
-                        var amount = OathDiagnostics.attempt("decode_inventory_balance", body: { try Self.word(rows[offset+3]) })
-                        if token == nil || saved[ref].map({ $0.decimals != token?.decimals }) == true { amount = nil }
-                        if let token = token ?? saved[ref] { result.append(.init(token:token,amount:amount)) }
-                        if amount == nil { complete = false }
+                        return (result,raw,complete)
+                    } catch {
+                        guard !Task.isCancelled, !(error is CancellationError) else { throw error }
+                        OathDiagnostics.record(error, operation: "inventory_token_batch")
+                        return (chunk.compactMap { ref in saved[ref].map { ArcHolding(token: $0, amount: nil) } }, Data(), false)
                     }
-                    return (result,raw,complete)
                 }
             }
             for _ in 0..<min(3,chunks.count) { enqueue() }

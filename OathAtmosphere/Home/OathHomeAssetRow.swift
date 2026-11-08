@@ -82,8 +82,21 @@ struct OathAssetUnitPrice: View {
                 .accessibilityIdentifier("home.asset.unitPrice")
         } else {
             Label(strings.text(.assetPriceUnavailable), systemImage: "exclamationmark.circle")
+                .labelStyle(OathPriceUntrackedLabelStyle())
                 .anchorPreference(key: OathUntrackedPriceBounds.self, value: .bounds) { $0 }
                 .accessibilityHidden(true)
+        }
+    }
+}
+
+/// Keep this inline warning out of context-dependent label icon columns.
+/// Omitting a spacing value lets SwiftUI choose the native distance between
+/// the symbol and title, while retaining both under an icon-only parent style.
+struct OathPriceUntrackedLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack {
+            configuration.icon
+            configuration.title
         }
     }
 }

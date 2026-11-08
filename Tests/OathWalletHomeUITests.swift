@@ -4,8 +4,6 @@ import UIKit
 /// Uses a fresh Keychain namespace and public test phrases on one disposable
 /// simulator. Never reveals or screenshots a randomly generated recovery phrase.
 final class OathWalletHomeUITests: XCTestCase {
-    /// Exercise the actual SwiftUI/Metal/UIScrollView composition: checking the
-    /// shader alone cannot catch a compressed fade in the scrolling overlay.
     @MainActor func testHomeCrossfadeBetweenSummaryAndAssets() {
         continueAfterFailure = false
         let device = XCUIDevice.shared

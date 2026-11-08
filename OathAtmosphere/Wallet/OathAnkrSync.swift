@@ -49,7 +49,7 @@ actor OathAnkrSync {
         guard ticket == epoch, !Task.isCancelled else { throw CancellationError() }
         let results = try await service.refresh(walletID: walletID)
         guard ticket == epoch, !Task.isCancelled else { throw CancellationError() }
-        if let failed = results.first(where: { !$0.success }) { throw failed.failure ?? OathWalletError.unavailable }
+        try AnkrSyncOutcome.requireCompleteBalances(results)
     }
     func refreshBalances(walletID: String) async throws {
         let ticket = epoch
@@ -57,7 +57,7 @@ actor OathAnkrSync {
         guard ticket == epoch, !Task.isCancelled else { throw CancellationError() }
         let results = try await service.refreshBalances(walletID: walletID)
         guard ticket == epoch, !Task.isCancelled else { throw CancellationError() }
-        if let failed = results.first(where: { !$0.success }) { throw failed.failure ?? OathWalletError.unavailable }
+        try AnkrSyncOutcome.requireCompleteBalances(results)
     }
     func refreshSolana(accountID: String) async throws {
         let ticket = epoch

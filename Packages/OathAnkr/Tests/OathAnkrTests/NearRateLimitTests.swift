@@ -6,11 +6,12 @@ import OathDiagnostics
 private actor NearRateLimitFeed: AnkrTransport {
     let header: String?
     let persistent: Bool
+    let failureStatus: Int
     let page: Data
     private(set) var requests: [URLRequest] = []
     private(set) var times: [ContinuousClock.Instant] = []
-    init(header: String? = "2", persistent: Bool = false, page: Data) {
-        self.header = header; self.persistent = persistent; self.page = page
+    init(header: String? = "2", persistent: Bool = false, page: Data, failureStatus: Int = 429) {
+        self.header = header; self.persistent = persistent; self.page = page; self.failureStatus = failureStatus
     }
     func send(_ request: URLRequest) async throws -> (Data, Int) {
         let response = try await sendResponse(request)
@@ -26,9 +27,61 @@ private actor NearRateLimitFeed: AnkrTransport {
         }
         requests.append(request); times.append(.now)
         if requests.count == 1 || persistent {
-            return .init(data: Data(), status: 429, retryAfter: header)
+            return .init(data: Data(), status: failureStatus, retryAfter: header)
         }
         return .init(data: page, status: 200)
+    }
+}
+
+private actor NearRateLimitReports: DiagnosticTransport {
+    var events: [DiagnosticEvent] = []
+    func upload(_ events: [DiagnosticEvent]) async throws { self.events += events }
+}
+
+final class NearRateLimitDiagnosticsTests: XCTestCase, @unchecked Sendable {
+    func testRateLimitsAreQuietAndAccessFailuresKeepSafeCorrelation() async throws {
+        guard ProcessInfo.processInfo.environment["OATH_NEAR_RATE_LIMIT_REPORTS"] == "1" else {
+            throw XCTSkip("Run separately: the process-wide diagnostics recorder is configured once")
+        }
+        let reports = NearRateLimitReports()
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
+        defer { try? FileManager.default.removeItem(at: file) }
+        OathDiagnostics.configure(file: file, transport: reports)
+        let correlation = UUID()
+        let transport = NearRateLimitFeed(header: "private-provider-header", persistent: true, page: Data())
+        do {
+            _ = try await OathDiagnostics.$operationID.withValue(correlation) {
+                try await NearClient(apiKey: "000000000000000000000000", transport: transport)
+                    .history(owner: "root.near", stream: "transfers", before: "private-fixture-cursor")
+            }
+            XCTFail()
+        } catch { XCTAssertEqual(error as? NearError, .http(429)) }
+        try await Task.sleep(for: .milliseconds(100))
+        await OathDiagnostics.flush()
+        let availability = await reports.events.filter { $0.operationID == correlation }
+        XCTAssertTrue(availability.isEmpty, "The shared policy filters provider rate limits")
+        let denied = UUID()
+        do {
+            _ = try await OathDiagnostics.$operationID.withValue(denied) {
+                try await NearClient(apiKey: "000000000000000000000000", transport:
+                    NearRateLimitFeed(header: "private-provider-header", persistent: true, page: Data(), failureStatus: 403))
+                    .history(owner: "root.near", stream: "transfers", before: "private-fixture-cursor")
+            }
+            XCTFail("Access failure must reject history")
+        } catch { XCTAssertEqual(error as? NearError, .http(403)) }
+        for _ in 0..<100 {
+            await OathDiagnostics.flush()
+            if await reports.events.contains(where: { $0.operationID == denied }) { break }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        let events = await reports.events.filter { $0.operationID == denied }
+        XCTAssertEqual(events.count, 1)
+        XCTAssertEqual(events.first?.context["attempt"], "1")
+        XCTAssertTrue(events.allSatisfy { $0.operation == "near_index_read" && $0.context["http_status"] == "403" && $0.context["chain"] == "near" && $0.context["stage"] == "transfers" })
+        let encoded = String(decoding: try JSONEncoder().encode(events), as: UTF8.self)
+        for excluded in ["privatefixturecredential", "root.near", "private-fixture-cursor", "private-provider-header", "resume_token", "account_id"] {
+            XCTAssertFalse(encoded.contains(excluded))
+        }
     }
 }
 

@@ -56,7 +56,7 @@ extension OathDatabase {
     }
 
     func completeSendBalanceRefreshes(_ ids: Set<String>, target: SendBalanceRefreshTarget, revisions: [String: Int64]) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             for id in ids {
                 guard let revision = revisions[id] else { continue }
                 try db.execute(sql: """

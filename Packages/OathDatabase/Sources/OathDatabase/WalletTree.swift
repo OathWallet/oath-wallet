@@ -18,7 +18,7 @@ extension OathDatabase {
     public func reconcileWalletFamilies(_ families: [WalletFamily]) async throws {
         guard families.allSatisfy({ $0.index > 0 && $0.parentID != $0.id }),
               Set(families.map(\.id)).count == families.count else { throw StoreError.invalidValue("wallet family") }
-        try await pool.write { db in
+        try await storageWrite { db in
             for family in families {
                 guard let wallet = try WalletRecord.fetchOne(db, key: family.id),
                       wallet.vaultReference == family.vaultReference,

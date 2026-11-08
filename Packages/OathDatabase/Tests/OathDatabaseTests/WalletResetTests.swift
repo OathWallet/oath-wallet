@@ -40,7 +40,7 @@ import GRDB
                 INSERT INTO syncCursors VALUES('one','history','fixture',1,NULL,1);
                 INSERT INTO cloudBackups VALUES('one','b','fixture-cloud',1,'queued',X'001122',1,NULL,0,NULL);
                 INSERT INTO contacts VALUES('c','SYNTHETIC-RESET-CONTACT','fixture',1,1,1);
-                INSERT INTO contactAddresses VALUES('ca','c','bitcoin','fixture','fixture','fixture',0);
+                INSERT INTO contactAddresses(id,contactID,networkID,address,addressKey,label,position) VALUES('ca','c','bitcoin','fixture','fixture','fixture',0);
                 INSERT INTO metadata VALUES('legacySettingsMigrated','true');
                 """)
         }

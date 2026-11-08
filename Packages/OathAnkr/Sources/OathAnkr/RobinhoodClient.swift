@@ -163,25 +163,34 @@ public struct RobinhoodClient: Sendable {
                 guard next < chunks.count else { return }
                 let chunk = chunks[next]; next += 1
                 group.addTask {
-                    var calls: [(String, [SolanaJSON])] = []
-                    for token in chunk {
-                        if token.reference == "native" { calls.append(("eth_getBalance", [.string(owner), .string(blockNumber)])) }
-                        else {
-                            calls.append(("eth_call", [.object(["to": .string(token.reference), "data": .string(body)]), .string(blockNumber)]))
-                            calls.append(("eth_call", [.object(["to": .string(token.reference), "data": .string("0x313ce567")]), .string(blockNumber)]))
+                    do {
+                        var calls: [(String, [SolanaJSON])] = []
+                        for token in chunk {
+                            if token.reference == "native" { calls.append(("eth_getBalance", [.string(owner), .string(blockNumber)])) }
+                            else {
+                                calls.append(("eth_call", [.object(["to": .string(token.reference), "data": .string(body)]), .string(blockNumber)]))
+                                calls.append(("eth_call", [.object(["to": .string(token.reference), "data": .string("0x313ce567")]), .string(blockNumber)]))
+                            }
                         }
-                    }
-                    let (rows, raw) = try await rpc(calls)
-                    var i = 0, holdings: [RobinhoodHolding] = []
-                    for token in chunk {
-                        var amount = OathDiagnostics.attempt("decode_inventory_quantity", body: { try RobinhoodIdentity.amount(Self.result(rows[i])) }); i += 1
-                        if token.reference != "native" {
-                            let decimals = OathDiagnostics.attempt("decode_inventory_quantity", body: { try RobinhoodIdentity.amount(Self.result(rows[i])) }); i += 1
-                            if decimals != String(token.decimals) { amount = nil }
+                        let (rows, raw) = try await rpc(calls)
+                        var i = 0, holdings: [RobinhoodHolding] = []
+                        for token in chunk {
+                            var amount = OathDiagnostics.attempt("decode_inventory_quantity", body: { try RobinhoodIdentity.amount(Self.result(rows[i])) }); i += 1
+                            if token.reference != "native" {
+                                let decimals = OathDiagnostics.attempt("decode_inventory_quantity", body: { try RobinhoodIdentity.amount(Self.result(rows[i])) }); i += 1
+                                if decimals != String(token.decimals) { amount = nil }
+                            }
+                            holdings.append(.init(token: token, amount: amount))
                         }
-                        holdings.append(.init(token: token, amount: amount))
+                        return (holdings, raw)
+                    } catch {
+                        // A failed token-only batch must not discard successful
+                        // native/other batches. The native batch retains the
+                        // existing snapshot recovery and fallback behavior.
+                        guard !Task.isCancelled, !(error is CancellationError), !chunk.contains(where: { $0.reference == "native" }) else { throw error }
+                        OathDiagnostics.record(error, operation: "inventory_token_batch")
+                        return (chunk.map { .init(token: $0, amount: nil) }, Data())
                     }
-                    return (holdings, raw)
                 }
             }
             for _ in 0..<min(4, chunks.count) { enqueue() }

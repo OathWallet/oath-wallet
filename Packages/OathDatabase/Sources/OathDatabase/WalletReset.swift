@@ -34,7 +34,7 @@ extension OathDatabase {
 
     @discardableResult
     public func beginEmptyWalletReset(legacyFingerprint: String?) async throws -> String {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard try String.fetchOne(db, sql: "SELECT value FROM metadata WHERE key='walletReset'") == nil else {
                 throw StoreError.invalidTransition
             }
@@ -48,7 +48,7 @@ extension OathDatabase {
 
     @discardableResult
     public func beginWalletReset(legacyRecovery: Bool = false) async throws -> String {
-        try await pool.write { db in
+        try await storageWrite { db in
             let id = try String.fetchOne(db, sql: "SELECT value FROM metadata WHERE key='walletReset'") ?? UUID().uuidString
             try db.execute(sql: "INSERT OR IGNORE INTO metadata(key,value) VALUES('walletReset',?)", arguments: [id])
             if legacyRecovery {
@@ -61,7 +61,7 @@ extension OathDatabase {
     /// Erase the complete ledger, including rows shared by multiple wallets.
     /// Deleting only wallets would leave transactions, transfers and UTXOs.
     public func eraseWalletData(resetID: String) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.requireReset(resetID, db: db)
             try Self.eraseWalletRows(db)
             if try String.fetchOne(db, sql: "SELECT value FROM metadata WHERE key='walletResetRecovery'") == resetID
@@ -100,7 +100,7 @@ extension OathDatabase {
     }
 
     public func finishWalletReset(resetID: String) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.requireReset(resetID, db: db)
             for table in Self.walletDataTables {
                 guard try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM \(table)") == 0 else {

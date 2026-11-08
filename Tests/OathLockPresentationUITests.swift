@@ -1,7 +1,8 @@
 import XCTest
 import UIKit
 
-/// One disposable simulator, public test vector, no enrollment or network jobs.
+/// One disposable simulator and public test vector. Normal read-only refresh
+/// jobs may run; these checks never submit a transaction.
 /// Covers the uncertain UIKit boundary: live blur over an active sheet/search.
 final class OathLockPresentationUITests: XCTestCase {
     /// Run after installing either legacy launch fixture over the same app ID.
@@ -34,6 +35,76 @@ final class OathLockPresentationUITests: XCTestCase {
         }
     }
 
+    /// Focused app-error regression on a disposable simulator. Exercises real
+    /// encrypted storage and unlock without a transaction or user wallet.
+    @MainActor func testErrorRegressionLaunchNavigationAndForeground() {
+        let app = createWallet()
+        defer { app.terminate() }
+        XCTAssertEqual(app.state, .runningForeground)
+        app.buttons["home.settings"].tap()
+        XCTAssertTrue(app.buttons["settings.language"].waitForExistence(timeout: 8))
+        app.buttons["settings.language"].tap()
+        let search = app.searchFields["settings.languageSearch"]
+        XCTAssertTrue(search.waitForExistence(timeout: 8))
+        search.tap(); search.typeText("Arabic")
+        XCTAssertTrue(app.cells["language.choice.ar"].waitForExistence(timeout: 8))
+        backgroundAndReturn(app)
+        enterPIN(app)
+        XCTAssertTrue(search.waitForExistence(timeout: 15))
+        XCTAssertEqual(search.value as? String, "Arabic")
+        app.navigationBars.buttons.firstMatch.tap()
+        XCTAssertTrue(app.buttons["options.close"].waitForExistence(timeout: 8))
+        app.buttons["options.close"].tap()
+        XCTAssertTrue(app.buttons["home.settings"].waitForExistence(timeout: 8))
+        app.terminate(); app.launch()
+        XCTAssertTrue(app.staticTexts["wallet.unlock.title"].waitForExistence(timeout: 15))
+        enterPIN(app)
+        XCTAssertTrue(app.buttons["home.settings"].waitForExistence(timeout: 20))
+        let bitcoin = app.buttons["home.network.bitcoin"]
+        let assets = app.collectionViews["home.scroll"]
+        XCTAssertTrue(assets.waitForExistence(timeout: 8))
+        for _ in 0..<16 {
+            if bitcoin.exists && bitcoin.isHittable { break }
+            assets.swipeUp()
+        }
+        XCTAssertTrue(bitcoin.exists && bitcoin.isHittable); bitcoin.tap()
+        XCTAssertTrue(app.buttons["asset.receive"].waitForExistence(timeout: 15))
+        app.buttons["asset.receive"].tap()
+        XCTAssertTrue(app.buttons["receive.copy"].waitForExistence(timeout: 10))
+        backgroundAndReturn(app)
+        enterPIN(app)
+        XCTAssertTrue(app.buttons["receive.copy"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.buttons["receive.close"].waitForExistence(timeout: 8))
+        app.buttons["receive.close"].tap()
+        XCTAssertTrue(app.buttons["asset.receive"].waitForExistence(timeout: 10))
+        XCTAssertEqual(app.state, .runningForeground)
+        print("OATH_ERROR_REGRESSION_LAUNCH_NAVIGATION_LIFECYCLE_PASSED")
+    }
+
+    /// Capture app memory across repeated presentation and lock lifetimes.
+    /// This measures the simulator process, not an iPhone's memory budget.
+    @MainActor func testRepeatedSettingsAndBackgroundMemory() {
+        let app = createWallet()
+        defer { app.terminate() }
+        let options = XCTMeasureOptions()
+        options.iterationCount = 5
+        measure(metrics: [XCTMemoryMetric(application: app)], options: options) {
+            XCTAssertTrue(app.buttons["home.settings"].waitForExistence(timeout: 10))
+            app.buttons["home.settings"].tap()
+            XCTAssertTrue(app.buttons["settings.language"].waitForExistence(timeout: 8))
+            app.buttons["settings.language"].tap()
+            XCTAssertTrue(app.searchFields["settings.languageSearch"].waitForExistence(timeout: 8))
+            app.navigationBars.buttons.firstMatch.tap()
+            XCTAssertTrue(app.buttons["options.close"].waitForExistence(timeout: 8))
+            app.buttons["options.close"].tap()
+            XCTAssertTrue(app.buttons["home.settings"].waitForExistence(timeout: 8))
+            backgroundAndReturn(app)
+            enterPIN(app)
+            XCTAssertTrue(app.buttons["home.settings"].waitForExistence(timeout: 15))
+            XCTAssertEqual(app.state, .runningForeground)
+        }
+    }
+
     @MainActor private func createWallet() -> XCUIApplication {
         continueAfterFailure = false
         let app = XCUIApplication()
@@ -47,7 +118,12 @@ final class OathLockPresentationUITests: XCTestCase {
         XCTAssertTrue(phrase.waitForExistence(timeout: 8))
         phrase.typeText(String(repeating: "abandon ", count: 11) + "about")
         app.buttons["recovery.keyboardDone"].tap()
-        app.buttons["recovery.import"].tap()
+        // iOS 27 can expose native toolbar actions by their semantic label
+        // without forwarding the wrapper's accessibility identifier.
+        let identifiedImport = app.buttons["recovery.import"]
+        let importAction = identifiedImport.exists ? identifiedImport : app.navigationBars.buttons["Import"]
+        XCTAssertTrue(importAction.waitForExistence(timeout: 8))
+        importAction.tap()
         XCTAssertTrue(app.staticTexts["passcode.title"].waitForExistence(timeout: 8))
         enterPIN(app)
         let confirmation = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", "Confirm Passcode"),

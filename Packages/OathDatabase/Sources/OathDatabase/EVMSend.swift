@@ -8,7 +8,7 @@ extension OathDatabase {
     /// already journaled for this request, even after cancellation or a restart.
     public func resetUnsentWalletConnectEVM(_ id: String, walletID: String, accountID: String) async throws {
         guard id.hasPrefix("wc:"), id.count == 67, id.dropFirst(3).allSatisfy({ $0.isASCII && $0.isHexDigit }) else { throw EVMSendError.changed }
-        try await pool.write { db in
+        try await storageWrite { db in
             guard let send = try SendRecord.fetchOne(db, key: id) else { return }
             guard send.walletID == walletID, send.accountID == accountID,
                   ["draft", "queued", "cancelled"].contains(send.state),
@@ -27,7 +27,7 @@ extension OathDatabase {
         let tx=try await pool.read { try TransactionRecord.fetchOne($0,key:send.transactionID) }
         let minimum=tx?.blockHeight.flatMap(UInt64.init(exactly:)) ?? plan.blockHeight
         let observed=try await client.balancesAfter(plan,minimumHeight:minimum)
-        let applied = try await pool.write { db -> Bool in
+        let applied = try await storageWrite { db -> Bool in
             guard let current = try SendRecord.fetchOne(db, key: send.id) else { throw StoreError.staleSync }
             if current.state != send.state {
                 // The status tracker can settle this exact send while its RPC
@@ -48,7 +48,7 @@ extension OathDatabase {
             case .arc:"arcHoldings"
             case .hyperevm:"hyperevmHoldings"
             case .robinhood:"robinhoodHoldings"
-            case .chiliz,.filecoin,.sei,.zerog,.iotex,.celo,.monad,.unichain:"indexedEVMHoldings"
+            case .chiliz,.filecoin,.sei,.zerog,.iotex,.celo,.monad,.unichain,.story:"indexedEVMHoldings"
             default:nil
             }
             let accounts=try AccountRecord.fetchAll(db,sql:"SELECT a.* FROM walletAccounts a JOIN wallets w ON w.id=a.walletID WHERE a.networkID=? AND lower(a.address)=? AND w.deletedAt IS NULL",arguments:[send.networkID,plan.sender])
@@ -99,7 +99,7 @@ extension OathDatabase {
     // above keeps its mainnet-only gate; every journal/identity check is shared.
     func queueValidatedEVMSend(sendID:String,plan:EVMSendPlan) async throws {
         try plan.validate()
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send=try SendRecord.fetchOne(db,key:sendID),send.state=="draft",send.networkID==plan.network.rawValue,
                   let account=try AccountRecord.fetchOne(db,key:send.accountID),account.walletID==send.walletID,account.networkID==plan.network.rawValue,
                   try EVMSendIdentity.address(account.address)==plan.sender,
@@ -136,7 +136,7 @@ extension OathDatabase {
     }
     // Only @testable integration callers opt into testnet storage.
     func journalEVMSignature(sendID:String,signed:EVMSignedSend,allowingTestnet:Bool) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send=try SendRecord.fetchOne(db,key:sendID),send.state=="queued",let network=EVMSendNetwork(rawValue:send.networkID),(!network.isTestnet || allowingTestnet),
                   let raw=try Data.fetchOne(db,sql:"SELECT plan FROM evmSendPlans WHERE sendID=?",arguments:[sendID]) else { throw StoreError.invalidTransition }
             let plan=try JSONDecoder().decode(EVMSendPlan.self,from:raw);try plan.validate()
@@ -155,7 +155,7 @@ extension OathDatabase {
         try await settleEVMSend(sendID:sendID,receipt:receipt,allowingTestnet:false)
     }
     func settleEVMSend(sendID:String,receipt:EVMSendReceipt,allowingTestnet:Bool) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send=try SendRecord.fetchOne(db,key:sendID),let network=EVMSendNetwork(rawValue:send.networkID),(!network.isTestnet || allowingTestnet),["signed","broadcast","confirmed","failed"].contains(send.state),send.transactionID==send.networkID+":"+receipt.hash,
                   let payload=send.signedPayload,let raw=try Data.fetchOne(db,sql:"SELECT plan FROM evmSendPlans WHERE sendID=?",arguments:[sendID]) else { throw StoreError.invalidTransition }
             let plan=try JSONDecoder().decode(EVMSendPlan.self,from:raw),signed=try JSONDecoder().decode(EVMSignedSend.self,from:payload)

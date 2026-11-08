@@ -46,7 +46,7 @@ extension OathDatabase {
         let tx = request.transactions[0]
         try tx.verifySigned(signed, requireAll: true)
         let signature = SolanaSendCrypto.encode(signed.subdata(in: tx.signatureOffset..<tx.signatureOffset+64))
-        return try await pool.write { db in
+        return try await storageWrite { db in
             if let stored = try WalletConnectSolanaSubmission.fetchOne(db, key: id) {
                 guard stored.fingerprint == request.fingerprint, stored.walletID == walletID, stored.accountID == accountID, stored.signed == signed else { throw SolanaSendError.changed }
                 return stored
@@ -63,7 +63,7 @@ extension OathDatabase {
         }
     }
     public func settleWalletConnectSolana(_ id: String, outcome: SolanaSendReceipt.Outcome) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var record = try WalletConnectSolanaSubmission.fetchOne(db, key: id) else { return }
             guard !["confirmed", "failed", "expired"].contains(record.state) else { return }
             record.state = outcome.rawValue; try record.update(db)

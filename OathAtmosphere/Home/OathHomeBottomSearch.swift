@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-enum OathHomeTab: Hashable { case wallet, history, search }
+enum OathHomeTab: Hashable { case wallet, history, browser, search }
 
 /// Own only native tab icon colors; retain the system's glass and selection pill.
 @MainActor enum OathTabBarStyle {
@@ -50,17 +50,21 @@ struct OathSearchTabActivation: ViewModifier {
     }
 }
 
-/// Keep one search controller on the dedicated search stack, with an explicit
-/// toolbar placement. Automatic placement can fall back to the navigation
-/// drawer when native search deactivates or the selected search context changes.
-/// The presentation binding lets asset selection end search through SwiftUI;
+/// Keep one search controller for history on the dedicated search stack.
+/// Asset search supplies its own native bottom row and disables this controller.
+/// Explicit toolbar placement prevents fallback to the navigation drawer when
+/// native search deactivates or the selected search context changes.
+/// The presentation binding lets navigation end history search through SwiftUI;
 /// resigning the keyboard alone leaves the search controller active.
 struct OathHomeSearchField: ViewModifier {
     @Binding var query: String
     @Binding var isPresented: Bool
     let prompt: String
+    var isEnabled = true
 
     func body(content: Content) -> some View {
-        content.searchable(text: $query, isPresented: $isPresented, placement: .toolbar, prompt: Text(prompt))
+        if isEnabled {
+            content.searchable(text: $query, isPresented: $isPresented, placement: .toolbar, prompt: Text(prompt))
+        } else { content }
     }
 }

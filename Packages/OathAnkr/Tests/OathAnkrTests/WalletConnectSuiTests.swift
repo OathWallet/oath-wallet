@@ -11,7 +11,9 @@ final class WalletConnectSuiTests: XCTestCase {
     }
     func review(_ request:WalletConnectSuiRequest, date:Date = .now) throws -> WalletConnectSuiReview {
         let parsed = try WalletConnectSuiTransaction(request.transaction!,network:.testnet,account:request.account,executing:request.broadcasts)
-        return .init(request:request,changes:[],details:parsed.inputs+parsed.commands,gasOwner:parsed.gasOwner,gasBudget:parsed.gasBudget,estimatedFee:1,createdAt:date)
+        let coin = WalletConnectSuiObjectChange(id:try SuiIdentity.address("0xcafe"),created:true,deleted:false,before:nil,
+            after:.init(version:1,digest:SuiSendCrypto.base58(Data(repeating:0,count:32)),type:"0x2::coin::Coin<0x2::sui::SUI>",owner:.init(kind:.address,address:try SuiIdentity.address("0x2"))))
+        return .init(request:request,changes:[],objectChanges:[coin],actions:parsed.reviewActions,details:parsed.inputs+parsed.commands,gasOwner:parsed.gasOwner,gasBudget:parsed.gasBudget,estimatedFee:1,createdAt:date)
     }
     func testIndependentSDKTransactionAndSignature() throws {
         let request = try request(), review = try review(request)
@@ -24,6 +26,11 @@ final class WalletConnectSuiTests: XCTestCase {
         XCTAssertEqual(result.response["transactionBytes"],bytes)
         XCTAssertEqual(review.gasBudget,10_000_000)
         XCTAssertEqual(review.details.count,4)
+        let parsed = try WalletConnectSuiTransaction(request.transaction!, network: .testnet, account: account, executing: false)
+        XCTAssertEqual(parsed.displayData["inputs"].array?.count, 2)
+        XCTAssertEqual(parsed.displayData["commands"].array?.count, 2)
+        XCTAssertEqual(parsed.displayData["commands"].array?[0]["SplitCoins"]["coin"].string, "GasCoin")
+        XCTAssertEqual(parsed.displayData["commands"].array?[1]["TransferObjects"]["address"].string, "Input[1]")
         try SuiSendCrypto.verify(result.transaction!,sender:account)
     }
     func testPersonalMessageIntentAndPlainText() throws {

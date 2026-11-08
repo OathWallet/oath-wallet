@@ -6,13 +6,20 @@ public struct AnkrSyncOutcome: Sendable {
     public let accountID: String
     public let stream: String
     public let success: Bool
+    public let outcome: BalanceRefreshOutcome
     /// Preserve the original failure across the nonthrowing concurrent fan-out.
     /// A generic wallet error would bypass provider availability exclusions and
     /// discard the information needed to diagnose a genuine failure.
     public let failure: (any Error)?
-    public init(accountID: String, stream: String, success: Bool, failure: (any Error)? = nil) {
+    public init(accountID: String, stream: String, success: Bool, failure: (any Error)? = nil, outcome: BalanceRefreshOutcome? = nil) {
         self.accountID = accountID; self.stream = stream; self.success = success
         self.failure = failure
+        self.outcome = outcome ?? (success ? .complete : failure.map { BalanceRefreshOutcome(.failure($0)) } ?? .cancelled)
+    }
+    /// History outcomes remain available to history callers and diagnostics;
+    /// they cannot turn committed balance coverage into a failed balance refresh.
+    public static func requireCompleteBalances(_ outcomes: [Self]) throws {
+        for result in outcomes where result.stream == "balances" { try result.outcome.get() }
     }
 }
 
@@ -22,18 +29,25 @@ public struct AnkrSyncOutcome: Sendable {
 public actor AnkrSynchronizer {
     private let database: OathDatabase
     private let client: AnkrClient
+    public typealias BalanceClient = @Sendable (String) throws -> EVMSendClient
+    private let balanceClient: BalanceClient?
     private var flights: [String: (UUID, Task<AnkrSyncOutcome, Never>)] = [:]
     private var epoch = UUID()
     private var requestScope = AnkrRequestScope()
     private var catalogFlights: [AnkrChain: (UUID, Task<Void, Never>)] = [:]
     private var catalogAttempts: [AnkrChain: Date] = [:]
     private let catalogTransport: any AnkrTransport
-    public init(database: OathDatabase, apiKey: String) throws {
+    public init(database: OathDatabase, apiKey: String, balanceClient: BalanceClient? = nil) throws {
         self.database = database; client = try AnkrClient(apiKey: apiKey)
         catalogTransport = AnkrHTTPTransport()
+        self.balanceClient = balanceClient ?? { networkID in
+            guard let chain = AnkrChain(networkID: networkID), let network = EVMSendNetwork(rawValue: networkID) else { throw AnkrError.wrongChain }
+            let path = chain == .somnia ? "somnia" : chain.rawValue
+            return try EVMSendClient(network: network, endpoints: [URL(string: "https://rpc.ankr.com/" + path)!.appendingPathComponent(apiKey)])
+        }
     }
-    public init(database: OathDatabase, client: AnkrClient, catalogTransport: any AnkrTransport = AnkrHTTPTransport()) {
-        self.database = database; self.client = client; self.catalogTransport = catalogTransport
+    public init(database: OathDatabase, client: AnkrClient, catalogTransport: any AnkrTransport = AnkrHTTPTransport(), balanceClient: BalanceClient? = nil) {
+        self.database = database; self.client = client; self.catalogTransport = catalogTransport; self.balanceClient = balanceClient
     }
     public static func supports(networkID: String) -> Bool { AnkrChain(networkID: networkID)?.supportsAdvancedAPI == true }
     public static var supportedNetworkIDs: [String] { AnkrChain.allCases.filter(\.supportsAdvancedAPI).map(\.networkID) }
@@ -125,6 +139,15 @@ public actor AnkrSynchronizer {
                 try Task.checkCancellation()
                 var start = try await database.beginAnkrSync(accountID: account.id, stream: stream)
                 ticket = start
+                if stream == "balances", let balanceClient = self.balanceClient {
+                    let outcome = await self.refreshVerifiedBalances(ticket: start, rpc: try balanceClient(account.networkID), requestScope: requestScope)
+                    switch outcome {
+                    case .complete: return AnkrSyncOutcome(accountID: account.id, stream: stream, success: true, outcome: outcome)
+                    case .partial(let error), .failed(let error):
+                        return AnkrSyncOutcome(accountID: account.id, stream: stream, success: false, failure: error, outcome: outcome)
+                    case .cancelled: return AnkrSyncOutcome(accountID: account.id, stream: stream, success: false, outcome: outcome)
+                    }
+                }
                 let onlyWhitelisted = stream == "balances"
                     ? try await database.portfolioFilter(walletID: account.walletID).hidesUnverifiedTokens : true
                 // Independent inventories share the client's bounded permit pool.
@@ -156,13 +179,17 @@ public actor AnkrSynchronizer {
                     }
                     } catch StoreError.staleSync {
                         throw StoreError.staleSync
-                    } catch { OathDiagnostics.record(error, component: "sync", operation: stream, context: ["chain": account.networkID, "stage": stream]);
+                    } catch {
                         let rejected: Bool
                         switch error {
                         case AnkrError.rpc(-32602), AnkrError.http(400): rejected = true
                         default: rejected = false
                         }
                         if rejected && cursor != nil && !restarted {
+                            // This recovery consumes the failure; terminal
+                            // failures are reported once by the outer catch.
+                            OathDiagnostics.record(error, component: "sync", operation: stream,
+                                context: ["chain": account.networkID, "stage": "cursor_restart"])
                             start = try await database.restartAnkrWindow(start); ticket = start
                             cursor = nil; seen.removeAll(); pages.removeAll(); restarted = true
                             continue
@@ -189,19 +216,160 @@ public actor AnkrSynchronizer {
             } catch StoreError.staleSync {
                 // The account was replaced or deleted, or a newer sync owns this state.
                 return AnkrSyncOutcome(accountID: account.id, stream: stream, success: false)
-            } catch { OathDiagnostics.record(error, component: "sync", operation: stream, context: ["chain": account.networkID, "stage": stream]);
+            } catch {
+                // Retry/cursor decisions are finished. Keep the original cause
+                // for outcome inspection, but mark the throwing result so wallet
+                // callers cannot report the same failure without its chain.
+                let reported = OathDiagnostics.recordedForPropagation(error, component: "sync", operation: stream,
+                    context: ["chain": account.networkID, "stage": stream])
                 let code: String
                 if error is CancellationError { code = "cancelled" }
                 else if let error = error as? AnkrError { code = String(describing: error) }
                 else { code = "storage" }
                 if let ticket { await OathDiagnostics.attempt("failAnkrSync", body: { try await database.failAnkrSync(ticket, code: code) }) }
-                return AnkrSyncOutcome(accountID: account.id, stream: stream, success: false, failure: error)
+                return AnkrSyncOutcome(accountID: account.id, stream: stream, success: false, failure: error,
+                    outcome: BalanceRefreshOutcome(.failure(reported)))
             }
         }
         flights[key] = (id,task)
         let result = await task.value
         if flights[key]?.0 == id { flights[key] = nil }
         return result
+    }
+
+    private func refreshVerifiedBalances(ticket: AnkrSyncTicket, rpc: EVMSendClient, requestScope: AnkrRequestScope) async -> BalanceRefreshOutcome {
+        var committed = false, failureReported = false
+        var failureContext: [String: String] = ["chain": ticket.account.networkID]
+        do {
+            let account = ticket.account
+            guard let chain = AnkrChain(networkID: account.networkID) else { throw AnkrError.wrongChain }
+            let known = try await database.knownAnkrBalanceAssets(account: account)
+            let onlyWhitelisted = try await database.portfolioFilter(walletID: account.walletID).hidesUnverifiedTokens
+            async let discovery = Self.balanceInventory(client: client, chain: chain, address: account.address, onlyWhitelisted: onlyWhitelisted, requestScope: requestScope)
+            // Native/known quantities publish even if token discovery is slow or down.
+            let initial = try await rpc.portfolioBalances(owner: account.address,
+                assets: known.map { EVMBalanceAsset(reference: $0.reference, decimals: $0.decimals) })
+            try await database.commitVerifiedAnkrBalances(initial, ticket: ticket, discoveryComplete: false, final: false)
+            committed = true
+            let result = await discovery
+            switch result {
+            case .failure(let error):
+                try Task.checkCancellation()
+                try await rpc.validatePortfolioBalances(initial)
+                try await database.commitVerifiedAnkrBalances(initial, ticket: ticket, discoveryComplete: false, final: true)
+                failureReported = true // balanceInventory reported this original cause.
+                throw error
+            case .success(let pages):
+                var assets = Dictionary(uniqueKeysWithValues: known.map { ($0.reference, $0.decimals) })
+                var metadataComplete = true
+                for value in pages.flatMap(\.value.assets) {
+                    guard assets[value.reference].map({ $0 == value.tokenDecimals }) ?? true else {
+                        OathDiagnostics.record(StoreError.conflictingIdentity, component: "portfolio_refresh", operation: "metadata", context: ["chain": account.networkID])
+                        metadataComplete = false
+                        continue
+                    }
+                    assets[value.reference] = value.tokenDecimals
+                }
+                let snapshot: EVMPortfolioBalances
+                if Set(assets.keys).isSubset(of: Set(initial.amounts.keys)), initial.failedReferences.isEmpty { snapshot = initial }
+                else {
+                    snapshot = try await rpc.portfolioBalances(owner: account.address,
+                        assets: assets.map { EVMBalanceAsset(reference: $0.key, decimals: $0.value) }, minimumHeight: initial.height)
+                }
+                let status = pages.last?.value.syncStatus
+                let current = status?.status == "synced" && status?.timestamp.map {
+                    (-60...60).contains(Date().timeIntervalSince1970 - $0)
+                } == true
+                var verified = Set<String>()
+                var verifiedComplete = true
+                if onlyWhitelisted { verified = Set(pages.flatMap(\.value.assets).map(\.reference)) }
+                else {
+                    switch await Self.balanceInventory(client: client, chain: chain, address: account.address, onlyWhitelisted: true, requestScope: requestScope) {
+                    case .success(let whitelist):
+                        let decimals = Dictionary(uniqueKeysWithValues: whitelist.flatMap(\.value.assets).map { ($0.reference, $0.tokenDecimals) })
+                        verified = Set(assets.keys.filter { assets[$0] == decimals[$0] })
+                    case .failure:
+                        // balanceInventory reports the original verification failure.
+                        verifiedComplete = false
+                    }
+                }
+                try Task.checkCancellation()
+                let complete = current && verifiedComplete && metadataComplete && snapshot.failedReferences.isEmpty
+                try await rpc.validatePortfolioBalances(snapshot)
+                try await database.commitVerifiedAnkrBalances(snapshot, ticket: ticket, pages: pages, verifiedReferences: verified,
+                    discoveryComplete: complete, final: true)
+                if !complete {
+                    // Discovery can be incomplete even when every RPC quantity
+                    // is usable. Own this summary while the chain and reason
+                    // are known; presentation must retain the partial state.
+                    let reason: String
+                    if !snapshot.failedReferences.isEmpty { reason = "balance_unavailable" }
+                    else if !metadataComplete { reason = "metadata_conflict" }
+                    else if !verifiedComplete { reason = "verification_unavailable" }
+                    else if status == nil { reason = "index_sync_missing" }
+                    else if status?.status != "synced" { reason = "index_sync_pending" }
+                    else { reason = "index_sync_stale" }
+                    failureContext.merge(["stage": "inventory", "reason": reason]) { _, value in value }
+                    throw BalanceRefreshError.incomplete
+                }
+            }
+            return .complete
+        } catch is CancellationError { return .cancelled }
+        catch StoreError.staleSync { return .cancelled } // Superseded/reset work owns the snapshot.
+        catch {
+            // Keep already-reported discovery failures intact. Own incomplete
+            // inventory summaries here instead of generating chainless copies
+            // in wallet/result callers. Individual contract causes stay intact.
+            var propagated = error
+            if !failureReported {
+                propagated = OathDiagnostics.recordedForPropagation(error, component: "portfolio_refresh", operation: "verified_balances", context: failureContext)
+            }
+            await OathDiagnostics.attempt("failAnkrSync") {
+                try await database.failAnkrSync(ticket, code: committed ? "incompleteInventory" : "balanceFailure")
+            }
+            return committed ? .partial(propagated) : .failed(propagated)
+        }
+    }
+
+    private static func balanceInventory(client: AnkrClient, chain: AnkrChain, address: String,
+                                         onlyWhitelisted: Bool, requestScope: AnkrRequestScope) async -> Result<[AnkrPage<AnkrBalanceResult>], any Error> {
+        do {
+            var pages: [AnkrPage<AnkrBalanceResult>] = [], seen = Set<String>(), cursor: String?, bytes = 0
+            var restarted = false
+            while true {
+                try Task.checkCancellation()
+                if let cursor, !seen.insert(cursor).inserted { throw AnkrError.paginationLoop }
+                let page: AnkrPage<AnkrBalanceResult>
+                do {
+                    page = try await client.balances(chain: chain, address: address, cursor: cursor, onlyWhitelisted: onlyWhitelisted, requestScope: requestScope)
+                } catch {
+                    let rejected: Bool
+                    switch error {
+                    case AnkrError.rpc(-32602), AnkrError.http(400): rejected = true
+                    default: rejected = false
+                    }
+                    guard rejected, cursor != nil, !restarted else { throw error }
+                    OathDiagnostics.record(error, component: "portfolio_refresh", operation: "discovery_cursor_restart",
+                        context: ["chain": chain.networkID, "stage": "cursor_restart"])
+                    // Discard only this uncommitted discovery attempt. Never mix
+                    // assets from two pagination snapshots or clear saved balances.
+                    cursor = nil; seen.removeAll(); pages.removeAll(); bytes = 0; restarted = true
+                    continue
+                }
+                pages.append(page); bytes += page.raw.count
+                guard bytes <= 128 * 1024 * 1024, seen.count < 100_000 else { throw AnkrError.responseTooLarge }
+                cursor = page.value.nextPageToken
+                if cursor?.isEmpty == true { cursor = nil }
+                if cursor == nil { break }
+            }
+            let assets = pages.flatMap(\.value.assets)
+            guard Set(assets.map(\.reference)).count == assets.count,
+                  pages.last?.value.totalCount.map({ $0 == assets.count }) ?? true else { throw AnkrError.incompleteInventory }
+            return .success(pages)
+        } catch {
+            if Task.isCancelled { return .failure(CancellationError()) }
+            return .failure(OathDiagnostics.recordedForPropagation(error, component: "portfolio_refresh", operation: "discovery", context: ["chain": chain.networkID]))
+        }
     }
 
     private static func whitelistInventory(client: AnkrClient, chain: AnkrChain, address: String,

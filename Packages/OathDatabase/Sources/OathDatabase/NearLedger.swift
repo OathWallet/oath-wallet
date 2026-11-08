@@ -15,7 +15,7 @@ public struct NearHistoryCursor:Codable,Sendable,Equatable,FetchableRecord,Persi
 }
 extension OathDatabase {
     public func beginNearSync(accountID:String) async throws -> NearSyncTicket {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard let account = try AccountRecord.fetchOne(db,key:accountID), account.networkID == "near" else { throw StoreError.missingRecord }
             _ = try NearIdentity.address(account.address)
             let run = UUID().uuidString
@@ -33,7 +33,7 @@ extension OathDatabase {
               try String.fetchOne(db,sql:"SELECT runID FROM nearSync WHERE accountID=?",arguments:[ticket.account.id]) == ticket.runID else { throw StoreError.staleSync }
     }
     public func failNearSync(_ ticket:NearSyncTicket, history:Bool, code:String) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateNear(ticket,db:db)
             try db.execute(sql:"UPDATE nearSync SET \(history ? "historyFailure":"failure")=? WHERE accountID=?",arguments:[code,ticket.account.id])
         }
@@ -74,7 +74,7 @@ extension OathDatabase {
     public func commitNearInventory(_ value:NearInventory, ticket:NearSyncTicket, catalog:NearCatalog) async throws {
         guard value.owner == ticket.account.address, Set(value.holdings.map(\.reference)).count == value.holdings.count,
               value.holdings.filter({$0.reference == "native"}).count == 1, value.observedAt.timeIntervalSince1970.isFinite else { throw NearError.wrongOwner }
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateNear(ticket,db:db)
             let time = value.observedAt.timeIntervalSince1970
             let previous = try Double.fetchOne(db,sql:"SELECT observedAt FROM nearSync WHERE accountID=?",arguments:[ticket.account.id]) ?? 0
@@ -94,10 +94,10 @@ extension OathDatabase {
                       amountAtomic=COALESCE(excluded.amountAtomic,nearHoldings.amountAtomic),
                       observedAt=CASE WHEN excluded.amountAtomic IS NULL THEN nearHoldings.observedAt ELSE excluded.observedAt END,
                       blockHeight=CASE WHEN excluded.amountAtomic IS NULL THEN nearHoldings.blockHeight ELSE excluded.blockHeight END,
-                      verified=excluded.verified,failure=excluded.failure
+                      verified=\(catalog.ids.isEmpty ? "MAX(nearHoldings.verified,excluded.verified)" : "excluded.verified"),failure=excluded.failure
                     """,arguments:[ticket.account.id,holding.reference,asset?.id,holding.amount,time,value.block.height,catalog.contains(holding.reference),holding.failure])
             }
-            try db.execute(sql:"UPDATE nearSync SET inventory=?,observedAt=?,blockHeight=?,failure=NULL WHERE accountID=?",arguments:[try JSONEncoder().encode(value),time,value.block.height,ticket.account.id])
+            try db.execute(sql:"UPDATE nearSync SET inventory=?,observedAt=?,blockHeight=?,failure=? WHERE accountID=?",arguments:[try JSONEncoder().encode(value),time,value.block.height,value.complete ? nil : "incompleteInventory",ticket.account.id])
             for row in try Row.fetchAll(db,sql:"SELECT detail FROM nearEvents WHERE accountID=? AND unresolved=1",arguments:[ticket.account.id]) {
                 try Self.projectNear(JSONDecoder().decode(NearEvent.self,from:row["detail"]),ticket:ticket,db:db)
             }
@@ -133,7 +133,7 @@ extension OathDatabase {
               cursor.stream == "transfers" ? page.executions.isEmpty : page.events.isEmpty,
               page.next == nil || (page.next != cursor.beforeCursor && !page.ids.isEmpty), page.head == page.ids.first,
               Set(page.ids).count == page.ids.count else { throw NearError.paginationLoop }
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateNear(ticket,db:db)
             guard try NearHistoryCursor.fetchOne(db,key:["accountID":cursor.accountID,"stream":cursor.stream,"lane":cursor.lane]) == cursor else { throw StoreError.staleSync }
             for execution in page.executions {

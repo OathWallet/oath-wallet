@@ -17,7 +17,7 @@ extension OathDatabase {
     /// spending are serialized; independent quote reads may run concurrently.
     public func queueTonSend(sendID:String,plan:TonSendPlan) async throws {
         try plan.validate();guard plan.network == .mainnet else { throw TonSendError.wrongNetwork }
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send=try SendRecord.fetchOne(db,key:sendID),send.state=="draft",send.networkID=="ton",
                   let account=try AccountRecord.fetchOne(db,key:send.accountID),account.walletID==send.walletID,account.networkID=="ton",
                   try TonIdentity.raw(account.address)==plan.sender,
@@ -34,7 +34,7 @@ extension OathDatabase {
         try await pool.read { db in try Data.fetchOne(db,sql:"SELECT plan FROM tonSendPlans WHERE sendID=?",arguments:[sendID]).map { try JSONDecoder().decode(TonSendPlan.self,from:$0) } }
     }
     public func journalTonSignature(sendID:String,signed:TonSignedSend) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send=try SendRecord.fetchOne(db,key:sendID),send.state=="queued",send.networkID=="ton",
                   let raw=try Data.fetchOne(db,sql:"SELECT plan FROM tonSendPlans WHERE sendID=?",arguments:[sendID]) else { throw StoreError.invalidTransition }
             let plan=try JSONDecoder().decode(TonSendPlan.self,from:raw);try plan.validate()
@@ -49,7 +49,7 @@ extension OathDatabase {
     }
     public func settleTonSend(sendID:String,receipt:TonSendReceipt) async throws {
         guard receipt.outcome != .unknown else { return }
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send=try SendRecord.fetchOne(db,key:sendID),send.networkID=="ton",["signed","broadcast","confirmed","failed"].contains(send.state),
                   let payload=send.signedPayload,let raw=try Data.fetchOne(db,sql:"SELECT plan FROM tonSendPlans WHERE sendID=?",arguments:[sendID]) else { throw StoreError.invalidTransition }
             let plan=try JSONDecoder().decode(TonSendPlan.self,from:raw),signed=try JSONDecoder().decode(TonSignedSend.self,from:payload)

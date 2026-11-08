@@ -2,6 +2,7 @@ import OathDiagnostics
 import Foundation
 import Observation
 import OathDatabase
+import OathAnkr
 
 @MainActor @Observable final class OathContactsModel {
     private(set) var contacts: [ContactSummary] = []
@@ -119,6 +120,8 @@ import OathDatabase
     let revision: Int64?
     var name: String
     var addressLabel = ""
+    var memo = ""
+    var memoType: StellarSendMemoType = .text
     let prefilledAddress: ContactAddressInput?
     private let addresses: [ContactAddressInput]
     private(set) var saving = false
@@ -139,6 +142,8 @@ import OathDatabase
         addresses = [recipient]
         prefilledAddress = recipient
         addressLabel = recipient.label
+        memo = recipient.memo
+        memoType = StellarSendMemoType(rawValue: recipient.memoType ?? "text") ?? .text
     }
 
     func save() async -> Bool {
@@ -155,7 +160,11 @@ import OathDatabase
             let database = try await OathDataEnvironment.shared.database()
             try Task.checkCancellation()
             var addresses = addresses
-            if prefilledAddress != nil { addresses[0].label = addressLabel }
+            if prefilledAddress != nil {
+                addresses[0].label = addressLabel
+                addresses[0].memo = memo
+                addresses[0].memoType = addresses[0].networkID == "stellar" ? memoType.rawValue : nil
+            }
             try await database.saveContact(id: id, name: name, addresses: addresses, expectedRevision: revision,
                                            rejectExistingAddresses: prefilledAddress != nil)
             if !Task.isCancelled { OathHaptics.shared.play(.success) }
@@ -187,6 +196,14 @@ import OathDatabase
     private(set) var saving = false
     var failure: OathStringKey?
 
+    var memoKind: OathStringKey? {
+        switch draft.networkID { case "xrpl": .sendDestinationTag; case "stellar": .sendMemo; default: nil }
+    }
+    var stellarMemoType: StellarSendMemoType {
+        get { StellarSendMemoType(rawValue: draft.memoType ?? "text") ?? .text }
+        set { draft.memoType = newValue.rawValue; failure = nil }
+    }
+
     init(snapshot: ContactSnapshot, address: ContactAddressRecord? = nil) {
         self.snapshot = snapshot
         isEditing = address != nil
@@ -207,6 +224,7 @@ import OathDatabase
 
     func chooseNetwork(_ id: String) {
         guard !saving, networks.contains(where: { $0.id == id }) else { return }
+        if draft.networkID != id { draft.memo = ""; draft.memoType = nil }
         draft.networkID = id
         failure = nil
     }
@@ -273,7 +291,7 @@ import OathDatabase
 
 private func isContactDraftValidation(_ error: ContactStoreError) -> Bool {
     switch error {
-    case .invalidName, .invalidAddress, .invalidLabel, .duplicateAddress, .tooManyAddresses: true
+    case .invalidName, .invalidAddress, .invalidLabel, .invalidMemo, .duplicateAddress, .tooManyAddresses: true
     case .unknownNetwork, .conflict, .missingContact, .emptyAddresses: false
     }
 }
@@ -285,6 +303,7 @@ private func isContactDraftValidation(_ error: ContactStoreError) -> Bool {
     case .invalidName: .contactNameInvalid
     case .invalidAddress, .unknownNetwork: .contactAddressInvalid
     case .invalidLabel: .contactLabelInvalid
+    case .invalidMemo: .sendMemoInvalid
     case .duplicateAddress: .contactDuplicateAddress
     case .tooManyAddresses: .contactAddressLimit
     case .conflict, .missingContact: .contactChanged

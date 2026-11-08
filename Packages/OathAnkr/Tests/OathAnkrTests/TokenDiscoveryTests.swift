@@ -397,7 +397,7 @@ final class TokenDiscoveryTests: XCTestCase, @unchecked Sendable {
         catch { XCTAssertTrue(error is TokenDiscoveryError) }
     }
 
-    func testRealBundledCatalogCoversAllTokenNetworksAndSearchIsFast() async throws {
+    func testRealBundledCatalogCoversEnabledTokenNetworksAndSearchIsFast() async throws {
         // Uses the shipping snapshot and production canonicalizers, not fixtures.
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: folder) }
@@ -415,7 +415,8 @@ final class TokenDiscoveryTests: XCTestCase, @unchecked Sendable {
             let results = await catalog.search(term, networks: [chain])
             if !results.isEmpty { covered.insert(chain) }
         }
-        XCTAssertEqual(covered, all)
+        // The app disables Cronos; stored identities still retain parser support.
+        XCTAssertEqual(covered, all.subtracting(["cronos"]))
         let start = ContinuousClock.now
         for term in ["usdt", "usdc", "tether", "link", "wrapped", "ethereum", "pepe", "aave", "dai", "sol"] {
             let result = await catalog.search(term, networks: all)

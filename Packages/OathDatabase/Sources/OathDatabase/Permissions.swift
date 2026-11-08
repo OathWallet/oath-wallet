@@ -23,7 +23,7 @@ extension OathDatabase {
         try await pool.read { try PermissionRemovalRecord.fetchOne($0,sql:"SELECT * FROM permissionRemovals WHERE sendID=?",arguments:[sendID]) }
     }
     public func completePermissionRemoval(sendID:String,removed:Bool) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard try SendRecord.fetchOne(db,key:sendID)?.state=="confirmed" else { throw StoreError.invalidTransition }
             guard try String.fetchOne(db,sql:"SELECT status FROM permissionRemovals WHERE sendID=?",arguments:[sendID]) == "pending" else { return }
             try db.execute(sql:"UPDATE permissionRemovals SET status=?,checkedAt=? WHERE sendID=? AND status='pending'",arguments:[removed ? "removed":"active",Date.now.timeIntervalSince1970,sendID])
@@ -47,7 +47,7 @@ extension OathDatabase {
     public func savePermissionScan(walletID:String,accountID:String,scan:PermissionScan) async throws {
         guard scan.permissions.count<=10_000,scan.checkedAt.timeIntervalSince1970.isFinite,
               scan.permissions.allSatisfy({$0.owner==scan.owner && $0.network==scan.network}) else { throw StoreError.invalidValue("permission scan") }
-        try await pool.write { db in
+        try await storageWrite { db in
             guard let a=try AccountRecord.fetchOne(db,key:accountID),a.walletID==walletID,a.networkID==scan.network,
                   try WalletRecord.fetchOne(db,key:walletID)?.deletedAt==nil else { throw StoreError.conflictingIdentity }
             let owner=scan.network=="solana" ? try Self.solanaOwner(a,db:db):a.address

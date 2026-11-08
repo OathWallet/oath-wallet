@@ -46,7 +46,7 @@ for root in roots:
                 end += 1
             body = source[match.end():end]
             before = source[max(0,match.start()-160):match.start()]
-            if 'OathDiagnostics.record(' in body or 'OathSendDiagnostics.shared.record(' in body:
+            if 'OathDiagnostics.record(' in body or 'OathDiagnostics.recordedForPropagation(' in body or 'OathSendDiagnostics.shared.record(' in body:
                 observed += 1
                 continue
             if (file.relative_to(ROOT).as_posix() == 'Packages/OathAnkr/Sources/OathAnkr/ArcClient.swift'
@@ -68,6 +68,17 @@ for root in roots:
                 continue  # rpc records the original range rejection; only an unpinned first page retries once.
             if file.name == 'EVMSendClient.swift' and 'diagnostics: evm-send-permit-cleanup' in body and 'throw error' in body:
                 continue  # Each failed provider reports before the unchanged cleanup rethrow.
+            # These exact cleanup/recovery branches propagate a failure already
+            # recorded at their owning provider boundary. No blanket catch exemption.
+            delegated = {
+                'Packages/OathAnkr/Sources/OathAnkr/XrplClient.swift': ('diagnostics: xrpl-read-permit-cleanup', 'await permits.release(); throw error'),
+                'Packages/OathAnkr/Sources/OathAnkr/ThorchainArchivedHistory.swift': ('diagnostics: thorchain-archive-permit-cleanup', 'await Self.archivePermits.release()'),
+                'Packages/OathAnkr/Sources/OathAnkr/AnkrClient.swift': ('diagnostics: ankr-permit-cleanup', 'await permits.release(); throw error'),
+                'Packages/OathMarketData/Sources/OathMarketData/MarketDataService.swift': ('diagnostics: market-quote-recovery', 'if let previous { return previous }'),
+            }
+            markers = delegated.get(file.relative_to(ROOT).as_posix())
+            if markers and all(marker in body for marker in markers) and 'throw error' in body:
+                continue
             if any(kind in label for kind in expected):
                 continue
             if file.relative_to(ROOT).as_posix() == 'Packages/OathDatabase/Sources/OathDatabase/XrplSynchronizer.swift' and label.strip() == 'XrplError.historyWindowExpired':

@@ -59,7 +59,7 @@ public struct AptosToken: Codable, Sendable, Equatable {
     static func decode(_ value:AptosJSON,reference:String) throws -> Self {
         if reference == "native" {return .native}
         guard let d=value["decimals"].integer,d<=255,let n=value["name"].string,let s=value["symbol"].string else {throw AptosError.malformed}
-        return .init(reference:reference,name:(try? TronIdentity.clean(n)) ?? "Token",symbol:(try? TronIdentity.clean(s,limit:64)) ?? "TOKEN",decimals:Int(d),logo:ArtworkSource.normalized(value["icon_uri"].string),verified:false)
+        return .init(reference:reference,name:TokenMetadataName.name(n, symbol: s, reference: reference),symbol:(try? TronIdentity.clean(s,limit:64)) ?? "TOKEN",decimals:Int(d),logo:ArtworkSource.normalized(value["icon_uri"].string),verified:false)
     }
 }
 public struct AptosHolding: Codable, Sendable, Equatable { public let token:AptosToken; public let amount:String }

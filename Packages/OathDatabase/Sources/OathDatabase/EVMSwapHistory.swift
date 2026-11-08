@@ -98,7 +98,7 @@ extension OathDatabase {
         let raw = try JSONEncoder().encode(evidence)
         guard raw.count <= EVMHistoryEvidence.maximumEncodedBytes else { throw StoreError.invalidValue("swap evidence size") }
         try Task.checkCancellation()
-        try await pool.write { db in
+        try await storageWrite { db in
             guard let owner = try AccountRecord.fetchOne(db,key: candidate.accountID),
                   owner.syncGeneration == candidate.generation,
                   let tx = try TransactionRecord.fetchOne(db,key: candidate.transactionID), tx.hash.lowercased() == candidate.hash.lowercased() else { throw StoreError.staleSync }

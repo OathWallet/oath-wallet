@@ -48,9 +48,9 @@ extension OathDatabase {
     /// New EVM networks reuse the existing Ethereum key/path. This copies only
     /// public metadata after unlock and never invents a different derivation.
     public func enrollAnkrNetworks(walletID: String) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             let existing = try Self.accounts(db, walletID: walletID)
-            let additions: Set<String> = ["fantom","flare","somnia","story","robinhood","hyperevm","monad","unichain","celo","chiliz","filecoin", "sei", "zerog", "iotex"]
+            let additions: Set<String> = ["fantom","flare","somnia","story","robinhood","hyperevm","monad","unichain","celo","chiliz","filecoin", "sei", "zerog", "iotex", "cronos"]
             // Arc belongs to the app's original full EVM import scope even
             // though it is not indexed by these Advanced account methods.
             let previousEVM = Set(AnkrChain.allCases.map(\.networkID)).subtracting(additions).union(["arc"])
@@ -60,7 +60,7 @@ extension OathDatabase {
             let sources = existing.filter { AnkrChain(networkID: $0.networkID) != nil }
                 .sorted { ($0.networkID == "ethereum" ? 0 : 1, $0.id) < ($1.networkID == "ethereum" ? 0 : 1, $1.id) }
             for network in additions.sorted() {
-                guard try NetworkRecord.fetchOne(db, key: network) != nil else { continue }
+                guard try NetworkRecord.fetchOne(db, key: network)?.enabled == true else { continue }
                 var indices: Set<Int> = []
                 for source in sources where indices.insert(source.accountIndex).inserted {
                     guard !existing.contains(where: { $0.networkID == network && $0.accountIndex == source.accountIndex }) else { continue }
@@ -96,7 +96,7 @@ extension OathDatabase {
     }
     public func beginAnkrSync(accountID: String, stream: String, now: Date = .now) async throws -> AnkrSyncTicket {
         guard ["balances","transactions","transfers"].contains(stream) else { throw StoreError.invalidValue("Ankr stream") }
-        return try await pool.write { db in
+        return try await storageWrite { db in
             try Self.requireWalletSyncAllowed(db)
             guard let account = try AccountRecord.fetchOne(db, key: accountID),
                   AnkrChain(networkID: account.networkID) != nil else { throw StoreError.missingRecord }
@@ -119,7 +119,7 @@ extension OathDatabase {
         }
     }
     public func failAnkrSync(_ ticket: AnkrSyncTicket, code: String) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             // Reset owns teardown. A late failure must not write through its SQL guard.
             guard try String.fetchOne(db, sql: "SELECT value FROM metadata WHERE key='walletReset'") == nil else { return }
             try db.execute(sql: "UPDATE ankrSync SET failure=?,runID=NULL WHERE accountID=? AND stream=? AND runID=?",
@@ -130,14 +130,14 @@ extension OathDatabase {
     /// Restart the same bounded window once; upserts prevent duplicates and
     /// existing history stays visible until the replacement scan completes.
     public func restartAnkrWindow(_ ticket: AnkrSyncTicket) async throws -> AnkrSyncTicket {
-        try await pool.write { db in
+        try await storageWrite { db in
             var state = try Self.validateAnkr(ticket, db: db)
             state.cursor = nil; state.scanID = UUID().uuidString; state.failure = nil
             try state.update(db)
             return AnkrSyncTicket(account: ticket.account, generation: ticket.generation, state: state)
         }
     }
-    private static func validateAnkr(_ ticket: AnkrSyncTicket, db: Database) throws -> AnkrSyncRecord {
+    static func validateAnkr(_ ticket: AnkrSyncTicket, db: Database) throws -> AnkrSyncRecord {
         try requireWalletSyncAllowed(db)
         guard let account = try AccountRecord.fetchOne(db, key: ticket.account.id),
               account.syncGeneration == ticket.generation, account.address == ticket.account.address,
@@ -145,7 +145,7 @@ extension OathDatabase {
               state.runID == ticket.state.runID else { throw StoreError.staleSync }
         return state
     }
-    private static func saveAnkrResponse(_ raw: Data, ticket: AnkrSyncTicket, key: String, date: Date, db: Database) throws {
+    static func saveAnkrResponse(_ raw: Data, ticket: AnkrSyncTicket, key: String, date: Date, db: Database) throws {
         try db.execute(sql: """
             INSERT INTO ankrResponses(accountID,stream,pageKey,raw,fetchedAt) VALUES(?,?,?,?,?)
             ON CONFLICT(accountID,stream,pageKey) DO UPDATE SET raw=excluded.raw,fetchedAt=excluded.fetchedAt
@@ -182,7 +182,7 @@ extension OathDatabase {
         }
         let verifiedDecimals = Dictionary(uniqueKeysWithValues: verifiedValues.map { ($0.reference, $0.tokenDecimals) })
         let now = last.fetchedAt.timeIntervalSince1970
-        try await pool.write { db in
+        try await storageWrite { db in
             var state = try Self.validateAnkr(ticket, db: db)
             if let old = state.syncStatus.flatMap({ payload in OathDiagnostics.attempt("decode_sync_status", body: { try JSONDecoder().decode(AnkrSyncStatus.self, from: payload) }) }),
                let previous = old.timestamp, let incoming = last.value.syncStatus?.timestamp, incoming < previous {
@@ -215,7 +215,13 @@ extension OathDatabase {
                 if !value.tokenPrice.isEmpty { try Validation.price(value.tokenPrice) }
                 try BalanceRecord(accountID: ticket.account.id, assetID: asset.id, networkID: asset.networkID,
                     amountAtomic: atomic, observedAt: now, blockHeight: last.value.syncStatus?.blockNumber, source: "ankr").upsert(db)
-                if !value.tokenPrice.isEmpty {
+                // A missing native quote can also arrive as zero. It must not
+                // supersede a positive public-market observation while balances
+                // and prices refresh concurrently. Validation above guarantees
+                // a plain decimal; a nonzero digit avoids floating-point loss.
+                let hasQuote = !value.tokenPrice.isEmpty && (value.reference != "native" ||
+                    value.tokenPrice.utf8.contains { $0 >= 49 && $0 <= 57 })
+                if hasQuote {
                     try PriceRecord(assetID: asset.id, currency: "USD", value: value.tokenPrice, observedAt: now, source: "ankr").upsert(db)
                     try db.execute(sql: """
                         DELETE FROM prices WHERE assetID=? AND currency='USD' AND observedAt NOT IN (
@@ -263,7 +269,7 @@ extension OathDatabase {
 
     public func commitAnkrTransactions(_ page: AnkrPage<AnkrTransactionResult>, ticket: AnkrSyncTicket, cursor: String?) async throws {
         let now = page.fetchedAt.timeIntervalSince1970
-        try await pool.write { db in
+        try await storageWrite { db in
             var state = try Self.validateAnkr(ticket, db: db)
             guard ticket.state.stream == "transactions", state.cursor == cursor else { throw StoreError.staleSync }
             for value in page.value.transactions {
@@ -293,7 +299,7 @@ extension OathDatabase {
     }
     public func commitAnkrTransfers(_ page: AnkrPage<AnkrTransferResult>, ticket: AnkrSyncTicket, cursor: String?) async throws {
         let now = page.fetchedAt.timeIntervalSince1970
-        try await pool.write { db in
+        try await storageWrite { db in
             var state = try Self.validateAnkr(ticket, db: db)
             guard ticket.state.stream == "transfers", state.cursor == cursor else { throw StoreError.staleSync }
             for value in page.value.transfers {

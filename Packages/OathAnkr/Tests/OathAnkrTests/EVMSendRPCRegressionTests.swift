@@ -6,6 +6,7 @@ actor EVMSendFixtureTransport:AnkrTransport {
     // A block timestamp is immutable across receipt reads.
     private let blockTimestamp = UInt64(Date.now.timeIntervalSince1970)
     var requests=0,broadcasts=0,methods=[String]()
+    var hosts=[String]()
     var estimates=[SolanaJSON]()
     let network:EVMSendNetwork
     var receiptLogs: [SolanaJSON]?
@@ -26,6 +27,7 @@ actor EVMSendFixtureTransport:AnkrTransport {
     private func hex(_ n:UInt64)->SolanaJSON { .string("0x"+String(n,radix:16)) }
     func send(_ request:URLRequest) async throws -> (Data,Int) {
         requests+=1
+        hosts.append(request.url!.host!)
         if mode=="fallback",request.url?.host?.contains("blockdaemon")==true { return (Data(),503) }
         let payload=try JSONDecoder().decode(SolanaJSON.self,from:request.httpBody!)
         let calls=payload.array ?? [payload]
@@ -151,7 +153,10 @@ actor EVMSendFixtureTransport:AnkrTransport {
     func testIndependentFallbackIsChainChecked() async throws {
         let transport=EVMSendFixtureTransport("fallback")
         _ = try await quote(transport)
-        let counts=await transport.counts();XCTAssertGreaterThan(counts.0,10)
+        let hosts=await transport.hosts, methods=await transport.methods
+        XCTAssertEqual(hosts.first,"blockdaemon.example")
+        XCTAssertTrue(hosts.dropFirst().allSatisfy { $0 == "fallback.example" }, "Continue quote reads on the healthy provider")
+        XCTAssertEqual(methods.filter { $0 == "eth_chainId" }.count, hosts.count-1, "Every successful fallback request must verify its chain")
     }
     func testUnsupportedLineaMethodUsesChainVerifiedProviderFallback() async throws {
         let (client,plan)=try await quote(EVMSendFixtureTransport("missingMethod",network:.linea))

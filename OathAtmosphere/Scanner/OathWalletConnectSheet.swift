@@ -9,6 +9,7 @@ struct OathWalletConnectSheet: View {
     let uri: String?
     let session: OathWalletSession?
     let presentationID: UUID
+    var browserHost: String? = nil
     var onDismiss: (() -> Void)? = nil
     var onDismissDisabledChange: ((Bool) -> Void)? = nil
     var onProposalRejected: (() -> Void)? = nil
@@ -113,7 +114,7 @@ struct OathWalletConnectSheet: View {
                     let failure = service.connectionFailure ?? .unknown
                     OathWCResultContent(identity: nil) {
                         OathEmptyState(title: strings.text(failure.titleKey), systemImage: failure.symbol, description: strings.text(failure.detailKey)) {
-                            if let uri, !service.requiresFreshPairing { OathButton(strings.text(.tryAgain)) { Task { await service.pair(uri) } }.oathNeutralControl() }
+                            if let uri, !service.requiresFreshPairing { OathButton(strings.text(.tryAgain)) { Task { await service.pair(uri, browserHost: browserHost) } }.oathNeutralControl() }
                         }
                     }
                 } else { connections }
@@ -171,7 +172,7 @@ struct OathWalletConnectSheet: View {
             guard !started, service.presentationDidOpen(presentationID) else { return }
             started = true
             if let session { service.configure(session: session); walletID = session.displayedProfile?.id.uuidString ?? "" }
-            if let uri { await service.pair(uri) } else { service.resumeRequests() }
+            if let uri { await service.pair(uri, browserHost: browserHost) } else { service.resumeRequests() }
         }
         .task(id: walletID) {
             let target = walletID

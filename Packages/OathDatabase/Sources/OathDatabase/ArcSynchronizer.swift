@@ -50,13 +50,22 @@ public actor ArcSynchronizer {
                 async let catalogWork = self.catalog()
                 async let native = await OathDiagnostics.attempt("native_price") { try await markets.nativePrice() }
                 let tracked = try await database.knownArcTokens(accountID: accountID)
+                let initialCatalog: ArcCatalog = await database.refreshCatalog(key: "arc.catalog", fallback: .bootstrap)
+                let initial = try await client.inventory(owner: ticket.account.address, references: Array(initialCatalog.ids.keys), tracked: tracked)
+                try Task.checkCancellation()
+                try await database.commitArcInventory(initial, ticket: ticket, catalog: initialCatalog, final: false)
                 let catalog = await catalogWork
-                let value = try await client.inventory(owner:ticket.account.address,references:Array(catalog.ids.keys),tracked:tracked)
-                try Task.checkCancellation(); try await database.commitArcInventory(value,ticket:ticket,catalog:catalog)
+                try Task.checkCancellation()
+                let value: ArcInventory
+                if Set(catalog.ids.keys).subtracting(initialCatalog.ids.keys).isEmpty { value = initial }
+                else { value = try await client.inventory(owner: ticket.account.address, references: Array(catalog.ids.keys), tracked: tracked) }
+                try await database.commitArcInventory(value, ticket: ticket, catalog: catalog)
+                try await database.applyRefreshCatalog(account: ticket.account, runID: ticket.runID) { catalog.contains($0.reference) }
                 if let price = await native { try await Self.save([price],database:database) }
                 await self.startHistory(ticket,through:value.block + 1,catalog:catalog)
                 await self.updatePrices(value,ticket:ticket,catalog:catalog)
                 try Task.checkCancellation()
+                if !value.complete { throw BalanceRefreshError.incomplete }
             } catch { OathDiagnostics.record(error); await OathDiagnostics.attempt("failArcSync", body: { try await database.failArcSync(ticket,code:Self.code(error)) }); throw error }
         }
         flights[accountID] = (id,task)

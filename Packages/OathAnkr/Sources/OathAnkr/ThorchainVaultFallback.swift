@@ -1,6 +1,12 @@
 import Foundation
 import OathDiagnostics
 
+/// Fixed categories only: never attach a contract, denom, response or timestamp.
+/// Historical `malformed` reports could not identify which check failed.
+enum ThorchainVaultQuoteError: Error, Sendable, Equatable {
+    case identity, shares, ratio, timestamp, futureTimestamp
+}
+
 extension ThorchainClient {
     func recoverVaultMarkets() async throws -> [SolanaJSON] {
         do { return try await vaultMarkets() }
@@ -61,19 +67,29 @@ extension ThorchainClient {
     }
 
     static func decodeNodeVault(config: SolanaJSON, status: SolanaJSON, now: Date = .now) throws -> SolanaJSON {
-        // An empty pool has no receipt valuation. It is optional coverage,
-        // not a provider failure and must not generate diagnostics.
-        if status["deposit_pool"]["shares"].text == "0" { return .null }
         guard let denom = config["denom"].string,
-              let ratioText = TonMarkets.positive(status["deposit_pool"]["ratio"]),
-              let ratio = Decimal(string: ratioText),
-              let shares = TonMarkets.positive(status["deposit_pool"]["shares"]),
-              let nanos = status["last_updated"].text.flatMap(Double.init), nanos.isFinite else { throw ThorchainError.malformed }
-        _ = try ThorchainIdentity.reference(denom)
-        let time = Date(timeIntervalSince1970: nanos / 1_000_000_000)
-        guard now.timeIntervalSince(time) >= -60, now.timeIntervalSince(time) < 3600 else { throw ThorchainError.malformed }
+              (try? ThorchainIdentity.reference(denom)) != nil else { throw ThorchainVaultQuoteError.identity }
+        // Deposit shares are Uint128 on every supported contract version.
+        // Validate the identity even for an empty pool; absence must not hide
+        // malformed config. Empty pools have no receipt valuation.
+        guard let shares = try? ThorchainIdentity.amount(status["deposit_pool"]["shares"]),
+              (shares.count < 39 || (shares.count == 39 && shares <= "340282366920938463463374607431768211455")) else { throw ThorchainVaultQuoteError.shares }
+        if shares == "0" { return .null }
+        guard let ratioText = TonMarkets.positive(status["deposit_pool"]["ratio"]),
+              let ratio = Decimal(string: ratioText) else { throw ThorchainVaultQuoteError.ratio }
         let scaled = ratio * 1_000_000_000_000
-        guard !scaled.isNaN, NSDecimalNumber(decimal: scaled).doubleValue.isFinite else { throw ThorchainError.malformed }
+        guard !scaled.isNaN, NSDecimalNumber(decimal: scaled).doubleValue.isFinite else { throw ThorchainVaultQuoteError.ratio }
+        // CosmWasm Timestamp is an unsigned integer of nanoseconds. A Double
+        // alone also accepts fractional/scientific input that is not this schema.
+        guard let nanosText = status["last_updated"].text, !nanosText.isEmpty, nanosText.count <= 20,
+              nanosText.utf8.allSatisfy({ (48...57).contains($0) }),
+              let nanos = UInt64(nanosText), nanos > 0 else { throw ThorchainVaultQuoteError.timestamp }
+        let time = Date(timeIntervalSince1970: Double(nanos) / 1_000_000_000)
+        let age = now.timeIntervalSince(time)
+        guard age.isFinite, age >= -60 else { throw ThorchainVaultQuoteError.futureTimestamp }
+        // A structurally valid expired optional quote is unavailable, not a
+        // malformed response. Never publish it or advance a saved price's time.
+        guard age < 3600 else { throw DiagnosticDeferral.publicMarketQuoteUnavailable }
         let formatter = ISO8601DateFormatter(); formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         // REST Decimal is unscaled; GraphQL Bigint is scaled 1e12. Convert once
         // so both paths use the same identity/precision checks at publication.

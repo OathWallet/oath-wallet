@@ -51,7 +51,7 @@ extension OathDatabase {
     public func journalWalletConnectTon(id: String, walletID: String, accountID: String, plan: WalletConnectTonPlan, signed: TonSignedSend) async throws -> WalletConnectTonSubmission {
         try WalletConnectTonCrypto.verify(signed, plan: plan)
         let planData = try JSONEncoder().encode(plan), signedData = try JSONEncoder().encode(signed)
-        return try await pool.write { db in
+        return try await storageWrite { db in
             if let stored = try WalletConnectTonSubmission.fetchOne(db, key: id) {
                 guard stored.fingerprint == plan.request.fingerprint, stored.walletID == walletID,
                       stored.accountID == accountID, try stored.decoded().1 == signed else { throw TonSendError.changed }
@@ -75,7 +75,7 @@ extension OathDatabase {
         }
     }
     public func settleWalletConnectTon(_ id: String, outcome: TonSendReceipt.Outcome) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var record = try WalletConnectTonSubmission.fetchOne(db, key:id),
                   !["confirmed","failed","expired"].contains(record.state),
                   !(record.state == "accepted" && outcome == .unknown) else { return }

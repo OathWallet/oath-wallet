@@ -40,7 +40,7 @@ import GRDB
         let reopened = try await OathDatabase.open(at:folder.appendingPathComponent("wallet.sqlite"))
         let offline = try await reopened.snapshot(walletID:"w1",currency:"USD"); XCTAssertEqual(offline.holdings,value.holdings)
         try await db.commitSuiInventory(inventory(time:200),ticket:ticket,catalog:.empty)
-        let hidden = try await db.snapshot(walletID:"w1",currency:"USD"); XCTAssertEqual(hidden.holdings.count,1)
+        let hidden = try await db.snapshot(walletID:"w1",currency:"USD"); XCTAssertEqual(hidden.holdings.count,2, "An unavailable catalog must retain previously verified assets")
     }
     func testUnknownMetadataPersistsWithoutFakeDecimalsAndReprojectsHistory() async throws {
         let (db,folder) = try await fixture(); defer { try? FileManager.default.removeItem(at:folder) }
