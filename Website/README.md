@@ -80,6 +80,15 @@ The small menu controller is in `public/help/help.js`; it preserves the Help
 Center's strict content policy without a browser-side template compiler.
 Run `node --test tests/help-chrome*.test.mjs tests/help.test.mjs` after changes.
 
+Cloudflare AI Labyrinth can inject a changing, empty hidden `nofollow` link into
+HTML after the Worker responds. The production content comparison removes only
+the observed same-origin `/cdn-cgi/content?id=…` element with its exact hidden
+attributes; every other byte still has to match Git. The link audit excludes
+these honeypots so it does not crawl the generated maze. It continues checking
+ordinary internal links, including ordinary `nofollow` links. Regression tests
+in `tests/cloudflare-html.test.mjs` cover both boundaries. This does not change
+Cloudflare settings or public responses.
+
 ### Help Center link previews
 
 Every Help Center HTML route uses the same global social image:
