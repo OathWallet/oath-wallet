@@ -16,7 +16,7 @@ let previous;
 try{previous=readLedger(JSON.parse(await readFile(ledgerFile)));}catch(e){if(e.code!=='ENOENT')throw e;}
 const {ledger,rows:baseRows}=assignRoutes(source,previous);
 const artwork=await artworkSnapshot(), rows=qualifyTokenTitles(attachArtwork(baseRows,artwork),source.networks);
-const template=await Promise.all(['scripts/build-tokens.mjs','src/token-titles.js','scripts/token-titles.mjs','src/artwork-manifest.json','src/token-artwork.js','public/token-artwork.css','src/tokens.js','src/transfer-preparation.js','src/seo-guidance.js','content/priority-guidance.json','public/seo-guidance.css','public/tokens.css','public/Oath Header.dc.html','public/Oath Footer.dc.html'].map(p=>readFile(new URL(p,base),'utf8')));
+const template=await Promise.all(['scripts/build-tokens.mjs','src/brand.js','src/token-titles.js','scripts/token-titles.mjs','src/artwork-manifest.json','src/token-artwork.js','public/token-artwork.css','src/tokens.js','src/transfer-preparation.js','src/seo-guidance.js','content/priority-guidance.json','public/seo-guidance.css','public/tokens.css','public/Oath Header.dc.html','public/Oath Footer.dc.html'].map(p=>readFile(new URL(p,base),'utf8')));
 const version=digest(JSON.stringify({source,ledger,template})).slice(0,16), prefix=`/token-data/${version}`;
 const stage=new URL('public/token-data-next/',base);
 await rm(stage,{recursive:true,force:true});await mkdir(stage,{recursive:true});

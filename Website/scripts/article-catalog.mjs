@@ -15,7 +15,7 @@ export function articleCards(records) {
     const cover = new URL(a.cover_image_url);
     if (!['oathwallet.org','articles.oathwallet.org'].includes(cover.hostname) || !cover.pathname.startsWith('/assets/articles/')) throw new Error(`Unexpected article cover: ${id}`);
     if (!english.has(id)) throw new Error(`Missing English edition: ${id}`);
-    return {...a, id, locale, href, cover: ARTICLE_ORIGIN + cover.pathname,
+    return {...a, id, locale, href, cover: ARTICLE_ORIGIN + cover.pathname + cover.search,
       alt: a.title, category: english.get(id).category,
       date: new Intl.DateTimeFormat('en', {month:'short', day:'numeric', year:'numeric', timeZone:'UTC'}).format(new Date(a.published_at)),
       read: `${a.reading_minutes} min read`, dir: ['ar','ur'].includes(locale) ? 'rtl' : 'ltr'};

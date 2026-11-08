@@ -1,13 +1,16 @@
 // Rebuild share cards from the same approved logo as the website and iOS app.
 import {readFile, writeFile, readdir} from 'node:fs/promises';
 import sharp from 'sharp';
-import {brandVersion} from '../src/brand.js';
+import {brandVersion,sharePreviewVersion} from '../src/brand.js';
 
 const root = new URL('../public/', import.meta.url);
 const logo = await readFile(new URL('assets/brand/oath-logo.svg', root));
 const image = `data:image/svg+xml;base64,${logo.toString('base64')}`;
+const {facts:{slogan}} = JSON.parse(await readFile(new URL('oath-data.json', root), 'utf8'));
+const split = slogan.lastIndexOf(' ');
+if (split < 1) throw Error('The homepage sharing slogan needs two lines');
 const cards = {
-  home: ['SELF-CUSTODY CRYPTO WALLET · IPHONE', 'A wallet,', 'not a marketplace.'],
+  home: ['SELF-CUSTODY CRYPTO WALLET · IPHONE', slogan.slice(0, split), slogan.slice(split + 1)],
   features: ['FEATURES', 'Your wallet.', 'Your control.'],
   security: ['SECURITY', 'Built for', 'self-custody.'],
   articles: ['ARTICLES', 'Notes on', 'keeping it.'],
@@ -51,8 +54,9 @@ async function update(directory) {
     if (entry.isDirectory()) await update(url);
     else if (/\.(html|md|json|txt)$/.test(entry.name)) {
       const old = await readFile(url, 'utf8');
-      const next = old.replace(/\/og-image\.png(?:\?v=[\w-]+)?/g, `/og-image.png?v=${brandVersion}`).replace(/\/og\/(home|features|security|articles|privacy|terms|support)\.png(?:\?v=[\w-]+)?/g,
-        `/og/$1.png?v=${brandVersion}`);
+      const next = old.replace(/\/og-image\.png(?:\?v=[\w-]+)?/g, `/og-image.png?v=${sharePreviewVersion}`).replace(/\/og\/(home|features|security|articles|privacy|terms|support)\.png(?:\?v=[\w-]+)?/g,
+        `/og/$1.png?v=${sharePreviewVersion}`).replace(/\/assets\/articles\/editorials\/oath-wallet-release-history\/cover\.png(?:\?v=[\w-]+)?/g,
+        `/assets/articles/editorials/oath-wallet-release-history/cover.png?v=${sharePreviewVersion}`);
       if (next !== old) await writeFile(url, next);
     }
   }
