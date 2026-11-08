@@ -180,6 +180,39 @@ Google's restricted Indexing API as a substitute for Search Console.
 
 The October 20 audit and deployment evidence is in `Reports/seo-2026-10-20/`.
 
+## Vulnerability reporting discovery (security.txt)
+
+`content/security-contact.json` is the reviewed source for RFC 9116 reporting
+details. `src/security-txt.js` serves UTF-8 plain text at
+`/.well-known/security.txt` before host-specific routing, independently of asset
+storage and live providers. Main, Help, Articles and News each declare their own
+canonical URI. The www alias keeps the apex destination. `/security.txt` and HTTP
+requests redirect to the HTTPS well-known location. GET and HEAD are supported;
+writes return 405. The document is public, cacheable for one hour and excluded
+from search result pages, not from crawling.
+
+GitHub private vulnerability reporting is the preferred contact. The existing
+public `care@oathwallet.org` address is a fallback for arranging a private report.
+Scope and reward terms remain in the published bug bounty policy. Do not add
+unoperated mailboxes, unsupported response promises or unverified encryption keys.
+No OpenPGP signing or encrypted email channel is claimed.
+
+Review the contacts, reporting availability and policy at least quarterly. Update
+`reviewedOn` and the explicit `expires` date only after review; keep expiry less
+than one year ahead. `npm run build:security` generates the static main-host copy
+and fails when fewer than 30 days remain. It runs in every predeploy build; a
+deployment does not silently renew the expiry. Unit tests cover host routing,
+headers, HEAD, redirects and method boundaries. The production deployment check
+compares the actual documents with this commit on every configured website host.
+
+Cloudflare's “Security.txt not configured” insight checks its managed feature's
+setting, which can remain disabled when Git-owned content is served by this
+Worker. Verify the public URLs before classifying that configuration suggestion
+as a false positive. Do not enable a second managed copy that can drift from Git.
+This reporting document is not a firewall or an independent security audit.
+
+Reference: https://www.rfc-editor.org/rfc/rfc9116.html
+
 ## ChatGPT search crawler access
 
 All three public hosts explicitly allow `OAI-SearchBot` (search discovery) and

@@ -1,6 +1,30 @@
 import assert from 'node:assert/strict';
 import {tokenPageTitle} from '../src/token-titles.js';
 import {escapeHTML} from '../src/tokens.js';
+import {renderSecurityTxt, securityHosts, securityTxtPath} from '../src/security-txt.js';
+
+// A successful deployment must expose the exact reviewed reporting document,
+// including on hosts whose HTML routers previously returned 404 for this path.
+for (const host of securityHosts) {
+  const canonicalHost = host.startsWith('www.') ? 'oathwallet.org' : host;
+  const canonical = `https://${canonicalHost}${securityTxtPath}`;
+  for (const path of [securityTxtPath, '/security.txt']) {
+    const response = await fetch(`https://${host}${path}`, {redirect: 'manual', signal: AbortSignal.timeout(20000)});
+    if (path === '/security.txt' || host.startsWith('www.')) {
+      assert.equal(response.status, 308, host + path);
+      assert.equal(response.headers.get('Location'), canonical);
+    } else {
+      assert.equal(response.status, 200, host + path);
+      assert.equal(response.headers.get('Content-Type'), 'text/plain; charset=utf-8');
+      assert.equal(response.headers.get('X-Content-Type-Options'), 'nosniff');
+      assert.equal(await response.text(), renderSecurityTxt(host), host + ' security.txt differs from commit');
+      const head = await fetch(canonical, {method: 'HEAD', signal: AbortSignal.timeout(20000)});
+      assert.equal(head.status, 200);
+      assert.equal(head.headers.get('Content-Type'), 'text/plain; charset=utf-8');
+    }
+  }
+}
+console.log(`Verified security.txt, per-host canonicals and legacy redirects across all ${securityHosts.length} website hosts.`);
 
 const urls = ['https://oathwallet.org/', 'https://oathwallet.org/security',
   'https://articles.oathwallet.org/', 'https://help.oathwallet.org/'];
