@@ -49,7 +49,9 @@ test('every artwork entry has an exact accepted identity and generated shard; mi
 test('directory, search, asset hub, detail, network and transfer surfaces include local images in initial HTML',async()=>{
   const env=environment();
   for(const path of ['/tokens','/tokens?q=USDC&network=base','/tokens/usdc','/tokens/usdc/base','/tokens/usdt/tron','/networks/base/tokens','/networks/base','/networks/choose-token-network?token=usdc&network=base']){
-    const response=await worker.fetch(new Request(origin+path),env);assert.equal(response.status,200,path);
+    let response=await worker.fetch(new Request(origin+path),env);
+    if(response.status===308)response=await worker.fetch(new Request(response.headers.get('Location')),env);
+    assert.equal(response.status,200,path);
     const html=await response.text();
     assert.match(html,new RegExp('src="/token-artwork/'+manifest.version+'/[a-f0-9]{32}"'),path);
     assert.ok(html.includes('/token-artwork.css'),path);assert.ok(html.includes('/token-artwork.js'),path);

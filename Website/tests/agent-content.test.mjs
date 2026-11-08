@@ -10,6 +10,8 @@ test('every document supports discoverable HTML and identical explicit/negotiate
  for(const d of documents){
   const md=await worker.fetch(new Request(d.markdown_url),env), negotiated=await worker.fetch(new Request(d.url,{headers:{Accept:'text/markdown'}}),env),html=await worker.fetch(new Request(d.url),env);
   assert.equal(md.status,200,d.url);assert.equal(negotiated.status,200,d.url);assert.equal(html.status,200,d.url);
+  assert.equal(html.headers.get('X-Robots-Tag'),null,d.url);
+  assert.equal(negotiated.headers.get('X-Robots-Tag'),null,d.url+' negotiated indexing');
   assert.equal(await md.text(),await negotiated.text(),d.url);assert.match(md.headers.get('Content-Type'),/text\/markdown/);
   assert.match(negotiated.headers.get('Vary'),/Accept/);assert.match(html.headers.get('Vary'),/Accept/);assert.ok(html.headers.get('Link').includes(d.markdown_url));
   const head=await worker.fetch(new Request(d.url,{method:'HEAD',headers:{Accept:'text/markdown'}}),env);assert.equal(await head.text(),'');assert.match(head.headers.get('Content-Type'),/markdown/);
@@ -31,8 +33,21 @@ test('MCP finds recovery guides, networks and the official download',async()=>{
  assert.match((await call('get_download')).structuredContent.url,/apps.apple.com/);
 });
 test('Accept preferences preserve browsers and q=0',()=>{
- for(const a of ['', '*/*','text/html,text/markdown;q=0.2','text/markdown;q=0','text/html,text/markdown'])assert.equal(wantsMarkdown(a),false,a);
+ for(const a of ['', '*/*','text/*','text/html,text/markdown;q=0.2','text/markdown;q=0','text/html,text/markdown','*/*;q=1,text/markdown;q=0.2','text/*;q=0.8,text/markdown;q=0.2','text/markdown;q=2','text/markdown;q=bad','text/markdown;q=-1'])assert.equal(wantsMarkdown(a),false,a);
  assert.equal(wantsMarkdown('text/markdown, text/html;q=0.5'),true);
+  assert.equal(wantsMarkdown('text/markdown, */*;q=0.8'),true);
+  assert.equal(wantsMarkdown('text/markdown;q=0.8, text/html;q=0, application/xhtml+xml;q=0, */*;q=1'),true);
+});
+test('temporary Markdown failures return retryable errors without deindexing canonical pages',async()=>{
+ for(const fetch of [async()=>new Response(null,{status:503}),async()=>{throw Error('unavailable');}]){
+  for(const method of ['GET','HEAD'])for(const path of ['/features/revoke-token-approvals','/features/revoke-token-approvals.md']){
+   const response=await worker.fetch(new Request('https://oathwallet.org'+path,{method,headers:{Accept:'text/markdown'}}),{ASSETS:{fetch}});
+   assert.equal(response.status,503);assert.equal(response.headers.get('Cache-Control'),'no-store');assert.equal(response.headers.get('Retry-After'),'60');assert.equal(response.headers.get('X-Robots-Tag'),null);
+   if(method==='HEAD')assert.equal(await response.text(),'');
+  }
+ }
+ const response=await worker.fetch(new Request('https://oathwallet.org/features/revoke-token-approvals',{headers:{Accept:'text/markdown'}}),env);
+ assert.equal(response.status,200);assert.equal(response.headers.get('X-Robots-Tag'),null);
 });
 test('private routes, redirects and cross-origin MCP protections remain intact',async()=>{
  assert.equal((await worker.fetch(new Request('https://oathwallet.org/mcp',{method:'POST',headers:{Origin:'https://evil.invalid','Content-Type':'application/json'},body:'{}'}),env)).status,403);

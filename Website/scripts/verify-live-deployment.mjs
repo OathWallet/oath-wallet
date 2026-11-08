@@ -44,6 +44,10 @@ for(let offset=0;offset<tokens.samples.length;offset+=5){
  await Promise.all(tokens.samples.slice(offset,offset+5).map(async path=>{
   const r=await fetch('https://oathwallet.org'+path,{method:'HEAD',signal:AbortSignal.timeout(20000)});
   assert.equal(r.status,200,path);assert.equal(r.headers.get('x-oath-catalog-version'),tokens.version,path);assert.ok(r.headers.get('link')?.includes('https://oathwallet.org'+path+'>; rel="canonical"'),path);
+  assert.doesNotMatch(r.headers.get('x-robots-tag')||'',/noindex|none/i,path);
+  const md=await fetch('https://oathwallet.org'+path,{method:'HEAD',headers:{Accept:'text/markdown'},signal:AbortSignal.timeout(20000)});
+  assert.equal(md.status,200,path);assert.match(md.headers.get('content-type'),/text\/markdown/);assert.match(md.headers.get('vary'),/Accept/i);
+  assert.doesNotMatch(md.headers.get('x-robots-tag')||'',/noindex|none/i,path+' negotiated indexing');
  }));
 }
 const search=await fetch('https://oathwallet.org/tokens?q=USDC&network=base',{signal:AbortSignal.timeout(20000)});
@@ -51,6 +55,24 @@ assert.equal(search.status,200);assert.ok(search.headers.get('x-robots-tag')?.in
 const tokenDocuments=await fetch('https://oathwallet.org/tokens/documents.json',{signal:AbortSignal.timeout(20000)});
 assert.equal(tokenDocuments.status,200);assert.equal((await tokenDocuments.json()).documents.length,100);
 console.log(`Verified catalog ${tokens.version}: ${tokens.count} identities; ${tokens.samples.length} live samples covering every token network, search and bounded discovery.`);
+
+for(const [path,target]of [
+ ['/tokens.md?network=base','/networks/base/tokens.md'],
+ ['/tokens/usdc/base?page=200&utm_source=guide','/tokens/usdc/base?utm_source=guide'],
+ ['/networks/base/tokens?network=ethereum&q=USDC','/networks/ethereum/tokens?q=USDC'],
+ ['/tokens?page=1','/tokens'],
+]){
+ const response=await fetch('https://oathwallet.org'+path,{redirect:'manual',signal:AbortSignal.timeout(20000)});
+ assert.equal(response.status,308,path);assert.equal(response.headers.get('Location'),'https://oathwallet.org'+target,path);
+}
+for(const path of ['/404.html','/tokens?page=2&page=3','/tokens?network=constructor']){
+ const response=await fetch('https://oathwallet.org'+path,{signal:AbortSignal.timeout(20000)});
+ assert.equal(response.status,404,path);assert.match(response.headers.get('x-robots-tag'),/noindex/);
+}
+const filtered=await fetch('https://oathwallet.org/networks/ethereum/tokens?q=USDC',{signal:AbortSignal.timeout(20000)});
+assert.equal(filtered.status,200);assert.match(filtered.headers.get('x-robots-tag'),/noindex/);
+const filteredHTML=await filtered.text();assert.match(filteredHTML,/Ethereum token entries/);assert.doesNotMatch(filteredHTML,/Base token entries/);
+console.log('Verified catalog query normalization, explicit Markdown redirects, correct network search and real 404 responses.');
 
 const titleSamples=Object.values(tokens.networks).map(n=>[n.featured[0].path,n.featured[0],n]);
 for(const slug of ['usdt','usdc']){
