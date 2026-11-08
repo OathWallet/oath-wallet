@@ -87,11 +87,11 @@ Core/relay transfer checks are not evidence of every dApp or swap program.
 
 ## Delegate-review regression validation (6 November 2026)
 
-The reported source, `7ffd0f449c3312d9fafd01eda59c6b9eb813f9ca`, compared
+The reported source, `d039b009d8c81b0497f2ac7e6abebfdf54ff8612`, compared
 token balances but omitted the token account's delegate and delegated amount.
 Consequently, an approval with no immediate token transfer could look like a
 fee-only transaction. The repair was applied to source base
-`4505db54c09c0ceb79e9977d767200421a0f13b9`; it does not change transaction bytes
+`826636257df110931b2a281009cff8803b954282`; it does not change transaction bytes
 or remove the user's signing authorization.
 
 `WalletConnectSolanaConsentRegressionTests` uses the production wire parser and

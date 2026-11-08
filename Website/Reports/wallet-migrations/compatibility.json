@@ -103,5 +103,6 @@
     "physical device tests",
     "live funded transfers",
     "all source-wallet versions or configurations"
-  ]
+  ],
+  "sourceReference": "d039b009d8c81b0497f2ac7e6abebfdf54ff8612"
 }

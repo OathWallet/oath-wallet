@@ -35,7 +35,7 @@ test('current guides agree across article text, HTML, feeds and modification dat
   assert.ok(a&&item,slug);assert.equal(item.title,a.title);assert.equal(item.date_modified,a.updated_at);
   assert.match(a.updated_at,/2026-11-02/);assert.match(html,/5\.0\.0/);assert.match(md,/5\.0\.0/);assert.match(item.content_html,/5\.0\.0/);
   assert.match(html,/Guide source version/);
-  assert.ok(html.includes('ecb16953a5766471e1214eae6655cf783d0d062a'));
+  assert.ok(html.includes('7eabd04a6f3273fa4ed7ce4108ac4ac683b2a108'));
   assert.doesNotMatch(html,/580cf943|docs\/AUDIT_SCOPE\.md|4\.0\.0/,slug+' has no retired citations, including structured metadata');
   assert.ok(html.includes(a.reading_minutes+' min read'),slug+' reading time agrees with the listing');
  }

@@ -52,7 +52,7 @@ There is no Bitcoin network fee for importing a seed. Sending BTC afterward requ
 
 ## What we verified
 
-Checked November 6, 2026 against [Oath 5.0.2 (104) source](https://github.com/OathWallet/oath-wallet/tree/7ffd0f449c3312d9fafd01eda59c6b9eb813f9ca). We ran its [Electrum host tests](https://github.com/OathWallet/oath-wallet/blob/7ffd0f449c3312d9fafd01eda59c6b9eb813f9ca/Packages/OathBitcoin/Tests/OathBitcoinTests/ElectrumMnemonicTests.swift): five checks passed, and the opt-in Bitcoin Core funding/transfer check was skipped. The public reference suite compares 132 receive/change addresses across 22 fixtures and also tests extension isolation and bounded discovery. The suite includes additional seed types beyond the ordinary-wallet instructions in this guide.
+Checked November 6, 2026 against [Oath 5.0.2 (104) source](https://github.com/OathWallet/oath-wallet/tree/d039b009d8c81b0497f2ac7e6abebfdf54ff8612). We ran its [Electrum host tests](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/Packages/OathBitcoin/Tests/OathBitcoinTests/ElectrumMnemonicTests.swift): five checks passed, and the opt-in Bitcoin Core funding/transfer check was skipped. The public reference suite compares 132 receive/change addresses across 22 fixtures and also tests extension isolation and bounded discovery. The suite includes additional seed types beyond the ordinary-wallet instructions in this guide.
 
 These are offline recovery and source checks. They are not an iPhone runtime test, a live funded transfer or a guarantee that every historical Electrum wallet configuration will recover through this route.
 

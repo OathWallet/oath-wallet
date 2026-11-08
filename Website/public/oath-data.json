@@ -743,7 +743,7 @@
   ],
   "security": {
     "reviewed_source_version": "5.0.2 (104)",
-    "reviewed_source_commit": "7ffd0f449c3312d9fafd01eda59c6b9eb813f9ca",
+    "reviewed_source_commit": "d039b009d8c81b0497f2ac7e6abebfdf54ff8612",
     "reviewed_on": "2026-11-05",
     "mnemonic": "BIP39, Electrum and aezeed retain distinct validation and derivation rules",
     "storage": "AES-GCM local vault; device-only Keychain and protected installation key; passcode key derivation uses PBKDF2-HMAC-SHA256 with 600,000 rounds",
@@ -751,7 +751,7 @@
     "independent_audit": "Not established by the published source release",
     "app_store_binary_match": "The release record covers source and unsigned build checks. An independently reproduced comparison with the distributed App Store binary remains outstanding.",
     "silent_payments": "Receiving and discovery are not supported in 5.0.2",
-    "source": "https://github.com/OathWallet/oath-wallet/blob/7ffd0f449c3312d9fafd01eda59c6b9eb813f9ca/README.md",
+    "source": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/README.md",
     "scope": "https://github.com/OathWallet/oath-wallet/blob/main/Documentation/SecurityModel.md",
     "reporting_policy": "https://github.com/OathWallet/oath-wallet/security/policy",
     "source_correspondence": {
@@ -764,7 +764,7 @@
     "technical_examples_scope": "Six source excerpts verified against 5.0.2 (104) on 2026-11-05.",
     "page_updated_on": "2026-11-05",
     "release_record": "https://github.com/OathWallet/oath-wallet/releases/tag/v5.0.2-build104",
-    "release_source_commit": "7ffd0f449c3312d9fafd01eda59c6b9eb813f9ca",
+    "release_source_commit": "d039b009d8c81b0497f2ac7e6abebfdf54ff8612",
     "published_review": {
       "kind": "maintainer-commissioned, Codex-led security review",
       "status": "in_progress",
