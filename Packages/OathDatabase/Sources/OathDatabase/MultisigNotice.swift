@@ -35,7 +35,7 @@ extension OathDatabase {
 
     @discardableResult
     public func acknowledgeMultisigNotice(walletID: String) async throws -> MultisigNoticeState {
-        try await pool.write { db in
+        try await storageWrite { db in
             _ = try Self.multisigNoticeState(db, walletID: walletID)
             try SettingRecord(key: Self.multisigNoticeKey(walletID), value: "true",
                               updatedAt: Date.now.timeIntervalSince1970).upsert(db)

@@ -1,10 +1,43 @@
 import Foundation
 import GRDB
 import OathBitcoin
+import OathAnkr
 
 public enum ContactStoreError: Error, Equatable, Sendable {
-    case invalidName, invalidAddress, invalidLabel, emptyAddresses, tooManyAddresses
+    case invalidName, invalidAddress, invalidLabel, invalidMemo, emptyAddresses, tooManyAddresses
     case duplicateAddress, unknownNetwork, conflict, missingContact
+}
+
+/// Routing is part of a saved destination, not its display label. Reuse the
+/// send protocol's bounds and preserve text byte-for-byte (no trimming).
+public struct ContactRoutingMemo: Equatable, Sendable {
+    public let value: String
+    public let type: String?
+    public init(networkID: String, value: String = "", type: String? = nil) throws {
+        guard value.utf8.count <= 256 else { throw ContactStoreError.invalidMemo }
+        if value.isEmpty { self.value = ""; self.type = nil; return }
+        switch networkID {
+        case "xrpl":
+            guard type == nil, value.utf8.allSatisfy({ (48...57).contains($0) }), let tag = UInt32(value) else { throw ContactStoreError.invalidMemo }
+            self.value = String(tag); self.type = nil
+        case "stellar":
+            guard let kind = StellarSendMemoType(rawValue: type ?? "text"),
+                  (try? StellarSendMemo(type: kind, value: value).validate()) != nil else { throw ContactStoreError.invalidMemo }
+            switch kind {
+            case .text: self.value = value
+            case .id: self.value = String(UInt64(value)!)
+            case .hash, .returnHash: self.value = value.lowercased()
+            }
+            self.type = kind.rawValue
+        default: throw ContactStoreError.invalidMemo
+        }
+    }
+
+    func destinationKey(addressKey: String) -> String {
+        // Addresses and memo types cannot contain this separator. Existing
+        // untagged destination keys remain unchanged through migration.
+        value.isEmpty ? addressKey : addressKey + "\u{1F}" + (type ?? "") + "\u{1F}" + value
+    }
 }
 
 public struct ContactRecord: Codable, Equatable, Sendable, FetchableRecord {
@@ -26,9 +59,12 @@ public struct ContactAddressInput: Equatable, Sendable, Identifiable {
     public var networkID: String
     public var address: String
     public var label: String
+    public var memo: String
+    public var memoType: String?
 
-    public init(id: String = UUID().uuidString, networkID: String, address: String, label: String = "") {
+    public init(id: String = UUID().uuidString, networkID: String, address: String, label: String = "", memo: String = "", memoType: String? = nil) {
         self.id = id; self.networkID = networkID; self.address = address; self.label = label
+        self.memo = memo; self.memoType = memoType
     }
 }
 
@@ -41,9 +77,11 @@ public struct ContactAddressRecord: Codable, Equatable, Sendable, FetchableRecor
     public let addressKey: String
     public let label: String
     public let position: Int
+    public let memo: String?
+    public let memoType: String?
 
     public var input: ContactAddressInput {
-        .init(id: id, networkID: networkID, address: address, label: label)
+        .init(id: id, networkID: networkID, address: address, label: label, memo: memo ?? "", memoType: memoType)
     }
 }
 
@@ -71,14 +109,16 @@ extension OathDatabase {
 
     /// Match a destination only on its explicit network. UTXO aliases can encode
     /// the same locking script (for example CashAddr and a legacy BCH address).
-    public func observeContactAddress(networkID: String, address: String) -> AsyncThrowingStream<Bool, Error> {
-        stream { try Self.containsContactAddress($0, networkID: networkID, address: address) }
+    public func observeContactAddress(networkID: String, address: String, memo: String = "", memoType: String? = nil) -> AsyncThrowingStream<Bool, Error> {
+        stream { try Self.containsContactAddress($0, networkID: networkID, address: address, memo: memo, memoType: memoType) }
     }
 
-    static func containsContactAddress(_ db: Database, networkID: String, address: String) throws -> Bool {
+    static func containsContactAddress(_ db: Database, networkID: String, address: String, memo: String = "", memoType: String? = nil) throws -> Bool {
         guard let network = try NetworkRecord.fetchOne(db, key: networkID) else { throw ContactStoreError.unknownNetwork }
+        let routing = try ContactRoutingMemo(networkID: networkID, value: memo, type: memoType)
         let address = address.trimmingCharacters(in: .whitespacesAndNewlines)
-        let saved = try String.fetchAll(db, sql: "SELECT address FROM contactAddresses WHERE networkID=?", arguments: [networkID])
+        let saved = try String.fetchAll(db, sql: "SELECT address FROM contactAddresses WHERE networkID=? AND COALESCE(memo,'')=? AND COALESCE(memoType,'')=?",
+                                        arguments: [networkID, routing.value, routing.type ?? ""])
         if network.family == "evm" { return saved.contains { $0.lowercased() == address.lowercased() } }
         if saved.contains(address) { return true }
         // Alternative address decoding is expected validation, not an app failure.
@@ -102,7 +142,7 @@ extension OathDatabase {
         guard UUID(uuidString: id) != nil, Set(addresses.map(\.id)).count == addresses.count,
               addresses.allSatisfy({ UUID(uuidString: $0.id) != nil }) else { throw ContactStoreError.conflict }
         try Task.checkCancellation()
-        return try await pool.write { db in
+        return try await storageWrite { db in
             let old = try ContactRecord.fetchOne(db, sql: "SELECT * FROM contacts WHERE id=?", arguments: [id])
             if expectedRevision != nil, old == nil { throw ContactStoreError.missingContact }
             guard old?.revision == expectedRevision else { throw ContactStoreError.conflict }
@@ -122,11 +162,12 @@ extension OathDatabase {
                       !label.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) }) else {
                     throw ContactStoreError.invalidLabel
                 }
-                let key = network.family == "evm" ? address.lowercased() : address
+                let routing = try ContactRoutingMemo(networkID: network.id, value: entry.memo, type: entry.memoType)
+                let key = routing.destinationKey(addressKey: network.family == "evm" ? address.lowercased() : address)
                 guard seen.insert([network.id, key]).inserted else { throw ContactStoreError.duplicateAddress }
                 // Receipt quick-add checks again in the writer transaction, so
                 // another editor cannot create a duplicate after its lookup.
-                if rejectExistingAddresses, try Self.containsContactAddress(db, networkID: network.id, address: address) {
+                if rejectExistingAddresses, try Self.containsContactAddress(db, networkID: network.id, address: address, memo: routing.value, memoType: routing.type) {
                     throw ContactStoreError.duplicateAddress
                 }
                 if let owner = try String.fetchOne(db, sql: "SELECT contactID FROM contactAddresses WHERE id=?", arguments: [entry.id]), owner != id {
@@ -134,7 +175,8 @@ extension OathDatabase {
                 }
                 searchParts.append("\(label) \(network.id) \(network.name) \(network.symbol) \(address)")
                 return ContactAddressRecord(id: entry.id, contactID: id, networkID: network.id,
-                    address: address, addressKey: key, label: label, position: position)
+                    address: address, addressKey: key, label: label, position: position,
+                    memo: routing.value.isEmpty ? nil : routing.value, memoType: routing.type)
             }
             let now = Date.now.timeIntervalSince1970
             // Derived search text is maintained only here, in the same writer
@@ -156,7 +198,7 @@ extension OathDatabase {
 
     public func deleteContact(_ id: String, expectedRevision: Int64) async throws {
         try Task.checkCancellation()
-        try await pool.write { db in
+        try await storageWrite { db in
             try db.execute(sql: "DELETE FROM contacts WHERE id=? AND revision=?", arguments: [id, expectedRevision])
             guard db.changesCount == 1 else { throw ContactStoreError.conflict }
         }

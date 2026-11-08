@@ -37,7 +37,7 @@ public struct BitcoinActivitySynchronizer: Sendable {
         }
         // Keep disappeared transactions, but never label them cancelled merely
         // because one Electrum peer no longer reports them.
-        try await database.pool.write { db in
+        try await database.storageWrite { db in
             guard try AccountRecord.fetchOne(db, key: accountID)?.syncGeneration == account.syncGeneration else { throw StoreError.staleSync }
             try db.execute(sql: """
                 UPDATE transactions SET state='reorged' WHERE networkID=? AND id IN
@@ -85,7 +85,7 @@ extension OathDatabase {
         guard let network = UTXONetwork(rawValue: account.networkID) else { throw StoreError.invalidValue("network") }
         let decoded = try raw.mapValues { try BitcoinTransactions.details($0, network: network) }
         guard decoded.allSatisfy({ $0.key == $0.value.txid }) else { throw BitcoinError.invalidResponse }
-        try await pool.write { db in
+        try await storageWrite { db in
             guard try AccountRecord.fetchOne(db, key: account.id)?.syncGeneration == account.syncGeneration,
                   try Bool.fetchOne(db, sql: "SELECT EXISTS(SELECT 1 FROM metadata WHERE key='walletReset')") != true else { throw StoreError.staleSync }
             let ownScripts = Set(try String.fetchAll(db, sql: "SELECT script FROM bitcoinAddresses WHERE accountID=?", arguments: [account.id]))

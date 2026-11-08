@@ -131,6 +131,30 @@ private actor MonadIndexFeed: AnkrTransport {
     }
 }
 
+private actor LargeBlockReceiptFeed: AnkrTransport {
+    let feed = MonadIndexFeed(.missingHashIndex, chain: .celo)
+    let enlargeMatchedReceipt: Bool
+    init(enlargeMatchedReceipt: Bool = false) { self.enlargeMatchedReceipt = enlargeMatchedReceipt }
+    func send(_ request: URLRequest) async throws -> (Data, Int) {
+        let (data, status) = try await feed.send(request)
+        guard let body = request.httpBody,
+              let calls = try JSONDecoder().decode(SolanaJSON.self, from: body).array,
+              let call = calls.first(where: { $0["method"].string == "eth_getBlockReceipts" }),
+              var replies = try JSONDecoder().decode(SolanaJSON.self, from: data).array,
+              let i = replies.firstIndex(where: { $0["id"] == call["id"] }),
+              case .object(var reply) = replies[i], var receipts = reply["result"]?.array,
+              case .object(var receipt) = receipts[0] else { return (data, status) }
+        receipt["fixture_large_log"] = .string(String(repeating: "a", count: 4 * 1024 * 1024))
+        if enlargeMatchedReceipt { receipts[0] = .object(receipt) }
+        else {
+            receipt["transactionHash"] = .string("0x" + String(repeating: "c", count: 64))
+            receipts.append(.object(receipt))
+        }
+        reply["result"] = .array(receipts); replies[i] = .object(reply)
+        return (try JSONEncoder().encode(SolanaJSON.array(replies)), status)
+    }
+}
+
 final class MonadIndexTests: XCTestCase, @unchecked Sendable {
     func testUnavailableRecordIsExcludedButMissingVerificationEvidenceIsReported() async throws {
         let reports = HistoryRecoveryReports()

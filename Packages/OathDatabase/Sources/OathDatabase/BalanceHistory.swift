@@ -200,7 +200,7 @@ extension OathDatabase {
     public func recordCurrentBalance(walletID: String, currency: String, reason: BalanceSnapshotReason,
                                      eventID: UUID = UUID(), settled: Bool = false) async throws -> BalanceSnapshotRecord? {
         try Validation.currency(currency)
-        return try await pool.write { db in
+        return try await storageWrite { db in
             guard try Self.canRecordBalance(db, walletID: walletID) else { return nil }
             if let previous = try BalanceSnapshotRecord.fetchOne(db, sql: "SELECT * FROM balanceSnapshots WHERE eventID=?",
                                                                  arguments: [eventID.uuidString]) {
@@ -232,7 +232,7 @@ extension OathDatabase {
     public func appendBalanceSnapshot(walletID: String, currency: String, total: Decimal, complete: Bool,
                                       reason: BalanceSnapshotReason, eventID: UUID = UUID(),
                                       date: Date = Date(), comparisonReady: Bool? = nil) async throws -> BalanceSnapshotRecord? {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard try Self.canRecordBalance(db, walletID: walletID) else { return nil }
             return try Self.appendBalance(db, walletID: walletID, currency: currency, total: total,
                 complete: complete, ready: comparisonReady ?? complete, holdings: nil,
@@ -275,7 +275,7 @@ extension OathDatabase {
     /// Rolling calendar year, including leap years. The timestamp index avoids
     /// scanning retained rows; deletion runs on GRDB's writer, never the UI actor.
     public func pruneBalanceHistory(now: Date = Date()) async throws {
-        try await pool.write { try Self.pruneBalanceHistory($0, now: now) }
+        try await storageWrite { try Self.pruneBalanceHistory($0, now: now) }
     }
 
     private static func pruneBalanceHistory(_ db: Database, now: Date) throws {

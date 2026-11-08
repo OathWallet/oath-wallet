@@ -78,6 +78,7 @@ enum OathScannerContext: Sendable {
 }
 
 struct OathScannedRecipient: Sendable, Equatable {
+    enum SharedPaymentScope: String, Sendable { case legacy, network, asset }
     let original: String
     let networks: [OathImportChain]
     var amount: String? = nil
@@ -92,6 +93,12 @@ struct OathScannedRecipient: Sendable, Equatable {
     var solanaReferences: [String] = []
     var label: String? = nil
     var message: String? = nil
+    /// An explicit shared-link intent survives parsing, unlock and asset lookup.
+    /// Standard payment URIs retain their existing routing rules.
+    var sharedPaymentScope: SharedPaymentScope? = nil
+    var requiresRecipientReview: Bool {
+        sharedPaymentScope != nil && networks.contains { $0 == .xrpl || $0 == .stellar }
+    }
     var displayNote: String? {
         let fields = [label, message].compactMap { $0 }.filter { !$0.isEmpty }
         return fields.isEmpty ? nil : fields.joined(separator: "\n")
@@ -99,14 +106,32 @@ struct OathScannedRecipient: Sendable, Equatable {
 
     /// A symbol or address shape alone cannot identify an asset or its network.
     var hasExactAsset: Bool {
-        networks.count == 1 && tokenSymbol == nil && !amountAssetUnspecified
+        if sharedPaymentScope == .network { return false }
+        return networks.count == 1 && tokenSymbol == nil && !amountAssetUnspecified
             && (token != nil || amount != nil || networks.first?.supportsTokens == false)
+    }
+
+    /// Use the same chain identity rules as discovery and persistence. Invalid
+    /// external identifiers are ordinary input validation, not app failures.
+    static func canonicalReference(_ value: String, chain: OathImportChain) -> String? {
+        guard !value.isEmpty, value.utf8.count <= 4_096,
+              !value.unicodeScalars.contains(where: { $0.properties.isBidiControl || $0.value == 0 }),
+              value == value.trimmingCharacters(in: .whitespacesAndNewlines) else { return nil }
+        if value == "native" { return value }
+        guard chain.supportsTokens else { return nil }
+        if chain == .tron, TronIdentity.isTRC10(value) { return value }
+        return try? TokenDiscoveryNetworks.canonical(value, network: chain.id)
     }
 
     /// Reused for picker promotion and amount application. A payment quantity
     /// belongs only to the requested asset; ticker-only links remain hints.
     func matchesAsset(networkID: String, reference: String, symbol: String? = nil) -> Bool {
         guard let chain = OathImportChain(rawValue: networkID), networks.contains(chain) else { return false }
+        if sharedPaymentScope == .asset {
+            guard let token, let requested = Self.canonicalReference(token, chain: chain),
+                  let candidate = Self.canonicalReference(reference, chain: chain) else { return false }
+            return requested == candidate
+        }
         if let tokenSymbol {
             // The catalog calls Binance-bridged USDT BSC-USD. Recognize its
             // exact contract; never infer identity from a token's display name.
@@ -134,6 +159,9 @@ struct OathScannedRecipient: Sendable, Equatable {
     /// compatible assets when the request still needs asset selection.
     func prioritized<T>(_ assets: [T], network: (T) -> String, reference: (T) -> String, symbol: (T) -> String) -> [T] {
         let compatible = assets.filter { asset in networks.contains(where: { $0.id == network(asset) }) }
+        if sharedPaymentScope == .asset {
+            return compatible.filter { matchesAsset(networkID: network($0), reference: reference($0), symbol: symbol($0)) }
+        }
         return compatible.filter { matchesAsset(networkID: network($0), reference: reference($0), symbol: symbol($0)) }
             + compatible.filter { !matchesAsset(networkID: network($0), reference: reference($0), symbol: symbol($0)) }
     }

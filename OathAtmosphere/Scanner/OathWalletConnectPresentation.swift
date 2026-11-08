@@ -61,7 +61,7 @@ private struct OathWalletConnectPresentation: ViewModifier {
                 guard service.presentationDidOpen(entry.id) else { return nil }
                 return .init(id: entry.id, content: { close, dismissDisabled in
                     AnyView(OathWalletConnectSheet(uri: entry.uri, session: session,
-                        presentationID: entry.id, onDismiss: close, onDismissDisabledChange: dismissDisabled))
+                        presentationID: entry.id, browserHost: entry.browserHost, onDismiss: close, onDismissDisabledChange: dismissDisabled))
                 }, onDismiss: {
                     if consumedLink { inbox.didDismiss() }
                     service.presentationDidDismiss(entry.id)

@@ -471,6 +471,19 @@
     "seedPasswordLabel": {
       "fil": "Commonly used password loanword in this language.",
       "it": "Commonly used password loanword in this language."
+    },
+    "browserTabs": {
+      "de": "Tabs is the standard German browser term, with the same spelling as English."
+    },
+    "wcArguments": {
+      "fr": "Established technical loanword with the same spelling in this language."
+    },
+    "wcDeposit": {
+      "ms": "Established technical loanword with the same spelling in this language."
+    },
+    "wcNearStake": {
+      "da": "Established technical loanword with the same spelling in this language.",
+      "nb": "Established technical loanword with the same spelling in this language."
     }
   },
   "InfoPlist": {},

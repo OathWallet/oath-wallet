@@ -1,5 +1,6 @@
 import XCTest
 import Foundation
+import OathDiagnostics
 @testable import OathAnkr
 @testable import OathDatabase
 
@@ -37,6 +38,38 @@ private struct TonDiscoveryCauseFeed: AnkrTransport {
 }
 
 extension TonLedgerTests {
+    func testRefreshFailureReportsOnceAtSyncBoundaryWithOriginalCause() async throws {
+        guard ProcessInfo.processInfo.environment["OATH_TON_SYNC_REPORT_CAPTURE"] == "1" else { throw XCTSkip("Dedicated shared diagnostics capture") }
+        let (db, folder) = try await fixture()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let reports = TonSyncReportCapture()
+        OathDiagnostics.configure(file: folder.appendingPathComponent("diagnostics.json"),transport:reports)
+        let feed = TonDiscoveryCauseFeed(failure:.denied)
+        let sync = TonSynchronizer(database:db,client:TonClient(testTransport:feed),markets:TonMarkets(transport:feed))
+        do { try await sync.refresh(accountID:"a1"); XCTFail("Provider rejection became success") }
+        catch {
+            XCTAssertEqual((error as? ReportedDiagnosticFailure)?.underlying as? TonError, .http(403))
+            OathDiagnostics.record(error, operation: "ton_presentation_duplicate")
+            let outcome = BalanceRefreshOutcome(.failure(error))
+            guard case .failed = outcome else { return XCTFail("A rejected refresh must remain failed") }
+            do { try outcome.get(); XCTFail() }
+            catch { OathDiagnostics.record(error, operation: "ton_result_duplicate") }
+        }
+        await sync.cancel()
+        for _ in 0..<200 {
+            if await reports.events.contains(where:{$0.operation == "inventory_refresh"}) { break }
+            try await Task.sleep(for:.milliseconds(10))
+        }
+        try await Task.sleep(for:.milliseconds(100))
+        await OathDiagnostics.flush()
+        let events = await reports.events.filter {
+            ($0.sourceFile.hasSuffix("TonSynchronizer.swift") && $0.error.message == "http(403)") ||
+            ["ton_presentation_duplicate", "ton_result_duplicate"].contains($0.operation)
+        }
+        XCTAssertEqual(events.count,1)
+        XCTAssertEqual(events.first?.context["chain"],"ton")
+        XCTAssertNotNil(events.first?.operationID)
+    }
     func testTokenFailureKeepsOriginalCauseAndPreservesCachedTokens() async throws {
         for (failure, expected) in [(TonDiscoveryCauseFeed.Failure.tokenTimeout, TonError.http(408)), (.tokenDenied, .http(403))] {
             let (db, folder) = try await fixture()
@@ -46,7 +79,7 @@ extension TonLedgerTests {
             let feed = TonDiscoveryCauseFeed(failure: failure)
             let sync = TonSynchronizer(database: db, client: TonClient(testTransport: feed), markets: TonMarkets(transport: feed))
             do { try await sync.refresh(accountID: "a1"); XCTFail("Failed token reads must not become successful refreshes") }
-            catch { XCTAssertEqual(error as? TonError, expected) }
+            catch { XCTAssertEqual((error as? ReportedDiagnosticFailure)?.underlying as? TonError, expected) }
             await sync.cancel()
             let native = try await db.balance(accountID: "a1", assetID: "ton:native")
             let token = try await db.balance(accountID: "a1", assetID: "ton:" + TonIdentity.usdt)
@@ -63,7 +96,7 @@ extension TonLedgerTests {
             let feed = TonDiscoveryCauseFeed(failure: failure)
             let sync = TonSynchronizer(database: db, client: TonClient(testTransport: feed), markets: TonMarkets(transport: feed))
             do { try await sync.refresh(accountID: "a1"); XCTFail("Partial discovery must still fail the refresh") }
-            catch { XCTAssertEqual(error as? TonError, expected) }
+            catch { XCTAssertEqual((error as? ReportedDiagnosticFailure)?.underlying as? TonError, expected) }
             await sync.cancel()
             let native = try await db.balance(accountID: "a1", assetID: "ton:native")
             let token = try await db.balance(accountID: "a1", assetID: "ton:" + TonIdentity.usdt)
@@ -84,4 +117,9 @@ extension TonLedgerTests {
         let native = try await db.balance(accountID: "a1", assetID: "ton:native")
         XCTAssertEqual(native?.amountAtomic, "59570010157331145")
     }
+}
+
+private actor TonSyncReportCapture: DiagnosticTransport {
+    var events: [DiagnosticEvent] = []
+    func upload(_ events: [DiagnosticEvent]) async throws { self.events += events }
 }

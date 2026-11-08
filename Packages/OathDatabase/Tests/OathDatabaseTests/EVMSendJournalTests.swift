@@ -300,7 +300,7 @@ import GRDB
     }
 
     func testConfirmedSendRefreshesDedicatedPortfoliosAndRejectsStaleInventory() async throws {
-        for network:EVMSendNetwork in [.hyperevm,.robinhood,.monad,.unichain,.filecoin,.sei,.zerog,.iotex] {
+        for network:EVMSendNetwork in [.hyperevm,.robinhood,.monad,.unichain,.filecoin,.sei,.zerog,.iotex,.story] {
             let (db,folder,p)=try await fixture(network:network);defer { try? FileManager.default.removeItem(at:folder) }
             func inventory(_ block:Int,_ amount:String) throws -> Data {
                 try JSONSerialization.data(withJSONObject:["chain":network.rawValue,"owner":p.sender,"block":block,"blockHash":"0x"+String(repeating:"a",count:64),

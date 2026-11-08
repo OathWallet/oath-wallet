@@ -64,7 +64,7 @@ public struct NearToken: Codable, Sendable, Equatable {
         let supported = spec == "ft-1.0.0" || (reference == "token.sweat" && spec == "ft-1.0")
         guard supported, let d = json["decimals"].integer, d <= 255,
               let name = json["name"].string, let symbol = json["symbol"].string else { throw NearError.malformed }
-        return .init(reference:try NearIdentity.reference(reference),name:(try? TronIdentity.clean(name)) ?? "Token",symbol:(try? TronIdentity.clean(symbol,limit:64)) ?? "TOKEN",decimals:Int(d),logo:ArtworkSource.normalized(json["icon"].string))
+        return .init(reference:try NearIdentity.reference(reference),name:TokenMetadataName.name(name, symbol: symbol, reference: reference),symbol:(try? TronIdentity.clean(symbol,limit:64)) ?? "TOKEN",decimals:Int(d),logo:ArtworkSource.normalized(json["icon"].string))
     }
 }
 public struct NearBlock: Codable, Sendable, Equatable { public let hash:String; public let height:Int64; public let timestamp:Double }
@@ -77,6 +77,9 @@ public struct NearHolding: Codable, Sendable, Equatable {
     public let failure:String?
 }
 public struct NearInventory: Codable, Sendable {
+    // Optional for decoding previously archived inventories. New reads always set it.
+    public var discoveryComplete: Bool? = nil
+    public var complete: Bool { discoveryComplete != false && holdings.allSatisfy { $0.amount != nil } }
     public let owner:String
     public let block:NearBlock
     public let exists:Bool

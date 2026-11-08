@@ -60,7 +60,7 @@ extension OathDatabase {
         // an accidentally secret-bearing descriptor from reaching SQLite/WAL.
         let first = try descriptor.branches.flatMap { try BitcoinKeys.addresses(branch: $0, range: 0..<($0.isHD ? 20 : 1)) }
         let data = try JSONEncoder().encode(descriptor)
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.requireWalletSyncAllowed(db)
             guard let account = try AccountRecord.fetchOne(db, key: accountID), account.networkID == descriptor.network.rawValue else { throw StoreError.missingRecord }
             if let old = try Data.fetchOne(db, sql: "SELECT descriptor FROM bitcoinWallets WHERE accountID=?", arguments: [accountID]) {
@@ -119,7 +119,7 @@ extension OathDatabase {
     /// Returns the first unused address after the last used one. Reopening the
     /// sheet reuses that address until paid, avoiding accidental gap exhaustion.
     public func bitcoinReceiveAddress(accountID: String, type: BitcoinAddressType? = nil) async throws -> BitcoinDerivedAddress {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard let row = try Row.fetchOne(db, sql: "SELECT descriptor,preferredType FROM bitcoinWallets WHERE accountID=?", arguments: [accountID]) else { throw StoreError.missingRecord }
             let descriptor = try JSONDecoder().decode(BitcoinWalletDescriptor.self, from: row["descriptor"])
             let selected = type ?? BitcoinAddressType(rawValue: row["preferredType"]) ?? descriptor.defaultType
@@ -167,7 +167,7 @@ extension OathDatabase {
 
     public func beginBitcoinScan(accountID: String) async throws -> String {
         let id = UUID().uuidString
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.requireWalletSyncAllowed(db)
             try db.execute(sql: "UPDATE bitcoinWallets SET scanID=?,failure=NULL WHERE accountID=?", arguments: [id, accountID])
             guard db.changesCount == 1 else { throw StoreError.missingRecord }
@@ -176,7 +176,7 @@ extension OathDatabase {
     }
 
     public func failBitcoinScan(accountID: String, scanID: String, code: String) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.requireWalletSyncAllowed(db)
             try db.execute(sql: "UPDATE bitcoinWallets SET scanID=NULL,failure=? WHERE accountID=? AND scanID=?", arguments: [String(code.prefix(64)), accountID, scanID])
         }
@@ -189,7 +189,7 @@ extension OathDatabase {
         guard scan.addresses.allSatisfy({ $0.state.history.allSatisfy { $0.height <= tipHeight } && $0.state.unspent.allSatisfy { $0.height <= tipHeight } }) else {
             throw BitcoinError.inconsistentSnapshot
         }
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.requireWalletSyncAllowed(db)
             guard let row = try Row.fetchOne(db, sql: "SELECT * FROM bitcoinWallets WHERE accountID=? AND scanID=?", arguments: [accountID, scanID]),
                   let account = try AccountRecord.fetchOne(db, key: accountID) else { throw StoreError.staleSync }

@@ -1,6 +1,7 @@
 import SwiftUI
 import OathAnkr
 import OathDatabase
+import OathDiagnostics
 
 struct OathWCNearReview: View {
     let request:WalletConnectNearRequest
@@ -11,32 +12,33 @@ struct OathWCNearReview: View {
             OathSettingsRow(title:request.network.walletConnectName,accessory:.none,networkLogo:"network-near")
             OathWCValue(title:strings.text(.scannerWCAccount),value:request.account,leftToRight:true)
             OathWCValue(title:strings.text(.wcMaximumFee),value:(OathSendAmount.units(review.fee,decimals:24) ?? "—") + " NEAR",leftToRight:true)
-            ForEach(Array(review.transactions.enumerated()),id:\.offset) { index, tx in
+            let transactions = presentationTransactions
+            if transactions.isEmpty { Text(strings.text(.wcInvalidDetail)).oathFont(.body).padding(20) }
+            ForEach(Array(transactions.enumerated()),id:\.offset) { index, tx in
                 Divider()
                 OathWCValue(title:strings.text(.sendRecipient),value:tx.receiver,leftToRight:true)
                 ForEach(Array(tx.actions.enumerated()),id:\.offset) { _, action in
                     Text(actionText(action)).oathFont(.body).textSelection(.enabled)
-                        .environment(\.layoutDirection, .leftToRight)
                         .frame(maxWidth:.infinity,alignment:.leading).padding(20)
                 }
             }
             OathSettingsFooter { Text(strings.text(.wcCallWarning)) }
         }
     }
-    private func actionText(_ action:WalletConnectNearTransaction.Action) -> String {
-        var value = action.description.components(separatedBy:"\n").map { line in
-            guard ["Transfer ","Stake ","Deposit: ","Gas allowance (yoctoNEAR): "].contains(where:line.hasPrefix),
-                  let amount = line.split(separator:" ").first(where:{!$0.isEmpty && $0.allSatisfy(\.isNumber)}),
-                  let units = OathSendAmount.units(String(amount),decimals:24) else { return line }
-            return line.replacingOccurrences(of:String(amount),with:units).replacingOccurrences(of:"yoctoNEAR",with:"NEAR")
-        }.joined(separator:"\n")
-        if let range = value.range(of:"Arguments (base64): "),
-           let data = Data(base64Encoded:String(value[range.upperBound...])), let text = String(data:data,encoding:.utf8),
-           !text.unicodeScalars.contains(where:{$0.properties.isBidiControl || ($0.value < 32 && $0.value != 10 && $0.value != 9 && $0.value != 13)}) {
-            value = String(value[..<range.lowerBound]) + "Arguments: " + text
-        }
-        return value
+    private func actionText(_ action: WalletConnectNearTransaction.Action) -> String {
+        OathWalletConnectReviewLocalization.nearAction(action, strings: strings)
     }
+    // Reparse the exact signed bytes so persisted reviews from older versions
+    // receive structured display fields too, without parsing English sentences.
+    private var presentationTransactions: [WalletConnectNearTransaction] {
+        do { return try review.request.transactions.map(WalletConnectNearTransaction.init) }
+        catch {
+            OathDiagnostics.record(error, component: "walletconnect", operation: "localize_near_review",
+                context: ["chain": "near", "stage": "presentation"])
+            return []
+        }
+    }
+
 }
 
 struct OathWCNearCompletion: View {

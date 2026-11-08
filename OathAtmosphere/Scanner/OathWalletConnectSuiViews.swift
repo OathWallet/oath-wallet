@@ -1,6 +1,7 @@
 import SwiftUI
 import OathAnkr
 import OathDatabase
+import OathDiagnostics
 
 struct OathWCSuiReview: View {
     let request:WalletConnectSuiRequest
@@ -14,21 +15,49 @@ struct OathWCSuiReview: View {
             VStack(spacing:0) {
                 OathSettingsRow(title:request.network.walletConnectName,accessory:.none,networkLogo:"network-sui")
                 OathWCValue(title:strings.text(.scannerWCAccount),value:request.account,leftToRight:true)
+                // Security-relevant effects are on the approval surface, before
+                // balances/fees and outside the optional raw-data NavigationLink.
+                if let objects = review.objectChanges {
+                    ForEach(objects.filter { $0.authority != .coin || $0.changesOwner }) { object in
+                        VStack(spacing: 0) {
+                            OathSettingsRow(title: strings.text(.wcSuiObjects), accessory: .none)
+                            ForEach(Array(OathWalletConnectReviewLocalization.suiObjectFields(object, strings: strings).enumerated()), id: \.offset) { _, field in
+                                OathWCValue(title: field.title, value: field.value, leftToRight: field.leftToRight)
+                            }
+                            if let warning = OathWalletConnectReviewLocalization.suiAuthorityWarning(object.authority) {
+                                OathWCValue(title: strings.text(.scannerWCPermissions), value: strings.text(warning))
+                            }
+                            OathSettingsSectionRule()
+                        }.accessibilityIdentifier("walletconnect.sui.object")
+                    }
+                }
+                if let actions = transactionActions(review), !actions.isEmpty {
+                    OathSettingsRow(title: strings.text(.wcTransactionData), accessory: .none)
+                    ForEach(Array(actions.enumerated()), id: \.offset) { _, action in
+                        Text(verbatim: action).oathFont(.footnote).textSelection(.enabled)
+                            .environment(\.layoutDirection, .leftToRight)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading).padding(20)
+                    }
+                } else if review.actions?.isEmpty == false {
+                    Text(strings.text(.wcDecodedUnavailable)).oathFont(.body).padding(20)
+                }
                 OathWCValue(title:strings.text(.wcMaximumFee),value:(OathSendAmount.units(String(review.gasBudget),decimals:9) ?? "—") + " SUI",leftToRight:true)
                 if review.gasOwner != request.account {
                     OathWCValue(title:strings.text(.wcSolanaFeePayer),value:review.gasOwner,leftToRight:true)
                 }
                 ForEach(Array(review.changes.enumerated()),id:\.offset) { _, change in
                     Text(changeText(change,review:review)).oathFont(.body).textSelection(.enabled)
-                        .environment(\.layoutDirection, .leftToRight)
                         .frame(maxWidth:.infinity,alignment:.leading).padding(20)
                 }
                 NavigationLink {
                     OathWCContent {
-                        ForEach(Array(review.details.enumerated()),id:\.offset) { _, detail in
-                            Text(detail).font(.system(.footnote,design:.monospaced)).textSelection(.enabled)
-                                .environment(\.layoutDirection, .leftToRight)
-                                .frame(maxWidth:.infinity,alignment:.leading).padding(20)
+                        if let data = transactionData(review) {
+                            Text(data).font(.system(.footnote, design: .monospaced))
+                                .textSelection(.enabled).environment(\.layoutDirection, .leftToRight)
+                                .frame(maxWidth: .infinity, alignment: .leading).padding(20)
+                        } else {
+                            Text(strings.text(.wcDecodedUnavailable)).oathFont(.body).padding(20)
                         }
                     }.navigationTitle(strings.text(.wcSignData)).navigationBarTitleDisplayMode(.inline)
                 } label: { OathSettingsRow(title:strings.text(.wcSignData),icon:"text.alignleft") }
@@ -37,16 +66,39 @@ struct OathWCSuiReview: View {
             }
         }
     }
-    private func changeText(_ row:String,review:WalletConnectSuiReview) -> String {
-        let lines = row.components(separatedBy:"\n")
-        guard lines.count == 2, let range = lines[1].range(of:" atomic ") else { return row }
-        let amount = String(lines[1][..<range.lowerBound]), type = String(lines[1][range.upperBound...])
-        guard let reference = try? SuiIdentity.reference(type), let token = review.tokens[reference] else { return row }
-        let negative = amount.hasPrefix("-")
-        let magnitude = negative ? String(amount.dropFirst()) : amount
-        guard let units = OathSendAmount.units(magnitude,decimals:token.decimals) else { return row }
-        return (negative ? "−" : "+") + units + " " + token.symbol + "\n" + lines[0]
+    private func changeText(_ row: String, review: WalletConnectSuiReview) -> String {
+        OathWalletConnectReviewLocalization.suiChange(row, tokens: review.tokens, strings: strings)
     }
+    private func transactionActions(_ review: WalletConnectSuiReview) -> [String]? {
+        guard let bytes = request.transaction else { return nil }
+        do {
+            let transaction = try WalletConnectSuiTransaction(bytes, network: request.network,
+                account: request.account, executing: request.broadcasts, now: review.createdAt)
+            return try OathWalletConnectReviewLocalization.suiActions(transaction)
+        } catch {
+            OathDiagnostics.record(error, component: "walletconnect", operation: "localize_sui_actions",
+                context: ["chain": "sui", "stage": "presentation"])
+            return nil
+        }
+    }
+    private func transactionData(_ review: WalletConnectSuiReview) -> String? {
+        // Raw decoded protocol data is intentionally not translated. Never show
+        // the old English prose stored in pre-localization review snapshots.
+        guard let bytes = request.transaction else { return nil }
+        do {
+            let transaction = try WalletConnectSuiTransaction(bytes, network: request.network,
+                account: request.account, executing: request.broadcasts, now: review.createdAt)
+            let data = try JSONEncoder().encode(transaction.displayData)
+            let object = try JSONSerialization.jsonObject(with: data)
+            let formatted = try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys, .prettyPrinted, .withoutEscapingSlashes])
+            return String(decoding: formatted, as: UTF8.self)
+        } catch {
+            OathDiagnostics.record(error, component: "walletconnect", operation: "localize_sui_review",
+                context: ["chain": "sui", "stage": "presentation"])
+            return nil
+        }
+    }
+
     private func messageText(_ data:Data) -> String {
         if let text = String(data:data,encoding:.utf8), !text.unicodeScalars.contains(where: {
             $0.properties.isBidiControl || ($0.value < 32 && $0.value != 10 && $0.value != 9)

@@ -32,7 +32,7 @@ extension OathDatabase {
     public func queueNearSend(sendID: String, plan: NearSendPlan) async throws {
         try plan.validate()
         guard plan.network == .mainnet else { throw NearSendError.wrongNetwork }
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send = try SendRecord.fetchOne(db,key:sendID), send.state == "draft", send.networkID == "near",
                   let account = try AccountRecord.fetchOne(db,key:send.accountID), account.walletID == send.walletID,
                   account.networkID == "near", try NearIdentity.address(account.address) == plan.sender,
@@ -53,7 +53,7 @@ extension OathDatabase {
         }
     }
     public func journalNearSignature(sendID: String, signed: NearSignedSend) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send = try SendRecord.fetchOne(db,key:sendID), send.state == "queued", send.networkID == "near",
                   let bytes = try Data.fetchOne(db,sql:"SELECT plan FROM nearSendPlans WHERE sendID=?",arguments:[sendID]) else { throw StoreError.invalidTransition }
             let plan = try JSONDecoder().decode(NearSendPlan.self,from:bytes)
@@ -75,7 +75,7 @@ extension OathDatabase {
     /// A timeout or local quote expiration never releases a signed transaction.
     public func settleNearSend(sendID: String, receipt: NearSendReceipt) async throws {
         guard receipt.outcome != .unknown else { return }
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send = try SendRecord.fetchOne(db,key:sendID), send.networkID == "near",
                   ["signed","broadcast","confirmed","failed"].contains(send.state),
                   send.transactionID == "near:"+receipt.hash, let raw = send.signedPayload else { throw StoreError.invalidTransition }

@@ -170,16 +170,24 @@ struct OathTokenSearchResults: View {
     let active: Bool
     let hasSavedMatches: Bool
     var balancesHidden = false
+    var permittedNetworks: Set<OathImportChain>? = nil
     let onSelected: (Holding, WalletSnapshot) -> Void
     let retry: () -> Void
     @State private var didSelect = false
     @Environment(\.oathLocalizer) private var strings
 
+    private var results: [OathTokenDefinition] {
+        model.results.filter { permittedNetworks?.contains($0.network.chain) != false }
+    }
+    private var failedNetworks: [OathTokenNetwork] {
+        model.failedNetworks.filter { permittedNetworks?.contains($0.chain) != false }
+    }
+
     var body: some View {
         let format = OathAssetAmountFormat(locale: strings.language.locale,
             selectedCurrencyCode: session.portfolio?.currency ?? "USD")
         LazyVStack(alignment: .leading, spacing: 0) {
-            ForEach(model.results) { token in
+            ForEach(results) { token in
                 OathButton(feedback: nil) { select(token) } label: {
                     // Match Home's display fallback, without creating a zero
                     // balance or guessing decimals in the database.
@@ -188,7 +196,7 @@ struct OathTokenSearchResults: View {
                         value: String(format.fiat(.unavailable).characters),
                         primaryFontWeight: .medium,
                         detail: strings.invariant(format.nativeSummary(nil, ticker: token.symbol)),
-                        showsSeparator: hasSavedMatches || token.id != model.results.first?.id,
+                        showsSeparator: hasSavedMatches || token.id != results.first?.id,
                         concealsAmounts: balancesHidden,
                         titleBadgeAsset: token.network.chain.logoAsset,
                         assetNetworkName: strings.invariant(token.network.chain.name),
@@ -212,12 +220,12 @@ struct OathTokenSearchResults: View {
                 message(.tokenNetworkUnavailable, icon: "network.slash")
             } else if model.invalidAddress {
                 message(.tokenInvalidAddress, icon: "exclamationmark.magnifyingglass")
-            } else if model.results.isEmpty && !hasSavedMatches && model.failedNetworks.isEmpty {
+            } else if results.isEmpty && !hasSavedMatches && failedNetworks.isEmpty {
                 message(.tokenNotFound, icon: "magnifyingglass")
             }
-            if !model.failedNetworks.isEmpty && !model.isSearching {
+            if !failedNetworks.isEmpty && !model.isSearching {
                 OathEmptyState(title: strings.text(.tokenSearchIncomplete), systemImage: "exclamationmark.magnifyingglass",
-                    description: strings.invariant(model.failedNetworks.map { $0.chain.name }.joined(separator: ", "))) {
+                    description: strings.invariant(failedNetworks.map { $0.chain.name }.joined(separator: ", "))) {
                     OathActionButton(title: strings.text(.tryAgain), appearance: .secondary, action: retry)
                         .accessibilityIdentifier("token.retry")
                 }.padding(20)
@@ -226,10 +234,12 @@ struct OathTokenSearchResults: View {
         .onAppear { didSelect = false }
         .onChange(of: walletID) { _, _ in didSelect = false }
         .onChange(of: active) { _, active in if active { didSelect = false } }
+        .onChange(of: permittedNetworks) { _, _ in didSelect = false }
     }
 
     private func select(_ token: OathTokenDefinition) {
-        guard !didSelect, active, session.isUnlocked, !session.changingWallet, !session.resetting,
+        guard permittedNetworks?.contains(token.network.chain) != false,
+              !didSelect, active, session.isUnlocked, !session.changingWallet, !session.resetting,
               let walletID, session.displayedProfile?.id.uuidString == walletID,
               let snapshot = session.portfolio, snapshot.wallet.id == walletID else { return }
         session.tokenSelection.select(token, walletID: walletID, snapshot: snapshot, add: { token, walletID in
@@ -265,7 +275,8 @@ struct OathTokenPickerSearch: View {
         Group {
             if request.active {
                 OathTokenSearchResults(model: model, session: session, walletID: request.walletID,
-                    active: request.active, hasSavedMatches: hasSavedMatches, onSelected: onSelected,
+                    active: request.active, hasSavedMatches: hasSavedMatches,
+                    permittedNetworks: request.networks, onSelected: onSelected,
                     retry: { attempt += 1 })
             } else if !hasSavedMatches {
                 OathEmptyState(strings.text(.tokenNetworkUnavailable), systemImage: "network.slash").padding(20)

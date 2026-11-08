@@ -38,7 +38,7 @@ import GRDB
         let reopened = try await OathDatabase.open(at:folder.appendingPathComponent("wallet.sqlite"))
         let cached = try await reopened.snapshot(walletID:"w1",currency:"USD"); XCTAssertEqual(snapshot.holdings,cached.holdings)
         try await db.commitStellarInventory(inventory(time:200),ticket:ticket,catalog:.empty)
-        let hidden = try await db.snapshot(walletID:"w1",currency:"USD"); XCTAssertEqual(hidden.holdings.count,1)
+        let hidden = try await db.snapshot(walletID:"w1",currency:"USD"); XCTAssertEqual(hidden.holdings.count,2, "An unavailable catalog must retain previously verified assets")
     }
     func testFailureDoesNotEraseBalanceAndStaleRunRejected() async throws {
         let (db,folder) = try await fixture(); defer { try? FileManager.default.removeItem(at:folder) }
@@ -186,11 +186,13 @@ private actor StellarRefreshRetryTransport:AnkrTransport {
                     if failsPersistently || headCalls == 1 { throw AnkrError.transport }
                 }
                 body = ["result":["latestLedger":200,"events":NSNull()]]
+            } else if input["method"].string == "stellar_getTokenPrice" {
+                body = ["result": ["contractAddress": input["params"]["contractAddress"].string ?? StellarIdentity.nativeContract, "usdPrice": NSNull()]]
             } else {
                 XCTAssertEqual(input["method"].string,"stellar_getAccountBalance")
-                body = ["result":["totalCount":1,"syncStatus":["blockNumber":200,"timestamp":200],"assets":[[
+                body = ["result":["totalCount":2,"syncStatus":["blockNumber":200,"timestamp":200],"assets":[[
                     "blockchain":"stellar_soroban","holderAddress":owner,"contractAddress":StellarIdentity.nativeContract,
-                    "tokenDecimals":7,"balanceRawInteger":"20000000","balance":"2"]]]]
+                    "tokenDecimals":7,"balanceRawInteger":"20000000","balance":"2"], ["blockchain":"stellar_soroban","holderAddress":owner,"contractAddress":"CB23WRDQWGSP6YPMY4UV5C4OW5CBTXKYN3XEATG7KJEZCXMJBYEHOUOV","tokenName":"KALE","tokenSymbol":"KALE","tokenDecimals":7,"balanceRawInteger":"30000000","balance":"3"]]]]
             }
         } else if request.url?.path.contains("accounts/") == true {
             body = ["account_id":owner,"balances":[["asset_type":"native","balance":"2"]]]
@@ -202,6 +204,8 @@ extension StellarLedgerTests {
     func testRefreshRecoversFirstHeadFailureAndPersistentOutagePreservesCache() async throws {
         for persistent in [false,true] {
             let (db,_) = try await fixture()
+            let publication = RefreshPublicationProbe(db, wallet: "w1")
+            defer { publication.stop() }
             let ticket = try await db.beginStellarSync(accountID:"a1",latestLedger:200)
             try await db.commitStellarInventory(inventory(),ticket:ticket,catalog:catalog)
             try await db.saveMarketCache(.init(key:"stellar.catalog",source:"fixture",payload:JSONEncoder().encode(catalog),fetchedAt:Date().timeIntervalSince1970))
@@ -215,6 +219,8 @@ extension StellarLedgerTests {
             if persistent { XCTAssertEqual(saved?.holdings.first { $0.reference == ref }?.amount,"2909192447") }
             let calls = await transport.headCalls; XCTAssertEqual(calls,persistent ? 3:2)
             let other = try await db.stellarInventory(accountID:"a2"); XCTAssertNil(other)
+            try await publication.expect(amount: persistent ? "19832570" : "20000000", network: "stellar")
+            try await publication.expect(ref, amount: persistent ? "2909192447" : "30000000", network: "stellar")
             await service.cancel()
         }
     }

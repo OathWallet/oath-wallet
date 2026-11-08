@@ -16,7 +16,7 @@ with tempfile.TemporaryDirectory(prefix="oath-scanner-") as temporary:
                  "Scanner/OathScanAddress.swift", "Scanner/OathScanImage.swift", "Scanner/OathScanPayload.swift",
                  "Scanner/OathScanRecognizer.swift", "Scanner/OathScannerCaptureState.swift",
                  "Scanner/OathWalletConnectPolicy.swift", "Scanner/OathWalletConnectConnections.swift", "Scanner/OathWalletConnectMessage.swift",
-                 "Scanner/OathWalletLink.swift", "Home/OathReceiveQRCode.swift"]:
+                 "Scanner/OathWalletLink.swift", "Browser/OathBrowserPolicy.swift", "Home/OathReceiveQRCode.swift"]:
         shutil.copyfile(root / "OathAtmosphere" / file, source / Path(file).name)
     # Copy the real network registry; provider credentials/synchronizers are not needed.
     registry = (root / "OathAtmosphere/Tokens/OathTokenNetwork.swift").read_text()

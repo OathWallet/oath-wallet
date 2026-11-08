@@ -71,7 +71,7 @@ extension OathDatabase {
         guard batch.balances.count + batch.transactions.count + batch.transfers.count + batch.activity.count + batch.utxos.count <= 2_000,
               !batch.cursor.cursor.isEmpty, !batch.cursor.stream.isEmpty,
               batch.cursor.updatedAt.isFinite else { throw StoreError.invalidValue("sync page") }
-        return try await pool.write { db in
+        return try await storageWrite { db in
             guard let account = try AccountRecord.fetchOne(db, key: batch.cursor.accountID) else { throw StoreError.missingRecord }
             guard account.syncGeneration == batch.expectedGeneration else { throw StoreError.staleSync }
             let existing = try SyncCursor.fetchOne(db, sql: "SELECT * FROM syncCursors WHERE accountID=? AND stream=?",
@@ -147,7 +147,7 @@ extension OathDatabase {
     /// so their data and cursor also receive the reorg-generation check.
     public func saveBalances(_ balances: [BalanceRecord]) async throws {
         guard balances.count <= 2_000 else { throw StoreError.invalidValue("balance batch") }
-        try await pool.write { db in for balance in balances { try Self.saveBalance(balance, db: db) } }
+        try await storageWrite { db in for balance in balances { try Self.saveBalance(balance, db: db) } }
     }
     private static func saveBalance(_ balance: BalanceRecord, db: Database) throws {
         try Validation.amount(balance.amountAtomic)
@@ -248,7 +248,7 @@ extension OathDatabase {
     }
     public func savePrices(_ prices: [PriceRecord]) async throws {
         guard prices.count <= 2_000 else { throw StoreError.invalidValue("price batch") }
-        try await pool.write { db in
+        try await storageWrite { db in
             for price in prices {
                 // Every market provider supplies USD quotes. Display currency
                 // changes use the shared FX table, never per-currency prices.
@@ -335,7 +335,7 @@ extension OathDatabase {
     /// signed/broadcast send reservations until the provider reconciles them.
     public func invalidate(networkID: String, fromBlock: Int64) async throws {
         guard fromBlock >= 0 else { throw StoreError.invalidValue("reorg height") }
-        try await pool.write { db in
+        try await storageWrite { db in
             try db.execute(sql: "UPDATE walletAccounts SET syncGeneration=syncGeneration+1 WHERE networkID=?", arguments: [networkID])
             try db.execute(sql: "UPDATE transactions SET state='reorged',blockHeight=NULL,blockHash=NULL WHERE networkID=? AND blockHeight>=?", arguments: [networkID, fromBlock])
             try db.execute(sql: "DELETE FROM balances WHERE networkID=? AND (blockHeight IS NULL OR blockHeight>=?)", arguments: [networkID, fromBlock])

@@ -53,7 +53,7 @@ extension OathDatabase {
         guard signed.bytes == plan.request.transaction, plan.request.broadcasts else { throw SuiSendError.changed }
         try SuiSendCrypto.verify(signed, sender: plan.request.account)
         let planData = try JSONEncoder().encode(plan), signedData = try JSONEncoder().encode(signed)
-        return try await pool.write { db in
+        return try await storageWrite { db in
             if let stored = try WalletConnectSuiSubmission.fetchOne(db, key: id) {
                 guard stored.fingerprint == plan.request.fingerprint, stored.walletID == walletID,
                       stored.accountID == accountID, try stored.decoded().1 == signed else { throw SuiSendError.changed }
@@ -77,7 +77,7 @@ extension OathDatabase {
         }
     }
     public func settleWalletConnectSui(_ id: String, outcome: SuiSendOutcome) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var record = try WalletConnectSuiSubmission.fetchOne(db, key:id),
                   !["confirmed","failed"].contains(record.state) else { return }
             record.state = outcome.rawValue; try record.update(db)

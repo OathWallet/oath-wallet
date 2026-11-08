@@ -11,7 +11,7 @@ extension OathDatabase {
     /// transfers. Repeated reviews must not exhaust a restored wallet's gap.
     /// Mark the chosen address for discovery before anything can be signed.
     public func bitcoinChangeAddress(accountID: String) async throws -> BitcoinDerivedAddress {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard let data = try Data.fetchOne(db, sql: "SELECT descriptor FROM bitcoinWallets WHERE accountID=?", arguments: [accountID]) else { throw StoreError.missingRecord }
             let descriptor = try JSONDecoder().decode(BitcoinWalletDescriptor.self, from: data)
             guard [.bitcoin, .bitcoincash, .litecoin, .dogecoin].contains(descriptor.network),
@@ -37,7 +37,7 @@ extension OathDatabase {
     public func saveBitcoinSendPlan(sendID: String, plan: BitcoinSendPlan) async throws {
         try plan.validate()
         guard plan.network == .mainnet else { throw StoreError.invalidValue("send network") }
-        try await pool.write { db in
+        try await storageWrite { db in
             guard let send = try SendRecord.fetchOne(db, key: sendID), send.state == "draft", send.networkID == plan.chain.rawValue,
                   send.recipient == plan.recipient, send.amountAtomic == String(plan.recipientAmount) else { throw StoreError.conflictingIdentity }
             for coin in plan.coins {
@@ -80,7 +80,7 @@ extension OathDatabase {
     /// Journal signed bytes and their history identity in one transaction,
     /// before the first network submission. A crash cannot lose reservations.
     public func journalBitcoinSignature(sendID: String, signed: BitcoinSignedSend) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send = try SendRecord.fetchOne(db, key: sendID), send.state == "queued",
                   let bytes = try Data.fetchOne(db, sql: "SELECT plan FROM bitcoinSendPlans WHERE sendID=?", arguments: [sendID]) else { throw StoreError.invalidTransition }
             let plan = try JSONDecoder().decode(BitcoinSendPlan.self, from: bytes)
@@ -134,7 +134,7 @@ extension OathDatabase {
         guard ["bitcoin", "bitcoincash", "litecoin", "dogecoin"].contains(event.network),
               ["quote","reserve","authenticate","sign","persist","broadcast","reconcile"].contains(event.stage),
               ["network","storage","changed","expired","insufficientFunds","feeUnavailable","feeTooHigh","invalidInput","invalidRecipient","signing","submissionUnknown","unavailable"].contains(event.code) else { throw StoreError.invalidValue("diagnostic") }
-        try await pool.write { db in
+        try await storageWrite { db in
             try event.insert(db)
             try db.execute(sql: "DELETE FROM sendDiagnostics WHERE id NOT IN (SELECT id FROM sendDiagnostics ORDER BY createdAt DESC LIMIT 500)")
         }
@@ -143,6 +143,6 @@ extension OathDatabase {
         try await pool.read { try SendDiagnostic.fetchAll($0, sql: "SELECT * FROM sendDiagnostics ORDER BY createdAt LIMIT 50") }
     }
     public func removeSendDiagnostic(id: String) async throws {
-        try await pool.write { db in _ = try SendDiagnostic.deleteOne(db, key: id) }
+        try await storageWrite { db in _ = try SendDiagnostic.deleteOne(db, key: id) }
     }
 }

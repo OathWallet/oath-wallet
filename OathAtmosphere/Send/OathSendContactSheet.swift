@@ -10,10 +10,10 @@ struct OathSendContactSheet: View {
     @Environment(\.oathLocalizer) private var strings
     @Environment(\.dismiss) private var dismiss
 
-    init(networkID: String, address: String, isAllowed: Bool, onSaved: @escaping () -> Void) {
+    init(networkID: String, address: String, memo: String = "", memoType: String? = nil, isAllowed: Bool, onSaved: @escaping () -> Void) {
         self.isAllowed = isAllowed
         self.onSaved = onSaved
-        _editor = State(initialValue: OathContactEditorModel(recipient: .init(networkID: networkID, address: address)))
+        _editor = State(initialValue: OathContactEditorModel(recipient: .init(networkID: networkID, address: address, memo: memo, memoType: memoType)))
     }
 
     var body: some View {

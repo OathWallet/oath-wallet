@@ -32,14 +32,16 @@ struct OathReceiveAsset: Identifiable {
         return address
     }
 
-    static func available(holdings: [Holding], addresses: [OathWalletAddress], query: String) -> [Self] {
+    static func available(holdings: [Holding], addresses: [OathWalletAddress], query: String,
+                          scope: OathAssetSearchScope = .all) -> [Self] {
         let accounts = Dictionary(grouping: addresses.compactMap { address in
             address.accountID.map { ($0, address) }
         }, by: { $0.0 })
         let words = query.split(whereSeparator: \.isWhitespace).map(String.init)
         // Empty search results and absent accounts are normal UI states.
         let assets: [Self] = holdings.compactMap { holding in
-            guard let account = accounts[holding.accountID]?.first(where: {
+            guard scope.includes(networkID: holding.networkID),
+                  let account = accounts[holding.accountID]?.first(where: {
                 $0.1.chain.id == holding.networkID
             })?.1, words.allSatisfy({ word in
                 [holding.name, holding.symbol, holding.networkID, holding.reference,

@@ -210,14 +210,14 @@ final class TronReadRecoveryDiagnosticsTests: XCTestCase, @unchecked Sendable {
         for _ in 0..<30 {
             await OathDiagnostics.flush()
             let observed = await reports.events.filter { $0.operationID == operation }
-            // Reporting is detached: the wrapper and original read failure can
-            // arrive in either order. Wait for both assertions' evidence.
-            if observed.contains(where: { $0.error.message == "malformed" }) &&
+            // The owning boundary reports the original decoding cause once.
+            // The converted domain error must not produce a duplicate.
+            if observed.contains(where: { $0.error.message == "Corrupt response data" }) &&
                 observed.contains(where: { $0.operation == "tron_read" && $0.context["attempt"] == "1" }) { break }
             try await Task.sleep(for: .milliseconds(50))
         }
         let events = await reports.events.filter { $0.operationID == operation }
-        XCTAssertTrue(events.contains { $0.error.message == "malformed" })
+        XCTAssertTrue(events.contains { $0.error.message == "Corrupt response data" })
         XCTAssertTrue(events.contains { $0.operation == "tron_read" && $0.context["attempt"] == "1" })
         XCTAssertFalse(events.contains { $0.error.domain == NSURLErrorDomain || $0.operation == "tron_read_recovery" })
         XCTAssertTrue(events.allSatisfy { $0.privacyFiltered && $0.context["chain"] == "tron" })

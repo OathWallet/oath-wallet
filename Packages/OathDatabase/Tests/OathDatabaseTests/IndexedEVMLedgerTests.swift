@@ -1,12 +1,8 @@
 import XCTest
-import OathAnkr
+import OathDiagnostics
+@testable import OathAnkr
 import GRDB
 @testable import OathDatabase
-
-private struct LegacyStoryTransport: AnkrTransport {
-    let data: Data
-    func send(_ request: URLRequest) async throws -> (Data, Int) { (data, 200) }
-}
 
 @MainActor final class IndexedEVMLedgerTests: XCTestCase {
     private let owner = "0x1111111111111111111111111111111111111111"
@@ -23,9 +19,11 @@ private struct LegacyStoryTransport: AnkrTransport {
         }
         return (db,url)
     }
-    private func legacyStoryClient(_ result: [String: Any]) throws -> AnkrClient {
-        try AnkrClient(apiKey: "fixture", transport: LegacyStoryTransport(data:
-            JSONSerialization.data(withJSONObject: ["jsonrpc": "2.0", "id": 1, "result": result])))
+    /// Seed the historical archive, not a new call to the retired Story API.
+    private func legacyStoryPage<Value: Decodable & Sendable>(_ result: [String: Any]) throws -> AnkrPage<Value> {
+        let data = try JSONSerialization.data(withJSONObject: result)
+        return AnkrPage(value: try JSONDecoder().decode(Value.self, from: data),
+            raw: try JSONSerialization.data(withJSONObject: ["jsonrpc": "2.0", "id": 1, "result": result]), fetchedAt: .now)
     }
     func testStoryTransitionKeepsSavedTokensAndReplacesBalancesWithoutDoubleCounting() async throws {
         let (db, url) = try await fixture(chain: .story)
@@ -35,7 +33,7 @@ private struct LegacyStoryTransport: AnkrTransport {
              "tokenType": native ? "NATIVE" : "ERC20", "contractAddress": native ? "0x" + String(repeating: "0", count: 40) : token,
              "holderAddress": owner, "balanceRawInteger": native ? "2000000000000000000" : "123000000", "balance": "", "balanceUsd": "", "tokenPrice": ""]
         }
-        let page = try await legacyStoryClient(["assets": assets, "totalBalanceUsd": "", "totalCount": 2]).balances(chain: .story, address: owner)
+        let page: AnkrPage<AnkrBalanceResult> = try legacyStoryPage(["assets": assets, "totalBalanceUsd": "", "totalCount": 2])
         try await db.commitAnkrBalances([page], ticket: old)
         let before = try await db.snapshot(walletID: "wallet", currency: "USD")
         XCTAssertEqual(before.holdings.first { $0.reference == "native" }?.amountAtomic, "2000000000000000000")
@@ -67,13 +65,13 @@ private struct LegacyStoryTransport: AnkrTransport {
         let tx: [String: Any] = ["blockchain": "story_mainnet", "hash": hash, "from": other, "to": owner, "value": "123",
             "blockNumber": "100", "timestamp": String(time), "status": "0x1"]
         let oldTx = try await db.beginAnkrSync(accountID: "wallet:story", stream: "transactions")
-        let txPage = try await legacyStoryClient(["transactions": [tx]]).transactions(chain: .story, address: owner)
+        let txPage: AnkrPage<AnkrTransactionResult> = try legacyStoryPage(["transactions": [tx]])
         try await db.commitAnkrTransactions(txPage, ticket: oldTx, cursor: nil)
         let transfer: [String: Any] = ["blockchain": "story_mainnet", "transactionHash": hash, "fromAddress": other, "toAddress": owner,
             "contractAddress": token, "value": "0.000023", "valueRawInteger": "23", "tokenName": "Token", "tokenSymbol": "TKN",
             "tokenDecimals": 6, "blockHeight": 100, "timestamp": time, "logIndex": 7]
         let oldTransfer = try await db.beginAnkrSync(accountID: "wallet:story", stream: "transfers")
-        let transferPage = try await legacyStoryClient(["transfers": [transfer]]).transfers(chain: .story, address: owner)
+        let transferPage: AnkrPage<AnkrTransferResult> = try legacyStoryPage(["transfers": [transfer]])
         try await db.commitAnkrTransfers(transferPage, ticket: oldTransfer, cursor: nil)
         let oldIDs = try await db.pool.read { try String.fetchAll($0, sql: "SELECT id FROM activity WHERE accountID='wallet:story' ORDER BY id") }
         XCTAssertEqual(oldIDs.count, 2)
@@ -528,6 +526,8 @@ extension IndexedEVMLedgerTests {
     private func verifyRecovery(_ succeeds: Bool) async throws {
         for chain in IndexedEVMChain.allCases {
             let (db, _) = try await fixture(chain:chain), account = "wallet:" + chain.rawValue
+            let publication = RefreshPublicationProbe(db, wallet: "wallet")
+            defer { publication.stop() }
             let ticket = try await db.beginIndexedEVMSync(accountID:account)
             var saved = try JSONSerialization.jsonObject(with: JSONEncoder().encode(inventory())) as! [String:Any]
             saved["chain"] = chain.rawValue
@@ -541,12 +541,18 @@ extension IndexedEVMLedgerTests {
                 client:try IndexedEVMClient(chain:chain,apiKey:"fixture",alchemyAPIKey:"fixture",transport:transport),
                 markets:IndexedEVMMarkets(chain:chain,transport:transport))
             do { try await service.refresh(accountID:account); XCTAssertTrue(succeeds,"Persistent outage must fail") }
-            catch { XCTAssertFalse(succeeds, chain.rawValue); XCTAssertEqual(error as? AnkrError,.transport, chain.rawValue) }
+            catch {
+                XCTAssertFalse(succeeds, chain.rawValue)
+                XCTAssertEqual((error as? ReportedDiagnosticFailure)?.underlying as? AnkrError, .transport, chain.rawValue)
+                guard case .failed = BalanceRefreshOutcome(.failure(error)) else { return XCTFail("Persistent outage must remain failed") }
+            }
             await service.waitForHistory(accountID:account)
             let native = try await db.balance(accountID:account,assetID:chain.rawValue + ":native")
             let erc20 = try await db.balance(accountID:account,assetID:chain.rawValue + ":" + token)
             XCTAssertEqual(native?.amountAtomic,succeeds ? "2000000000000000000":"1000000000000000000", chain.rawValue)
             XCTAssertEqual(erc20?.amountAtomic,succeeds ? "42":"9007199254740993", chain.rawValue)
+            try await publication.expect(amount: succeeds ? "2000000000000000000" : "1000000000000000000", network: chain.rawValue)
+            try await publication.expect(token, amount: succeeds ? "42" : "9007199254740993", network: chain.rawValue)
             let other = try await db.balance(accountID:"second:" + chain.rawValue,assetID:chain.rawValue + ":native")
             XCTAssertNil(other)
             await service.cancel()

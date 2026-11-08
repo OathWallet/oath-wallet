@@ -107,6 +107,11 @@ final class TonPriceRecoveryTests: XCTestCase, @unchecked Sendable {
         do { _ = try await TonMarkets(transport: transport).nativePrice(); XCTFail("Unavailable fallback accepted") }
         catch { XCTAssertEqual(error as? TonError, .http(429)) }
     }
+    func testExpiredFallbackRemainsUnavailableWithoutUsingItsPrice() async {
+        let transport = TonQuoteReplies(.disconnected, fallback: tonQuoteFixture(offset: -901))
+        do { _ = try await TonMarkets(transport: transport).nativePrice(); XCTFail("Expired price accepted") }
+        catch { XCTAssertEqual(error as? DiagnosticDeferral, .publicMarketQuoteUnavailable) }
+    }
 }
 
 private actor TonPriceReports: DiagnosticTransport {

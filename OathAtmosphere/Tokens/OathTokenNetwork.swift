@@ -177,7 +177,10 @@ struct OathTokenRPCConfiguration: Sendable {
         try RobinhoodSynchronizer(database: database, apiKey: ankrKey, blockscoutKey: blockscoutKey, alchemyAPIKey: alchemyKey)
     }
     func makeAccountSynchronizer(database: OathDatabase) throws -> AnkrSynchronizer {
-        try AnkrSynchronizer(database: database, apiKey: ankrKey)
+        try AnkrSynchronizer(database: database, apiKey: ankrKey, balanceClient: { networkID in
+            guard let network = EVMSendNetwork(rawValue: networkID) else { throw AnkrError.wrongChain }
+            return try makeEVMSendClient(network: network)
+        })
     }
     func makePermissionDiscovery() throws -> PermissionDiscovery { try PermissionDiscovery(apiKey:ankrKey) }
     func makeReceiveActivationCheck() throws -> ReceiveActivationCheck {

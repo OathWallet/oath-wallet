@@ -21,6 +21,9 @@ private actor ThorchainRefreshTransport: AnkrTransport {
     func send(_ request: URLRequest) async throws -> (Data, Int) {
         let url = try XCTUnwrap(request.url)
         let json: SolanaJSON
+        if url.host == "api.viewblock.io" {
+            return (Data(#"{"docs":[],"page":0,"pages":0,"total":0}"#.utf8), 200)
+        }
         switch url.path {
         case let path where path.hasSuffix("/blocks/latest"):
             json = .object(["block": .object(["header": .object(["chain_id": .string("thorchain-1"), "height": .string("123")])])])
@@ -70,7 +73,7 @@ private actor ThorchainRefreshOverlapTransport: AnkrTransport {
             heightReads += 1
             if heightReads == 2 { await withCheckedContinuation { heightWaiter = $0 } }
         }
-        if request.url?.path.hasSuffix("/txs") == true, holdHistory {
+        if request.url?.host != "api.viewblock.io", request.url?.path.hasSuffix("/txs") == true, holdHistory {
             historyReads += 1
             // Deliberately finish a transport that does not stop immediately on
             // cancellation. The production client must join it before rotating.
@@ -107,7 +110,7 @@ private actor ThorchainLaggingHeightTransport: AnkrTransport {
         if request.url?.path.contains("/balances/") == true {
             bankHeights.append(request.value(forHTTPHeaderField: "x-cosmos-block-height"))
         }
-        if let url = request.url, url.path.hasSuffix("/txs") {
+        if let url = request.url, url.host != "api.viewblock.io", url.path.hasSuffix("/txs") {
             let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "query" }?.value
             historyQueries.append(try XCTUnwrap(query))
         }
@@ -154,11 +157,37 @@ private actor ThorchainLiveRefreshTransport: AnkrTransport {
         if url.path.contains("/balances/"), let height = request.value(forHTTPHeaderField: "x-cosmos-block-height") {
             bankHeights.append(height)
         }
-        if url.path.hasSuffix("/txs") {
+        if url.host != "api.viewblock.io", url.path.hasSuffix("/txs") {
             let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "query" }?.value
             historyQueries.append(try XCTUnwrap(query))
         }
         return try await transport.send(request)
+    }
+}
+private actor ThorchainHistoryOutageTransport: AnkrTransport {
+    let archiveFails: Bool
+    private let otherReads = ThorchainRefreshTransport()
+    init(archiveFails: Bool) { self.archiveFails = archiveFails }
+    func send(_ request: URLRequest) async throws -> (Data, Int) {
+        let owner = "thor172egzpvhpe4pgd69ql4fjr6sjrlrftkgat79m2"
+        let other = "thor1c3nw2k7qag6j707hzda9nvh4ke032rh9cw7pq4"
+        let hash = String(repeating: "D", count: 64)
+        if request.url?.host == "api.viewblock.io" {
+            if archiveFails { return (Data("{}".utf8), 400) }
+            let tx = """
+            {"hash":"\(hash)","height":123,"timestamp":1700000000000,"code":0,"status":"success","signer":"\(owner)","msgs":[{"@type":"/types.MsgSend","from_address":"\(owner)","to_address":"\(other)","amount":[{"denom":"THOR.RUNE","amount":"25"}]}]}
+            """
+            let body = request.url!.path.contains("/addresses/") ? "{\"docs\":[\(tx)],\"page\":1,\"pages\":1,\"total\":1}" : tx
+            return (Data(body.utf8), 200)
+        }
+        if request.url?.path.hasSuffix("/txs") == true {
+            if !archiveFails { return (Data("{}".utf8), 400) }
+            let body = """
+            {"total":"1","tx_responses":[{"txhash":"\(hash)","height":"123","timestamp":"2023-11-14T22:13:20Z","code":0,"events":[{"type":"transfer","attributes":[{"key":"sender","value":"\(owner)"},{"key":"recipient","value":"\(other)"},{"key":"amount","value":"25rune"}]}]}]}
+            """
+            return (Data(body.utf8), 200)
+        }
+        return try await otherReads.send(request)
     }
 }
 @MainActor final class ThorchainTests:XCTestCase {
@@ -171,6 +200,23 @@ private actor ThorchainLiveRefreshTransport: AnkrTransport {
         try await db.seed(networks:[.init(id:"thorchain",name:"THORChain",family:"account",symbol:"RUNE",decimals:8,derivationPath:"m/44'/931'/0'/0/0",logo:"network-thorchain",sortOrder:0)],assets:[.init(id:"thorchain:native",networkID:"thorchain",reference:"native",name:"THORChain",symbol:"RUNE",decimals:8)])
         for i in 1...2 { try await db.importWalletIfNeeded(.init(id:"w\(i)",name:"Test",kind:"hd",vaultReference:"test\(i)",createdAt:1),accounts:[.init(id:"a\(i)",walletID:"w\(i)",networkID:"thorchain",address:owner,derivationPath:"m/44'/931'/0'/0/0")]) }
         return (db,folder)
+    }
+    func testIndependentHistorySourceSurvivesOtherSourceOutage() async throws {
+        for archiveFails in [false, true] {
+            let (db, folder) = try await fixture(); defer { try? FileManager.default.removeItem(at: folder) }
+            let sync = ThorchainSynchronizer(database: db, client: ThorchainClient(transport: ThorchainHistoryOutageTransport(archiveFails: archiveFails)))
+            try await sync.refresh(accountID: "a1")
+            await sync.waitForHistory(accountID: "a1")
+            let activity = try await db.pool.read { try ActivityRecord.fetchAll($0) }
+            XCTAssertEqual(activity.count, 1)
+            XCTAssertEqual(activity.first?.amountAtomic, "25")
+            let cursors = try await db.pool.read { try ThorchainCursor.fetchAll($0) }
+            XCTAssertTrue(cursors.contains { $0.stream == "archive" && $0.complete == !archiveFails })
+            XCTAssertTrue(cursors.contains { $0.stream == "transfer.sender" && $0.complete == archiveFails })
+            let balance = try await db.balance(accountID: "a1", assetID: "thorchain:native")
+            XCTAssertEqual(balance?.amountAtomic, "456")
+            await sync.cancel()
+        }
     }
     func testRefreshJoinsOldHistoryBeforeReplacingItsGeneration() async throws {
         let (db, folder) = try await fixture()
@@ -210,7 +256,7 @@ private actor ThorchainLiveRefreshTransport: AnkrTransport {
         let replacementRun = try await db.pool.read { try String.fetchOne($0, sql: "SELECT runID FROM thorchainSync WHERE accountID='a1'") }
         XCTAssertNotEqual(replacementRun, originalRun)
         let cursors = try await db.pool.read { try ThorchainCursor.fetchAll($0, sql: "SELECT * FROM thorchainHistory WHERE accountID='a1'") }
-        XCTAssertEqual(cursors.count, 6)
+        XCTAssertEqual(cursors.count, 7)
         XCTAssertTrue(cursors.allSatisfy(\.complete), "The replacement resumes and completes all history lanes")
         let balance = try await db.balance(accountID: "a1", assetID: "thorchain:native")
         XCTAssertEqual(balance?.amountAtomic, "456")
@@ -285,7 +331,7 @@ private actor ThorchainLiveRefreshTransport: AnkrTransport {
         XCTAssertEqual(queries.count, 6, "All three history indexes must complete their recent and backfill lanes")
         XCTAssertTrue(queries.allSatisfy { $0.contains("tx.height<=201") })
         let cursors = try await db.pool.read { try ThorchainCursor.fetchAll($0, sql: "SELECT * FROM thorchainHistory WHERE accountID='a1'") }
-        XCTAssertEqual(cursors.count, 6)
+        XCTAssertEqual(cursors.count, 7)
         XCTAssertTrue(cursors.allSatisfy { $0.complete && $0.height == 201 })
         let balance = try await db.balance(accountID: "a1", assetID: "thorchain:native")
         XCTAssertEqual(balance?.amountAtomic, "456")
@@ -311,7 +357,7 @@ private actor ThorchainLiveRefreshTransport: AnkrTransport {
         XCTAssertGreaterThanOrEqual(queries.count, 6)
         XCTAssertTrue(queries.allSatisfy { $0.contains("tx.height<=\(pin)") })
         let cursors = try await db.pool.read { try ThorchainCursor.fetchAll($0, sql: "SELECT * FROM thorchainHistory WHERE accountID='a1'") }
-        XCTAssertEqual(cursors.count, 6)
+        XCTAssertEqual(cursors.count, 7)
         XCTAssertTrue(cursors.allSatisfy { String($0.height) == pin })
         let balance = try await db.balance(accountID: "a1", assetID: "thorchain:native")
         XCTAssertNotNil(balance)
@@ -324,6 +370,8 @@ private actor ThorchainLiveRefreshTransport: AnkrTransport {
     func testTransientNodeReadsDoNotAbortRefreshAndPersistRecoveredInventory() async throws {
         for suffix in ["/blocks/latest", "/balances/", "/txs"] {
             let (db, folder) = try await fixture()
+            let publication = RefreshPublicationProbe(db, wallet: "w1")
+            defer { publication.stop() }
             defer { try? FileManager.default.removeItem(at: folder) }
             let transport = ThorchainInterruptedRefreshTransport(suffix: suffix)
             let sync = ThorchainSynchronizer(database: db, client: ThorchainClient(transport: transport))
@@ -336,6 +384,7 @@ private actor ThorchainLiveRefreshTransport: AnkrTransport {
             let reopened = try await OathDatabase.open(at: folder.appendingPathComponent("wallet.sqlite"))
             let persisted = try await reopened.balance(accountID: "a1", assetID: "thorchain:native")
             XCTAssertEqual(persisted, balance)
+            try await publication.expect(amount: "456", network: "thorchain")
             await sync.cancel()
         }
     }
@@ -683,7 +732,7 @@ private actor ThorchainLiveRefreshTransport: AnkrTransport {
         async let balance=client.inventory(owner:owner)
         async let catalog=client.catalog()
         let height=try await client.latestHeight()
-        async let history=client.history(owner:owner,stream:"transfer.recipient",height:height)
+        async let history=client.history(owner:owner,stream:"archive",height:height)
         let (value,markets,page)=try await (balance,catalog,history)
         XCTAssertTrue(value.holdings.contains{$0.reference == "x/ruji" && $0.amount != "0"})
         XCTAssertNotNil(markets.prices["native"]); XCTAssertNotNil(markets.prices["tcy"]); XCTAssertNotNil(markets.prices["x/ruji"])
@@ -703,21 +752,33 @@ private actor ThorchainLiveRefreshTransport: AnkrTransport {
         }
         let literal=String(decoding:try JSONEncoder().encode(ids),as:UTF8.self)
         var oracleURL=URLComponents(string:"https://api.rujira.network/api/graphql")!
-        oracleURL.queryItems=[.init(name:"query",value:"{nodes(ids:\(literal)){... on Asset {asset price {current}}}}")]
+        oracleURL.queryItems=[.init(name:"query",value:"{nodes(ids:\(literal)){... on Asset {asset price {current timestamp}}}}")]
         var oracleRequest=URLRequest(url:oracleURL.url!); oracleRequest.setValue("OathWallet/1.0",forHTTPHeaderField:"User-Agent")
         let (oracleData,_)=try await URLSession.shared.data(for:oracleRequest)
         let oracle=try JSONDecoder().decode(SolanaJSON.self,from:oracleData)
         let quotes=try XCTUnwrap(oracle["data"]["nodes"].array)
         XCTAssertEqual(quotes.count,priceReferences.count)
-        var compared=0
+        let securedSnapshot = try await client.read(ThorchainClient.node, path: "thorchain/securedassets")
+        let securedRows = try XCTUnwrap(securedSnapshot.array)
+        var comparedReferences = Set<String>()
         for (ref,row) in zip(priceReferences,quotes) {
             guard let raw=row["price"]["current"].text.flatMap({Decimal(string:$0)}) else { continue }
-            let expected=raw/1_000_000_000_000
+            let expectedAsset = ref == "native" ? "THOR.RUNE" : ref == "tcy" ? "THOR.TCY" : ref.uppercased()
+            XCTAssertEqual(row["asset"].string, expectedAsset)
+            var expected=raw/1_000_000_000_000
+            if let share = securedRows.first(where: { $0["asset"].string?.lowercased() == ref }) {
+                let depth = try XCTUnwrap(share["depth"].text.flatMap { Decimal(string: $0) })
+                let supply = try XCTUnwrap(share["supply"].text.flatMap { Decimal(string: $0) })
+                XCTAssertGreaterThan(supply, 0)
+                expected *= depth / supply
+            }
             let actual=try XCTUnwrap(markets.prices[ref].flatMap{Decimal(string:$0)})
             XCTAssertLessThan(abs(actual-expected)/expected,Decimal(string:"0.05")!,ref)
-            compared += 1
+            comparedReferences.insert(ref)
         }
-        XCTAssertEqual(compared,15)
+        let quotedReferences = Set(zip(priceReferences, quotes).compactMap { ref, row in row["price"]["current"].isNull ? nil : ref })
+        XCTAssertEqual(comparedReferences, quotedReferences)
+        XCTAssertTrue(Set(["avax-avax", "doge-doge", "eth-usdt-0xdac17f958d2ee523a2206206994597c13d831ec7"]).isSubset(of: comparedReferences))
         for inventory in [value,many] {
             var request=URLRequest(url:URL(string:"https://api.viewblock.io/thorchain/addresses/"+inventory.owner)!)
             request.setValue("Mozilla/5.0",forHTTPHeaderField:"User-Agent")
@@ -738,7 +799,7 @@ private actor ThorchainLiveRefreshTransport: AnkrTransport {
             if inventory.owner == owner {
                 let hashes=Set(try XCTUnwrap(explorer["txs"]["docs"].array).compactMap{$0["hash"].string?.uppercased()})
                 XCTAssertFalse(hashes.isEmpty)
-                XCTAssertTrue(Set(page.events.map(\.hash)).isSubset(of:hashes))
+                XCTAssertEqual(Set(page.events.map(\.hash)),hashes)
             }
         }
         print("THORChain live: \(value.holdings.count) holdings; \(page.events.count) history events; \(many.holdings.count) multi-asset holdings; \(markets.prices.count) quotes")
@@ -751,17 +812,43 @@ private actor ThorchainLiveRefreshTransport: AnkrTransport {
         let snapshot=try await db.snapshot(walletID:"w1",currency:"USD")
         XCTAssertEqual(snapshot.holdings.count,2)
         let records=try await db.history(walletID:"w1"); XCTAssertFalse(records.isEmpty)
+        let archiveClient = ThorchainClient(), archiveHeight = try await archiveClient.latestHeight()
+        let archivePage = try await archiveClient.history(owner: owner, stream: "archive", height: archiveHeight)
+        XCTAssertNil(archivePage.next)
+        let recoveredHashes = try await db.pool.read { try String.fetchAll($0, sql: "SELECT DISTINCT t.hash FROM activity a JOIN transactions t ON t.id=a.transactionID WHERE a.accountID='a1'") }
+        XCTAssertEqual(Set(recoveredHashes), Set(archivePage.events.map(\.hash)))
+        XCTAssertEqual(Set(recoveredHashes).count, 7)
+        XCTAssertEqual(Set(records.map(\.hash)), Set(recoveredHashes), "Every validated protocol action must be visible, not only stored")
         let quote=try await db.latestPrice(assetID:"thorchain:x/ruji",currency:"USD")
         XCTAssertNotNil(quote)
         let reopened=try await OathDatabase.open(at:folder.appendingPathComponent("wallet.sqlite"))
         let offline=try await reopened.snapshot(walletID:"w1",currency:"USD")
         XCTAssertEqual(snapshot.holdings,offline.holdings)
+        let offlineHistory = try await reopened.history(walletID: "w1")
+        XCTAssertEqual(records, offlineHistory)
         try await db.pool.write { try $0.execute(sql:"UPDATE accounts SET address=? WHERE id='a2'",arguments:["thor1m4mkgn97q9zj07qzan66n9hz7ddzsnks6efhac"]) }
         try await sync.refresh(accountID:"a2"); await sync.waitForHistory(accountID:"a2")
         let many=try await db.snapshot(walletID:"w2",currency:"USD")
         XCTAssertGreaterThanOrEqual(many.holdings.filter{$0.amountAtomic != nil && $0.amountAtomic != "0"}.count,17)
         let historyCount=try await db.pool.read { try Int.fetchOne($0,sql:"SELECT COUNT(*) FROM visibleActivity WHERE accountID='a2'")! }
-        XCTAssertGreaterThan(historyCount,50)
+        // Historical fixed counts go stale as node indexes are pruned. Compare
+        // the exact current union of independently requested source hashes.
+        let comparisonClient = ThorchainClient()
+        let comparisonHeight = try await comparisonClient.latestHeight()
+        var expectedHashes = Set<String>()
+        for stream in ["transfer.sender", "transfer.recipient", "message.sender", "archive"] {
+            var number = 1
+            while true {
+                let page = try await comparisonClient.history(owner: "thor1m4mkgn97q9zj07qzan66n9hz7ddzsnks6efhac", stream: stream, height: comparisonHeight, page: number)
+                expectedHashes.formUnion(page.events.map(\.hash))
+                guard let next = page.next.flatMap(Int.init) else { break }
+                number = next
+                guard number < 20 else { XCTFail("Unexpected public history growth"); break }
+            }
+        }
+        let savedHashes = try await db.pool.read { try String.fetchAll($0, sql: "SELECT DISTINCT t.hash FROM activity a JOIN transactions t ON t.id=a.transactionID WHERE a.accountID='a2'") }
+        XCTAssertFalse(expectedHashes.isEmpty)
+        XCTAssertEqual(Set(savedHashes), expectedHashes)
         try await assertActivityDetails(reopened, walletID: "w1")
         try await assertActivityDetails(db, walletID: "w2")
         let incomplete=try await db.pool.read { try Int.fetchOne($0,sql:"SELECT COUNT(*) FROM thorchainHistory WHERE accountID='a2' AND complete=0") }

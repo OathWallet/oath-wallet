@@ -33,7 +33,7 @@ public actor PolkadotClient {
             try Task.checkCancellation(); try await permits.acquire()
             var ownsPermit = true
             do {
-                let (data, status) = try await transport.send(request)
+                let (data, status) = try await transport.sendPreservingTransportError(request)
                 await permits.release(); ownsPermit = false; try Task.checkCancellation()
                 guard status == 200 else { throw PolkadotError.http(status) }
                 guard data.count <= 16_000_000 else { throw PolkadotError.malformed }
@@ -45,7 +45,7 @@ public actor PolkadotClient {
                 OathDiagnostics.record(error, component: "polkadot", operation: "read", context: context)
                 let retry: Bool
                 if case PolkadotError.http(let code) = error { retry = code == 429 || code >= 500 }
-                else { retry = error is URLError || (error as? AnkrError) == .transport }
+                else { retry = AnkrReadRetry.transientTransport(error) }
                 guard retry, attempt < 2 else { throw error }
                 try await Task.sleep(for: .milliseconds(400 * (1 << attempt)))
             }

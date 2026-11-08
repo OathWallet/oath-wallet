@@ -46,6 +46,35 @@ private struct PageTransport: AnkrTransport {
          "logs":[["futureEvent":"raw retained"]],"input":"0x12345678","nonce":"0x7"]
     }
 
+    func testUpgradeRemovesOnlyInvalidAnkrNativeZeroPrices() async throws {
+        let (db, url) = try await fixture()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        try await db.pool.write { sql in
+            try AssetRecord(id: "ethereum:" + token, networkID: "ethereum", reference: token,
+                name: "Token", symbol: "TKN", decimals: 6).insert(sql)
+            for (id, value, time, source) in [
+                ("ethereum:native", "100", 100.0, "CoinGecko"),
+                ("ethereum:native", "0", 200.0, "ankr"),
+                ("ethereum:native", "0.000", 201.0, "ankr"),
+                ("ethereum:native", "000.000", 202.0, "ankr"),
+                ("ethereum:" + token, "0", 200.0, "ankr")
+            ] {
+                try PriceRecord(assetID: id, currency: "USD", value: value, observedAt: time, source: source).insert(sql)
+            }
+            try sql.execute(sql: "DELETE FROM grdb_migrations WHERE identifier='v109_unpriced_ankr_native_quotes'")
+        }
+        let before = try await db.latestPrice(assetID: "ethereum:native", currency: "USD")
+        XCTAssertEqual(before?.value, "000.000")
+        let reopened = try await OathDatabase.open(at: url)
+        let native = try await reopened.latestPrice(assetID: "ethereum:native", currency: "USD")
+        let tokenPrice = try await reopened.latestPrice(assetID: "ethereum:" + token, currency: "USD")
+        XCTAssertEqual(native?.value, "100")
+        XCTAssertEqual(native?.observedAt, 100, "Repair must preserve the original observation time")
+        XCTAssertEqual(tokenPrice?.value, "0", "Only native inventory placeholders are repaired")
+        let accounts = try await reopened.accounts(walletID: "wallet")
+        XCTAssertEqual(accounts.count, 1)
+    }
+
     func testFullInventoryKeepsWhitelistEvidenceSeparateAndRejectsIncompleteVerification() async throws {
         let (db, url) = try await fixture()
         defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
@@ -522,11 +551,13 @@ private struct PageTransport: AnkrTransport {
             .init(id:"celo",name:"Celo",family:"evm",symbol:"CELO",decimals:18,derivationPath:"m/44'/60'/0'/0/0",logo:"local",sortOrder:23),
             .init(id:"chiliz",name:"Chiliz",family:"evm",symbol:"CHZ",decimals:18,derivationPath:"m/44'/60'/0'/0/0",logo:"local",sortOrder:24),
             .init(id:"zerog",name:"0G",family:"evm",symbol:"0G",decimals:18,derivationPath:"m/44'/60'/0'/0/0",logo:"local",sortOrder:25),
-            .init(id:"iotex",name:"IoTeX",family:"evm",symbol:"IOTX",decimals:18,derivationPath:"m/44'/60'/0'/0/0",logo:"local",sortOrder:26)], assets:[])
+            .init(id:"iotex",name:"IoTeX",family:"evm",symbol:"IOTX",decimals:18,derivationPath:"m/44'/60'/0'/0/0",logo:"local",sortOrder:26),
+            .init(id:"cronos",name:"Cronos",family:"evm",symbol:"CRO",decimals:18,derivationPath:"m/44'/60'/0'/0/0",logo:"local",sortOrder:27)], assets:[])
         try await db.enrollAnkrNetworks(walletID:"wallet"); try await db.enrollAnkrNetworks(walletID:"wallet")
         try await db.enrollAnkrNetworks(walletID:"second")
         let accounts = try await db.accounts(walletID:"wallet")
-        XCTAssertEqual(accounts.count,24)
+        XCTAssertEqual(accounts.count,25)
+        XCTAssertEqual(accounts.filter { $0.networkID == "cronos" }.count,1)
         XCTAssertEqual(accounts.filter { $0.networkID == "iotex" }.count,1)
         XCTAssertEqual(accounts.filter { $0.networkID == "zerog" }.count,1)
         XCTAssertEqual(accounts.filter { $0.networkID == "chiliz" }.count,1)

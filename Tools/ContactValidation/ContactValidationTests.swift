@@ -1,5 +1,6 @@
 import XCTest
 import OathDiagnostics
+import OathAnkr
 @testable import OathDatabase
 @testable import ContactValidation
 
@@ -10,6 +11,56 @@ private actor ContactReports: DiagnosticTransport {
 }
 
 @MainActor final class ContactValidationTests: XCTestCase {
+    func testMemoDraftsPersistEditAndClearWhenChangingNetwork() async throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let db = try await OathDatabase.open(at: dir.appendingPathComponent("contacts.sqlite"))
+        OathDataEnvironment.shared.value = db
+        try await db.seed(networks: ["xrpl", "stellar", "near"].enumerated().map { index, network in
+            .init(id: network, name: network, family: network, symbol: "TEST", decimals: 6, derivationPath: "fixture", logo: "fixture", sortOrder: index)
+        }, assets: [])
+        let xrp = "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh"
+        let stellar = try StellarSendCrypto.address(privateKey: Data(repeating: 2, count: 32))
+        for (network, value, type) in [("xrpl", "0", StellarSendMemoType.text), ("stellar", "Invoice", .text),
+            ("stellar", "18446744073709551615", .id), ("stellar", String(repeating: "ab", count: 32), .hash),
+            ("stellar", String(repeating: "cd", count: 32), .returnHash)] {
+            let saved = try await db.saveContact(id: UUID().uuidString, name: "Fixture", addresses: [])
+            let model = OathContactAddressModel(snapshot: saved)
+            await model.loadNetworks(); model.chooseNetwork(network)
+            model.draft.address = network == "xrpl" ? xrp : stellar
+            model.draft.memo = value
+            if network == "stellar" { model.stellarMemoType = type }
+            XCTAssertNotNil(model.memoKind)
+            let result = await model.save(); XCTAssertTrue(result)
+            let persisted = try await db.contact(saved.contact.id)
+            let snapshot = try XCTUnwrap(persisted), address = try XCTUnwrap(snapshot.addresses.first)
+            XCTAssertEqual(address.memo, value)
+            XCTAssertEqual(address.memoType, network == "stellar" ? type.rawValue : nil)
+            let edit = OathContactAddressModel(snapshot: snapshot, address: address)
+            await edit.loadNetworks()
+            XCTAssertEqual(edit.draft.memo, value)
+            XCTAssertEqual(edit.stellarMemoType, type)
+            edit.chooseNetwork(network)
+            XCTAssertEqual(edit.draft.memo, value, "Reopening the same network preserves the draft")
+            edit.chooseNetwork("near")
+            XCTAssertEqual(edit.draft.memo, ""); XCTAssertNil(edit.draft.memoType); XCTAssertNil(edit.memoKind)
+            let unchanged = try await db.contact(saved.contact.id)
+            XCTAssertEqual(unchanged, snapshot, "Changing/cancelling a draft never mutates its saved memo")
+            let rename = OathContactEditorModel(snapshot: snapshot)
+            rename.name = "Renamed"
+            let renamed = await rename.save(); XCTAssertTrue(renamed)
+            let afterRename = try await db.contact(saved.contact.id)
+            XCTAssertEqual(afterRename?.addresses.first?.memo, value)
+            XCTAssertEqual(afterRename?.addresses.first?.memoType, address.memoType)
+        }
+        let quick = OathContactEditorModel(recipient: .init(networkID: "stellar", address: stellar, memo: "42", memoType: "id"))
+        quick.name = "Receipt"
+        XCTAssertEqual(quick.memo, "42"); XCTAssertEqual(quick.memoType, .id)
+        let added = await quick.save(); XCTAssertTrue(added)
+        let receipt = try await db.contact(quick.id)
+        XCTAssertEqual(receipt?.addresses.first?.memo, "42"); XCTAssertEqual(receipt?.addresses.first?.memoType, "id")
+    }
+
     func testDetailReorderAndBatchRemovalPersistWithoutChangingOtherContacts() async throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: dir) }
@@ -160,6 +211,13 @@ private actor ContactReports: DiagnosticTransport {
         editor.name = " "
         result = await editor.save()
         XCTAssertFalse(result); XCTAssertEqual(editor.failure, .contactNameInvalid)
+        // Invalid memo input is form validation, not diagnostic content.
+        let memoDraft = OathContactAddressModel(snapshot: try XCTUnwrap(stored))
+        await memoDraft.loadNetworks(); memoDraft.chooseNetwork("near")
+        memoDraft.draft.address = "memo.near"
+        memoDraft.draft.memo = "private memo fixture"
+        result = await memoDraft.save()
+        XCTAssertFalse(result); XCTAssertEqual(memoDraft.failure, .sendMemoInvalid)
         let fullContact = try await db.saveContact(id: UUID().uuidString, name: "Address limit fixture",
             addresses: (0..<50).map { .init(networkID: "near", address: "contact\($0).near") })
         let overflow = OathContactAddressModel(snapshot: fullContact)

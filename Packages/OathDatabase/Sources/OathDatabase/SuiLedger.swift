@@ -16,7 +16,7 @@ public struct SuiHistoryCursor: Codable, Sendable, Equatable, FetchableRecord, P
 }
 extension OathDatabase {
     public func beginSuiSync(accountID:String) async throws -> SuiSyncTicket {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard let account = try AccountRecord.fetchOne(db,key:accountID), account.networkID == "sui" else { throw StoreError.missingRecord }
             _ = try SuiIdentity.address(account.address)
             let run = UUID().uuidString
@@ -37,7 +37,7 @@ extension OathDatabase {
               try String.fetchOne(db,sql:"SELECT runID FROM suiSync WHERE accountID=?",arguments:[ticket.account.id]) == ticket.runID else { throw StoreError.staleSync }
     }
     public func failSuiSync(_ ticket:SuiSyncTicket, history:Bool, code:String) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateSui(ticket,db:db)
             try db.execute(sql:"UPDATE suiSync SET \(history ? "historyFailure":"failure")=? WHERE accountID=?",arguments:[code,ticket.account.id])
         }
@@ -79,7 +79,7 @@ extension OathDatabase {
         guard value.owner == (try SuiIdentity.address(ticket.account.address)),
               Set(value.holdings.map(\.reference)).count == value.holdings.count,
               value.holdings.filter({$0.reference == "native"}).count == 1 else { throw SuiError.wrongOwner }
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateSui(ticket,db:db)
             let time = value.observedAt.timeIntervalSince1970
             let previous = try Double.fetchOne(db,sql:"SELECT observedAt FROM suiSync WHERE accountID=?",arguments:[ticket.account.id]) ?? 0
@@ -95,7 +95,7 @@ extension OathDatabase {
                 let asset = try token.map{try Self.suiAsset($0,db:db)}
                 try db.execute(sql:"""
                     INSERT INTO suiHoldings(accountID,reference,assetID,amountAtomic,coinBalance,addressBalance,observedAt,checkpoint,verified) VALUES(?,?,?,?,?,?,?,?,?)
-                    ON CONFLICT(accountID,reference) DO UPDATE SET assetID=excluded.assetID,amountAtomic=excluded.amountAtomic,coinBalance=excluded.coinBalance,addressBalance=excluded.addressBalance,observedAt=excluded.observedAt,checkpoint=excluded.checkpoint,verified=excluded.verified
+                    ON CONFLICT(accountID,reference) DO UPDATE SET assetID=excluded.assetID,amountAtomic=excluded.amountAtomic,coinBalance=excluded.coinBalance,addressBalance=excluded.addressBalance,observedAt=excluded.observedAt,checkpoint=excluded.checkpoint,verified=\(catalog.ids.isEmpty ? "MAX(suiHoldings.verified,excluded.verified)" : "excluded.verified")
                     """,arguments:[ticket.account.id,holding.reference,asset?.id,holding.amount,holding.coinBalance,holding.addressBalance,time,value.checkpoint,catalog.contains(holding.reference)])
             }
             try db.execute(sql:"UPDATE suiSync SET inventory=?,observedAt=?,checkpoint=?,failure=NULL WHERE accountID=?",arguments:[try JSONEncoder().encode(value),time,value.checkpoint,ticket.account.id])
@@ -116,7 +116,7 @@ extension OathDatabase {
     /// Cursors can expire on a provider. Restart at the last checkpoint with
     /// overlap, so transactions sharing its boundary are never skipped.
     public func restartSuiHistory(_ cursor:SuiHistoryCursor, ticket:SuiSyncTicket) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateSui(ticket,db:db)
             guard cursor.accountID == ticket.account.id,
                   try SuiHistoryCursor.fetchOne(db,key:["accountID":cursor.accountID,"lane":cursor.lane]) == cursor, cursor.beforeCursor != nil else { throw StoreError.staleSync }
@@ -149,7 +149,7 @@ extension OathDatabase {
     public func commitSuiPage(_ page:SuiHistoryPage, cursor:SuiHistoryCursor, ticket:SuiSyncTicket) async throws {
         guard cursor.accountID == ticket.account.id, page.next == nil || (page.next != cursor.beforeCursor && !page.transactions.isEmpty),
               page.head == page.transactions.first?.hash, Set(page.transactions.map(\.hash)).count == page.transactions.count else { throw SuiError.paginationLoop }
-        try await pool.write { db in
+        try await storageWrite { db in
             try Self.validateSui(ticket,db:db)
             guard try SuiHistoryCursor.fetchOne(db,key:["accountID":cursor.accountID,"lane":cursor.lane]) == cursor else { throw StoreError.staleSync }
             for tx in page.transactions { try Self.projectSui(tx,ticket:ticket,db:db) }

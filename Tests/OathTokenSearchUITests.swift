@@ -3,6 +3,32 @@ import XCTest
 /// Real user input, real network metadata, and the production database on a
 /// disposable simulator. Only the public BIP-39 test vector is imported.
 @MainActor final class OathTokenSearchUITests: XCTestCase {
+    /// Read-only inspection of the installed wallet; no fixture import, reset,
+    /// token selection, transaction, or wallet mutation occurs in this check.
+    func testSixChainSearchOnExistingDeviceWallet() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.activate()
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 120), "Unlock Oath to inspect token search")
+        let fixtures = [
+            ("chiliz", "WCHZ", "0x677f7e16c7dd57be1d4c8ad1244883214953dc47"),
+            ("polkadot", "USDt", "assets:1984"),
+            ("filecoin", "WFIL", "0x60e1773636cf5e4a227d9ac24f20feca034ee25a"),
+            ("sei", "WSEI", "0xe30fedd158a2e3b13e9badaeabafc5516e95e8c7"),
+            ("zerog", "W0G", "0x1cd0690ff9a693f5ef2dd976660a8dafc81a109c"),
+            ("iotex", "WIOTX", "0xa00744882684c3e4747faefd68d283ea44099d03")
+        ]
+        for (chain, symbol, reference) in fixtures {
+            for query in [chain == "polkadot" ? "polkadot " + symbol : symbol, reference] {
+                search(query, in: app)
+                let row = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@ OR identifier BEGINSWITH %@",
+                    "token.result." + chain + ":", "home.token." + chain + ":")).firstMatch
+                XCTAssertTrue(row.waitForExistence(timeout: 45), "Missing " + chain + " search result")
+            }
+            capture("device-discovery-" + chain)
+        }
+    }
+
     /// Exercise the exact three user entry points. A discovered row must save
     /// without a review sheet, then open the normal destination for that entry.
     func testUSDTDiscoveryInSendReceiveAndHomeSearch() {
@@ -172,7 +198,13 @@ import XCTest
         if !app.searchFields.firstMatch.isHittable {
             let tabs = app.tabBars.firstMatch
             let search = tabs.buttons["Search"].exists ? tabs.buttons["Search"] : tabs.buttons["بحث"]
-            search.tap()
+            XCTAssertTrue(search.exists)
+            if search.isHittable { search.tap() }
+            else {
+                let frame = search.frame
+                XCTAssertTrue(app.frame.contains(CGPoint(x: frame.midX, y: frame.midY)))
+                search.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+            }
         }
         let field = app.searchFields.firstMatch
         XCTAssertTrue(field.waitForExistence(timeout: 10))
@@ -180,9 +212,13 @@ import XCTest
         let current = field.value as? String ?? ""
         // UIKit supplies the placeholder as value when the field is empty.
         if !current.isEmpty && current != field.placeholderValue {
-            field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: current.count))
+            let clear = field.buttons.firstMatch
+            XCTAssertTrue(clear.exists, "Use the native clear action regardless of cursor position")
+            clear.tap()
+            field.tap()
         }
         field.typeText(address)
+        XCTAssertEqual(field.value as? String, address, "Search input must match the public test query")
         let hide = app.buttons["keyboard.keyboardDone"]
         if hide.waitForExistence(timeout: 1) { hide.tap() }
         else { field.typeText("\n") }

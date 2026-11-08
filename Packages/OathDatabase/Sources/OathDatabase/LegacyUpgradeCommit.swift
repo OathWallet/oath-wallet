@@ -58,7 +58,7 @@ extension OathDatabase {
         }
         try Task.checkCancellation()
         let operationID = OathDiagnostics.operationID ?? UUID()
-        try await pool.write { db in
+        try await storageWrite { db in
             // Explicit recovery and authenticated empty-vault cleanup outrank
             // legacy replacement. Old pre-release reset journals still do not.
             guard try String.fetchOne(db, sql: "SELECT key FROM metadata WHERE key IN ('walletResetRecovery', 'walletResetEmpty') LIMIT 1") == nil else {

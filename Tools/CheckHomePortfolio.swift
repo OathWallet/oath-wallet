@@ -31,7 +31,56 @@ import OathDatabase
         }
     }
 
+    @MainActor static func verifyRefreshPublication() async throws {
+        enum FixtureFailure: Error { case provider, observer }
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let db = try await OathDatabase.open(at: folder.appendingPathComponent("wallet.sqlite"))
+        try await db.seed(networks: [.init(id: "ethereum", name: "Ethereum", family: "evm", symbol: "ETH", decimals: 18, derivationPath: "", logo: "", sortOrder: 0)],
+            assets: [.init(id: "ethereum:native", networkID: "ethereum", reference: "native", name: "Ether", symbol: "ETH", decimals: 18)])
+        try await db.importWalletIfNeeded(.init(id: "wallet", name: "Fixture", kind: "watchOnly", vaultReference: "fixture", createdAt: 1), accounts: [.init(id: "account", walletID: "wallet", networkID: "ethereum", address: "0x1111111111111111111111111111111111111111", derivationPath: "")])
+        try await db.savePrices([.init(assetID: "ethereum:native", currency: "USD", value: "3", observedAt: 1, source: "fixture")])
+        try await db.saveExchangeRates(.init(rates: ["USD": "1", "EUR": "0.5", "JOD": "0.709"], observedAt: Date().timeIntervalSince1970, fetchedAt: Date().timeIntervalSince1970, source: "fixture"))
+        let model = OathHomePortfolioModel(), coordinator = PortfolioRefreshCoordinator<WalletSnapshot>(pause: { _ in })
+        defer { model.cancel(); coordinator.stop() }
+        func publish(_ value: WalletSnapshot) {
+            model.update(.init(walletID: "wallet", holdings: value.holdings, currency: value.currency, total: value.totalFiat,
+                filter: .init(), query: "", formattingLocale: "en_US", sortingLocale: "en_US"))
+        }
+        coordinator.observe(stream: { AsyncThrowingStream { $0.finish(throwing: FixtureFailure.observer) } }, isCurrent: { true }, publish: publish, exhausted: {})
+        try await waitUntil { !coordinator.isObserving }
+        for (currency, expected) in [("USD", "$6.00"), ("EUR", "€3.00"), ("JOD", "JOD 4.25")] {
+            try await db.selectDisplayCurrency(currency)
+            do {
+                try await coordinator.perform(work: {
+                    do {
+                        try await db.saveBalances([.init(accountID: "account", assetID: "ethereum:native", networkID: "ethereum", amountAtomic: "2000000000000000000", observedAt: Date().timeIntervalSince1970, source: "fixture")])
+                        return [.complete, .failed(FixtureFailure.provider)]
+                    } catch { return [.failed(error)] }
+                }, read: { try await db.snapshot(walletID: "wallet", currency: "USD") }, isCurrent: { true }, publish: publish)
+                preconditionFailure("Preserve the provider failure")
+            } catch FixtureFailure.provider {}
+            try await waitUntil { model.rows.first?.holding.amountAtomic == "2000000000000000000" && model.rows.first?.fiat == model.total && !model.total.isEmpty }
+            try await waitUntil { model.total.replacingOccurrences(of: "\u{00a0}", with: " ") == expected }
+            precondition(model.rows.first?.fiat.replacingOccurrences(of: "\u{00a0}", with: " ") == expected)
+            precondition(model.rows.first?.nativeFull == "2 ETH")
+        }
+        // A later quote must revalue the same saved units through live observation.
+        try await db.selectDisplayCurrency("USD")
+        coordinator.observe(stream: { db.observeWallet(walletID: "wallet", currency: "USD") }, isCurrent: { true }, publish: publish, exhausted: { preconditionFailure("Healthy database stream ended") })
+        try await db.savePrices([.init(assetID: "ethereum:native", currency: "USD", value: "4", observedAt: 2, source: "fixture")])
+        try await waitUntil { model.total == "$8.00" }
+        precondition(model.rows.first?.nativeFull == "2 ETH")
+        print("PASS: stopped observer + partial provider failure publishes committed quantities, fiat rows and totals through production Home in USD/EUR/JOD; delayed prices revalue without reopening")
+    }
+
     @MainActor static func main() async throws {
+        try await verifyRefreshPublication()
+        let matrix = try JSONDecoder().decode([String: String].self, from: Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1])))
+        precondition(Set(matrix.keys) == Set(OathImportChain.enabledCases.map(\.id)), "Every enabled chain must have executable refresh coverage; disabled chains must not be in the matrix")
+        precondition(matrix.values.allSatisfy { !$0.isEmpty })
+        print("PASS: executable balance-refresh coverage matches all \(matrix.count) enabled production chains")
+
         let priceBuilder = OathHomePortfolioBuilder()
         func quote(_ value: String?, _ time: Double, amount: String = "123456789", rate: String? = "1") throws -> Holding {
             try holding(1, amount: amount, price: value, rate: rate, priceTimestamp: time)

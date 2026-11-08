@@ -60,7 +60,7 @@ extension OathDatabase {
     public func journalWalletConnectNear(id:String,walletID:String,accountID:String,topic:String,access:WalletConnectNearAccess,plan:WalletConnectNearReview,signed:NearSignedSend) async throws -> WalletConnectNearSubmission {
         try access.validate(plan); try WalletConnectNearAccess.verify(signed,review:plan)
         let accessData = try JSONEncoder().encode(access), planData = try JSONEncoder().encode(plan), signedData = try JSONEncoder().encode(signed)
-        return try await pool.write { db in
+        return try await storageWrite { db in
             if let stored = try WalletConnectNearSubmission.fetchOne(db,key:id) {
                 guard stored.fingerprint == access.fingerprint, stored.walletID == walletID, stored.accountID == accountID,
                       stored.topic == topic, try stored.decoded().2 == signed else { throw NearSendError.changed }; return stored
@@ -82,7 +82,7 @@ extension OathDatabase {
         }
     }
     public func settleWalletConnectNear(_ id:String,outcome:NearSendReceipt.Outcome) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var row = try WalletConnectNearSubmission.fetchOne(db,key:id), !["confirmed","failed","expired"].contains(row.state) else { return }
             let (access,_,_) = try row.decoded()
             if outcome == .confirmed {

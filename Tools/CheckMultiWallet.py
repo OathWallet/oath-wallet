@@ -506,6 +506,8 @@ actor OathMarketEnvironment {
     func service() async throws -> FixtureMarketService { FixtureMarketService() }
 }
 struct FixtureMarketService: Sendable {
+    // Provider behavior is covered by OathMarketData package tests.
+    func refreshNativeQuotes(networkIDs: [String]) async { }
     func quote(for asset: MarketAsset) async throws { try Task.checkCancellation() }
 }
 """)

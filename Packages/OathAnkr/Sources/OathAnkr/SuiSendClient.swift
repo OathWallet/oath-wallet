@@ -192,6 +192,19 @@ public actor SuiSendClient {
 
 extension SuiSendClient {
     public func walletConnectReview(_ request:WalletConnectSuiRequest) async throws -> WalletConnectSuiReview {
+        try await OathDiagnostics.$chain.withValue("sui") {
+            try await OathDiagnostics.$operationID.withValue(UUID()) {
+                do { return try await makeWalletConnectReview(request) }
+                catch {
+                    // Shared filtering excludes cancellation. Never record object
+                    // IDs, recipient addresses, transaction bytes or provider bodies.
+                    OathDiagnostics.record(error, component:"sui_send", operation:"wc_review", context:["chain":"sui","stage":"object_review"])
+                    throw error
+                }
+            }
+        }
+    }
+    private func makeWalletConnectReview(_ request:WalletConnectSuiRequest) async throws -> WalletConnectSuiReview {
         guard request.network == network, let bytes = request.transaction else { throw SuiSendError.wrongNetwork }
         let parsed = try WalletConnectSuiTransaction(bytes,network:network,account:request.account,executing:request.broadcasts)
         let data = try await query("""
@@ -199,6 +212,7 @@ extension SuiSendClient {
               simulateTransaction(transaction:$tx,checksEnabled:true,doGasSelection:false){effects{
                 status executionError{message} gasEffects{gasSummary{computationCost storageCost storageRebate}}
                 balanceChanges(first:50){nodes{owner{address} coinType{repr} amount} pageInfo{hasNextPage}}
+                \(SuiObjectReview.fields)
               }}
             }
             """,["tx":.object(["bcs":.object(["value":.string(bytes.base64EncodedString())])])],stage:"wc_simulate")
@@ -219,6 +233,8 @@ extension SuiSendClient {
             return try SuiIdentity.address(owner) + "\n" + amount + " atomic " + SuiIdentity.coinType(type)
         }
         var review = WalletConnectSuiReview(request:request,changes:rows.sorted(),details:parsed.inputs + parsed.commands,gasOwner:parsed.gasOwner,gasBudget:parsed.gasBudget,estimatedFee:total > rebate ? total-rebate:0,createdAt:.now)
+        review.actions = parsed.reviewActions
+        review.objectChanges = try SuiObjectReview.decode(effects["objectChanges"], transaction: parsed)
         let types = try changes.map { try SuiIdentity.reference($0["coinType"]["repr"].string ?? "") }
         review.tokens = try await SuiClient(network:network,transport:transport).metadata(references:types)
         return review
@@ -226,6 +242,7 @@ extension SuiSendClient {
     public func walletConnectPreflight(_ review:WalletConnectSuiReview) async throws {
         guard (0...120).contains(Date.now.timeIntervalSince(review.createdAt)) else { throw SuiSendError.expired }
         let current = try await walletConnectReview(review.request)
-        guard current.changes == review.changes, current.estimatedFee <= review.estimatedFee else { throw SuiSendError.changed }
+        guard review.objectChanges != nil, current.objectChanges == review.objectChanges,
+              current.changes == review.changes, current.estimatedFee <= review.estimatedFee else { throw SuiSendError.changed }
     }
 }

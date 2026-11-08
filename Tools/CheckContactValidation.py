@@ -6,6 +6,7 @@ iOS-only branches deliberately trap if called; UIKit haptics and the app's
 database locator are replaced by host collectors. No simulator or network.
 """
 import json
+import os
 import shutil
 import subprocess
 import tempfile
@@ -43,7 +44,7 @@ extension OathImportChain { var walletCoin: CoinType { fatalError("WalletCore br
 }
 ''')
     shutil.copyfile(root / 'Tools/ContactValidation/ContactValidationTests.swift', tests / 'ContactValidationTests.swift')
-    packages = ['OathDatabase', 'OathDiagnostics', 'OathBitcoin']
+    packages = ['OathDatabase', 'OathDiagnostics', 'OathBitcoin', 'OathAnkr']
     deps = ', '.join('.package(path: %s)' % json.dumps(str(root / 'Packages' / p)) for p in packages)
     names = ', '.join(json.dumps(p) for p in packages)
     (work / 'Package.swift').write_text('''// swift-tools-version: 6.1
@@ -54,4 +55,4 @@ let package = Package(name: "ContactValidation", platforms: [.macOS("15.5")], de
  swiftLanguageModes: [.v6])
 ''' % (deps, names))
     raise SystemExit(subprocess.run(['swift', 'test', '--package-path', str(work), '--scratch-path',
-        '/tmp/oath-contact-validation-host'], timeout=240).returncode)
+        os.environ.get('OATH_VALIDATION_SCRATCH', '/tmp/oath-contact-validation-host')], timeout=600).returncode)

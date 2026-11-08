@@ -7,6 +7,8 @@ import OathDiagnostics
 
 private actor ArcHistoryGate: AnkrTransport {
     private(set) var started = 0
+    private var quantity = "0xde0b6b3a7640000", height = 300001
+    func advance() { quantity = "0x1bc16d674ec80000"; height += 1 }
     private var waiters: [CheckedContinuation<Void, Never>] = []
     private var released = false
     func release() {
@@ -18,7 +20,8 @@ private actor ArcHistoryGate: AnkrTransport {
         if request.url?.host == "api.coinbase.com" {
             return (Data(#"{"data":{"base":"USDC","currency":"USD","amount":"1"}}"#.utf8), 200)
         }
-        let body = try JSONSerialization.jsonObject(with: XCTUnwrap(request.httpBody))
+        guard let data = request.httpBody else { return (Data("[]".utf8), 200) } // No token quote in this controlled fixture.
+        let body = try JSONSerialization.jsonObject(with: data)
         if let query = body as? [String: Any] {
             started += 1
             if !released { await withCheckedContinuation { waiters.append($0) } }
@@ -30,9 +33,15 @@ private actor ArcHistoryGate: AnkrTransport {
             let value: Any
             switch call["method"] as? String {
             case "eth_chainId": value = "0x13b2"
-            case "eth_getBlockByNumber": value = ["number": "0x493e1", "hash": "0x" + String(repeating: "a", count: 64)]
-            case "eth_getBalance": value = "0xde0b6b3a7640000"
-            case "eth_call": value = "0x" + String(repeating: "0", count: 58) + "0f4240"
+            case "eth_getBlockByNumber": value = ["number": "0x" + String(height, radix: 16), "hash": "0x" + String(repeating: "a", count: 64)]
+            case "eth_getBalance": value = quantity
+            case "eth_call":
+                let params = call["params"] as! [Any], input = params[0] as! [String: Any]
+                let selector = input["data"] as! String
+                let units = (input["to"] as? String)?.lowercased() == ArcIdentity.usdc ? (height == 300001 ? 1000000 : 2000000)
+                    : selector == "0x313ce567" ? 6 : selector.hasPrefix("0x70a08231") ? (height - 300000) * 10 : 0
+                let word = String(units, radix: 16)
+                value = "0x" + String(repeating: "0", count: 64 - word.count) + word
             default: throw AnkrError.invalidResponse
             }
             return ["jsonrpc": "2.0", "id": call["id"]!, "result": value]
@@ -107,5 +116,23 @@ private actor ArcHistoryGate: AnkrTransport {
         let complete = try await db.pool.read { try Int.fetchOne($0, sql: "SELECT count(*) FROM arcHistoryCursors WHERE failure IS NULL AND complete=1") }
         XCTAssertEqual(complete, 2, "New history must still finish both retained intervals")
         await sync.cancel()
+    }
+}
+
+extension ArcHistoryTeardownTests {
+    func testChangedNativeBalancePublishesWithoutReopening() async throws {
+        let (db, feed, service) = try await fixture()
+        await feed.release()
+        let reference = "0x2222222222222222222222222222222222222222"
+        try await db.trackAsset(.init(id: "arc:" + reference, networkID: "arc", reference: reference, name: "Fixture", symbol: "FIX", decimals: 6), walletID: "w")
+        let publication = RefreshPublicationProbe(db, wallet: "w")
+        defer { publication.stop() }
+        try await service.refresh(accountID: "a")
+        try await publication.expect(amount: "1000000000000000000", network: "arc")
+        await feed.advance()
+        try await service.refresh(accountID: "a")
+        try await publication.expect(amount: "2000000000000000000", network: "arc")
+        try await publication.expect(reference, amount: "20", network: "arc")
+        await service.cancel()
     }
 }

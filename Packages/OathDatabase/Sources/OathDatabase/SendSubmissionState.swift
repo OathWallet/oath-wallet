@@ -88,7 +88,7 @@ extension OathDatabase {
 
     /// Call only after the broadcaster validates acknowledgement of these exact bytes.
     public func acknowledgeBitcoinSend(_ id: String, hash: String) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard let send = try SendRecord.fetchOne(db, key: id),
                   ["bitcoin", "bitcoincash", "litecoin", "dogecoin"].contains(send.networkID),
                   send.signedPayload != nil, send.transactionID == send.networkID + ":" + hash,

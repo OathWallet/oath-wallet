@@ -15,7 +15,7 @@ with tempfile.TemporaryDirectory(prefix="oath-recipient-") as temporary:
     work = Path(temporary)
     source = work / "Sources/RecipientChecks"
     source.mkdir(parents=True)
-    for file in ["Import/OathImportCatalog.swift", "Import/OathMnemonicValidator.swift",
+    for file in ["Tokens/OathAssetSearchScope.swift", "Import/OathImportCatalog.swift", "Import/OathMnemonicValidator.swift",
                  "Scanner/OathScanAddress.swift", "Scanner/OathScanPayload.swift", "Scanner/OathWalletLink.swift",
                  "Send/OathSendRecipientRules.swift", "Send/OathSendModel.swift", "Send/OathSendAmount.swift",
                  "Localization/OathStringKey.swift"]:
@@ -42,6 +42,7 @@ enum OathContactAddressValidator {
 }
 ''' + registry)
     shutil.copyfile(root / "Tools/CheckSendRecipient.swift", source / "CheckSendRecipient.swift")
+    shutil.copyfile(root / "Tools/CheckSharedPaymentLinks.swift", source / "CheckSharedPaymentLinks.swift")
     packages = ["OathAezeed", "OathAnkr", "OathBitcoin", "OathDatabase", "OathDiagnostics"]
     deps = ", ".join('.package(path: %s)' % json.dumps(str(root / "Packages" / p)) for p in packages)
     (work / "Package.swift").write_text('''// swift-tools-version: 6.1

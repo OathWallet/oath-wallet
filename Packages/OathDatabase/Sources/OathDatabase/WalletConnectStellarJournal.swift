@@ -53,7 +53,7 @@ extension OathDatabase {
         guard plan.details == (try plan.request.details()), plan.request.broadcasts else { throw StellarSendError.changed }
         try plan.request.verify(signed)
         let planData = try JSONEncoder().encode(plan), signedData = try JSONEncoder().encode(signed)
-        return try await pool.write { db in
+        return try await storageWrite { db in
             if let stored = try WalletConnectStellarSubmission.fetchOne(db, key: id) {
                 guard stored.fingerprint == plan.request.fingerprint, stored.walletID == walletID,
                       stored.accountID == accountID, try stored.decoded().1 == signed else { throw StellarSendError.changed }
@@ -77,7 +77,7 @@ extension OathDatabase {
         }
     }
     public func settleWalletConnectStellar(_ id: String, outcome: StellarSendReceipt.Outcome) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var record = try WalletConnectStellarSubmission.fetchOne(db, key:id),
                   !["confirmed","failed","expired"].contains(record.state) else { return }
             if record.state == "accepted", outcome == .unknown { return }

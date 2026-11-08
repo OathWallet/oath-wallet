@@ -19,6 +19,10 @@ import OathBitcoin
         let parser = OathScanParser(validator: validator, evmNetworks: networkIDs)
         var checks = 0, qrCount = 0, vectorCount = 0
         func check(_ value: Bool, _ reason: String) throws { guard value else { throw Failure.assertion(reason) }; checks += 1 }
+        try check(OathTokenNetwork.find(.cronos) == nil, "Disabled Cronos token network")
+        try check(!OathScanAddress.networks(for: "0x" + String(repeating: "1", count: 40)).contains(.cronos), "Disabled Cronos scan inference")
+        try check(OathScanAddress.decode("0x" + String(repeating: "1", count: 40), chain: .cronos) == nil, "Disabled Cronos explicit recipient")
+
         try check(OathWalletConnectPolicy.requiresFreshPairing(NSError(domain: "WalletConnectPairing.WalletPairService.Errors", code: 0)), "Consumed pairing requires a new QR")
         try check(!OathWalletConnectPolicy.requiresFreshPairing(NSError(domain: "WalletConnectPairing.WalletPairService.Errors", code: 1)), "Disconnected relay remains retryable")
         try check(!OathWalletConnectPolicy.requiresFreshPairing(NSError(domain: "OtherProvider", code: 0)), "Unrelated errors remain retryable")
@@ -87,11 +91,6 @@ import OathBitcoin
             (.xrpl, try XrplSendCrypto.address(privateKey: scalar)), (.stellar, try StellarSendCrypto.address(privateKey: ed))]
         let ton = try TonSendCrypto.address(publicKey: TonSendCrypto.publicKey(privateKey: ed))
         addresses += [(.ton, ton), (.ton, try TonIdentity.friendly(ton)), (.ton, try TonIdentity.friendly(ton, bounceable: false))]
-        try check(!OathImportChain.cronos.isEnabled, "Paused Cronos must remain unavailable")
-        try check(recipient("ethereum:0x52908400098527886E0F7030069857D2E4169EE7@25?value=1") == nil,
-                  "A paused network URI must not become an enabled-chain payment")
-        try check(recipient(addresses[0].1)?.networks.contains(.cronos) == false,
-                  "Bare addresses must not offer paused networks")
         var covered = Set<OathImportChain>()
         for (chain, address) in addresses {
             let scanned = try qr(address)

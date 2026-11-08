@@ -39,7 +39,7 @@ public actor SuiClient {
                 try Task.checkCancellation()
                 var request = URLRequest(url:url); request.httpMethod = "POST"; request.httpBody = body; request.timeoutInterval = 25
                 request.setValue("application/json",forHTTPHeaderField:"Content-Type")
-                let (data,status) = try await transport.send(request)
+                let (data,status) = try await transport.sendPreservingTransportError(request)
                 guard status == 200 else { throw SuiError.http(status) }
                 let envelope = try JSONDecoder().decode(SuiJSON.self,from:data)
                 if let errors = envelope["errors"].array, !errors.isEmpty {
@@ -60,9 +60,10 @@ public actor SuiClient {
                 try Task.checkCancellation()
                 if url == endpoint, let checkpoint { laggingCheckpoints[checkpoint] = nil }
                 return (value,data)
-            } catch { OathDiagnostics.record(error);
-                if Task.isCancelled || error is CancellationError { throw CancellationError() }
-                let safe = (error as? SuiError) ?? .transport
+            } catch {
+                if Task.isCancelled || error is CancellationError || (error as? URLError)?.code == .cancelled { throw CancellationError() }
+                OathDiagnostics.record(error, operation: "sui_read", context: ["chain": "sui", "host": url.host ?? ""])
+                let safe = (error as? SuiError) ?? (error is DecodingError ? .malformed : .transport)
                 if safe == .checkpointUnavailable, url == endpoint, fallback != nil, let checkpoint {
                     if laggingCheckpoints[checkpoint] == nil, laggingCheckpoints.count >= 32,
                        let oldest = laggingCheckpoints.min(by: { $0.value < $1.value })?.key {

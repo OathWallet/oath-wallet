@@ -165,3 +165,48 @@ import GRDB
         print("Robinhood production sync: \(samples.count) public accounts, \(samples.flatMap(\.tokens).count) sampled token balances, prices, and matching offline snapshots")
     }
 }
+
+private actor RobinhoodRefreshFeed: AnkrTransport {
+    var round = 1
+    func advance() { round += 1 }
+    func send(_ request: URLRequest) async throws -> (Data, Int) {
+        let result: Any
+        if request.url?.host == "api.coinbase.com" { result = ["data": ["base": "ETH", "currency": "USD", "amount": "2"]] }
+        else if let body = request.httpBody, let calls = try JSONSerialization.jsonObject(with: body) as? [[String: Any]] {
+            result = calls.map { call -> [String: Any] in
+                let value: Any
+                switch call["method"] as? String {
+                case "eth_chainId": value = "0x1237"
+                case "eth_getBlockByNumber": value = ["number": "0x" + String(100 + round, radix: 16), "hash": "0x" + String(repeating: "a", count: 64)]
+                case "eth_getBalance": value = round == 1 ? "0xde0b6b3a7640000" : "0x1bc16d674ec80000"
+                case "eth_call":
+                    let params = call["params"] as! [Any]
+                    value = (params[0] as! [String: Any])["data"] as? String == "0x313ce567" ? "0x6" : "0x" + String(round * 10, radix: 16)
+                default: value = []
+                }
+                return ["jsonrpc": "2.0", "id": call["id"]!, "result": value]
+            }
+        } else { result = ["items": [Any](), "next_page_params": NSNull()] }
+        return (try JSONSerialization.data(withJSONObject: result), 200)
+    }
+}
+extension RobinhoodLedgerTests {
+    func testChangedNativeAndKnownTokenPublishWithoutReopening() async throws {
+        let (db, _) = try await fixture()
+        let ticket = try await db.beginRobinhoodSync(accountID: "wallet:robinhood")
+        let catalog = RobinhoodCatalog(ids: [token: "fixture"])
+        try await db.commitRobinhoodInventory(inventory(), ticket: ticket, catalog: catalog)
+        try await db.saveMarketCache(.init(key: "robinhood.catalog", source: "fixture", payload: JSONEncoder().encode(catalog), fetchedAt: Date().timeIntervalSince1970))
+        let feed = RobinhoodRefreshFeed()
+        let service = RobinhoodSynchronizer(database: db, client: try RobinhoodClient(apiKey: "fixture", blockscoutKey: "fixture", transport: feed), markets: RobinhoodMarkets(transport: feed))
+        let publication = RefreshPublicationProbe(db, wallet: "wallet")
+        defer { publication.stop() }
+        try await service.refresh(accountID: "wallet:robinhood")
+        try await publication.expect(token, amount: "10", network: "robinhood")
+        await feed.advance()
+        try await service.refresh(accountID: "wallet:robinhood")
+        try await publication.expect(amount: "2000000000000000000", network: "robinhood")
+        try await publication.expect(token, amount: "20", network: "robinhood")
+        await service.cancel()
+    }
+}

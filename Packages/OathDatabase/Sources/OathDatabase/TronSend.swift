@@ -36,7 +36,7 @@ extension OathDatabase {
     public func queueTronSend(sendID: String, plan: TronSendPlan) async throws {
         try plan.validate()
         guard plan.network == .mainnet else { throw TronSendError.wrongNetwork }
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send = try SendRecord.fetchOne(db,key:sendID), send.state == "draft", send.networkID == "tron",
                   let account = try AccountRecord.fetchOne(db,key:send.accountID), account.walletID == send.walletID,
                   account.networkID == "tron", try TronIdentity.address(account.address) == plan.sender,
@@ -66,7 +66,7 @@ extension OathDatabase {
         }
     }
     public func journalTronSignature(sendID: String, signed: TronSignedSend) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send = try SendRecord.fetchOne(db,key:sendID), send.state == "queued", send.networkID == "tron",
                   let bytes = try Data.fetchOne(db,sql:"SELECT plan FROM tronSendPlans WHERE sendID=?",arguments:[sendID]) else { throw StoreError.invalidTransition }
             let plan = try JSONDecoder().decode(TronSendPlan.self,from:bytes)
@@ -92,7 +92,7 @@ extension OathDatabase {
     /// A timeout or local quote expiration never releases a signed transaction.
     public func settleTronSend(sendID: String, receipt: TronSendReceipt) async throws {
         guard receipt.outcome != .unknown else { return }
-        try await pool.write { db in
+        try await storageWrite { db in
             guard var send = try SendRecord.fetchOne(db,key:sendID), send.networkID == "tron",
                   ["signed","broadcast","confirmed","failed"].contains(send.state),
                   send.transactionID == "tron:"+receipt.hash, let raw = send.signedPayload else { throw StoreError.invalidTransition }

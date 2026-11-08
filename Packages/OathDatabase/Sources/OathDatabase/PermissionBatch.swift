@@ -57,7 +57,7 @@ extension OathDatabase {
         guard !items.isEmpty, items.count <= PermissionBatchScope.maximumItems, Set(items.map(\.id)).count == items.count,
               Set(items.map(\.batchID)).count == 1, Set(items.map(\.walletID)).count == 1,
               Set(items.map { $0.permission.id }).count == items.count else { throw StoreError.invalidValue("permission batch") }
-        try await pool.write { db in
+        try await storageWrite { db in
             for item in items {
                 guard UUID(uuidString:item.id) != nil, UUID(uuidString:item.batchID) != nil,
                       item.createdAt.isFinite, ["queued","failed","alreadyRemoved"].contains(item.state),
@@ -86,7 +86,7 @@ extension OathDatabase {
     public func setPermissionBatchItem(_ id: String, state: String, errorCode: String? = nil) async throws {
         guard ["processing","submitted","failed","paused","alreadyRemoved"].contains(state),
               errorCode == nil || ["changed","insufficient","unsupported","unavailable"].contains(errorCode!) else { throw StoreError.invalidTransition }
-        try await pool.write { db in
+        try await storageWrite { db in
             if state == "alreadyRemoved" {
                 guard let payload = try Data.fetchOne(db, sql: "SELECT payload FROM permissionBatchItems WHERE id=? AND state IN ('queued','processing')", arguments: [id]) else { return }
                 guard try Bool.fetchOne(db, sql: "SELECT EXISTS(SELECT 1 FROM sends WHERE id=? AND signedPayload IS NOT NULL)", arguments: [id]) != true else { throw StoreError.invalidTransition }
@@ -101,7 +101,7 @@ extension OathDatabase {
     /// The signed-byte journal is authoritative, including a kill between signing
     /// and the batch status write. Unsigned interrupted jobs require fresh consent.
     public func reconcilePermissionBatches(walletID: String, interruptUnsigned: Bool) async throws {
-        try await pool.write { db in
+        try await storageWrite { db in
             try db.execute(sql:"""
                 UPDATE permissionBatchItems SET state=CASE
                     WHEN EXISTS(SELECT 1 FROM permissionRemovals r JOIN sends s ON s.id=r.sendID

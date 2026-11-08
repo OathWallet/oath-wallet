@@ -131,12 +131,6 @@ struct OathAssetFilterSheet: View {
                 .oathSwitchStyle()
                 .padding(.trailing, 20)
                 .accessibilityIdentifier("assets.filter.hideZero")
-                Toggle(isOn: $draft.onlyWithActivity) {
-                    OathSettingsRow(title: strings.text(.assetFilterWithActivity), icon: "clock.arrow.circlepath", accessory: .none)
-                }
-                .oathSwitchStyle()
-                .padding(.trailing, 20)
-                .accessibilityIdentifier("assets.filter.activity")
                 OathSettingsFooter { Text(strings.text(.assetFilterBalanceDetail)) }
 
                 OathSettingsSectionRule()

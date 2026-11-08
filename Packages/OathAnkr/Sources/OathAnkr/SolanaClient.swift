@@ -57,7 +57,7 @@ public actor SolanaClient {
             request.httpMethod = "POST"; request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpBody = try JSONEncoder().encode(requests.count == 1 ? requests[0] : .array(requests))
             do {
-                let (data, status) = try await transport.send(request)
+                let (data, status) = try await transport.sendPreservingTransportError(request)
                 // A completed transport may ignore task cancellation. Do not
                 // publish its reply, cache verification or schedule retries.
                 try Task.checkCancellation()
@@ -110,7 +110,16 @@ public actor SolanaClient {
                     archiveAfter = .now.advanced(by: .seconds(15))
                 }
                 switch safe {
-                case .malformed where decodingFailed, .http(429), .http(500...599), .transport:
+                case .transport:
+                    // An archive TLS/certificate/offline failure cannot improve
+                    // through same-endpoint retries. Retain the typed failure
+                    // so the existing independently verified fallback can run.
+                    let retry = AnkrReadRetry.transientTransport(error) || (error as? SolanaError) == .transport
+                    if endpoint == primary || attempt == 2 || !retry {
+                        for index in pending { completed[index] = .failure(safe) }
+                        pending = []
+                    }
+                case .malformed where decodingFailed, .http(429), .http(500...599):
                     if endpoint == primary || attempt == 2 {
                         for index in pending { completed[index] = .failure(safe) }
                         pending = []

@@ -189,8 +189,9 @@ import Foundation
 @MainActor private final class PairingRecoveryFixture {
     struct Wallet { var isUnlocked = true }
     struct Offered { let pairingTopic: String }
-    struct Review { let value: Offered; let verify: String }
-    struct Approved { let topic: String; let expiryDate: Date }
+    struct Review { let value: Offered; let verify: String; var browserHost: String? = nil }
+    struct Peer { var url = "https://app.example.com" }
+    struct Approved { let topic: String; let expiryDate: Date; var peer = Peer() }
     @MainActor final class Sign {
         static let instance = Sign()
         var proposals = [(proposal: Offered, context: String)]()
@@ -200,6 +201,7 @@ import Foundation
     }
     private var session: Wallet? = Wallet()
     private var pairingTopic = "fixture"
+    private var pairingBrowserHost: String?
     private var pairingProgress = OathWalletConnectPolicy.PairingProgress.waiting
     private var proposal: Review?
     private var connectedTopic: String?
@@ -225,9 +227,11 @@ import Foundation
         fixture.session?.isUnlocked = false
         precondition(!fixture.resumeKnownPairing(topic: "fixture"))
         fixture.session?.isUnlocked = true
+        fixture.pairingBrowserHost = "app.example.com"
         precondition(!fixture.resumeKnownPairing(topic: "unrelated"))
         precondition(fixture.resumeKnownPairing(topic: "fixture"))
         precondition(fixture.pairingProgress == .reviewing && fixture.proposal?.verify == "unverified" && !fixture.resumed)
+        precondition(fixture.proposal?.browserHost == "app.example.com")
         precondition(!fixture.resumeKnownPairing(topic: "fixture"))
         sdk.proposals = []
         fixture.pairingProgress = .failed
@@ -235,10 +239,13 @@ import Foundation
         sdk.sessions = [.init(topic: "approved", expiryDate: .distantPast)]
         precondition(!fixture.resumeKnownPairing(topic: "fixture"))
         sdk.sessions = [.init(topic: "approved", expiryDate: .distantFuture)]
+        fixture.pairingBrowserHost = "different.example.com"
+        precondition(!fixture.resumeKnownPairing(topic: "fixture"))
+        fixture.pairingBrowserHost = "app.example.com"
         precondition(fixture.resumeKnownPairing(topic: "fixture"))
         precondition(fixture.connectedTopic == "approved" && fixture.resumed && !fixture.working && !fixture.failed)
         fixture.connections.revoke("approved"); fixture.pairingProgress = .waiting
         precondition(!fixture.resumeKnownPairing(topic: "fixture"))
-        return 10
+        return 12
     }
 }

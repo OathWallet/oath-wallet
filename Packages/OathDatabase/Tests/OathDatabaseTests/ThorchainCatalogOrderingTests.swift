@@ -162,3 +162,35 @@ extension ThorchainTests {
         XCTAssertEqual(asset?.name, "First")
     }
 }
+
+extension ThorchainTests {
+    func testUnavailableVaultPricePreservesSavedValueTimeAndHoldingAfterReopen() async throws {
+        let (db, folder) = try await fixture()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let ticket = try await db.beginThorchainSync(accountID: "a1")
+        let reference = "x/ghost-vault/rune"
+        var catalog = ThorchainCatalog()
+        catalog.observedAt = Date(timeIntervalSince1970: 10_000)
+        catalog.tokens[reference] = .init(reference: reference, name: "Fixture receipt", symbol: "LEND", decimals: 8)
+        catalog.prices["native"] = "2"
+        let config: SolanaJSON = .object(["denom": .string("rune")])
+        let status: SolanaJSON = .object(["last_updated": .string("9990000000000"), "deposit_pool": .object(["shares": .string("100"), "ratio": .string("1.25")])])
+        let row = try ThorchainClient.decodeNodeVault(config: config, status: status, now: catalog.observedAt)
+        try ThorchainClient.applyVaultMarkets([row], to: &catalog, now: catalog.observedAt)
+        try await db.commitThorchainInventory(.init(owner: owner, holdings: [.init(reference: "native", amount: "1"), .init(reference: reference, amount: "123456789")], observedAt: catalog.observedAt, height: 123), ticket: ticket, catalog: catalog)
+        try await db.commitThorchainCatalog(catalog, ticket: ticket)
+        let before = try await db.latestPrice(assetID: "thorchain:" + reference, currency: "USD")
+        XCTAssertEqual(before?.value, "2.5")
+        let beforeHoldings = try await db.snapshot(walletID: "w1", currency: "USD").holdings
+        catalog.observedAt = Date(timeIntervalSince1970: 20_000)
+        catalog.prices.removeAll()
+        XCTAssertThrowsError(try ThorchainClient.decodeNodeVault(config: config, status: status, now: catalog.observedAt))
+        try await db.commitThorchainCatalog(catalog, ticket: ticket)
+        let reopened = try await OathDatabase.open(at: folder.appendingPathComponent("wallet.sqlite"))
+        let after = try await reopened.latestPrice(assetID: "thorchain:" + reference, currency: "USD")
+        XCTAssertEqual(after?.value, before?.value)
+        XCTAssertEqual(after?.observedAt, before?.observedAt)
+        let afterHoldings = try await reopened.snapshot(walletID: "w1", currency: "USD").holdings
+        XCTAssertEqual(afterHoldings, beforeHoldings)
+    }
+}

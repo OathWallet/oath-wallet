@@ -38,7 +38,7 @@ public struct AptosMarkets: Sendable {
             let fa=row["faAddress"].string.flatMap{try? AptosIdentity.reference($0)}
             guard let ref=coin ?? fa else {continue}
             if let fa {aliases[fa]=ref};if let coin {aliases[coin]=ref}
-            tokens[ref] = .init(reference:ref,name:(try? TronIdentity.clean(name)) ?? "Token",symbol:(try? TronIdentity.clean(symbol,limit:64)) ?? "TOKEN",decimals:Int(decimals),logo:ArtworkSource.normalized(row["logoUrl"].string),verified:true)
+            tokens[ref] = .init(reference:ref,name:TokenMetadataName.name(name, symbol: symbol, reference: ref),symbol:(try? TronIdentity.clean(symbol,limit:64)) ?? "TOKEN",decimals:Int(decimals),logo:ArtworkSource.normalized(row["logoUrl"].string),verified:true)
         }
         guard tokens["native"]?.decimals==8 else {throw AptosError.malformed}
         tokens["native"] = .native

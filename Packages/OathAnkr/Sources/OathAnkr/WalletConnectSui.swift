@@ -49,7 +49,10 @@ public struct WalletConnectSuiRequest: Sendable, Equatable, Codable {
         else {
             guard let transaction, let review, review.request == self, now.timeIntervalSince(review.createdAt) >= 0,
                   now.timeIntervalSince(review.createdAt) <= 120 else { throw SuiSendError.expired }
-            _ = try WalletConnectSuiTransaction(transaction,network:network,account:account,executing:broadcasts,now:now)
+            guard let objects = review.objectChanges else { throw SuiSendError.changed }
+            let parsed = try WalletConnectSuiTransaction(transaction,network:network,account:account,executing:broadcasts,now:now)
+            try parsed.validateObjectReview(objects)
+            guard review.actions == parsed.reviewActions else { throw SuiSendError.changed }
             payload = Data([0,0,0]) + transaction
         }
         let signature = Data([0]) + (try key.signature(for:SuiSendCrypto.hash(payload))) + key.publicKey.rawRepresentation
@@ -74,6 +77,9 @@ public struct WalletConnectSuiReview: Sendable, Equatable, Codable {
     public let request:WalletConnectSuiRequest
     public let changes:[String]
     public var tokens:[String:SuiToken] = [:]
+    /// Nil marks a legacy balance-only preview, which must never authorize signing.
+    public var objectChanges: [WalletConnectSuiObjectChange]? = nil
+    public var actions: [String]? = nil
     public let details:[String], gasOwner:String
     public let gasBudget:UInt64
     public let estimatedFee:UInt64
@@ -86,23 +92,45 @@ public struct WalletConnectSuiTransaction: Sendable {
     public let sender:String, gasOwner:String
     public let gasPrice:UInt64, gasBudget:UInt64
     public let commands:[String], inputs:[String]
+    public let transfers: [WalletConnectSuiTransfer]
+    let ownedObjectInputs: [String: SuiConnectObjectReference]
+    let gasObjectIDs: Set<String>
+    /// Structured decoded protocol data for the native raw-data view. Field
+    /// identifiers and values are data, not English presentation sentences.
+    public let displayData: NearJSON
     public let minimumEpoch:UInt64?, maximumEpoch:UInt64?
     public init(_ bytes:Data, network:SuiSendNetwork, account:String, executing:Bool, now:Date = .now) throws {
         guard !bytes.isEmpty, bytes.count <= 128_000 else { throw SuiSendError.malformed }
-        // Data slices retain their original indexes; BCS offsets start at zero.
+        // Data slices can have nonzero indexes; the decoder uses zero-based offsets.
         let bytes = Data(bytes)
         var r = SuiConnectBCS(bytes:bytes)
         guard try r.length(3) == 0, try r.length(10) == 0 else { throw SuiSendError.malformed }
         var inputs = [String](), commands = [String]()
+        var displayInputs = [NearJSON](), displayCommands = [NearJSON]()
+        var pureInputs = [Int: Data](), objectInputs = [Int: String]()
+        var ownedObjects = [String: SuiConnectObjectReference]()
+        var transfers = [WalletConnectSuiTransfer]()
         for _ in 0..<(try r.length(512)) {
             switch try r.length(3) {
-            case 0: inputs.append("Pure: " + (try r.vector(16_384)).base64EncodedString())
+            case 0:
+                let raw = try r.vector(16_384)
+                pureInputs[inputs.count] = raw
+                let data = raw.base64EncodedString()
+                inputs.append("Pure: " + data)
+                displayInputs.append(.object(["Pure": .string(data)]))
             case 1:
                 let kind = try r.length(3)
                 if kind == 1 {
                     let id = try r.address(), version = try r.uint(8), mutable = try r.length(1)
+                    displayInputs.append(.object(["SharedObject": .object(["objectId": .string(id), "initialSharedVersion": .string(String(version)), "mutable": .bool(mutable == 1)])]))
                     inputs.append("Shared object: \(id), version \(version), mutable \(mutable == 1)")
-                } else if kind == 0 || kind == 2 { inputs.append(try r.object()) }
+                } else if kind == 0 || kind == 2 {
+                    let reference = try r.objectReference()
+                    objectInputs[inputs.count] = reference.id
+                    ownedObjects[reference.id] = reference
+                    let object = reference.summary; inputs.append(object)
+                    displayInputs.append(.object([kind == 0 ? "ImmOrOwnedObject" : "Receiving": .string(object)]))
+                }
                 else { throw SuiSendError.malformed }
             case 2:
                 guard try r.length(1) == 0 else { throw SuiSendError.malformed }
@@ -110,7 +138,13 @@ public struct WalletConnectSuiTransaction: Sendable {
                 guard try r.length(1) == 0 else { throw SuiSendError.malformed }
                 let type = try r.type(), source = try r.length(2)
                 var owner = source == 0 ? "sender" : "sponsor"
-                if source == 2 { owner = try r.address() + " allowance " + r.address() }
+                var sourceData: NearJSON = .string(source == 0 ? "Sender" : "Sponsor")
+                if source == 2 {
+                    let address = try r.address(), allowance = try r.address()
+                    owner = address + " allowance " + allowance
+                    sourceData = .object(["owner": .string(address), "allowance": .string(allowance)])
+                }
+                displayInputs.append(.object(["FundsWithdrawal": .object(["amount": .string(String(amount)), "coinType": .string(type), "source": sourceData])]))
                 inputs.append("Withdraw \(amount) atomic \(type) from \(owner)")
             default: throw SuiSendError.malformed
             }
@@ -123,10 +157,27 @@ public struct WalletConnectSuiTransaction: Sendable {
                 let target = try r.address() + "::" + r.identifier() + "::" + r.identifier()
                 var types = [String]()
                 for _ in 0..<(try r.length(64)) { types.append(try r.type()) }
-                commands.append(try target + "<" + types.joined(separator:",") + ">(" + r.arguments() + ")")
-            case 1: commands.append(try "TransferObjects " + r.arguments() + " to " + r.argument())
-            case 2: commands.append(try "SplitCoins " + r.argument() + " amounts " + r.arguments())
-            case 3: commands.append(try "MergeCoins " + r.argument() + " sources " + r.arguments())
+                let arguments = try r.arguments()
+                commands.append(target + "<" + types.joined(separator:",") + ">(" + arguments + ")")
+                displayCommands.append(.object(["MoveCall": .object(["target": .string(target), "typeArguments": .array(types.map(NearJSON.string)), "arguments": .string(arguments)])]))
+            case 1:
+                let values = try r.argumentValues(), destination = try r.argumentValue()
+                let objects = values.map(\.summary).joined(separator: ", "), address = destination.summary
+                let recipientBytes = destination.inputIndex.flatMap { pureInputs[$0] }
+                let recipient = recipientBytes.flatMap { $0.count == 32 ? "0x" + $0.map { String(format: "%02x", $0) }.joined() : nil }
+                transfers.append(.init(commandIndex: index, objects: values.map { value in
+                    value.inputIndex.flatMap { objectInputs[$0] } ?? value.summary
+                }, directObjectIDs: values.compactMap { $0.inputIndex.flatMap { objectInputs[$0] } }, recipient: recipient))
+                commands.append("TransferObjects " + objects + " to " + address)
+                displayCommands.append(.object(["TransferObjects": .object(["objects": .string(objects), "address": .string(address)])]))
+            case 2:
+                let coin = try r.argument(), amounts = try r.arguments()
+                commands.append("SplitCoins " + coin + " amounts " + amounts)
+                displayCommands.append(.object(["SplitCoins": .object(["coin": .string(coin), "amounts": .string(amounts)])]))
+            case 3:
+                let destination = try r.argument(), sources = try r.arguments()
+                commands.append("MergeCoins " + destination + " sources " + sources)
+                displayCommands.append(.object(["MergeCoins": .object(["destination": .string(destination), "sources": .string(sources)])]))
             case 4, 6:
                 // Publishing/upgrading code is not an ordinary transfer, but the
                 // modules and dependencies are still fully bound to the signature.
@@ -136,19 +187,29 @@ public struct WalletConnectSuiTransaction: Sendable {
                 var deps = [String]()
                 for _ in 0..<(try r.length(128)) { deps.append(try r.address()) }
                 var detail = "Publish modules " + hashes.joined(separator:",") + " dependencies " + deps.joined(separator:",")
-                if kind == 6 { detail = try "Upgrade " + r.address() + " ticket " + r.argument() + ": " + detail }
+                var fields: [String: NearJSON] = ["moduleHashes": .array(hashes.map(NearJSON.string)), "dependencies": .array(deps.map(NearJSON.string))]
+                if kind == 6 {
+                    let package = try r.address(), ticket = try r.argument()
+                    detail = "Upgrade " + package + " ticket " + ticket + ": " + detail
+                    fields["package"] = .string(package); fields["ticket"] = .string(ticket)
+                }
+                displayCommands.append(.object([kind == 6 ? "Upgrade" : "Publish": .object(fields)]))
                 commands.append(detail)
             case 5:
                 let hasType = try r.length(1), type = hasType == 1 ? try r.type() : "inferred"
-                commands.append(try "MakeMoveVec<" + type + "> " + r.arguments())
+                let elements = try r.arguments()
+                commands.append("MakeMoveVec<" + type + "> " + elements)
+                displayCommands.append(.object(["MakeMoveVec": .object(["type": hasType == 1 ? .string(type) : .null, "elements": .string(elements)])]))
             default: throw SuiSendError.malformed
             }
         }
         guard !commands.isEmpty else { throw SuiSendError.malformed }
         sender = try r.address()
-        var gasObjects = Set<String>()
+        var gasObjects = Set<String>(), gasIDs = Set<String>()
         for _ in 0..<(try r.length(256)) {
-            guard gasObjects.insert(try r.object()).inserted else { throw SuiSendError.malformed }
+            let object = try r.objectReference()
+            guard gasObjects.insert(object.summary).inserted else { throw SuiSendError.malformed }
+            gasIDs.insert(object.id)
         }
         gasOwner = try r.address(); gasPrice = try r.uint(8); gasBudget = try r.uint(8)
         guard sender == (try SuiIdentity.address(account)), !executing || gasOwner == sender else { throw SuiSendError.wrongOwner }
@@ -173,6 +234,8 @@ public struct WalletConnectSuiTransaction: Sendable {
         guard r.offset == bytes.count, minimumEpoch == nil || maximumEpoch == nil || minimumEpoch! <= maximumEpoch! else { throw SuiSendError.malformed }
         self.minimumEpoch = minimumEpoch; self.maximumEpoch = maximumEpoch
         self.inputs = inputs; self.commands = commands
+        self.transfers = transfers; self.ownedObjectInputs = ownedObjects; self.gasObjectIDs = gasIDs
+        self.displayData = .object(["inputs": .array(displayInputs), "commands": .array(displayCommands)])
     }
 }
 private struct SuiConnectBCS {
@@ -196,11 +259,12 @@ private struct SuiConnectBCS {
     }
     mutating func vector(_ maximum:Int) throws -> Data { try take(length(maximum)) }
     mutating func address() throws -> String { "0x" + (try take(32)).map { String(format:"%02x",$0) }.joined() }
-    mutating func object() throws -> String {
+    mutating func objectReference() throws -> SuiConnectObjectReference {
         let id = try address(), version = try uint(8), digest = try vector(32)
         guard digest.count == 32 else { throw SuiSendError.malformed }
-        return id + " @ " + String(version) + " / " + SuiSendCrypto.base58(digest)
+        return .init(id: id, version: version, digest: SuiSendCrypto.base58(digest))
     }
+    mutating func object() throws -> String { try objectReference().summary }
     mutating func identifier() throws -> String {
         guard let value = String(data:try vector(128),encoding:.utf8), !value.isEmpty,
               value.utf8.allSatisfy({(65...90).contains($0) || (97...122).contains($0) || (48...57).contains($0) || $0 == 95}) else { throw SuiSendError.malformed }; return value
@@ -218,17 +282,24 @@ private struct SuiConnectBCS {
         default:throw SuiSendError.malformed
         }
     }
-    mutating func argument() throws -> String {
+    mutating func argumentValue() throws -> SuiConnectArgument {
         switch try length(3) {
-        case 0:return "GasCoin"
-        case 1:let index = try uint(2); guard index < inputCount else { throw SuiSendError.malformed }; return "Input[\(index)]"
-        case 2:let index = try uint(2); guard index < commandIndex else { throw SuiSendError.malformed }; return "Result[\(index)]"
-        case 3:let index = try uint(2), nested = try uint(2); guard index < commandIndex else { throw SuiSendError.malformed }; return "Result[\(index),\(nested)]"
-        default:throw SuiSendError.malformed
+        case 0: return .gasCoin
+        case 1: let index = try uint(2); guard index < inputCount else { throw SuiSendError.malformed }; return .input(Int(index))
+        case 2: let index = try uint(2); guard index < commandIndex else { throw SuiSendError.malformed }; return .result(Int(index))
+        case 3:
+            let index = try uint(2), nested = try uint(2)
+            guard index < commandIndex else { throw SuiSendError.malformed }
+            return .nestedResult(Int(index), Int(nested))
+        default: throw SuiSendError.malformed
         }
     }
-    mutating func arguments() throws -> String {
-        var values = [String](); for _ in 0..<(try length(512)) { values.append(try argument()) }; return values.joined(separator:", ")
+    mutating func argument() throws -> String { try argumentValue().summary }
+    mutating func argumentValues() throws -> [SuiConnectArgument] {
+        var values = [SuiConnectArgument]()
+        for _ in 0..<(try length(512)) { values.append(try argumentValue()) }
+        return values
     }
+    mutating func arguments() throws -> String { try argumentValues().map(\.summary).joined(separator: ", ") }
     mutating func optionalUInt() throws -> UInt64? { try length(1) == 1 ? uint(8) : nil }
 }
