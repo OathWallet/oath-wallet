@@ -1,5 +1,5 @@
 """Reviewed help content for Oath Atmosphere 1.0 build 56, 2026-10-12.
-Source references are retained in a private coverage manifest, not inferred from old release guides.
+Source references are retained in the coverage manifest, not inferred from old release guides.
 """
 import json
 from pathlib import Path
@@ -269,7 +269,7 @@ add('assets','robinhood-chain','Use Robinhood Chain','Find the Robinhood Chain a
 ],'A Robinhood Chain address in Oath is not a login to a Robinhood brokerage account. Provider coverage can limit discovery and history; a successful native balance lookup does not prove complete token coverage.',None,['Packages/OathAnkr/Sources/OathAnkr/RobinhoodModels.swift','OathAtmosphere/Wallet/OathWalletSession.swift'])
 # validate coverage and generate deploy content
 slugs={x['slug'] for x in A};assert len(slugs)==len(A)
-base=Path('/Volumes/MacOSDisk/Oath App')
+base=Path(__file__).resolve().parents[3]
 coverage=[]
 for a in A:
  missing=[p for p in a['source'] if not (base/p).exists()]

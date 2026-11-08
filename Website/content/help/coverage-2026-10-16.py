@@ -1,6 +1,6 @@
 from pathlib import Path
 import json
-R=Path(__file__).resolve().parents[2];app=Path('/Volumes/MacOSDisk/Oath App');D=json.loads((R/'content/help/update-2026-10-16.json').read_text());old=json.loads((R/'Reports/help-update-2026-10-12/coverage.json').read_text());old={a['slug']:a['sources'] for a in old}
+R=Path(__file__).resolve().parents[2];app=R.parent;D=json.loads((R/'content/help/update-2026-10-16.json').read_text());old=json.loads((R/'Reports/help-update-2026-10-12/coverage.json').read_text());old={a['slug']:a['sources'] for a in old}
 base='OathAtmosphere/'
 groups={
  'send':['Send/OathSendFlow.swift','Send/OathSendModel.swift','Send/OathSendRecipientPage.swift','Send/OathSendAmountPage.swift','Send/OathSendReviewPage.swift'],

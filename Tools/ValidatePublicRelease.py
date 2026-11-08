@@ -53,8 +53,11 @@ def main():
             b"import OathCustody", b"SupabaseDiagnosticTransport", b"flushCustody(", b"retryPendingCapture(",
             b"requestCustodySync(", b"WalletSyncSnapshot", b"applyRemoteWalletRemoval(",
             b"OathWalletConnectPush.shared", b"push.oathwallet.org",
+            b"import Supabase", b"record_app_errors", b"supabase_errors", b"app_errors_deferred",
         )):
             errors.append(f"Private integration present: {name}")
+        if path.parts[:3] == ("Website", "content", "help") and re.search(rb'/Volumes/[^\n\"\x27]+|/Users/[^\n\"\x27]+', data):
+            errors.append(f"Machine-specific help source path: {name}")
         if (ROOT / name).is_symlink():
             errors.append(f"Review symlink before publication: {name}")
     project = (ROOT / "project.yml").read_text()
