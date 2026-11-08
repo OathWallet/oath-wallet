@@ -76,7 +76,7 @@ extension OathDatabase {
             let locale = Locale(identifier: "en_US_POSIX")
             guard let exchangeRate, let units = try? amount.units(decimals: asset.decimals),
                   let quantity = Decimal(string: units, locale: locale),
-                  let price = try String.fetchOne(db, sql: "SELECT value FROM prices WHERE assetID=? AND currency='USD' ORDER BY observedAt DESC LIMIT 1", arguments: [asset.id]),
+                  let price = try String.fetchOne(db, sql: "SELECT value FROM prices WHERE assetID=? AND currency='USD' ORDER BY \(PriceRecord.preferredOrder) LIMIT 1", arguments: [asset.id]),
                   let usd = Decimal(string: price, locale: locale),
                   let localPrice = FiatConversion.multiply(usd, exchangeRate) else { return nil }
             return FiatConversion.multiply(quantity, localPrice)

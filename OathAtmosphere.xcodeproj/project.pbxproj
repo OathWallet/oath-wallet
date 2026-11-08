@@ -116,6 +116,7 @@
 		414513D1933202F84477C00A /* OathImportCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6346EC036801A7C04545E14 /* OathImportCatalog.swift */; };
 		41FE0F93A868BC5ED340745C /* OathPreferencesPages.swift in Sources */ = {isa = PBXBuildFile; fileRef = C68E0C2A07E3BD0F5EA211CD /* OathPreferencesPages.swift */; };
 		4239476B17F2BFAD88EFCC19 /* OathAssetSearchBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 025253B8EE64CDB7620B2162 /* OathAssetSearchBar.swift */; };
+		42F5A1038735C61817BD2BFC /* OathWalletSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20DC3382B8427E26AD543A3 /* OathWalletSummary.swift */; };
 		439CA140BBD9714196CAFFE4 /* OathNearWallet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CE0589A2A3892825F680B0D /* OathNearWallet.swift */; };
 		43FE4C78B1470A5E0109DDD4 /* OathArtworkEnergyObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD6CC10A15ADCB338259874E /* OathArtworkEnergyObserver.swift */; };
 		46627FFD5FA9E1056E9B8841 /* OathStartup-copper-dark.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 6BD43B9A36FCA9736F92FCB7 /* OathStartup-copper-dark.jpg */; };
@@ -749,6 +750,7 @@
 		BF6E25A15C9AC95DB5931B41 /* OathWalletSwitcherSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OathWalletSwitcherSheet.swift; sourceTree = "<group>"; };
 		C06B5F859EAAF5BE66F2D079 /* OathStartup-rose-light.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "OathStartup-rose-light.jpg"; sourceTree = "<group>"; };
 		C148A962E7C7647CC508139C /* OathWalletConnectService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OathWalletConnectService.swift; sourceTree = "<group>"; };
+		C20DC3382B8427E26AD543A3 /* OathWalletSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OathWalletSummary.swift; sourceTree = "<group>"; };
 		C2628FD16269F105165D4D4A /* OathStellarWallet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OathStellarWallet.swift; sourceTree = "<group>"; };
 		C326A18026ECC9D8A17B86D7 /* OathWalletConnectSigning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OathWalletConnectSigning.swift; sourceTree = "<group>"; };
 		C3DF3C6617703CBDF5EA0546 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -1039,6 +1041,7 @@
 				E2A0EC839A50417636084078 /* OathWalletFamilyList.swift */,
 				4350483B9071003EED4ED2D0 /* OathWalletManagementPages.swift */,
 				5858AD9B98DBDAFE58CE4DDD /* OathWalletSheets.swift */,
+				C20DC3382B8427E26AD543A3 /* OathWalletSummary.swift */,
 				BF6E25A15C9AC95DB5931B41 /* OathWalletSwitcherSheet.swift */,
 				61A615C573FE30784918639A /* OathWalletUnlockScreen.swift */,
 			);
@@ -2137,6 +2140,7 @@
 				C820D0AB506EBBDD78FF7CD0 /* OathWalletRestoration.swift in Sources */,
 				882F497FA6214722B6943A13 /* OathWalletSession.swift in Sources */,
 				4A848AE8EBD3A022757C6898 /* OathWalletSheets.swift in Sources */,
+				42F5A1038735C61817BD2BFC /* OathWalletSummary.swift in Sources */,
 				2D0C791582D145D095E36ABF /* OathWalletSwitcherSheet.swift in Sources */,
 				04CE81D216D38BB95127D11A /* OathWalletUnlockScreen.swift in Sources */,
 				49402F48C171E126F3AA44BA /* OathWalletVault.swift in Sources */,

@@ -216,6 +216,19 @@ public enum DiagnosticHTTP {
             value.count <= 34 && value.range(of: "^[A-Z0-9]+-USD$", options: .regularExpression) != nil
         }
         switch url.host {
+        case "li.quest":
+            // Documented /v1/token 404, with the exact live code/message envelope.
+            // Match the requested public token exactly; catalog, authentication
+            // and proxy failures remain reportable.
+            guard url.path == "/v1/token", url.port == nil, url.fragment == nil,
+                  let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems,
+                  query.count == 2, Set(query.map(\.name)) == ["chain", "token"],
+                  let chain = query.first(where: { $0.name == "chain" })?.value,
+                  chain.range(of: "^[0-9]{1,16}$", options: .regularExpression) != nil,
+                  let token = query.first(where: { $0.name == "token" })?.value,
+                  !token.isEmpty, token.utf8.count <= 4096,
+                  Set(object.keys) == ["message", "code"], object["code"] as? Int == 1003 else { return false }
+            return object["message"] as? String == "Could not find token '\(token)' on chain '\(chain)' (\(token))"
         case "api.geckoterminal.com":
             // Exact optional token-lookup envelope. The provider reference ID
             // stays local; malformed responses and catalog failures still report.

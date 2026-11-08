@@ -61,7 +61,7 @@ extension OathDatabase {
             LEFT JOIN assets output ON output.id=a.outputAssetID
             LEFT JOIN transactionEvidence e ON e.accountID=a.accountID AND e.transactionID=a.transactionID
             LEFT JOIN prices p ON p.assetID=a.assetID AND p.currency='USD'
-                AND p.observedAt=(SELECT MAX(observedAt) FROM prices WHERE assetID=a.assetID AND currency='USD')
+                AND p.observedAt=(SELECT observedAt FROM prices WHERE assetID=a.assetID AND currency='USD' ORDER BY \(PriceRecord.preferredOrder) LIMIT 1)
             WHERE a.walletID=? AND owner.walletID=?
             """
         sql += """
@@ -168,7 +168,7 @@ extension OathDatabase {
 
     static func historyHolding(_ db: Database, accountID: String, assetID: String, currency: String) throws -> Holding? {
         guard let asset = try AssetRecord.fetchOne(db, key: assetID), let account = try AccountRecord.fetchOne(db,key: accountID) else { return nil }
-        let row = try Row.fetchOne(db, sql: "SELECT value,observedAt,source FROM prices WHERE assetID=? AND currency='USD' ORDER BY observedAt DESC LIMIT 1", arguments: [assetID])
+        let row = try Row.fetchOne(db, sql: "SELECT value,observedAt,source FROM prices WHERE assetID=? AND currency='USD' ORDER BY \(PriceRecord.preferredOrder) LIMIT 1", arguments: [assetID])
         let rate = try exchangeRates(db)?.rate(for: currency) ?? (currency == "USD" ? 1 : nil)
         return Holding(accountID: accountID, networkID: asset.networkID, address: account.address,
             assetID: assetID, reference: asset.reference, name: asset.name, symbol: asset.symbol, decimals: asset.decimals,

@@ -2,60 +2,67 @@ import SwiftUI
 
 typealias OathBrowserSession = OathBrowserTabs<OathBrowserModel>
 
-/// The system tab accessory owns the glass, safe area, and tab-bar positioning.
-/// https://developer.apple.com/documentation/swiftui/view/tabviewbottomaccessory(isenabled:content:)
-struct OathBrowserTabAccessory: ViewModifier {
-    let tabs: OathBrowserSession
+struct OathBrowserTabBehavior: ViewModifier {
     let visible: Bool
     func body(content: Content) -> some View {
         if #available(iOS 26.1, *) {
             content
-                .tabViewBottomAccessory(isEnabled: visible) { OathBrowserBottomBar(tabs: tabs) }
                 .tabBarMinimizeBehavior(visible ? .never : .automatic)
         } else { content }
     }
 }
 
-struct OathBrowserLegacyBottomBar: ViewModifier {
+/// A single field stays mounted while the native keyboard safe area changes.
+/// TabView's bottom accessory stays behind the keyboard on iOS 27; a content
+/// inset follows it without moving/recreating the first responder.
+/// https://developer.apple.com/documentation/swiftui/view/safeareainset(edge:alignment:spacing:content:)-4s51l
+struct OathBrowserBottomBarInset: ViewModifier {
     let tabs: OathBrowserSession
     func body(content: Content) -> some View {
-        if #available(iOS 26.1, *) { content }
-        else {
-            content.safeAreaInset(edge: .bottom, spacing: 0) {
-                OathBrowserBottomBar(tabs: tabs)
-                    .background(.regularMaterial, in: Capsule())
-                    .padding(.horizontal, 16).padding(.vertical, 8)
-            }
+        content.safeAreaInset(edge: .bottom, spacing: 0) {
+            OathBrowserBottomBar(tabs: tabs)
+                .modifier(BrowserBarMaterial())
+                .padding(.horizontal, 16).padding(.vertical, 8)
         }
+    }
+}
+
+private struct BrowserBarMaterial: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) { content.glassEffect(.regular, in: Capsule()) }
+        else { content.background(.regularMaterial, in: Capsule()) }
     }
 }
 
 struct OathBrowserBottomBar: View {
     let tabs: OathBrowserSession
     @Environment(\.oathLocalizer) private var strings
-    private var address: String? { OathBrowserPolicy.connectionAuthority(tabs.current.url) }
+    @State private var draft = OathBrowserAddressDraft()
+    @State private var addressFocused = false
     var body: some View {
         HStack(spacing: 0) {
-            OathButton { tabs.sheet = .address } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: "magnifyingglass").font(.system(size: 21))
-                    Group {
-                        if let address {
-                            Text(verbatim: address).environment(\.layoutDirection, .leftToRight)
-                        } else { Text(strings.text(.browserAddress)) }
-                    }
-                    .oathFont(.body, weight: .medium)
-                    .lineLimit(1).truncationMode(.head)
-                    .frame(maxWidth: .infinity)
-                }
-                .padding(.leading, 16).padding(.trailing, 8)
-                .frame(minHeight: 48).contentShape(Rectangle())
+            OathButton { addressFocused = true } label: {
+                Image(systemName: "magnifyingglass").font(.system(size: 21))
+                    .frame(width: 48, height: 48).contentShape(Rectangle())
             }
             .accessibilityLabel(strings.text(.browserAddress))
-            .accessibilityValue(address ?? "")
-            .accessibilityIdentifier("browser.address")
 
-            OathButton { tabs.sheet = .tabs } label: {
+            OathTextInput(text: $draft.text, focused: $addressFocused,
+                title: strings.text(.browserAddress), identifier: "browser.address",
+                address: true, keyboardType: .URL, dismissesOnSubmit: false,
+                returnKeyType: .go, onSubmit: submit)
+                .frame(maxWidth: .infinity, minHeight: 48)
+
+            if addressFocused && !draft.text.isEmpty {
+                OathButton { draft.text = "" } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                        .frame(width: 44, height: 48).contentShape(Rectangle())
+                }
+                .accessibilityLabel(strings.text(.clear))
+                .accessibilityIdentifier("browser.address.clear")
+            }
+
+            OathButton { addressFocused = false; tabs.sheet = .tabs } label: {
                 Image(systemName: "square.3.layers.3d")
                     .font(.system(size: 23)).frame(width: 52, height: 48)
                     .contentShape(Rectangle())
@@ -65,6 +72,33 @@ struct OathBrowserBottomBar: View {
             .accessibilityIdentifier("browser.tabs")
         }
         .buttonStyle(.plain).foregroundStyle(.primary)
-        .accessibilityIdentifier("browser.bottomBar")
+        .onAppear { draft.reset(url: tabs.current.url) }
+        .onChange(of: tabs.current.webView != nil) { _, loaded in
+            // Opening a start-page bookmark also ends address editing.
+            if loaded { addressFocused = false }
+        }
+        .onChange(of: tabs.current.url) { _, url in draft.synchronize(url: url) }
+        .onChange(of: addressFocused) { _, value in draft.setEditing(value, url: tabs.current.url) }
+        .onChange(of: tabs.selectedID) { _, _ in
+            addressFocused = false; draft.reset(url: tabs.current.url)
+        }
+        .onChange(of: tabs.addressFocusRequest) { _, _ in
+            guard tabs.active, tabs.sheet == nil else { return }
+            draft.reset(url: tabs.current.url); addressFocused = true
+        }
+        .onChange(of: tabs.active) { _, active in if !active { addressFocused = false } }
+        .onChange(of: tabs.sheet) { _, sheet in if sheet != nil { addressFocused = false } }
+        .onDisappear { addressFocused = false; draft.reset(url: nil) }
+    }
+
+    private func submit() {
+        guard tabs.active, tabs.sheet == nil else { return }
+        guard let target = draft.target else {
+            // Invalid address input is expected form validation, not diagnostics.
+            tabs.current.issue = .browserInvalidAddress
+            return
+        }
+        tabs.current.open(target.absoluteString)
+        addressFocused = false
     }
 }

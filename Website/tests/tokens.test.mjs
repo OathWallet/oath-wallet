@@ -48,7 +48,7 @@ test('edge cache keeps search and Markdown separate and survives asset read fail
 test('accepted snapshot exactly matches the approved Git release after native-alias filtering',async()=>{
  const evidence=JSON.parse(await readFile(new URL('../content/release-evidence.json',import.meta.url)));
  const distribution=JSON.parse(await readFile(new URL(`../../releases/${source.version}-distribution.json`,import.meta.url)));
- assert.equal(source.revision,evidence.source_commit);assert.equal(source.revision,distribution.source_commit);assert.equal(distribution.status,'READY_FOR_DISTRIBUTION');
+ assert.equal(source.revision,evidence.source_commit);assert.equal(source.revision,(distribution.source_reference ?? distribution.source_commit));assert.equal(distribution.status,'READY_FOR_DISTRIBUTION');
  const raw=execFileSync('git',['show',source.revision+':Packages/OathAnkr/Sources/OathAnkr/Resources/TokenDiscoverySeed.json'],{cwd:new URL('../../',import.meta.url),maxBuffer:20*1024*1024});
  assert.equal(digest(raw),source.sha256);assert.deepEqual(source.entries,JSON.parse(raw).entries.filter(e=>!nativeAlias(e)));
 });

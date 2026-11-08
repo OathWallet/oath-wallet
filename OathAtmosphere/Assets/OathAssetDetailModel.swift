@@ -3,6 +3,7 @@ import Foundation
 import Observation
 import OathDatabase
 import OathMarketData
+import OathAnkr
 
 actor OathMarketEnvironment {
     static let shared = OathMarketEnvironment()
@@ -20,6 +21,11 @@ actor OathMarketEnvironment {
     var quote: CachedMarketValue<MarketQuote>?
     var information: CachedMarketValue<AssetInformation>?
     var chart: CachedMarketValue<MarketChart>?
+    var lifiMetadata: CachedMarketValue<LifiTokenMetadata>?
+    var verificationStatus: LifiVerificationStatus {
+        guard let lifiMetadata, lifiMetadata.isFresh(lifetime: 86_400) else { return .unknown }
+        return lifiMetadata.value.status
+    }
     var quoteFailed = false
     var informationFailed = false
     var chartFailed = false
@@ -42,9 +48,10 @@ actor OathMarketEnvironment {
             async let savedQuote = service.cachedQuote(for: asset)
             async let savedInfo = service.cachedInformation(for: asset)
             async let savedChart = service.cachedChart(for: asset)
-            let cached = try await (savedQuote, savedInfo, savedChart)
+            async let savedLifi = service.cachedLifiToken(for: asset)
+            let cached = try await (savedQuote, savedInfo, savedChart, savedLifi)
             guard !Task.isCancelled, requestID == request else { return }
-            quote = cached.0; information = cached.1; chart = cached.2
+            quote = cached.0; information = cached.1; chart = cached.2; lifiMetadata = cached.3
             await refresh(asset: asset, walletID: walletID, accountID: accountID)
         } catch { OathDiagnostics.record(error, component: "asset_details", context: ["chain": asset.networkID, "asset_kind": asset.isNative ? "native" : "token"]);
             guard !Task.isCancelled, requestID == request else { return }
@@ -59,13 +66,28 @@ actor OathMarketEnvironment {
             await OathDiagnostics.$operationID.withValue(UUID()) {
                 async let quoteWork: () = updateQuote(asset, force: force)
                 async let infoWork: () = updateInformation(asset, force: force)
+                async let verificationWork: () = updateVerification(asset, force: force)
                 async let chartWork: () = updateChart(asset, force: force)
                 async let rates = await OathExchangeRateEnvironment.shared.refresh()
-                _ = await (quoteWork, infoWork, chartWork, rates)
+                _ = await (quoteWork, infoWork, chartWork, rates, verificationWork)
             }
         }
         if !Task.isCancelled { loading = false }
     }
+    private func updateVerification(_ asset: MarketAsset, force: Bool) async {
+        guard !asset.isNative else { return }
+        do {
+            let service = try await OathMarketEnvironment.shared.service()
+            let value = try await service.lifiToken(for: asset, force: force)
+            guard !Task.isCancelled else { return }
+            lifiMetadata = value
+        } catch {
+            // diagnostics: lifi-provider-recovery
+            // The market service records failures; missing provider coverage and
+            // cancellation are expected. Keep the original cached status/date.
+        }
+    }
+
     func updateQuote(_ asset: MarketAsset, force: Bool = false) async {
         quoteLoading = true
         defer { quoteLoading = false }
@@ -91,6 +113,17 @@ actor OathMarketEnvironment {
             let result = try await service.information(for: asset, force: force)
             guard !Task.isCancelled else { return }
             information = result; informationFailed = false
+            if !asset.isNative {
+                do {
+                    if let enriched = try await service.enrichTokenInformation(for: asset, force: force), !Task.isCancelled {
+                        information = enriched
+                    }
+                } catch {
+                    // diagnostics: lifi-provider-recovery
+                    // Optional enrichment already reports failures at its provider
+                    // boundary. LI.FI metadata stays visible throughout the request.
+                }
+            }
         } catch {
             // A provider may have no listing for an otherwise valid token. Keep
             // the existing unavailable/saved-data presentation without logging

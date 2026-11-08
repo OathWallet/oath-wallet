@@ -179,7 +179,7 @@ struct OathTokenRPCConfiguration: Sendable {
     func makeAccountSynchronizer(database: OathDatabase) throws -> AnkrSynchronizer {
         try AnkrSynchronizer(database: database, apiKey: ankrKey, balanceClient: { networkID in
             guard let network = EVMSendNetwork(rawValue: networkID) else { throw AnkrError.wrongChain }
-            return try makeEVMSendClient(network: network)
+            return try makeEVMSendClient(network: network, balanceRead: true)
         })
     }
     func makePermissionDiscovery() throws -> PermissionDiscovery { try PermissionDiscovery(apiKey:ankrKey) }
@@ -237,10 +237,18 @@ struct OathTokenRPCConfiguration: Sendable {
     func makeSolanaSendClient(network: SolanaSendNetwork = .mainnet) throws -> SolanaSendClient {
         try SolanaSendClient(network: network, apiKey: network == .testnet ? nil : ankrKey)
     }
-    func makeEVMSendClient(network:EVMSendNetwork) throws -> EVMSendClient {
+    func makeEVMSendClient(network:EVMSendNetwork, balanceRead:Bool = false) throws -> EVMSendClient {
         guard !network.isTestnet,let chain=OathImportChain(rawValue:network.rawValue),
               let entry=OathTokenNetwork.registered.first(where: { $0.chain == chain }),entry.chainID==network.chainID else { throw EVMSendError.wrongNetwork }
         var providers=endpoints(for:entry)
+        // Scroll balance refresh can encounter an old ANKR head. Use the
+        // official mainnet RPC for independently verified, pinned reads only;
+        // send/quote callers keep their existing provider configuration.
+        if balanceRead, network == .scroll { providers.append(URL(string:"https://rpc.scroll.io")!) }
+        // Fantom's primary can also return a stale head. Its official Opera
+        // endpoint is a balance-only fallback; sending retains its existing
+        // route, and fresh-head/chain/block validation remains mandatory.
+        if balanceRead, network == .fantom { providers.append(URL(string:"https://rpcapi.fantom.network")!) }
         // Quote preparation must have an independent Ethereum provider when
         // the primary's latest block is stale. Every fallback verifies chain ID.
         if network == .ethereum { providers.append(URL(string:"https://ethereum-rpc.publicnode.com")!) }

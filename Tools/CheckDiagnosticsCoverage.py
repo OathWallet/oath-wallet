@@ -103,6 +103,12 @@ for root in roots:
                 continue  # Positive ERC165 NFT classification, explicitly excluded from fungible discovery.
             if file.name == 'NearClient.swift' and label.strip() == 'NearError.metadataUnavailable' and 'diagnostics: optional-near-metadata-absence' in body:
                 continue  # Exact block-validated ft_metadata MethodNotFound; required reads and malformed data still report.
+            if (file.relative_to(ROOT).as_posix() in (
+                    'OathAtmosphere/Assets/OathAssetDetailModel.swift',
+                    'Packages/OathMarketData/Sources/OathMarketData/MarketDataService.swift',
+                    'Packages/OathMarketData/Sources/OathMarketData/LifiMarketData.swift')
+                    and 'diagnostics: lifi-provider-recovery' in body):
+                continue  # Optional metadata recovery; market_load owns provider failures and cancellation stays expected.
             if file.name == 'MarketDataService.swift' and label.strip() == 'MarketDataError.notListed' and 'diagnostics: optional-market-absence' in body:
                 continue  # Exact optional listing/empty trading window; malformed identities and provider failures still report.
             if file.name == 'MarketDataService.swift' and 'diagnostics: market-chart-recovery' in body and 'throw error' in body and 'geckoChart(for: asset' in body:

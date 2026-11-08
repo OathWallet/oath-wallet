@@ -261,7 +261,7 @@ extension OathDatabase {
     }
     public func latestPrice(assetID: String, currency: String) async throws -> PriceRecord? {
         try await pool.read { db in
-            try PriceRecord.fetchOne(db, sql: "SELECT * FROM prices WHERE assetID=? AND currency=? ORDER BY observedAt DESC LIMIT 1",
+            try PriceRecord.fetchOne(db, sql: "SELECT * FROM prices WHERE assetID=? AND currency=? ORDER BY \(PriceRecord.preferredOrder) LIMIT 1",
                                      arguments: [assetID, currency])
         }
     }

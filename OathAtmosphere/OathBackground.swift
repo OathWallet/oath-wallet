@@ -8,6 +8,7 @@ public struct OathBackground: View {
     private var customColor: UInt32?
     private var placement: OathArtworkPlacement?
     private var animates = true
+    private var isRefreshing = false
     @State private var isVisible = false
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -15,16 +16,20 @@ public struct OathBackground: View {
 
     public init(colorway: OathColorway = .cobalt) { self.colorway = colorway }
 
-    init(placement: OathArtworkPlacement, animates: Bool = true, customColor: UInt32? = nil) {
+    init(placement: OathArtworkPlacement, animates: Bool = true, customColor: UInt32? = nil,
+         isRefreshing: Bool = false) {
         self.colorway = .cobalt
         self.placement = placement
         self.animates = animates
         self.customColor = customColor
+        self.isRefreshing = isRefreshing
     }
 
     public var body: some View {
         let colors = customColor.map(OathSilkColors.custom) ?? colorway.colors
-        OathAnimatedMetalSurface(colors: colors, surface: OathMetalSurface(
+        let playbackRate = isRefreshing ? 3.0 : 1.0
+        let transitionsEnabled = !effectiveReduceMotion && scenePhase == .active && isVisible && animates
+        OathAnimatedMetalSurface(colors: colors, playbackRate: playbackRate, surface: OathMetalSurface(
             dark: colorScheme == .dark,
             reduceMotion: effectiveReduceMotion,
             active: isVisible && animates && scenePhase == .active,
@@ -32,6 +37,7 @@ public struct OathBackground: View {
             colorway: colorway,
             customColor: customColor,
             colors: colors,
+            playbackRate: playbackRate,
             placement: placement
         ))
         // Animate the actual shader palette, not the wallet ID or the canvas.
@@ -39,6 +45,9 @@ public struct OathBackground: View {
         // Equal palettes (including default blue/custom blue) do not animate.
         .animation(effectiveReduceMotion || scenePhase != .active || !isVisible
                    ? nil : .easeInOut(duration: 0.5), value: colors)
+        // Interpolate speed with SwiftUI, while the existing renderer integrates
+        // time continuously. Changing the speed never seeks or restarts the silk.
+        .animation(transitionsEnabled ? .easeInOut(duration: 0.35) : nil, value: playbackRate)
         .onAppear { isVisible = true }
         .onDisappear { isVisible = false }
         // Artwork remains decorative; the DEBUG-only UIKit identifier lets the
@@ -58,16 +67,18 @@ public struct OathBackground: View {
 /// retain their identity. This introduces no snapshots or second renderer.
 private struct OathAnimatedMetalSurface: View, Animatable {
     nonisolated var colors: OathSilkColors
+    nonisolated var playbackRate: Double
     let surface: OathMetalSurface
 
-    nonisolated var animatableData: OathSilkColors {
-        get { colors }
-        set { colors = newValue }
+    nonisolated var animatableData: AnimatablePair<OathSilkColors, Double> {
+        get { .init(colors, playbackRate) }
+        set { colors = newValue.first; playbackRate = newValue.second }
     }
 
     var body: some View {
         var presentation = surface
         presentation.colors = colors
+        presentation.playbackRate = playbackRate
         return presentation
     }
 }
@@ -80,6 +91,7 @@ private struct OathMetalSurface: UIViewRepresentable {
     let colorway: OathColorway
     let customColor: UInt32?
     var colors: OathSilkColors
+    var playbackRate: Double
     let placement: OathArtworkPlacement?
 
     func makeCoordinator() -> OathRenderer { OathRenderer() }
@@ -94,7 +106,7 @@ private struct OathMetalSurface: UIViewRepresentable {
     func updateUIView(_ view: OathArtworkView, context: Context) {
         context.coordinator.update(view, dark: dark, reduceMotion: reduceMotion, active: active,
                                    foreground: foreground, colorway: colorway, customColor: customColor,
-                                   colors: colors, placement: placement)
+                                   colors: colors, placement: placement, playbackRate: playbackRate)
     }
 
     static func dismantleUIView(_ view: OathArtworkView, coordinator: OathRenderer) {

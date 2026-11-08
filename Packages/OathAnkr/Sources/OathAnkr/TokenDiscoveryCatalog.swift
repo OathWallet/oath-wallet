@@ -1,16 +1,26 @@
 import Foundation
 import OathDiagnostics
 
+public enum TokenDiscoverySource: String, Codable, Sendable { case coingecko, lifi }
+
 /// Discovery metadata, not a safety endorsement, balance, or permission to sign.
 /// Identity always includes the network and its canonical contract/issuer/mint.
 public struct TokenDiscoveryEntry: Codable, Sendable, Equatable, Identifiable {
     public let network: String
     public let reference: String
-    public let coinID: String
+    /// Only CoinGecko supplies this identity. Other catalogs must never infer it
+    /// from a ticker or pass their own IDs into CoinGecko's metadata endpoint.
+    public let coinID: String?
     public let name: String
     public let symbol: String
     public let decimals: Int?
     public let logo: String?
+    /// Absent in older prepared catalogs, which came from CoinGecko.
+    public var source: TokenDiscoverySource? = nil
+    public var lifiPriceUSD: String? = nil
+    public var lifiVerificationStatus: String? = nil
+    public var lifiDecimals: Int? = nil
+    public var lifiFetchedAt: Date? = nil
     public var id: String { network + ":" + reference }
 }
 
@@ -188,12 +198,13 @@ public actor TokenDiscoveryCatalog {
     }
 
     private static func readPrepared(_ data: Data) throws -> [TokenDiscoveryEntry] {
-        guard data.count <= 16_000_000 else { throw TokenDiscoveryError.malformed }
+        guard data.count <= 32_000_000 else { throw TokenDiscoveryError.malformed }
         let snapshot = try JSONDecoder().decode(PreparedSnapshot.self, from: data)
         guard snapshot.format == 1, !snapshot.entries.isEmpty, snapshot.entries.count <= 100_000 else { throw TokenDiscoveryError.malformed }
         var seen: Set<String> = []
         for entry in snapshot.entries {
-            guard TokenDiscoveryNetworks.platforms[entry.network] != nil, validCoinID(entry.coinID),
+            guard TokenDiscoveryNetworks.platforms[entry.network] != nil,
+                  entry.coinID.map(validCoinID) ?? (entry.source == .lifi),
                   !entry.reference.isEmpty, entry.reference != "native", entry.reference.utf8.count <= 4096,
                   ContractIdentity.clean(entry.name) == entry.name,
                   ContractIdentity.clean(entry.symbol) == entry.symbol, entry.symbol.utf8.count <= 64,
@@ -236,13 +247,16 @@ public actor TokenDiscoveryCatalog {
             guard let known = registered[entry.id], known.coinID == entry.coinID else { return entry }
             return .init(network: entry.network, reference: entry.reference, coinID: entry.coinID,
                 name: entry.name, symbol: entry.symbol, decimals: entry.decimals ?? known.decimals,
-                logo: entry.logo ?? known.logo)
+                logo: entry.logo ?? known.logo, source: entry.source)
         }
         entries += assetHubEntries.filter { !supplied.contains($0.id) }
         entries.sort { $0.id < $1.id }
+        guard entries.count <= 100_000 else { throw TokenDiscoveryError.malformed }
+        let prepared = try JSONEncoder().encode(PreparedSnapshot(format: 1, entries: entries))
+        guard prepared.count <= 32_000_000 else { throw TokenDiscoveryError.malformed }
         rows = entries.map { IndexRow(entry: $0, name: Self.fold($0.name), symbol: Self.fold($0.symbol)) }
         identities = Dictionary(uniqueKeysWithValues: entries.map { ($0.id, $0) })
-        sourceData = try JSONEncoder().encode(PreparedSnapshot(format: 1, entries: entries))
+        sourceData = prepared
     }
 
     private func load() {
@@ -261,7 +275,7 @@ public actor TokenDiscoveryCatalog {
         } catch { OathDiagnostics.record(error, component: "token_discovery", operation: "seed_read") }
         if let url = cacheURL, FileManager.default.fileExists(atPath: url.path) {
             do {
-                guard try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0 <= 24_000_000 else { throw TokenDiscoveryError.malformed }
+                guard try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0 <= 48_000_000 else { throw TokenDiscoveryError.malformed }
                 let disk = try JSONDecoder().decode(Disk.self, from: Data(contentsOf: url))
                 guard disk.version == 1 else { throw TokenDiscoveryError.malformed }
                 try installLocal(disk.data)
@@ -386,14 +400,62 @@ public actor TokenDiscoveryCatalog {
         defer { refreshFlight = nil }
         return await OathDiagnostics.$operationID.withValue(UUID()) {
             do {
-                let data = try await read("https://api.coingecko.com/api/v3/coins/list?include_platform=true")
-                try install(entries: Self.decode(data)); fetchedAt = .now; retryAt = .distantPast
+                let data = try await read(LifiTokenDiscovery.endpoint, maximumBytes: 32_000_000)
+                try mergeDirectory(LifiTokenDiscovery.decode(data), source: .lifi)
+                fetchedAt = .now; retryAt = .distantPast
                 persist(); return true
             } catch {
-                OathDiagnostics.record(error, component: "token_discovery", operation: "catalog_refresh")
-                retryAt = Date().addingTimeInterval(1800); persist(); return false
+                if Self.isCancellation(error) { return false }
+                OathDiagnostics.record(error, component: "token_discovery", operation: "catalog_refresh",
+                    context: ["stage": "primary", "host": "li.quest"])
+            }
+            // CoinGecko is an independent fallback. Neither provider covers all
+            // networks, so omissions cannot delete the other directory's entries.
+            // Recovery retries LI.FI after the existing bounded 30-minute cooldown.
+            do {
+                let data = try await read("https://api.coingecko.com/api/v3/coins/list?include_platform=true")
+                try mergeDirectory(Self.decode(data), source: .coingecko)
+                retryAt = Date().addingTimeInterval(1800)
+                persist(); return true
+            } catch {
+                if Self.isCancellation(error) { return false }
+                OathDiagnostics.record(error, component: "token_discovery", operation: "catalog_fallback",
+                    context: ["stage": "fallback", "host": "api.coingecko.com"])
+                retryAt = Date().addingTimeInterval(1800)
+                persist(); return false
             }
         }
+    }
+
+    private func mergeDirectory(_ entries: [TokenDiscoveryEntry], source: TokenDiscoverySource) throws {
+        try Task.checkCancellation()
+        let coveredNetworks = Set(entries.map(\.network))
+        // Replace this provider's previous listings only on covered networks.
+        // Keep independent coverage; an empty/missing chain is not a deletion.
+        var merged = identities.filter { (_, entry) in
+            (entry.source ?? .coingecko) != source || !coveredNetworks.contains(entry.network)
+        }
+        for entry in entries {
+            if let previous = identities[entry.id] {
+                // Bind provider IDs only by exact chain/contract, never symbols.
+                // Directory omissions are not evidence a contract stopped existing.
+                merged[entry.id] = .init(network: entry.network, reference: entry.reference,
+                    coinID: entry.coinID ?? previous.coinID,
+                    name: source == .coingecko && previous.lifiFetchedAt != nil ? previous.name : entry.name,
+                    symbol: source == .coingecko && previous.lifiFetchedAt != nil ? previous.symbol : entry.symbol,
+                    decimals: previous.decimals ?? entry.decimals,
+                    logo: source == .coingecko && previous.lifiFetchedAt != nil ? previous.logo ?? entry.logo : entry.logo ?? previous.logo,
+                    source: source,
+                    lifiPriceUSD: source == .lifi ? entry.lifiPriceUSD : previous.lifiPriceUSD,
+                    lifiVerificationStatus: source == .lifi ? entry.lifiVerificationStatus : previous.lifiVerificationStatus,
+                    lifiDecimals: source == .lifi ? entry.lifiDecimals : previous.lifiDecimals,
+                    lifiFetchedAt: source == .lifi ? entry.lifiFetchedAt : previous.lifiFetchedAt)
+            } else if merged.count < 100_000 {
+                merged[entry.id] = entry
+            }
+        }
+        try Task.checkCancellation()
+        try install(entries: Array(merged.values))
     }
 
     private func persist() {
@@ -405,14 +467,16 @@ public actor TokenDiscoveryCatalog {
     }
 
     private func enriched(_ entry: TokenDiscoveryEntry) -> TokenDiscoveryEntry {
-        guard let detail = details[entry.coinID]?.1,
+        guard let coinID = entry.coinID, let detail = details[coinID]?.1,
               let platform = TokenDiscoveryNetworks.platforms[entry.network], let row = detail.detail_platforms?[platform],
               let address = row.contract_address,
               (try? TokenDiscoveryNetworks.canonical(address, network: entry.network)) == entry.reference else { return entry }
         let decimals = entry.decimals ?? row.decimal_place.flatMap { (0...255).contains($0) ? $0 : nil }
         return .init(network: entry.network, reference: entry.reference, coinID: entry.coinID,
             name: entry.name, symbol: entry.symbol, decimals: decimals,
-            logo: detail.image?.small.flatMap { URL(string: $0)?.scheme == "https" ? $0 : nil } ?? entry.logo)
+            logo: entry.logo ?? detail.image?.small.flatMap { URL(string: $0)?.scheme == "https" ? $0 : nil }, source: entry.source,
+            lifiPriceUSD: entry.lifiPriceUSD, lifiVerificationStatus: entry.lifiVerificationStatus,
+            lifiDecimals: entry.lifiDecimals, lifiFetchedAt: entry.lifiFetchedAt)
     }
 
     /// Only selected-token metadata is requested; one coin response covers its
@@ -429,6 +493,16 @@ public actor TokenDiscoveryCatalog {
         return result
     }
 
+    /// Local-only read; the daily catalog timestamp is never renewed by reading it.
+    public func cachedLifiMetadata(network: String, reference: String, decimals: Int) -> (LifiTokenMetadata, Date)? {
+        load()
+        guard let ref = try? TokenDiscoveryNetworks.canonical(reference, network: network),
+              let entry = identities[network + ":" + ref], entry.lifiDecimals == decimals,
+              let date = entry.lifiFetchedAt else { return nil }
+        return (.init(network: network, reference: ref, name: entry.name, symbol: entry.symbol, decimals: decimals,
+            logo: entry.logo, priceUSD: entry.lifiPriceUSD, verificationStatus: entry.lifiVerificationStatus), date)
+    }
+
     /// Exact catalog identity is sufficient for artwork. Missing decimals remain
     /// unknown; this method cannot add a token or construct market/send metadata.
     public func artworkSource(network: String, reference: String, cachedOnly: Bool) async throws -> String? {
@@ -443,29 +517,30 @@ public actor TokenDiscoveryCatalog {
     }
 
     private func loadDetail(for entry: TokenDiscoveryEntry) async throws {
+        guard let coinID = entry.coinID else { throw TokenDiscoveryError.metadataMissing }
         // A successful response without optional decimals is a cached absence,
         // not a reason to repeat the same request on every tap.
-        if let checked = details[entry.coinID]?.0, Date().timeIntervalSince(checked) < Self.refreshInterval {
+        if let checked = details[coinID]?.0, Date().timeIntervalSince(checked) < Self.refreshInterval {
             return
         }
         guard Date() >= detailRetryAt else { throw DiagnosticDeferral.tokenMetadataCooldown }
         let task: Task<Data, Error>
-        if let flight = detailFlights[entry.coinID] { task = flight }
+        if let flight = detailFlights[coinID] { task = flight }
         else {
             guard detailFlights.count < 4 else { throw DiagnosticDeferral.tokenMetadataCapacity }
-            task = Task { try await self.read("https://api.coingecko.com/api/v3/coins/" + entry.coinID + "?localization=false&tickers=false&market_data=false&community_data=false&developer_data=false") }
-            detailFlights[entry.coinID] = task
+            task = Task { try await self.read("https://api.coingecko.com/api/v3/coins/" + coinID + "?localization=false&tickers=false&market_data=false&community_data=false&developer_data=false") }
+            detailFlights[coinID] = task
         }
         do {
             let data = try await task.value
             let detail = try Self.boundedDetail(JSONDecoder().decode(Detail.self, from: data))
-            guard detail.id == entry.coinID else { throw TokenDiscoveryError.malformed }
-            details[entry.coinID] = (.now, detail); detailFlights[entry.coinID] = nil
+            guard detail.id == coinID else { throw TokenDiscoveryError.malformed }
+            details[coinID] = (.now, detail); detailFlights[coinID] = nil
             if details.count > 256, let oldest = details.min(by: { $0.value.0 < $1.value.0 })?.key { details.removeValue(forKey: oldest) }
             persistMetadata()
             return
         } catch {
-            detailFlights[entry.coinID] = nil
+            detailFlights[coinID] = nil
             if case TokenDiscoveryError.metadataMissing = error {
                 // Successful optional-metadata absence is cached above. Other
                 // tokens remain resolvable; no provider-wide penalty applies.
@@ -489,12 +564,19 @@ public actor TokenDiscoveryCatalog {
         } catch { OathDiagnostics.record(error, component: "token_discovery", operation: "metadata_cache_write") }
     }
 
-    private func read(_ value: String) async throws -> Data {
+    private static func isCancellation(_ error: any Error) -> Bool {
+        Task.isCancelled || error is CancellationError || (error as? URLError)?.code == .cancelled
+    }
+
+    private func read(_ value: String, maximumBytes: Int = 16_000_000) async throws -> Data {
+        try Task.checkCancellation()
         var request = URLRequest(url: URL(string: value)!); request.timeoutInterval = 15
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
         let (data, status) = try await transport.send(request)
+        try Task.checkCancellation()
         DiagnosticHTTP.response(data, status: status, request: request)
         guard status == 200 else { throw TokenDiscoveryError.http(status) }
-        guard data.count <= 16_000_000 else { throw TokenDiscoveryError.malformed }
+        guard data.count <= maximumBytes else { throw TokenDiscoveryError.malformed }
         return data
     }
 }

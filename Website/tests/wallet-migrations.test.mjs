@@ -9,8 +9,8 @@ const root=new URL('../../',import.meta.url);
 const read=p=>readFile(new URL(p,root),'utf8');
 test('migration scope is tied to the distributed release and exact reviewed source',async()=>{
  const distribution=JSON.parse(await read('releases/'+migrations.version+'-distribution.json'));
- assert.equal(distribution.source_commit,migrations.sourceCommit);
- assert.equal(evidence.sourceCommit,migrations.sourceCommit);
+ assert.equal((distribution.source_reference ?? distribution.source_commit),migrations.sourceCommit);
+ assert.equal((evidence.sourceReference ?? evidence.sourceCommit),migrations.sourceCommit);
  assert.equal(evidence.version,migrations.version);
  assert.equal(evidence.build,migrations.build);
  assert.equal(evidence.checks.length,18);

@@ -489499,6 +489499,3138 @@
           }
         }
       }
+    },
+    "asset.verification.flagged" : {
+      "comment" : "LI.FI provider status; never a safety guarantee. Unknown includes missing or expired data.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "am" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ምልክት የተደረገበት"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تم التحذير منه"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "চিহ্নিত"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Označeno"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Markeret"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Markiert"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Επισημασμένο"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flagged"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Señalado"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "علامت‌گذاری‌شده"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Merkitty"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "May babala"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signalé"
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ચિહ્નિત"
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An yi alama"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "סומן"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "चिह्नित"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Označeno"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Megjelölt"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ditandai"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Segnalato"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "警告あり"
+          }
+        },
+        "ka" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "მონიშნული"
+          }
+        },
+        "km" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "បានដាក់ទង់"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಗುರುತಿಸಲಾಗಿದೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "위험 표시됨"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "അടയാളപ്പെടുത്തി"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "चिन्हांकित"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ditandai"
+          }
+        },
+        "my" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "သတိပေးထားသည်"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flagget"
+          }
+        },
+        "ne" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "चिन्ह लगाइएको"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gemarkeerd"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ଚିହ୍ନିତ"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਨਿਸ਼ਾਨਬੱਧ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oznaczony"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sinalizado"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sinalizado"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Semnalat"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отмечен"
+          }
+        },
+        "sd" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "نشان لڳل"
+          }
+        },
+        "si" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "සලකුණු කර ඇත"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Označené"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Označeno"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flaggad"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imewekewa alama"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "கொடியிடப்பட்டது"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "గుర్తించబడింది"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ถูกแจ้งเตือน"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "İşaretlenmiş"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Позначено"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "نشان زد"
+          }
+        },
+        "uz" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Belgilangan"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bị gắn cờ"
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A ti fi àmì sí i"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已标记"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已標記"
+          }
+        }
+      }
+    },
+    "asset.verification.flagged_detail" : {
+      "comment" : "LI.FI provider status; never a safety guarantee. Unknown includes missing or expired data.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "am" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI ሊኖሩ በሚችሉ አደጋዎች ምክንያት በዚህ ቶከን ላይ ምልክት አድርጓል። ኮንትራቱን እና አውጪውን በጥንቃቄ ያረጋግጡ።"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "حذّرت LI.FI من مخاطر محتملة لهذا الرمز. تحقق من العقد والجهة المصدرة بعناية."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI সম্ভাব্য ঝুঁকির কারণে এই টোকেন চিহ্নিত করেছে। কন্ট্র্যাক্ট ও ইস্যুকারীকে সতর্কভাবে যাচাই করুন।"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI označilo tento token kvůli možným rizikům. Pečlivě zkontrolujte kontrakt a vydavatele."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI har markeret denne token for mulige risici. Kontrollér kontrakten og udstederen grundigt."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI hat diesen Token wegen möglicher Risiken markiert. Prüfe den Vertrag und den Herausgeber sorgfältig."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η LI.FI έχει επισημάνει αυτό το token για πιθανούς κινδύνους. Ελέγξτε προσεκτικά το συμβόλαιο και τον εκδότη."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI has flagged this token for potential risks. Check the contract and issuer carefully."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI ha señalado posibles riesgos en este token. Revisa cuidadosamente el contrato y el emisor."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI این توکن را به دلیل خطرات احتمالی علامت‌گذاری کرده است. قرارداد و صادرکننده را با دقت بررسی کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI on merkinnyt tämän tokenin mahdollisten riskien vuoksi. Tarkista sopimus ja liikkeeseenlaskija huolellisesti."
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagbigay ng babala ang LI.FI sa token na ito dahil sa posibleng panganib. Maingat na suriin ang kontrata at nag-isyu."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI a signalé des risques potentiels pour ce jeton. Vérifiez attentivement le contrat et l’émetteur."
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI એ સંભવિત જોખમોને કારણે આ ટોકનને ચિહ્નિત કર્યું છે. કોન્ટ્રાક્ટ અને જારીકર્તાને કાળજીપૂર્વક તપાસો."
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI ya yi wa wannan token alama saboda yiwuwar haɗari. Duba kwangila da mai bayarwa a hankali."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI סימנה את הטוקן הזה בשל סיכונים אפשריים. יש לבדוק היטב את החוזה והמנפיק."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI ने संभावित जोखिमों के कारण इस टोकन को चिह्नित किया है। कॉन्ट्रैक्ट और जारीकर्ता को ध्यान से जाँचें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI je označio ovaj token zbog mogućih rizika. Pažljivo provjerite ugovor i izdavatelja."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A LI.FI lehetséges kockázatok miatt megjelölte ezt a tokent. Gondosan ellenőrizd a szerződést és a kibocsátót."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI menandai token ini karena potensi risiko. Periksa kontrak dan penerbit dengan cermat."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI ha segnalato potenziali rischi per questo token. Controlla attentamente il contratto e l’emittente."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI は潜在的なリスクがあるとしてこのトークンに警告を付けています。コントラクトと発行者を慎重に確認してください。"
+          }
+        },
+        "ka" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI-მ ეს ტოკენი შესაძლო რისკების გამო მონიშნა. ყურადღებით შეამოწმეთ კონტრაქტი და გამომშვები."
+          }
+        },
+        "km" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI បានដាក់ទង់ថូខឹននេះដោយសារហានិភ័យដែលអាចកើតមាន។ សូមពិនិត្យកិច្ចសន្យា និងអ្នកចេញផ្សាយដោយប្រុងប្រយ័ត្ន។"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಸಂಭವನೀಯ ಅಪಾಯಗಳಿಗಾಗಿ LI.FI ಈ ಟೋಕನ್ ಅನ್ನು ಗುರುತಿಸಿದೆ. ಕಾಂಟ್ರಾಕ್ಟ್ ಮತ್ತು ನೀಡಿದವರನ್ನು ಎಚ್ಚರಿಕೆಯಿಂದ ಪರಿಶೀಲಿಸಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI는 잠재적 위험으로 인해 이 토큰에 위험 표시를 했습니다. 컨트랙트와 발행자를 신중히 확인하세요."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "സാധ്യതയുള്ള അപകടങ്ങൾ കാരണം LI.FI ഈ ടോക്കൺ അടയാളപ്പെടുത്തിയിട്ടുണ്ട്. കരാറും ഇഷ്യൂവറും ശ്രദ്ധാപൂർവം പരിശോധിക്കുക."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "संभाव्य जोखमींमुळे LI.FI ने हे टोकन चिन्हांकित केले आहे. कॉन्ट्रॅक्ट आणि जारीकर्त्याची काळजीपूर्वक तपासणी करा."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI menandakan token ini kerana kemungkinan risiko. Semak kontrak dan penerbit dengan teliti."
+          }
+        },
+        "my" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ဖြစ်နိုင်ခြေရှိသော အန္တရာယ်များကြောင့် LI.FI က ဤတိုကင်ကို သတိပေးထားသည်။ စာချုပ်နှင့် ထုတ်ပေးသူကို သေချာစစ်ဆေးပါ။"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI har flagget denne tokenen for mulige risikoer. Kontroller kontrakten og utstederen nøye."
+          }
+        },
+        "ne" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सम्भावित जोखिमका कारण LI.FI ले यो टोकनमा चिन्ह लगाएको छ। कन्ट्र्याक्ट र जारीकर्तालाई ध्यानपूर्वक जाँच्नुहोस्।"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI heeft dit token gemarkeerd vanwege mogelijke risico’s. Controleer het contract en de uitgever zorgvuldig."
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ସମ୍ଭାବ୍ୟ ବିପଦ ପାଇଁ LI.FI ଏହି ଟୋକେନ୍‌କୁ ଚିହ୍ନିତ କରିଛି। କନ୍ଟ୍ରାକ୍ଟ ଏବଂ ଜାରିକର୍ତ୍ତାଙ୍କୁ ଯତ୍ନର ସହିତ ଯାଞ୍ଚ କରନ୍ତୁ।"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI ਨੇ ਸੰਭਾਵੀ ਖਤਰਿਆਂ ਕਾਰਨ ਇਸ ਟੋਕਨ ਨੂੰ ਨਿਸ਼ਾਨਬੱਧ ਕੀਤਾ ਹੈ। ਕਾਂਟ੍ਰੈਕਟ ਅਤੇ ਜਾਰੀਕਰਤਾ ਨੂੰ ਧਿਆਨ ਨਾਲ ਜਾਂਚੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI oznaczyło ten token ze względu na potencjalne ryzyko. Dokładnie sprawdź kontrakt i emitenta."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A LI.FI sinalizou possíveis riscos neste token. Confira cuidadosamente o contrato e o emissor."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A LI.FI assinalou possíveis riscos neste token. Verifique cuidadosamente o contrato e o emitente."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI a semnalat riscuri potențiale pentru acest token. Verifică atent contractul și emitentul."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI отметила этот токен из-за возможных рисков. Внимательно проверьте контракт и эмитента."
+          }
+        },
+        "sd" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI ممڪن خطرن سبب هن ٽوڪن کي نشان لڳايو آهي. ڪانٽريڪٽ ۽ جاري ڪندڙ کي ڌيان سان چيڪ ڪريو."
+          }
+        },
+        "si" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "විය හැකි අවදානම් නිසා LI.FI මෙම ටෝකනය සලකුණු කර ඇත. ගිවිසුම සහ නිකුත් කරන්නා හොඳින් පරීක්ෂා කරන්න."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI označilo tento token pre možné riziká. Pozorne skontrolujte kontrakt a vydavateľa."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI je ta žeton označil zaradi morebitnih tveganj. Natančno preverite pogodbo in izdajatelja."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI har flaggat denna token för möjliga risker. Kontrollera kontraktet och utgivaren noggrant."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI imewekea tokeni hii alama kwa hatari zinazoweza kutokea. Kagua mkataba na mtoaji kwa makini."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "சாத்தியமான அபாயங்களுக்காக LI.FI இந்த டோக்கனைக் கொடியிட்டுள்ளது. ஒப்பந்தத்தையும் வெளியீட்டாளரையும் கவனமாகச் சரிபார்க்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "సంభావ్య ప్రమాదాల కారణంగా LI.FI ఈ టోకెన్‌ను గుర్తించింది. కాంట్రాక్ట్ మరియు జారీదారును జాగ్రత్తగా తనిఖీ చేయండి."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI แจ้งเตือนโทเค็นนี้เนื่องจากความเสี่ยงที่อาจเกิดขึ้น โปรดตรวจสอบสัญญาและผู้ออกอย่างรอบคอบ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI bu tokeni olası riskler nedeniyle işaretlemiş. Sözleşmeyi ve ihraççıyı dikkatle kontrol edin."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI позначила цей токен через можливі ризики. Уважно перевірте контракт та емітента."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI نے ممکنہ خطرات کی وجہ سے اس ٹوکن کو نشان زد کیا ہے۔ معاہدے اور جاری کنندہ کو احتیاط سے جانچیں۔"
+          }
+        },
+        "uz" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI ehtimoliy xatarlar sababli bu tokenni belgilagan. Kontrakt va emitentni diqqat bilan tekshiring."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI đã gắn cờ token này do rủi ro tiềm ẩn. Hãy kiểm tra kỹ hợp đồng và bên phát hành."
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI ti fi àmì sí tóókìn yìí nítorí àwọn ewu tó ṣeé ṣe. Ṣàyẹ̀wò àdéhùn àti olùpèsè rẹ̀ dáadáa."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI 因潜在风险标记了此代币。请仔细核对合约和发行方。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI 因潛在風險標記了此代幣。請仔細核對合約和發行方。"
+          }
+        }
+      }
+    },
+    "asset.verification.status" : {
+      "comment" : "LI.FI provider status; never a safety guarantee. Unknown includes missing or expired data.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "am" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "የማረጋገጫ ሁኔታ"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "حالة التحقق"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "যাচাইয়ের অবস্থা"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stav ověření"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verificeringsstatus"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifizierungsstatus"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Κατάσταση επαλήθευσης"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verification Status"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estado de verificación"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "وضعیت تأیید"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vahvistuksen tila"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Katayuan ng beripikasyon"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Statut de vérification"
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ચકાસણીની સ્થિતિ"
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Matsayin tabbatarwa"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "מצב אימות"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सत्यापन की स्थिति"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status provjere"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ellenőrzési állapot"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status verifikasi"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stato della verifica"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検証ステータス"
+          }
+        },
+        "ka" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "დადასტურების სტატუსი"
+          }
+        },
+        "km" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ស្ថានភាពផ្ទៀងផ្ទាត់"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪರಿಶೀಲನೆಯ ಸ್ಥಿತಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "검증 상태"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "പരിശോധനാ നില"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "पडताळणीची स्थिती"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status pengesahan"
+          }
+        },
+        "my" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "အတည်ပြုမှုအခြေအနေ"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifiseringsstatus"
+          }
+        },
+        "ne" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "प्रमाणीकरणको स्थिति"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verificatiestatus"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ଯାଞ୍ଚ ସ୍ଥିତି"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਤਸਦੀਕ ਦੀ ਸਥਿਤੀ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status weryfikacji"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status de verificação"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estado de verificação"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starea verificării"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Статус проверки"
+          }
+        },
+        "sd" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تصديق جي حالت"
+          }
+        },
+        "si" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "සත්‍යාපන තත්ත්වය"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stav overenia"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stanje preverjanja"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifieringsstatus"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hali ya uthibitishaji"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "சரிபார்ப்பு நிலை"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ధృవీకరణ స్థితి"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "สถานะการตรวจสอบ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Doğrulama durumu"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Статус перевірки"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تصدیق کی حیثیت"
+          }
+        },
+        "uz" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tasdiqlash holati"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trạng thái xác minh"
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ipò ìmúdájú"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "验证状态"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "驗證狀態"
+          }
+        }
+      }
+    },
+    "asset.verification.unknown" : {
+      "comment" : "LI.FI provider status; never a safety guarantee. Unknown includes missing or expired data.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "am" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ያልታወቀ"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "غير معروف"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অজানা"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neznámý"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukendt"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unbekannt"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Άγνωστο"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desconocido"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "نامشخص"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tuntematon"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hindi alam"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inconnu"
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "અજ્ઞાત"
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ba a sani ba"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "לא ידוע"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अज्ञात"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nepoznato"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ismeretlen"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tidak diketahui"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sconosciuto"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不明"
+          }
+        },
+        "ka" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "უცნობი"
+          }
+        },
+        "km" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "មិនស្គាល់"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ತಿಳಿದಿಲ್ಲ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "알 수 없음"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "അജ്ഞാതം"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अज्ञात"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tidak diketahui"
+          }
+        },
+        "my" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "မသိရပါ"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukjent"
+          }
+        },
+        "ne" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अज्ञात"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Onbekend"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ଅଜଣା"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਅਣਜਾਣ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nieznany"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desconhecido"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desconhecido"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Necunoscut"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Неизвестно"
+          }
+        },
+        "sd" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اڻڄاتل"
+          }
+        },
+        "si" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "නොදනී"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neznámy"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neznano"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Okänd"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haijulikani"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "தெரியவில்லை"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "తెలియదు"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ไม่ทราบ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bilinmiyor"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Невідомо"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "نامعلوم"
+          }
+        },
+        "uz" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noma’lum"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không rõ"
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Àìmọ̀"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未知"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未知"
+          }
+        }
+      }
+    },
+    "asset.verification.unknown_detail" : {
+      "comment" : "LI.FI provider status; never a safety guarantee. Unknown includes missing or expired data.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "am" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "የአሁኑ የማረጋገጫ መረጃ አይገኝም። በኋላ ለማደስ ይሞክሩ። መረጃ አለመኖሩ ተረጋግጧል ማለት አይደለም።"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "بيانات التحقق الحالية غير متاحة. حاول التحديث لاحقًا. غياب البيانات لا يعني أنه تم التحقق."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বর্তমান যাচাইয়ের তথ্য পাওয়া যাচ্ছে না। পরে রিফ্রেশ করুন। তথ্য না থাকার অর্থ যাচাইকৃত হওয়া নয়।"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktuální údaje o ověření nejsou k dispozici. Zkuste je obnovit později. Chybějící údaje neznamenají ověření."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktuelle verificeringsdata er ikke tilgængelige. Prøv at opdatere senere. Manglende data betyder ikke, at tokenen er verificeret."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktuelle Verifizierungsdaten sind nicht verfügbar. Aktualisiere später erneut. Fehlende Daten bedeuten nicht, dass der Token verifiziert ist."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Τα τρέχοντα δεδομένα επαλήθευσης δεν είναι διαθέσιμα. Δοκιμάστε ανανέωση αργότερα. Η απουσία δεδομένων δεν σημαίνει επαλήθευση."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current verification data is unavailable. Try refreshing later. Missing data does not mean verified."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los datos de verificación actuales no están disponibles. Actualiza más tarde. La ausencia de datos no significa que esté verificado."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اطلاعات فعلی تأیید در دسترس نیست. بعداً دوباره تازه‌سازی کنید. نبود اطلاعات به معنی تأیید نیست."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajantasaisia vahvistustietoja ei ole saatavilla. Yritä päivittää myöhemmin. Tietojen puuttuminen ei tarkoita vahvistusta."
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hindi available ang kasalukuyang datos ng beripikasyon. Subukang i-refresh sa ibang pagkakataon. Ang kawalan ng datos ay hindi nangangahulugang beripikado."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les données de vérification actuelles sont indisponibles. Réessayez plus tard. L’absence de données ne signifie pas que le jeton est vérifié."
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "વર્તમાન ચકાસણીનો ડેટા ઉપલબ્ધ નથી. પછી રિફ્રેશ કરવાનો પ્રયાસ કરો. ડેટા ન હોવાનો અર્થ ચકાસેલ હોવું નથી."
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bayanan tabbatarwa na yanzu ba su samuwa. Sake sabuntawa daga baya. Rashin bayanai ba yana nufin an tabbatar ba."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "נתוני האימות העדכניים אינם זמינים. נסו לרענן מאוחר יותר. היעדר נתונים אינו מעיד על אימות."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "वर्तमान सत्यापन डेटा उपलब्ध नहीं है। बाद में रीफ़्रेश करें। डेटा न होने का मतलब सत्यापित होना नहीं है।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trenutačni podaci o provjeri nisu dostupni. Pokušajte osvježiti kasnije. Nedostatak podataka ne znači da je token provjeren."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Az aktuális ellenőrzési adatok nem érhetők el. Próbálj később frissíteni. Az adatok hiánya nem jelent ellenőrzött állapotot."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data verifikasi terkini tidak tersedia. Coba muat ulang nanti. Tidak adanya data bukan berarti terverifikasi."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I dati di verifica attuali non sono disponibili. Prova ad aggiornare più tardi. L’assenza di dati non significa che il token sia verificato."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最新の検証データを取得できません。後でもう一度更新してください。データがないことは検証済みを意味しません。"
+          }
+        },
+        "ka" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "დადასტურების მიმდინარე მონაცემები მიუწვდომელია. მოგვიანებით განაახლეთ. მონაცემების არქონა დადასტურებას არ ნიშნავს."
+          }
+        },
+        "km" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ទិន្នន័យផ្ទៀងផ្ទាត់បច្ចុប្បន្នមិនមានទេ។ សូមសាកល្បងផ្ទុកឡើងវិញពេលក្រោយ។ ការខ្វះទិន្នន័យមិនមានន័យថាបានផ្ទៀងផ្ទាត់ទេ។"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪ್ರಸ್ತುತ ಪರಿಶೀಲನಾ ಡೇಟಾ ಲಭ್ಯವಿಲ್ಲ. ನಂತರ ರಿಫ್ರೆಶ್ ಮಾಡಿ. ಡೇಟಾ ಇಲ್ಲದಿರುವುದು ಪರಿಶೀಲಿಸಲಾಗಿದೆ ಎಂದರ್ಥವಲ್ಲ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "현재 검증 데이터를 사용할 수 없습니다. 나중에 새로고침하세요. 데이터가 없다고 검증된 것은 아닙니다."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "നിലവിലെ പരിശോധനാ വിവരങ്ങൾ ലഭ്യമല്ല. പിന്നീട് പുതുക്കാൻ ശ്രമിക്കുക. വിവരങ്ങൾ ഇല്ലാത്തത് പരിശോധിച്ചു എന്നർത്ഥമല്ല."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सध्याचा पडताळणी डेटा उपलब्ध नाही. नंतर रिफ्रेश करून पहा. डेटा नसणे म्हणजे पडताळलेले असणे नाही."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data pengesahan semasa tidak tersedia. Cuba muat semula kemudian. Ketiadaan data tidak bermakna telah disahkan."
+          }
+        },
+        "my" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "လက်ရှိအတည်ပြုမှုဒေတာ မရနိုင်ပါ။ နောက်မှ ပြန်လည်မွမ်းမံကြည့်ပါ။ ဒေတာမရှိခြင်းသည် အတည်ပြုပြီးဟု မဆိုလိုပါ။"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gjeldende verifiseringsdata er utilgjengelige. Prøv å oppdatere senere. Manglende data betyr ikke at tokenen er verifisert."
+          }
+        },
+        "ne" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "हालको प्रमाणीकरण डेटा उपलब्ध छैन। पछि रिफ्रेस गर्नुहोस्। डेटा नभएको अर्थ प्रमाणित भएको होइन।"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actuele verificatiegegevens zijn niet beschikbaar. Vernieuw later opnieuw. Ontbrekende gegevens betekenen niet dat het token is geverifieerd."
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ବର୍ତ୍ତମାନର ଯାଞ୍ଚ ତଥ୍ୟ ଉପଲବ୍ଧ ନାହିଁ। ପରେ ରିଫ୍ରେଶ୍ କରନ୍ତୁ। ତଥ୍ୟ ନଥିବାର ଅର୍ଥ ଯାଞ୍ଚ ହୋଇଛି ନୁହେଁ।"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਮੌਜੂਦਾ ਤਸਦੀਕ ਡਾਟਾ ਉਪਲਬਧ ਨਹੀਂ ਹੈ। ਬਾਅਦ ਵਿੱਚ ਰਿਫ੍ਰੈਸ਼ ਕਰੋ। ਡਾਟਾ ਨਾ ਹੋਣ ਦਾ ਮਤਲਬ ਤਸਦੀਕਸ਼ੁਦਾ ਹੋਣਾ ਨਹੀਂ ਹੈ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktualne dane weryfikacji są niedostępne. Spróbuj odświeżyć później. Brak danych nie oznacza weryfikacji."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os dados atuais de verificação não estão disponíveis. Tente atualizar mais tarde. A ausência de dados não significa que o token foi verificado."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os dados atuais de verificação não estão disponíveis. Tente atualizar mais tarde. A ausência de dados não significa que o token foi verificado."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datele actuale de verificare nu sunt disponibile. Încearcă să reîmprospătezi mai târziu. Lipsa datelor nu înseamnă că tokenul este verificat."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Актуальные данные проверки недоступны. Попробуйте обновить позже. Отсутствие данных не означает, что токен проверен."
+          }
+        },
+        "sd" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "موجوده تصديق جي ڊيٽا دستياب ناهي. پوءِ ريفريش ڪريو. ڊيٽا نه هجڻ جو مطلب تصديق ٿيل هجڻ ناهي."
+          }
+        },
+        "si" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "වත්මන් සත්‍යාපන දත්ත නොමැත. පසුව නැවුම් කිරීමට උත්සාහ කරන්න. දත්ත නොමැති වීම සත්‍යාපිත බව අදහස් නොකරයි."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktuálne údaje o overení nie sú dostupné. Skúste ich obnoviť neskôr. Chýbajúce údaje neznamenajú overenie."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trenutni podatki o preverjanju niso na voljo. Poskusite osvežiti pozneje. Manjkajoči podatki ne pomenijo, da je žeton preverjen."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktuella verifieringsuppgifter saknas. Försök uppdatera senare. Saknade uppgifter betyder inte att token är verifierad."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data ya sasa ya uthibitishaji haipatikani. Jaribu kuonyesha upya baadaye. Kukosekana kwa data hakumaanishi imethibitishwa."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "தற்போதைய சரிபார்ப்புத் தரவு கிடைக்கவில்லை. பின்னர் புதுப்பிக்கவும். தரவு இல்லாதது சரிபார்க்கப்பட்டதாக அர்த்தமல்ல."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ప్రస్తుత ధృవీకరణ డేటా అందుబాటులో లేదు. తర్వాత రిఫ్రెష్ చేయండి. డేటా లేకపోవడం ధృవీకరించబడిందని అర్థం కాదు."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ไม่มีข้อมูลการตรวจสอบปัจจุบัน ลองรีเฟรชภายหลัง การไม่มีข้อมูลไม่ได้หมายความว่าผ่านการตรวจสอบแล้ว"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Güncel doğrulama verileri mevcut değil. Daha sonra yenilemeyi deneyin. Veri eksikliği doğrulanmış olduğu anlamına gelmez."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Актуальні дані перевірки недоступні. Спробуйте оновити пізніше. Відсутність даних не означає, що токен перевірено."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تصدیق کا موجودہ ڈیٹا دستیاب نہیں۔ بعد میں تازہ کرنے کی کوشش کریں۔ ڈیٹا نہ ہونے کا مطلب تصدیق شدہ ہونا نہیں ہے۔"
+          }
+        },
+        "uz" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Joriy tasdiqlash ma’lumotlari mavjud emas. Keyinroq yangilab ko‘ring. Ma’lumot yo‘qligi tasdiqlangan degani emas."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dữ liệu xác minh hiện tại không khả dụng. Hãy thử làm mới sau. Thiếu dữ liệu không có nghĩa là đã xác minh."
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dátà ìmúdájú lọwọlọwọ kò sí. Gbìyànjú láti tún un ṣe nígbà míì. Àìsí dátà kò túmọ̀ sí pé a ti fìdí rẹ̀ múlẹ̀."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前验证数据不可用。请稍后刷新。缺少数据不代表已验证。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目前驗證資料無法取得。請稍後重新整理。缺少資料不代表已驗證。"
+          }
+        }
+      }
+    },
+    "asset.verification.unverified" : {
+      "comment" : "LI.FI provider status; never a safety guarantee. Unknown includes missing or expired data.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "am" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ያልተረጋገጠ"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لم يتم التحقق"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "যাচাই করা হয়নি"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neověřeno"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ikke verificeret"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht verifiziert"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Μη επαληθευμένο"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unverified"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin verificar"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تأییدنشده"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vahvistamaton"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hindi beripikado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non vérifié"
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ચકાસાયેલ નથી"
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ba a tabbatar ba"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "לא מאומת"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "असत्यापित"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neprovjereno"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nem ellenőrzött"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Belum terverifikasi"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non verificato"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未検証"
+          }
+        },
+        "ka" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "დაუდასტურებელი"
+          }
+        },
+        "km" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "មិនបានផ្ទៀងផ្ទាត់"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪರಿಶೀಲಿಸಲಾಗಿಲ್ಲ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "미검증"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "പരിശോധിച്ചിട്ടില്ല"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "न पडताळलेले"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Belum disahkan"
+          }
+        },
+        "my" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "အတည်မပြုရသေး"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ikke verifisert"
+          }
+        },
+        "ne" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अप्रमाणित"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niet geverifieerd"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ଯାଞ୍ଚ ହୋଇନାହିଁ"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਤਸਦੀਕ ਨਹੀਂ ਹੋਈ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niezweryfikowany"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não verificado"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não verificado"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neverificat"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не проверен"
+          }
+        },
+        "sd" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "غير تصديق ٿيل"
+          }
+        },
+        "si" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "සත්‍යාපනය කර නැත"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neoverené"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nepreverjeno"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ej verifierad"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haijathibitishwa"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "சரிபார்க்கப்படவில்லை"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ధృవీకరించబడలేదు"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ยังไม่ได้ตรวจสอบ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Doğrulanmamış"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не перевірено"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "غیر تصدیق شدہ"
+          }
+        },
+        "uz" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tasdiqlanmagan"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chưa xác minh"
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A kò tíì fìdí rẹ̀ múlẹ̀"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未验证"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未驗證"
+          }
+        }
+      }
+    },
+    "asset.verification.unverified_detail" : {
+      "comment" : "LI.FI provider status; never a safety guarantee. Unknown includes missing or expired data.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "am" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI ይህን ቶከን አላረጋገጠም። ከመጠቀምዎ በፊት ኮንትራቱን እና አውታረ መረቡን ያረጋግጡ።"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لم تتحقق LI.FI من هذا الرمز. تحقق من العقد والشبكة قبل استخدامه."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI এই টোকেন যাচাই করেনি। ব্যবহারের আগে কন্ট্র্যাক্ট ও নেটওয়ার্ক পরীক্ষা করুন।"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI tento token neověřilo. Před použitím zkontrolujte kontrakt a síť."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI har ikke verificeret denne token. Kontrollér kontrakten og netværket, før du bruger den."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI hat diesen Token nicht verifiziert. Prüfe vor der Nutzung den Vertrag und das Netzwerk."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η LI.FI δεν έχει επαληθεύσει αυτό το token. Ελέγξτε το συμβόλαιο και το δίκτυο πριν το χρησιμοποιήσετε."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI has not verified this token. Check the contract and network before using it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI no ha verificado este token. Comprueba el contrato y la red antes de usarlo."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI این توکن را تأیید نکرده است. پیش از استفاده، قرارداد و شبکه را بررسی کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI ei ole vahvistanut tätä tokenia. Tarkista sopimus ja verkko ennen käyttöä."
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hindi pa nabeberipika ng LI.FI ang token na ito. Suriin ang kontrata at network bago ito gamitin."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI n’a pas vérifié ce jeton. Vérifiez le contrat et le réseau avant de l’utiliser."
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI એ આ ટોકનની ચકાસણી કરી નથી. ઉપયોગ પહેલાં કોન્ટ્રાક્ટ અને નેટવર્ક તપાસો."
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI bai tabbatar da wannan token ba. Duba kwangila da hanyar sadarwa kafin amfani."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI לא אימתה את הטוקן הזה. יש לבדוק את החוזה והרשת לפני השימוש."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI ने इस टोकन का सत्यापन नहीं किया है। उपयोग से पहले कॉन्ट्रैक्ट और नेटवर्क जाँचें।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI nije provjerio ovaj token. Prije upotrebe provjerite ugovor i mrežu."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A LI.FI nem ellenőrizte ezt a tokent. Használat előtt ellenőrizd a szerződést és a hálózatot."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI belum memverifikasi token ini. Periksa kontrak dan jaringan sebelum menggunakannya."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI non ha verificato questo token. Controlla il contratto e la rete prima di usarlo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI はこのトークンを検証していません。利用前にコントラクトとネットワークを確認してください。"
+          }
+        },
+        "ka" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI-ს ეს ტოკენი არ დაუდასტურებია. გამოყენებამდე შეამოწმეთ კონტრაქტი და ქსელი."
+          }
+        },
+        "km" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI មិនបានផ្ទៀងផ្ទាត់ថូខឹននេះទេ។ សូមពិនិត្យកិច្ចសន្យា និងបណ្តាញមុនពេលប្រើ។"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI ಈ ಟೋಕನ್ ಅನ್ನು ಪರಿಶೀಲಿಸಿಲ್ಲ. ಬಳಸುವ ಮೊದಲು ಕಾಂಟ್ರಾಕ್ಟ್ ಮತ್ತು ನೆಟ್‌ವರ್ಕ್ ಪರಿಶೀಲಿಸಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI는 이 토큰을 검증하지 않았습니다. 사용 전에 컨트랙트와 네트워크를 확인하세요."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI ഈ ടോക്കൺ പരിശോധിച്ചിട്ടില്ല. ഉപയോഗിക്കുന്നതിന് മുമ്പ് കരാറും നെറ്റ്‌വർക്കും പരിശോധിക്കുക."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI ने या टोकनची पडताळणी केलेली नाही. वापरण्यापूर्वी कॉन्ट्रॅक्ट आणि नेटवर्क तपासा."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI belum mengesahkan token ini. Semak kontrak dan rangkaian sebelum menggunakannya."
+          }
+        },
+        "my" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI က ဤတိုကင်ကို အတည်မပြုရသေးပါ။ အသုံးမပြုမီ စာချုပ်နှင့် ကွန်ရက်ကို စစ်ဆေးပါ။"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI har ikke verifisert denne tokenen. Kontroller kontrakten og nettverket før du bruker den."
+          }
+        },
+        "ne" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI ले यो टोकन प्रमाणित गरेको छैन। प्रयोग गर्नुअघि कन्ट्र्याक्ट र नेटवर्क जाँच्नुहोस्।"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI heeft dit token niet geverifieerd. Controleer het contract en het netwerk voordat je het gebruikt."
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI ଏହି ଟୋକେନ୍‌କୁ ଯାଞ୍ଚ କରିନାହିଁ। ବ୍ୟବହାର ପୂର୍ବରୁ କନ୍ଟ୍ରାକ୍ଟ ଏବଂ ନେଟୱର୍କ ଯାଞ୍ଚ କରନ୍ତୁ।"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI ਨੇ ਇਸ ਟੋਕਨ ਦੀ ਤਸਦੀਕ ਨਹੀਂ ਕੀਤੀ। ਵਰਤੋਂ ਤੋਂ ਪਹਿਲਾਂ ਕਾਂਟ੍ਰੈਕਟ ਅਤੇ ਨੈੱਟਵਰਕ ਜਾਂਚੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI nie zweryfikowało tego tokena. Sprawdź kontrakt i sieć przed użyciem."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A LI.FI não verificou este token. Confira o contrato e a rede antes de usá-lo."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A LI.FI não verificou este token. Verifique o contrato e a rede antes de o utilizar."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI nu a verificat acest token. Verifică contractul și rețeaua înainte de utilizare."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI не проверила этот токен. Проверьте контракт и сеть перед использованием."
+          }
+        },
+        "sd" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI هن ٽوڪن جي تصديق نه ڪئي آهي. استعمال کان اڳ ڪانٽريڪٽ ۽ نيٽ ورڪ چيڪ ڪريو."
+          }
+        },
+        "si" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI මෙම ටෝකනය සත්‍යාපනය කර නැත. භාවිතයට පෙර ගිවිසුම සහ ජාලය පරීක්ෂා කරන්න."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI tento token neoverilo. Pred použitím skontrolujte kontrakt a sieť."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI tega žetona ni preveril. Pred uporabo preverite pogodbo in omrežje."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI har inte verifierat denna token. Kontrollera kontraktet och nätverket innan du använder den."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI haijathibitisha tokeni hii. Angalia mkataba na mtandao kabla ya kuitumia."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI இந்த டோக்கனை சரிபார்க்கவில்லை. பயன்படுத்தும் முன் ஒப்பந்தத்தையும் நெட்வொர்க்கையும் சரிபார்க்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI ఈ టోకెన్‌ను ధృవీకరించలేదు. ఉపయోగించే ముందు కాంట్రాక్ట్ మరియు నెట్‌వర్క్‌ను తనిఖీ చేయండి."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI ยังไม่ได้ตรวจสอบโทเค็นนี้ โปรดตรวจสอบสัญญาและเครือข่ายก่อนใช้งาน"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI bu tokeni doğrulamamış. Kullanmadan önce sözleşmeyi ve ağı kontrol edin."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI не перевірила цей токен. Перевірте контракт і мережу перед використанням."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI نے اس ٹوکن کی تصدیق نہیں کی۔ استعمال سے پہلے معاہدہ اور نیٹ ورک دیکھیں۔"
+          }
+        },
+        "uz" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI bu tokenni tasdiqlamagan. Ishlatishdan oldin kontrakt va tarmoqni tekshiring."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI chưa xác minh token này. Hãy kiểm tra hợp đồng và mạng trước khi sử dụng."
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI kò tíì fìdí tóókìn yìí múlẹ̀. Ṣàyẹ̀wò àdéhùn àti nẹ́tíwọ́ọ̀kì kí o tó lò ó."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI 尚未验证此代币。使用前请核对合约和网络。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI 尚未驗證此代幣。使用前請核對合約和網路。"
+          }
+        }
+      }
+    },
+    "asset.verification.verified" : {
+      "comment" : "LI.FI provider status; never a safety guarantee. Unknown includes missing or expired data.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "am" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "የተረጋገጠ"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تم التحقق"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "যাচাইকৃত"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ověřeno"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verificeret"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifiziert"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Επαληθευμένο"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verified"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verificado"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تأییدشده"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vahvistettu"
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beripikado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vérifié"
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ચકાસેલ"
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An tabbatar"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "מאומת"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सत्यापित"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Provjereno"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ellenőrzött"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terverifikasi"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verificato"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検証済み"
+          }
+        },
+        "ka" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "დადასტურებული"
+          }
+        },
+        "km" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "បានផ្ទៀងផ្ទាត់"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪರಿಶೀಲಿಸಲಾಗಿದೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "검증됨"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "പരിശോധിച്ചു"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "पडताळलेले"
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disahkan"
+          }
+        },
+        "my" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "အတည်ပြုပြီး"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifisert"
+          }
+        },
+        "ne" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "प्रमाणित"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geverifieerd"
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ଯାଞ୍ଚ ହୋଇଛି"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਤਸਦੀਕਸ਼ੁਦਾ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zweryfikowany"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verificado"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verificado"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verificat"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проверен"
+          }
+        },
+        "sd" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تصديق ٿيل"
+          }
+        },
+        "si" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "සත්‍යාපිතයි"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Overené"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preverjeno"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifierad"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imethibitishwa"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "சரிபார்க்கப்பட்டது"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ధృవీకరించబడింది"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ตรวจสอบแล้ว"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Doğrulanmış"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перевірено"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تصدیق شدہ"
+          }
+        },
+        "uz" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tasdiqlangan"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đã xác minh"
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A ti fìdí rẹ̀ múlẹ̀"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已验证"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已驗證"
+          }
+        }
+      }
+    },
+    "asset.verification.verified_detail" : {
+      "comment" : "LI.FI provider status; never a safety guarantee. Unknown includes missing or expired data.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "am" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI ይህን ቶከን የተረጋገጠ ብሎ ያመለክታል። ይህ ደህንነትን ወይም ዋጋን አያረጋግጥም።"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تُصنّف LI.FI هذا الرمز على أنه تم التحقق منه. هذا لا يضمن أمانه أو قيمته."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI এই টোকেনকে যাচাইকৃত হিসেবে দেখায়। এটি নিরাপত্তা বা মূল্যের নিশ্চয়তা দেয় না।"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI označuje tento token jako ověřený. To nezaručuje bezpečnost ani hodnotu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI angiver, at denne token er verificeret. Det garanterer ikke sikkerhed eller værdi."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI kennzeichnet diesen Token als verifiziert. Dies garantiert weder Sicherheit noch Wert."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η LI.FI χαρακτηρίζει αυτό το token ως επαληθευμένο. Αυτό δεν εγγυάται ασφάλεια ή αξία."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI marks this token as verified. This does not guarantee safety or value."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI indica que este token está verificado. Esto no garantiza su seguridad ni su valor."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI این توکن را تأییدشده نشان می‌دهد. این امر امنیت یا ارزش آن را تضمین نمی‌کند."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI on merkinnyt tämän tokenin vahvistetuksi. Tämä ei takaa sen turvallisuutta tai arvoa."
+          }
+        },
+        "fil" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minarkahan ng LI.FI ang token na ito bilang beripikado. Hindi nito ginagarantiya ang kaligtasan o halaga."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI indique que ce jeton est vérifié. Cela ne garantit ni sa sécurité ni sa valeur."
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI આ ટોકનને ચકાસેલ દર્શાવે છે. આ સુરક્ષા કે મૂલ્યની ખાતરી નથી."
+          }
+        },
+        "ha" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI ya nuna wannan token a matsayin wanda aka tabbatar. Wannan ba ya tabbatar da tsaro ko ƙima."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI מסמנת את הטוקן הזה כמאומת. הדבר אינו מבטיח בטיחות או ערך."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI इस टोकन को सत्यापित बताता है। यह सुरक्षा या मूल्य की गारंटी नहीं है।"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI označava ovaj token kao provjeren. To ne jamči sigurnost ni vrijednost."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A LI.FI ezt a tokent ellenőrzöttként jelöli. Ez nem garantálja a biztonságát vagy az értékét."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI menandai token ini sebagai terverifikasi. Ini tidak menjamin keamanan atau nilainya."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI indica che questo token è verificato. Ciò non ne garantisce la sicurezza o il valore."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI はこのトークンを検証済みとしています。安全性や価値を保証するものではありません。"
+          }
+        },
+        "ka" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI ამ ტოკენს დადასტურებულად აღნიშნავს. ეს უსაფრთხოებას ან ღირებულებას არ უზრუნველყოფს."
+          }
+        },
+        "km" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI សម្គាល់ថូខឹននេះថាបានផ្ទៀងផ្ទាត់។ នេះមិនធានាសុវត្ថិភាព ឬតម្លៃទេ។"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI ಈ ಟೋಕನ್ ಅನ್ನು ಪರಿಶೀಲಿಸಲಾಗಿದೆ ಎಂದು ಗುರುತಿಸುತ್ತದೆ. ಇದು ಸುರಕ್ಷತೆ ಅಥವಾ ಮೌಲ್ಯಕ್ಕೆ ಖಾತರಿಯಲ್ಲ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI는 이 토큰을 검증된 것으로 표시합니다. 이는 안전성이나 가치를 보장하지 않습니다."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI ഈ ടോക്കൺ പരിശോധിച്ചതായി അടയാളപ്പെടുത്തുന്നു. ഇത് സുരക്ഷയോ മൂല്യമോ ഉറപ്പുനൽകുന്നില്ല."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI हे टोकन पडताळलेले असल्याचे दर्शवते. यामुळे सुरक्षिततेची किंवा मूल्याची हमी मिळत नाही."
+          }
+        },
+        "ms" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI menandakan token ini sebagai disahkan. Ini tidak menjamin keselamatan atau nilainya."
+          }
+        },
+        "my" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI က ဤတိုကင်ကို အတည်ပြုပြီးဟု သတ်မှတ်ထားသည်။ ဘေးကင်းမှု သို့မဟုတ် တန်ဖိုးကို အာမမခံပါ။"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI angir at denne tokenen er verifisert. Dette garanterer ikke sikkerhet eller verdi."
+          }
+        },
+        "ne" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI ले यो टोकनलाई प्रमाणित देखाउँछ। यसले सुरक्षा वा मूल्यको ग्यारेन्टी गर्दैन।"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI markeert dit token als geverifieerd. Dit garandeert geen veiligheid of waarde."
+          }
+        },
+        "or" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI ଏହି ଟୋକେନ୍‌କୁ ଯାଞ୍ଚ ହୋଇଥିବା ବୋଲି ଦର୍ଶାଏ। ଏହା ସୁରକ୍ଷା କିମ୍ବା ମୂଲ୍ୟର ଗ୍ୟାରେଣ୍ଟି ନୁହେଁ।"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI ਇਸ ਟੋਕਨ ਨੂੰ ਤਸਦੀਕਸ਼ੁਦਾ ਦੱਸਦਾ ਹੈ। ਇਹ ਸੁਰੱਖਿਆ ਜਾਂ ਮੁੱਲ ਦੀ ਗਾਰੰਟੀ ਨਹੀਂ ਹੈ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI oznacza ten token jako zweryfikowany. Nie gwarantuje to bezpieczeństwa ani wartości."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A LI.FI indica que este token foi verificado. Isso não garante sua segurança nem seu valor."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A LI.FI indica que este token foi verificado. Isto não garante a sua segurança nem o seu valor."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI marchează acest token ca verificat. Acest lucru nu garantează siguranța sau valoarea."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI отмечает этот токен как проверенный. Это не гарантирует его безопасность или стоимость."
+          }
+        },
+        "sd" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI هن ٽوڪن کي تصديق ٿيل ڏيکاري ٿو. اهو حفاظت يا قيمت جي ضمانت ناهي."
+          }
+        },
+        "si" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI මෙම ටෝකනය සත්‍යාපිත ලෙස දක්වයි. එය ආරක්ෂාව හෝ වටිනාකම සහතික නොකරයි."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI označuje tento token ako overený. To nezaručuje bezpečnosť ani hodnotu."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI označuje ta žeton kot preverjen. To ne zagotavlja varnosti ali vrednosti."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI anger att denna token är verifierad. Detta garanterar inte säkerhet eller värde."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI inaonyesha tokeni hii kuwa imethibitishwa. Hii haihakikishi usalama au thamani."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI இந்த டோக்கனை சரிபார்க்கப்பட்டதாகக் குறிக்கிறது. இது பாதுகாப்பையோ மதிப்பையோ உறுதி செய்யாது."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI ఈ టోకెన్‌ను ధృవీకరించినట్లు సూచిస్తుంది. ఇది భద్రత లేదా విలువకు హామీ కాదు."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI ระบุว่าโทเค็นนี้ผ่านการตรวจสอบแล้ว แต่ไม่ได้รับประกันความปลอดภัยหรือมูลค่า"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI bu tokeni doğrulanmış olarak işaretliyor. Bu, güvenliği veya değeri garanti etmez."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI позначає цей токен як перевірений. Це не гарантує його безпеку чи вартість."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI اس ٹوکن کو تصدیق شدہ ظاہر کرتا ہے۔ یہ حفاظت یا قدر کی ضمانت نہیں ہے۔"
+          }
+        },
+        "uz" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI bu tokenni tasdiqlangan deb belgilaydi. Bu xavfsizlik yoki qiymatni kafolatlamaydi."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI đánh dấu token này là đã xác minh. Điều này không đảm bảo tính an toàn hay giá trị."
+          }
+        },
+        "yo" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI fi tóókìn yìí hàn gẹ́gẹ́ bí èyí tí a ti fìdí rẹ̀ múlẹ̀. Èyí kò ṣe ìdánilójú ààbò tàbí iye rẹ̀."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI 将此代币标记为已验证。这不保证其安全性或价值。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LI.FI 將此代幣標記為已驗證。這不保證其安全性或價值。"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

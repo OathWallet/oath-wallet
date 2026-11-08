@@ -105,9 +105,9 @@ Feature scope reviewed for Oath 5.0.2 (104) on 2026-11-06. Screens show Oath 4.0
 
 [Release availability record](https://github.com/OathWallet/oath-wallet/blob/main/releases/5.0.2-distribution.json)
 
-- [OathPermissionService.swift](https://github.com/OathWallet/oath-wallet/blob/7ffd0f449c3312d9fafd01eda59c6b9eb813f9ca/OathAtmosphere/Permissions/OathPermissionService.swift)
-- [Permissions.swift](https://github.com/OathWallet/oath-wallet/blob/7ffd0f449c3312d9fafd01eda59c6b9eb813f9ca/Packages/OathAnkr/Sources/OathAnkr/Permissions.swift)
-- [PermissionDiscovery.swift](https://github.com/OathWallet/oath-wallet/blob/7ffd0f449c3312d9fafd01eda59c6b9eb813f9ca/Packages/OathAnkr/Sources/OathAnkr/PermissionDiscovery.swift)
+- [OathPermissionService.swift](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Permissions/OathPermissionService.swift)
+- [Permissions.swift](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/Packages/OathAnkr/Sources/OathAnkr/Permissions.swift)
+- [PermissionDiscovery.swift](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/Packages/OathAnkr/Sources/OathAnkr/PermissionDiscovery.swift)
 
 Source review and sample screens do not establish a completed live transaction or backup.
 

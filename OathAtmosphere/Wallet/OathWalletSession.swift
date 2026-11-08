@@ -713,6 +713,7 @@ final class OathWalletSession {
             // Fetch their public quotes independently, including Telos/X Layer,
             // on both initial Home load and pull-to-refresh. A ledger failure
             // must not cancel otherwise usable market prices.
+            async let tokenQuotes: Void = refreshPortfolioTokenQuotes(walletID: current.id.uuidString)
             async let nativeQuotes: Void = refreshAnkrNativeQuotes(networkIDs: current.addresses.map { $0.chain.id })
             async let cronos: Result<Void, Error> = refreshCronosResult(walletID: current.id.uuidString)
             async let solana: Result<Void, Error> = refreshSolanaResult()
@@ -741,16 +742,25 @@ final class OathWalletSession {
             let results = await (solana, evm, tron, ton, aptos, sui, near, xrpl, stellar, robinhood, arc, hyperevm, monad, unichain, thorchain, celo, chiliz, polkadot, filecoin, sei, zerog, iotex, story)
             let cronosResult = await cronos
             await nativeQuotes
+            await tokenQuotes
+            guard token == generation, !Task.isCancelled else { throw CancellationError() }
+            // Include tokens discovered by this inventory. Existing quotes reuse
+            // their short cache; this never delays committed balance observation.
+            await refreshPortfolioTokenQuotes(walletID: current.id.uuidString)
             guard token == generation, !Task.isCancelled else { throw CancellationError() }
             // All chains have finished before propagating an original failure.
             // Successful chains keep their committed state even when another fails.
             for result in [results.0, results.1, results.2, results.3, results.4, results.5, results.6, results.7, results.8, results.9, results.10, results.11, results.12, results.13, results.14, results.15, results.16, results.17, results.18, results.19, results.20, results.21, results.22] { try result.get() }
             try cronosResult.get()
             ankrRefreshFailed = false; ankrRevision += 1
-        } catch { OathDiagnostics.record(error);
+        } catch {
+            // Keep a failure/partial refresh visible, but carry its existing
+            // diagnostic ownership through Result, automatic and pull-to-refresh
+            // callers. Unmarked failures get one report at this boundary.
+            let reported = OathDiagnostics.recordedForPropagation(error)
             guard token == generation, !Task.isCancelled else { return }
             ankrRefreshFailed = true; ankrRevision += 1
-            throw error
+            throw reported
         }
     }
 
@@ -776,6 +786,14 @@ final class OathWalletSession {
             return .failure(OathDiagnostics.recordedForPropagation(error))
         }
     }
+    private func refreshPortfolioTokenQuotes(walletID: String) async {
+        guard !Task.isCancelled else { return }
+        await OathDiagnostics.attempt("portfolio_token_quotes") {
+            let service = try await OathMarketEnvironment.shared.service()
+            await service.refreshTokenQuotes(walletID: walletID)
+        }
+    }
+
     private func refreshAnkrNativeQuotes(networkIDs: [String]) async {
         let networks = networkIDs.filter { AnkrSynchronizer.supports(networkID: $0) }
         guard !networks.isEmpty, !Task.isCancelled else { return }

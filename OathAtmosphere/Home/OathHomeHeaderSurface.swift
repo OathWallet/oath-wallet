@@ -127,14 +127,33 @@ struct OathHomeWalletSelector: View {
 struct OathHomeHeaderSurface: View {
     let animates: Bool
     var colorHex: String? = nil
+    var isRefreshing = false
 
     var body: some View {
         GeometryReader { geometry in
             OathBackground(placement: .walletBackdrop(size: geometry.size),
-                           animates: animates, customColor: colorHex.flatMap { UInt32($0, radix: 16) })
+                           animates: animates, customColor: colorHex.flatMap { UInt32($0, radix: 16) },
+                           isRefreshing: isRefreshing)
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+    }
+}
+
+/// Both wallet screens compose artwork, drag blur and scroll-edge treatment
+/// here. Visibility/lifecycle inputs differ; their visual design does not.
+struct OathWalletHeaderBackground: ViewModifier {
+    let animates: Bool
+    let colorHex: String?
+    let effects: OathHomeScrollEffects
+
+    func body(content: Content) -> some View {
+        content
+            .modifier(OathHomeScrollEdgeAppearance())
+            .modifier(OathHeaderScrollBackground {
+                OathHomeHeaderSurface(animates: animates, colorHex: colorHex, isRefreshing: effects.isRefreshing)
+                    .modifier(OathHomeDragBlur(effects: effects))
+            })
     }
 }
 

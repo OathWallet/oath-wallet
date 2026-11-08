@@ -12,19 +12,21 @@ public actor TonClient {
     private let recoveryEndpoint = URL(string: "https://toncenter.com/api/v2/jsonRPC")!
     private var lastRecovery = Date.distantPast
     private var recoveryVerified = false
+    private var recoveryUntil: ContinuousClock.Instant?
+    private let recoveryLifetime: Duration
     private var verified = false
     private let indexInterval: Double
     private var bindings: Set<String> = []
     public init(apiKey: String, transport: any AnkrTransport = AnkrHTTPTransport()) throws {
         guard !apiKey.isEmpty, apiKey.count <= 256, apiKey.utf8.allSatisfy({ (48...57).contains($0) || (65...90).contains($0) || (97...122).contains($0) }) else { throw TonError.configuration }
         endpoint = URL(string: "https://rpc.ankr.com/ton_api_v2")!.appendingPathComponent(apiKey)
-        self.transport = transport; indexInterval = 4.2
+        self.transport = transport; indexInterval = 4.2; recoveryLifetime = .seconds(30)
         indexRequests = .shared
     }
     // Deterministic host fixtures need no public-provider pacing.
-    init(testTransport: any AnkrTransport, indexRequests: TonIndexRequests = TonIndexRequests()) {
+    init(testTransport: any AnkrTransport, indexRequests: TonIndexRequests = TonIndexRequests(), recoveryLifetime: Duration = .seconds(30)) {
         endpoint = URL(string: "https://rpc.ankr.com/ton_api_v2/fixture")!
-        transport = testTransport; indexInterval = 0
+        transport = testTransport; indexInterval = 0; self.recoveryLifetime = recoveryLifetime
         self.indexRequests = indexRequests
     }
     private func request(_ url: URL, body: TonJSON? = nil, index: Bool = false) async throws -> TonJSON {
@@ -85,29 +87,54 @@ public actor TonClient {
             await gate.release(); throw error
         }
     }
+    private static func recoverableReadFailure(_ error: Error) -> Bool {
+        switch error {
+        case TonError.transport: return true
+        case TonError.http(let status): return status == 429 || (500...599).contains(status)
+        default: return false
+        }
+    }
+    private func recoveryRead(_ method: String, _ params: [String: TonJSON]) async throws -> TonJSON {
+        if !recoveryVerified || method == "getMasterchainInfo" {
+            let info = try await node("getMasterchainInfo", [:], at: recoveryEndpoint)
+            guard info["init"]["root_hash"].string == TonIdentity.genesis else { throw TonError.wrongNetwork }
+            try Task.checkCancellation()
+            recoveryVerified = true
+            if method == "getMasterchainInfo" { return info }
+        }
+        return try await node(method, params, at: recoveryEndpoint)
+    }
     func rpc(_ method: String, _ params: [String: TonJSON] = [:]) async throws -> TonJSON {
+        try Task.checkCancellation()
+        let canRecover = ["getMasterchainInfo", "getAddressInformation", "getTokenData", "runGetMethod"].contains(method)
+        var recoveryAttempted = false
+        if canRecover, let deadline = recoveryUntil, ContinuousClock.now < deadline {
+            recoveryAttempted = true
+            do { return try await recoveryRead(method, params) }
+            catch {
+                recoveryUntil = nil
+                if error is CancellationError || Task.isCancelled { throw CancellationError() }
+                // Recheck the primary if the working backup becomes unavailable.
+                // Validation, authorization and RPC rejections remain terminal.
+                guard Self.recoverableReadFailure(error) else { throw error }
+                OathDiagnostics.record(error, component: "provider", operation: "ton_primary_recheck",
+                    context: ["chain": "ton", "stage": "node_read", "host": endpoint.host!])
+            }
+        }
         do { return try await node(method, params, at: endpoint) }
         catch {
             if error is CancellationError || Task.isCancelled { throw CancellationError() }
-            let transient: Bool
-            switch error {
-            case TonError.transport: transient = true
-            case TonError.http(let status): transient = status == 429 || (500...599).contains(status)
-            default: transient = false
-            }
-            // Only these existing read-only methods can use recovery. Never
-            // replay a submission, an invalid response or an authorization error.
-            guard transient, ["getMasterchainInfo", "getAddressInformation", "getTokenData", "runGetMethod"].contains(method) else { throw error }
+            // Only existing read methods can recover. Each provider gets one
+            // bounded attempt sequence; never bounce back to a failed backup.
+            guard canRecover, !recoveryAttempted, Self.recoverableReadFailure(error) else { throw error }
             OathDiagnostics.record(error, component: "provider", operation: "ton_read_recovery",
                 context: ["chain": "ton", "stage": "node_read", "host": recoveryEndpoint.host!])
-            if !recoveryVerified || method == "getMasterchainInfo" {
-                let info = try await node("getMasterchainInfo", [:], at: recoveryEndpoint)
-                guard info["init"]["root_hash"].string == TonIdentity.genesis else { throw TonError.wrongNetwork }
-                try Task.checkCancellation()
-                recoveryVerified = true
-                if method == "getMasterchainInfo" { return info }
-            }
-            return try await node(method, params, at: recoveryEndpoint)
+            let result = try await recoveryRead(method, params)
+            // Prefer the verified working route briefly, without extending the
+            // deadline on each read. Continuous time survives sleep and cannot
+            // be extended by a wall-clock correction. No balances are cached here.
+            recoveryUntil = ContinuousClock.now.advanced(by: recoveryLifetime)
+            return result
         }
     }
     private func node(_ method: String, _ params: [String: TonJSON], at url: URL) async throws -> TonJSON {

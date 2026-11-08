@@ -7,18 +7,19 @@ import OathTokenImages
 /// Read-through public market cache. Requests coalesce before the first SQL
 /// suspension; failures retain data and back off without storing fake zeroes.
 public actor MarketDataService {
-    private let database: OathDatabase
-    private let transport: any MarketTransport
-    private let now: @Sendable () -> Date
+    let database: OathDatabase
+    let transport: any MarketTransport
+    let now: @Sendable () -> Date
     private static let sharedArtworkCatalog = ArtworkFallbackCatalog(transport: PublicArtworkCatalogTransport())
     let artworkCatalog: ArtworkFallbackCatalog
+    let tokenCatalog: TokenDiscoveryCatalog?
     private struct LoadFlight {
         let id: UUID
         let task: Task<Void, Never>
         var consumers: [UUID: CheckedContinuation<MarketCacheEntry, Error>]
     }
     private var work: [String: LoadFlight] = [:]
-    // Observation time is provider data, not the time we last checked it.
+    // Use the provider's observation timestamp, not the local check time.
     // A valid 2-minute-old observation must not trigger another request on
     // every render. Never rewrite that timestamp to make the quote look new.
     private var quoteRefreshAfter: [String: ContinuousClock.Instant] = [:]
@@ -27,9 +28,10 @@ public actor MarketDataService {
 
     public init(database: OathDatabase, transport: any MarketTransport = URLSessionMarketTransport(),
                 now: @escaping @Sendable () -> Date = { Date() },
-                artworkCatalog: ArtworkFallbackCatalog? = nil) {
+                artworkCatalog: ArtworkFallbackCatalog? = nil, tokenCatalog: TokenDiscoveryCatalog? = .shared) {
         self.database = database; self.transport = transport; self.now = now
         self.artworkCatalog = artworkCatalog ?? Self.sharedArtworkCatalog
+        self.tokenCatalog = tokenCatalog
     }
     private func key(_ kind: String, _ asset: MarketAsset, version: Int = 1) -> String {
         // ETH is the same project across seven native networks. Share its
@@ -50,13 +52,13 @@ public actor MarketDataService {
            let price = try await database.latestPrice(assetID: asset.id, currency: "USD"),
            let value = Decimal(string: price.value), !value.isNaN, value > 0 {
             let date = Date(timeIntervalSince1970: price.observedAt)
-            if result == nil || date > result!.fetchedAt {
+            if result == nil || date > result!.fetchedAt || (price.source == "LI.FI" && (-1..<60).contains(now().timeIntervalSince(date))) {
                 result = .init(value: .init(code: asset.reference, usd: price.value), fetchedAt: date)
             }
         }
         return result
     }
-    public func cachedInformation(for asset: MarketAsset) async throws -> CachedMarketValue<AssetInformation>? {
+    func cachedSecondaryInformation(for asset: MarketAsset) async throws -> CachedMarketValue<AssetInformation>? {
         if asset.networkID == "thorchain", !asset.isNative {
             if let enriched: CachedMarketValue<AssetInformation> = try await cached(key("info", asset, version: 2)) { return enriched }
             return try await thorchainInformation(asset)
@@ -137,12 +139,12 @@ public actor MarketDataService {
             description:token.description ?? "",imageURL:token.logo,website:nil,
             providerURL:"https://stellar.expert/explorer/public/contract/"+token.reference),fetchedAt:Date(timeIntervalSince1970:saved.fetchedAt))
     }
-    private func cached<T: Decodable & Sendable>(_ key: String) async throws -> CachedMarketValue<T>? {
+    func cached<T: Decodable & Sendable>(_ key: String) async throws -> CachedMarketValue<T>? {
         guard let entry = try await database.marketCache(key: key),
               let value = OathDiagnostics.attempt("decode_cached_metadata", body: { try JSONDecoder().decode(T.self, from: entry.payload) }) else { return nil }
         return CachedMarketValue(value: value, fetchedAt: Date(timeIntervalSince1970: entry.fetchedAt))
     }
-    private func decoded<T: Decodable & Sendable>(_ entry: MarketCacheEntry) throws -> CachedMarketValue<T> {
+    func decoded<T: Decodable & Sendable>(_ entry: MarketCacheEntry) throws -> CachedMarketValue<T> {
         CachedMarketValue(value: try JSONDecoder().decode(T.self, from: entry.payload),
                           fetchedAt: Date(timeIntervalSince1970: entry.fetchedAt))
     }
@@ -153,6 +155,19 @@ public actor MarketDataService {
     }
 
     public func quote(for asset: MarketAsset, force: Bool = false) async throws -> CachedMarketValue<MarketQuote> {
+        if LifiTokenMetadata.url(network: asset.networkID, reference: asset.reference) != nil {
+            do {
+                let primary = try await lifiToken(for: asset, force: force)
+                if let price = primary.value.priceUSD {
+                    return .init(value: .init(code: asset.reference, usd: price), fetchedAt: primary.fetchedAt)
+                }
+            } catch {
+                // diagnostics: lifi-provider-recovery
+                // The shared LI.FI load records original failures. Missing
+                // coverage/price is expected; cancellation must not start fallbacks.
+                if error is CancellationError || Task.isCancelled || (error as? URLError)?.code == .cancelled { throw CancellationError() }
+            }
+        }
         let previous = try await cachedQuote(for: asset)
         if !force, let previous,
            previous.isFresh(at: now(), lifetime: 60) || (quoteRefreshAfter[asset.cacheIdentity].map { $0 > .now } ?? false) { return previous }
@@ -173,10 +188,24 @@ public actor MarketDataService {
                                 return try NativeCoinPrice.decode(bytes, for: asset, now: now())
                             })
                         }
+                        if let request = GnosisNativePrice.request(for: asset) {
+                            candidates.append(.init(source: "GeckoTerminal (WXDAI)") {
+                                let fetchedAt = now()
+                                let bytes = try await transport.data(from: request.url)
+                                return try GnosisNativePrice.decode(bytes, for: asset, fetchedAt: fetchedAt)
+                            })
+                        }
+                        if let url = GnosisNativePrice.lifiURL(for: asset) {
+                            candidates.append(.init(source: "LI.FI (WXDAI)") {
+                                let fetchedAt = now()
+                                let bytes = try await transport.data(from: url)
+                                return try GnosisNativePrice.decodeLifi(bytes, for: asset, fetchedAt: fetchedAt)
+                            })
+                        }
                         // Keep Coinbase in the race for existing supported
                         // native coins; adding an independent source must not
-                        // replace a working route. Telos/OKB have no spot route.
-                        if !asset.isNative || !["telos", "xlayer"].contains(asset.networkID) {
+                        // replace a working route. Telos/OKB/xDAI have no spot route.
+                        if !asset.isNative || !["telos", "xlayer", "gnosis"].contains(asset.networkID) {
                             candidates.append(.init(source: "Coinbase") {
                                 let code = try await self.coinbaseCode(for: asset)
                                 let data = try await transport.data(from: URL(string: "https://api.coinbase.com/v2/prices/\(code)-USD/spot")!)
@@ -195,6 +224,9 @@ public actor MarketDataService {
             quoteRefreshAfter[asset.cacheIdentity] = .now.advanced(by: .seconds(60))
             // Providers refresh on different schedules. A successful but older
             // observation must not move the displayed price backwards in time.
+            // Read the shared winner so detail and Home also agree when an
+            // incidental/fallback quote finishes inside LI.FI's freshness window.
+            if let selected = try await cachedQuote(for: asset) { return selected }
             if let previous, previous.fetchedAt > refreshed.fetchedAt { return previous }
             return refreshed
         } catch {
@@ -210,7 +242,22 @@ public actor MarketDataService {
     }
     public func information(for asset: MarketAsset, force: Bool = false) async throws -> CachedMarketValue<AssetInformation> {
         try await OathDiagnostics.withChain(asset.networkID) {
-            try await informationValue(for: asset, force: force)
+            if LifiTokenMetadata.url(network: asset.networkID, reference: asset.reference) != nil {
+                do {
+                    let primary = try await lifiToken(for: asset, force: force)
+                    let secondary = try await cachedSecondaryInformation(for: asset)
+                    return Self.information(primary, enriching: secondary?.value)
+                } catch {
+                    // diagnostics: lifi-provider-recovery
+                    // Original errors are recorded by load; retain cached primary
+                    // metadata during an outage, without renewing its timestamp.
+                    if error is CancellationError || Task.isCancelled || (error as? URLError)?.code == .cancelled { throw CancellationError() }
+                    if let cached = try await cachedLifiToken(for: asset) {
+                        return Self.information(cached, enriching: try await cachedSecondaryInformation(for: asset)?.value)
+                    }
+                }
+            }
+            return try await informationValue(for: asset, force: force)
         }
     }
     private func informationValue(for asset: MarketAsset, force: Bool) async throws -> CachedMarketValue<AssetInformation> {
@@ -443,7 +490,7 @@ public actor MarketDataService {
         return try MarketDecoding.tokenCode(for: asset, directory: entry.payload)
     }
 
-    private func load(key: String, source: String, lifetime: TimeInterval, force: Bool,
+    func load(key: String, source: String, lifetime: TimeInterval, force: Bool,
                       fetch: @escaping @Sendable () async throws -> (Data, Double, PriceRecord?)) async throws -> MarketCacheEntry {
         try Task.checkCancellation()
         let consumer = UUID()

@@ -318,7 +318,7 @@ extension OathDatabase {
                     SELECT 1 FROM ankrAssets verified WHERE verified.accountID=b.accountID
                     AND verified.assetID=b.assetID AND verified.onlyWhitelisted=1))
             LEFT JOIN prices p ON p.assetID=a.id AND p.currency='USD' AND p.observedAt=(
-                SELECT MAX(observedAt) FROM prices WHERE assetID=a.id AND currency='USD')
+                SELECT observedAt FROM prices WHERE assetID=a.id AND currency='USD' ORDER BY \(PriceRecord.preferredOrder) LIMIT 1)
             LEFT JOIN exchangeRates fx ON fx.currency=?
             LEFT JOIN transactionCounts tc ON tc.accountID=c.id AND tc.assetID=a.id
             WHERE n.enabled=1 OR ?

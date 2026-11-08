@@ -13,7 +13,9 @@ struct OathTextInput: UIViewRepresentable {
     var secret = false
     var showsSecretVisibility = true
     var address = false
+    var keyboardType: UIKeyboardType? = nil
     var showsKeyboardAccessory = true
+    var dismissesOnSubmit = true
     var returnKeyType: UIReturnKeyType = .done
     var onSubmit: () -> Void = {}
 
@@ -42,7 +44,7 @@ struct OathTextInput: UIViewRepresentable {
             dynamicType: context.environment.dynamicTypeSize,
             contentSize: field.traitCollection.preferredContentSizeCategory,
             title: title, identifier: identifier, prominent: prominent, secret: secret,
-            showsSecretVisibility: showsSecretVisibility, address: address, returnKey: returnKeyType)
+            showsSecretVisibility: showsSecretVisibility, address: address, keyboardType: keyboardType, returnKey: returnKeyType)
         if context.coordinator.configuration != configuration {
             context.coordinator.configuration = configuration
             let language = context.environment.oathLanguage
@@ -50,7 +52,7 @@ struct OathTextInput: UIViewRepresentable {
             field.font = UIFontMetrics(forTextStyle: style).scaledFont(for: .systemFont(ofSize: prominent ? 34 : 17,
                                                                                       weight: prominent ? .semibold : .regular))
             field.textColor = prominent ? .white : .label
-            field.keyboardType = secret || address ? .asciiCapable : .default
+            field.keyboardType = keyboardType ?? (secret || address ? .asciiCapable : .default)
             field.returnKeyType = returnKeyType
             field.smartQuotesType = .no
             field.smartDashesType = .no
@@ -116,6 +118,7 @@ struct OathTextInput: UIViewRepresentable {
         let secret: Bool
         let showsSecretVisibility: Bool
         let address: Bool
+        let keyboardType: UIKeyboardType?
         let returnKey: UIReturnKeyType
     }
 
@@ -143,7 +146,7 @@ struct OathTextInput: UIViewRepresentable {
             if parent.focused { parent.focused = false }
         }
         func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-            dismissFocus()
+            if parent.dismissesOnSubmit { dismissFocus() }
             parent.onSubmit()
             return false
         }

@@ -16,7 +16,7 @@ const env={ASSETS:{async fetch(req){const path=new URL(req.url).pathname;try{ret
 const escape=s=>s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
 
 test('feature claims and unchanged screenshots retain pinned release provenance',async()=>{
- assert.equal(catalog.sourceCommit,distribution.source_commit);
+ assert.equal(catalog.sourceCommit,(distribution.source_reference ?? distribution.source_commit));
  assert.equal(catalog.version,distribution.version);assert.equal(catalog.build,distribution.build);
  assert.equal(distribution.status,'READY_FOR_DISTRIBUTION');
  assert.equal(catalog.features.length,3);

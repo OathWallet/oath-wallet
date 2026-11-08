@@ -990,6 +990,6 @@ If a transfer has already been broadcast, keep its public transaction ID and che
 
 Catalog scope: Oath 5.0.2 (104), snapshot 2026-10-30. Catalog inclusion describes discovery; it is not issuer verification, a safety endorsement or a test of every transfer. Sender support and issuer availability can change.
 
-Guidance updated 2026-11-06. [How Oath reviews product guidance](https://oathwallet.org/about#editorial) · [Released catalog source](https://github.com/OathWallet/oath-wallet/blob/7ffd0f449c3312d9fafd01eda59c6b9eb813f9ca/Packages/OathAnkr/Sources/OathAnkr/Resources/TokenDiscoverySeed.json).
+Guidance updated 2026-11-06. [How Oath reviews product guidance](https://oathwallet.org/about#editorial) · [Released catalog source](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/Packages/OathAnkr/Sources/OathAnkr/Resources/TokenDiscoverySeed.json).
 
 [Choose a USDT or USDC network](https://oathwallet.org/networks/choose-token-network)[Find the fee asset](https://oathwallet.org/networks/fees)[Browse all tokens](https://oathwallet.org/tokens)[Check a transfer’s status](https://help.oathwallet.org/articles/transaction-status)

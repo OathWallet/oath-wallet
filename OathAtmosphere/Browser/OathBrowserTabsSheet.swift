@@ -52,6 +52,7 @@ struct OathBrowserTabsSheet: View {
                         .accessibilityIdentifier("browser.tab.new")
                 }
             }
+            .oathNativeLocalization()
         }
         .presentationDetents([.large]).presentationDragIndicator(.visible)
         .oathLanguage(strings.language)

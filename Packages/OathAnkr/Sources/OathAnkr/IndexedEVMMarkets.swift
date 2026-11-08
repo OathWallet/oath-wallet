@@ -51,7 +51,10 @@ public struct IndexedEVMMarkets: Sendable {
             struct Seed: Decodable { let entries: [TokenDiscoveryEntry] }
             guard let url = Bundle.module.url(forResource: "TokenDiscoverySeed", withExtension: "json") else { throw error }
             let seed = try JSONDecoder().decode(Seed.self, from: Data(contentsOf: url))
-            let entries = try seed.entries.filter { $0.network == chain.rawValue }.map { (try IndexedEVMIdentity.address($0.reference), $0.coinID) }
+            let entries = try seed.entries.filter { $0.network == chain.rawValue }.compactMap { entry -> (String, String)? in
+                guard let coinID = entry.coinID else { return nil }
+                return (try IndexedEVMIdentity.address(entry.reference), coinID)
+            }
             guard !entries.isEmpty, Set(entries.map(\.0)).count == entries.count else { throw AnkrError.invalidResponse }
             return .init(chain: chain, ids: Dictionary(uniqueKeysWithValues: entries))
         }

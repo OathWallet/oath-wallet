@@ -280,6 +280,7 @@
   "OathAtmosphere/OathWalletRestoration.swift",
   "OathAtmosphere/OathWalletSession.swift",
   "OathAtmosphere/OathWalletSheets.swift",
+  "OathAtmosphere/OathWalletSummary.swift",
   "OathAtmosphere/OathWalletSwitcherSheet.swift",
   "OathAtmosphere/OathWalletUnlockScreen.swift",
   "OathAtmosphere/OathWalletVault.swift",

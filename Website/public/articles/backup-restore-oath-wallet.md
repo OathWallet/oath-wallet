@@ -8,7 +8,7 @@ Choose a recovery method supported by 5.0.0 and verify it before replacing or er
 
 ## Guide source version
 
-Checked against [Oath 5.0.0 (102) source](https://github.com/OathWallet/oath-wallet/tree/ecb16953a5766471e1214eae6655cf783d0d062a). Older screenshots are illustrative.
+Checked against [Oath 5.0.0 (102) source](https://github.com/OathWallet/oath-wallet/tree/7eabd04a6f3273fa4ed7ce4108ac4ac683b2a108). Older screenshots are illustrative.
 
 ## Choose the recovery material
 

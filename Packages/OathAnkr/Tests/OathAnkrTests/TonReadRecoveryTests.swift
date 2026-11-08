@@ -10,8 +10,8 @@ private final class TonReadTLSFailure: URLProtocol, @unchecked Sendable {
 }
 
 private actor TonReadRecoveryTransport: AnkrTransport {
-    enum Mode: Sendable { case tls, afterVerification, both, wrongNetwork, malformed, invalidJSON, rpcFailure, badID, legacyPrimary, cancelled, unauthorized, http(Int), wrongOwner }
-    let mode: Mode
+    enum Mode: Sendable { case nativeTLS, healthy, recoveryUnavailable, recoveryCancelled, recoveryRejected, tls, afterVerification, both, wrongNetwork, malformed, invalidJSON, rpcFailure, badID, legacyPrimary, cancelled, unauthorized, http(Int), wrongOwner }
+    private(set) var mode: Mode
     let tls: AnkrHTTPTransport
     var requests: [URLRequest] = []
     init(_ mode: Mode) {
@@ -30,6 +30,8 @@ private actor TonReadRecoveryTransport: AnkrTransport {
         let primary = request.url?.host == "rpc.ankr.com"
         if primary {
             switch mode {
+            case .nativeTLS: throw URLError(.secureConnectionFailed)
+            case .healthy, .recoveryUnavailable, .recoveryCancelled, .recoveryRejected: break
             case .cancelled: throw URLError(.cancelled)
             case .unauthorized: return (Data(), 401)
             case .http(let status): return (Data(), status)
@@ -42,6 +44,9 @@ private actor TonReadRecoveryTransport: AnkrTransport {
         } else {
             XCTAssertEqual(request.url?.absoluteString, "https://toncenter.com/api/v2/jsonRPC")
             XCTAssertNil(request.value(forHTTPHeaderField: "X-API-Key"))
+            if mode == .recoveryUnavailable { throw URLError(.secureConnectionFailed) }
+            if mode == .recoveryCancelled { throw CancellationError() }
+            if mode == .recoveryRejected { return (Data(), 401) }
             if case .both = mode { throw AnkrError.transport }
         }
         let result: TonJSON
@@ -62,6 +67,7 @@ private actor TonReadRecoveryTransport: AnkrTransport {
             : .object(["jsonrpc": .string("2.0"), "id": .number("1"), "result": result])
         return (try JSONEncoder().encode(value), 200)
     }
+    func setMode(_ value: Mode) { mode = value }
     var secondaryMethods: [String] {
         requests.filter { $0.url?.host == "toncenter.com" }.compactMap { request in
             (try? JSONDecoder().decode(TonJSON.self, from: request.httpBody!))?["method"].string
@@ -72,6 +78,72 @@ private actor TonReadRecoveryTransport: AnkrTransport {
 extension TonReadRecoveryTransport.Mode: Equatable { }
 
 final class TonReadRecoveryTests: XCTestCase, @unchecked Sendable {
+    func testWorkingRecoveryDoesNotRepeatFailedPrimaryForEachInventoryRead() async throws {
+        let transport = TonReadRecoveryTransport(.tls)
+        let client = TonClient(testTransport: transport)
+        let value = try await client.inventory(owner: TonTests.owner)
+        XCTAssertTrue(value.discoveryComplete)
+        XCTAssertEqual(value.holdings.count, 2)
+        let requests = await transport.requests
+        XCTAssertEqual(requests.filter { $0.url?.host == "rpc.ankr.com" }.count, 3,
+            "A verified working backup must serve the following reads during primary recovery")
+        let methods = await transport.secondaryMethods
+        XCTAssertTrue(methods.contains("runGetMethod"))
+        XCTAssertTrue(methods.contains("getTokenData"))
+    }
+    func testNativeTLSIsNotRetriedAndOnlyFailsOnceDuringInventory() async throws {
+        let transport = TonReadRecoveryTransport(.nativeTLS)
+        let value = try await TonClient(testTransport: transport).inventory(owner: TonTests.owner)
+        XCTAssertEqual(value.holdings.count, 2)
+        XCTAssertTrue(value.failedReferences.isEmpty)
+        let requests = await transport.requests
+        XCTAssertEqual(requests.filter { $0.url?.host == "rpc.ankr.com" }.count, 1)
+    }
+    func testExpiredRecoveryRechecksPrimary() async throws {
+        let transport = TonReadRecoveryTransport(.tls)
+        let client = TonClient(testTransport: transport, recoveryLifetime: .zero)
+        try await client.verifyNetwork()
+        await transport.setMode(.healthy)
+        _ = try await client.rpc("getAddressInformation", ["address": .string(TonTests.owner)])
+        let requests = await transport.requests
+        XCTAssertEqual(requests.filter { $0.url?.host == "rpc.ankr.com" }.count, 4)
+        let methods = await transport.secondaryMethods
+        XCTAssertEqual(methods, ["getMasterchainInfo"])
+    }
+    func testWorkingBackupLossRechecksPrimaryWithoutBouncingOrHidingValidation() async throws {
+        for mode in [TonReadRecoveryTransport.Mode.recoveryUnavailable, .recoveryCancelled, .recoveryRejected, .both] {
+            let transport = TonReadRecoveryTransport(.tls)
+            let client = TonClient(testTransport: transport)
+            try await client.verifyNetwork()
+            await transport.setMode(mode)
+            do {
+                let result = try await client.rpc("getAddressInformation", ["address": .string(TonTests.owner)])
+                XCTAssertEqual(mode, .recoveryUnavailable)
+                XCTAssertEqual(result["balance"].string, "6684406248")
+            } catch {
+                XCTAssertNotEqual(mode, .recoveryUnavailable)
+                if mode == .recoveryCancelled { XCTAssertTrue(error is CancellationError) }
+                if mode == .recoveryRejected { XCTAssertEqual(error as? TonError, .http(401)) }
+                if mode == .both { XCTAssertEqual(error as? TonError, .transport) }
+            }
+            let requests = await transport.requests
+            let primary = requests.filter { $0.url?.host == "rpc.ankr.com" }.count
+            let secondary = requests.filter { $0.url?.host == "toncenter.com" }.count
+            XCTAssertEqual(primary, mode == .both ? 6 : mode == .recoveryUnavailable ? 4 : 3)
+            XCTAssertEqual(secondary, mode == .both ? 4 : 2)
+        }
+    }
+    func testWarmRecoveryNeverRoutesUnknownMethodsOrBroadcasts() async throws {
+        let transport = TonReadRecoveryTransport(.tls)
+        let client = TonClient(testTransport: transport)
+        try await client.verifyNetwork()
+        for method in ["sendBoc", "unsupportedMethod"] {
+            do { _ = try await client.rpc(method); XCTFail("Expected primary failure") }
+            catch { XCTAssertEqual(error as? TonError, .transport) }
+        }
+        let methods = await transport.secondaryMethods
+        XCTAssertEqual(methods, ["getMasterchainInfo"])
+    }
     func testTLSRecoveryKeepsNativeJettonAmountsAndOwnershipChecks() async throws {
         for mode in [TonReadRecoveryTransport.Mode.tls, .afterVerification] {
             let transport = TonReadRecoveryTransport(mode)
