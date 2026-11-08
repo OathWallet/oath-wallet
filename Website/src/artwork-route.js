@@ -95,7 +95,13 @@ export async function handleArtwork(request,env,ctx) {
     let flight=flights.get(match[2]);
     if(!flight){
       if(flights.size>=64){const response=fallback(asset.initials);return new Response(request.method==='HEAD'?null:response.body,response);}
-      flight=refresh(asset).catch(async()=>{
+      flight=(async()=>{
+        // Metadata can finish after another request has populated the cache
+        // and removed its flight. Recheck within this newly shared flight.
+        let completed;try{completed=await cache?.match(key);}catch{/* Cache loss must not hide available artwork. */}
+        if(completed){const headers=new Headers(completed.headers);headers.set('Cache-Control',completed.headers.get('X-Oath-Artwork')==='image'?'public, max-age=86400':'public, max-age=60');return new Response(completed.body,{headers});}
+        return refresh(asset);
+      })().catch(async()=>{
         const response=fallback(asset.initials);
         if(cache){const saved=response.clone();saved.headers.set('Cache-Control','public, max-age=60');await cache.put(key,saved).catch(()=>{});}
         return response;

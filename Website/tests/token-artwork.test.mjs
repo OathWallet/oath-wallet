@@ -124,6 +124,28 @@ test('image cache coalesces concurrent requests, serves HEAD and retains stale i
   }finally{globalThis.fetch=priorFetch;if(priorCaches===undefined)delete globalThis.caches;else globalThis.caches=priorCaches;}
 });
 
+test('a delayed metadata lookup reuses an image cached after its initial miss',{timeout:5000},async()=>{
+  const priorFetch=globalThis.fetch,priorCaches=globalThis.caches,stored=new Map();
+  const secondStarted=Promise.withResolvers(),releaseSecond=Promise.withResolvers();
+  globalThis.caches={default:{async match(key){return stored.get(key.url)?.clone();},async put(key,value){stored.set(key.url,value.clone());}}};
+  let calls=0,lookups=0;globalThis.fetch=async()=>{calls++;return new Response(png);};
+  const sourceEnv=environment(),env={ASSETS:{async fetch(request){
+    if(++lookups===1)await secondStarted.promise;
+    else{secondStarted.resolve();await releaseSecond.promise;}
+    return sourceEnv.ASSETS.fetch(request);
+  }}};
+  const url=origin+rows.find(a=>a.artwork).artwork;
+  try{
+    const first=handleArtwork(new Request(url),env),second=handleArtwork(new Request(url),env);
+    const firstResponse=await first;await firstResponse.arrayBuffer();
+    releaseSecond.resolve();
+    const secondResponse=await second;
+    assert.equal(secondResponse.headers.get('X-Oath-Artwork'),'image');
+    assert.equal(secondResponse.headers.get('Cache-Control'),'public, max-age=86400');
+    await secondResponse.arrayBuffer();assert.equal(calls,1);
+  }finally{releaseSecond.resolve();globalThis.fetch=priorFetch;if(priorCaches===undefined)delete globalThis.caches;else globalThis.caches=priorCaches;}
+});
+
 test('concurrent distinct images are queued with bounded upstream work',async()=>{
   const previous=globalThis.fetch;let active=0,max=0,calls=0;
   globalThis.fetch=async()=>{active++;calls++;max=Math.max(max,active);await new Promise(r=>setTimeout(r,10));active--;return new Response(png);};
