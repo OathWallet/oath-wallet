@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {stripCloudflareLabyrinth} from './cloudflare-html.mjs';
 import {tokenPageTitle} from '../src/token-titles.js';
 import {escapeHTML} from '../src/tokens.js';
 import {renderSecurityTxt, securityHosts, securityTxtPath} from '../src/security-txt.js';
@@ -174,10 +175,14 @@ for(const path of ['/assets/home-preview/wallet-motion.js','/assets/home-preview
  const response=await fetch('https://oathwallet.org'+encodeURI(path),{signal:AbortSignal.timeout(20000)});
  assert.equal(response.status,200,path);
  let expected=await readFile(new URL('../public'+path,import.meta.url));
+ let actual=Buffer.from(await response.arrayBuffer());
  // The public Worker appends these shared scripts to every successful HTML head.
  // Compare the exact served representation, including that deliberate transform.
- if(path.endsWith('.html')) expected=Buffer.from(expected.toString().replace('</head>','<script src="/visitor-events.js" defer></script><link rel="stylesheet" href="/newsletter.css"><script src="/newsletter.js" defer></script></head>'));
- assert.equal(createHash('sha256').update(Buffer.from(await response.arrayBuffer())).digest('hex'),createHash('sha256').update(expected).digest('hex'),path+' differs from the deployed commit');
+ if(path.endsWith('.html')) {
+  expected=Buffer.from(expected.toString().replace('</head>','<script src="/visitor-events.js" defer></script><link rel="stylesheet" href="/newsletter.css"><script src="/newsletter.js" defer></script></head>'));
+  actual=Buffer.from(stripCloudflareLabyrinth(actual.toString(), 'https://oathwallet.org'));
+ }
+ assert.equal(createHash('sha256').update(actual).digest('hex'),createHash('sha256').update(expected).digest('hex'),path+' differs from the deployed commit');
 }
 console.log('Verified the published homepage artwork and bounded animation renderer.');
 
