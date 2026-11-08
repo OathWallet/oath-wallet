@@ -43,9 +43,13 @@ final class ReportedDiagnosticFailureTests: XCTestCase, @unchecked Sendable {
             try await Task.sleep(for: .milliseconds(20))
             if await capture.events.contains(where: { $0.operationID == sentinel }) { break }
         }
-        let original = NSError(domain: NSURLErrorDomain, code: -1200, userInfo: [
-            NSLocalizedDescriptionKey: "TLS failed at https://rpc.ankr.com/multichain/SecretFixtureKey",
+        // Exercise a retained validation failure. Routine TLS availability
+        // failures are deliberately excluded by the shared recording policy.
+        let original = NSError(domain: "Fixture.Provider", code: -32602, userInfo: [
+            NSLocalizedDescriptionKey: "Response validation failed at https://rpc.ankr.com/multichain/SecretFixtureKey",
             "private": "must-not-upload-this-value"])
+        XCTAssertFalse(DiagnosticAvailabilityPolicy.excludesBeforeAdmission(original,
+            component: "provider", severity: "error", context: ["chain": "ethereum"], runtimeReport: nil))
         let propagated = OathDiagnostics.$operationID.withValue(id) {
             OathDiagnostics.recordedForPropagation(original, component: "provider", operation: "read",
                 context: ["chain": "ethereum", "host": "rpc.ankr.com", "method": "ankr_getAccountBalance"])
@@ -63,8 +67,8 @@ final class ReportedDiagnosticFailureTests: XCTestCase, @unchecked Sendable {
         try await Task.sleep(for: .milliseconds(100))
         let events = await capture.events.filter { $0.operationID == id }
         XCTAssertEqual(events.count, 1)
-        XCTAssertEqual(events.first?.error.domain, NSURLErrorDomain)
-        XCTAssertEqual(events.first?.error.code, -1200)
+        XCTAssertEqual(events.first?.error.domain, "Fixture.Provider")
+        XCTAssertEqual(events.first?.error.code, -32602)
         XCTAssertEqual(events.first?.context["chain"], "ethereum")
         let encoded = String(decoding: try JSONEncoder().encode(events), as: UTF8.self)
         XCTAssertFalse(encoded.contains("SecretFixtureKey"))
