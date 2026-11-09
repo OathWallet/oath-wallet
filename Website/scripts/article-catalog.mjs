@@ -1,5 +1,12 @@
 import {articleURL, ARTICLE_ORIGIN} from '../src/article-host.js';
 
+// Editorial labels remain on each article and feed. The archive groups these
+// more specific subjects under its existing navigation categories.
+const archiveCategories = new Map([
+  ['Wallet guides', 'Guides'], ['Exchange withdrawals', 'Guides'],
+  ['Product updates', 'Product'],
+]);
+
 // One edition per article and language. Keep the source records unchanged for
 // feeds and translated article routes; only normalize the archive's view model.
 export function articleCards(records) {
@@ -16,7 +23,7 @@ export function articleCards(records) {
     if (!['oathwallet.org','articles.oathwallet.org'].includes(cover.hostname) || !cover.pathname.startsWith('/assets/articles/')) throw new Error(`Unexpected article cover: ${id}`);
     if (!english.has(id)) throw new Error(`Missing English edition: ${id}`);
     return {...a, id, locale, href, cover: ARTICLE_ORIGIN + cover.pathname + cover.search,
-      alt: a.title, category: english.get(id).category,
+      alt: a.title, category: archiveCategories.get(english.get(id).category) || english.get(id).category,
       date: new Intl.DateTimeFormat('en', {month:'short', day:'numeric', year:'numeric', timeZone:'UTC'}).format(new Date(a.published_at)),
       read: `${a.reading_minutes} min read`, dir: ['ar','ur'].includes(locale) ? 'rtl' : 'ltr'};
   });
