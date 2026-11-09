@@ -203,7 +203,7 @@ for(const path of ['/','/features']){
  assert.equal(app.name,'Oath: Crypto & Bitcoin Wallet');assert.equal(app.softwareVersion,catalog.facts.app_version);
  assert.equal(app.operatingSystem,'iOS, iPadOS');assert.deepEqual(app.featureList,catalog.features.map(f=>f.name));
  assert.equal(app.codeRepository,undefined);assert.equal(app.subjectOf['@type'],'SoftwareSourceCode');assert.equal(app.subjectOf.codeRepository,catalog.facts.source_code);
- if(path==='/')assert.ok(html.includes('networks/choose-token-network#prepare-transfer'));
+ if(path==='/')assert.doesNotMatch(html,/oath-transfer-entry|Before your next transfer|The right token\.|networks\/choose-token-network#prepare-transfer/);
  if(path==='/'){
   const rating=catalog.facts.app_store_rating,date=new Intl.DateTimeFormat('en-US',{month:'long',day:'numeric',year:'numeric',timeZone:'UTC'}).format(new Date(rating.checked_on+'T00:00:00Z'));
   assert.ok(html.includes(`${rating.count} US ratings`)&&html.includes(`${rating.value.toFixed(1)} out of 5`)&&html.includes(`Rating checked ${date}`),'Published rating snapshot differs from this commit');
