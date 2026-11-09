@@ -43,6 +43,18 @@ test('search and categories retain working card URLs, and empty results can be c
  view.onQ({target:{value:'no-such-article-987654'}});view=ui.renderVals();assert.equal(view.isEmpty,true);
  view.onQ({target:{value:''}});assert.equal(ui.renderVals().resultCount,englishCount);
 });
+test('every article is reachable through an archive category, including exchange and wallet guides',()=>{
+ const ui=component(), sourceCategories=data.articles.map(a=>a.category);
+ const categories=new Set(ui.renderVals().cats.filter(c=>c.label!=='All').map(c=>c.label));
+ for(const card of cards) assert.ok(categories.has(card.category),`${card.href}: missing category filter ${card.category}`);
+ ui.renderVals().cats.find(c=>c.label==='Guides').go();
+ const guides=ui.renderVals().list;
+ for(const slug of ['withdraw-usdt-binance-to-oath-tron','send-usdc-coinbase-to-oath-base','withdraw-bitcoin-kraken-to-oath-iphone','move-from-trust-wallet-to-oath','use-metamask-wallet-in-oath','restore-electrum-bitcoin-wallet-on-iphone']) {
+  assert.ok(guides.some(a=>a.id===slug),`${slug} must appear under Guides`);
+ }
+ articleCards(data.articles);
+ assert.deepEqual(data.articles.map(a=>a.category),sourceCategories,'archive grouping must not change article/feed labels');
+});
 test('server-rendered fallback includes all English links and images without translation duplicates',()=>{
  const fallback=html.match(/<!-- oath-server-content:start -->([\s\S]*?)<!-- oath-server-content:end -->/)[1];
  assert.equal((fallback.match(/<article>/g)||[]).length,englishCount);

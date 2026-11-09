@@ -20,6 +20,8 @@
 
 Dates use UTC and include seconds. Optional fields are `updated_at` and an HTTPS `original_url` for a cross-post. Publication happens on merge, including for future dates. The current authoring format publishes English articles.
 
+Archive filters use Guides, Security, Product and Company. The more specific labels Wallet guides and Exchange withdrawals are grouped under Guides; Product updates is grouped under Product. Other new labels need an archive category mapping before publication. The archive tests check that every article remains reachable through a filter.
+
 The body starts with the first paragraph. The page already displays the title and excerpt. Separate paragraphs with blank lines. Use `## Heading`, ordinary Markdown links, bold text, lists, and a standalone line such as `![What the chart shows](chart.png)` with a blank line on either side. Use lowercase image filenames with PNG, JPG, JPEG, WebP or AVIF extensions. Upload only media you intend to make public. Raw HTML is displayed as text.
 
 Commit only the article folder for content changes. GitHub generates the public files for each deployment. For an optional local preview, run `npm ci`, `npm run predeploy`, and `npm run test:unit` in `Website/`.
