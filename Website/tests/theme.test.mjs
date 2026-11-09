@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {runInNewContext} from 'node:vm';
-import {themeCSS,themeDocument,paletteCSS,applyTheme} from '../src/theme.js';
+import {themeCSS,themeDocument,paletteCSS,applyTheme,palette} from '../src/theme.js';
 const script=await readFile(new URL('../public/theme.js',import.meta.url),'utf8');
 function client({cookie='',stored=null,blocked=false,host='oathwallet.org'}={}){
  const events={},attributes={},buttons=['light','dark'].map(theme=>({dataset:{oathThemeChoice:theme},setAttribute(n,v){this[n]=v;},getAttribute(n){return this[n];}}));
@@ -36,4 +36,20 @@ test('runtime pages retain status and CSP; API, HEAD and app artwork are untouch
  const response=new Response('<html><head></head><body style="color:#F2F0EA">Missing</body></html>',{status:404,headers:{'Content-Type':'text/html','Content-Security-Policy':"script-src 'self'",ETag:'old'}});
  const themed=await applyTheme(new Request('https://help.oathwallet.org/missing'),response);assert.equal(themed.status,404);assert.equal(themed.headers.get('Content-Security-Policy'),"script-src 'self'");assert.equal(themed.headers.get('ETag'),null);assert.match(await themed.text(),/data-oath-theme-bootstrap/);
  for(const [url,method,type] of [['https://oathwallet.org/api','GET','application/json'],['https://oathwallet.org/','HEAD','text/html'],['https://oathwallet.org/Oath%20App%20Home.dc.html','GET','text/html'],['https://oathwallet.org/yandex_ab1234.html','GET','text/html']]){const res=new Response('unchanged',{headers:{'Content-Type':type}});assert.equal(await applyTheme(new Request(url,{method}),res),res);}
+});
+
+test('light surfaces match native app neutrals while dark mode and brand colors stay intact',()=>{
+ assert.equal(palette['0a0a0b'],'ffffff');
+ assert.equal(palette['0b0b0d'],'ffffff');
+ assert.equal(palette['111112'],'f0f0f0');
+ assert.equal(palette['f2f0ea'],'000000');
+ assert.equal(palette['a5a39d'],'636363');
+ const [light,dark]=paletteCSS().split('\n');
+ assert.match(light,/--oath-day-c-fafbf7:#ffffff;/);
+ assert.match(light,/--oath-day-c-f2f2f7:#f0f0f0;/);
+ assert.match(dark,/--oath-c-0a0a0b:#0a0a0b;/);
+ assert.match(dark,/--oath-c-f2f0ea:#f2f0ea;/);
+ assert.match(dark,/--oath-day-c-fafbf7:#0a0a0b;/);
+ assert.equal(themeCSS('.brand{color:#244de0}'),'.brand{color:#244de0}');
+ assert.match(script,/'#ffffff'/);
 });

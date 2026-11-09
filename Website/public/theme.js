@@ -13,7 +13,7 @@
   document.documentElement.style.colorScheme=theme;
   let meta=document.querySelector('meta[data-oath-theme-color]');
   if(!meta){meta=document.createElement('meta');meta.name='theme-color';meta.dataset.oathThemeColor='';document.head.append(meta);}
-  meta.content=theme==='dark'?'#0a0a0b':'#faf9f6';
+  meta.content=theme==='dark'?'#0a0a0b':'#ffffff';
   document.querySelectorAll('[data-oath-theme-choice]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.oathThemeChoice===theme)));
  }
  apply(saved());
