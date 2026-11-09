@@ -4,11 +4,12 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 
-test('email and Join complete signup without a checkbox or confirmation step, on desktop and mobile', async () => {
+test('newsletter opens only on request and signup works on desktop and mobile', async () => {
  const server=createServer(async(req,res)=>{
   try{
    const path=new URL(req.url,'http://localhost').pathname;
    if(path.includes('..')){res.writeHead(404);res.end();return;}
+   if(path==='/manual-open-check'){res.writeHead(200,{'Content-Type':'text/html'});res.end('<!doctype html><html><body><button data-newsletter-open>Open newsletter</button><script src="/newsletter.js"></script></body></html>');return;}
    const body=await readFile(new URL('../public'+path,import.meta.url));
    const type=path.endsWith('.js')?'application/javascript':path.endsWith('.css')?'text/css':path.endsWith('.svg')?'image/svg+xml':'text/html';
    res.writeHead(200,{'Content-Type':type});res.end(body);
@@ -25,6 +26,20 @@ test('email and Join complete signup without a checkbox or confirmation step, on
      sent.push(route.request().postDataJSON());
      await route.fulfill({json:{ok:true,subscribed:true,message:'You’re subscribed to Oath Notes. No email confirmation is needed — you’re all set.'}});
     });
+    await page.clock.install();
+    await page.goto(`http://127.0.0.1:${server.address().port}/manual-open-check`);
+    await page.locator('.on-launcher').waitFor();
+    await page.clock.runFor(10000);
+    await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
+    assert.equal(await page.locator('dialog').evaluate(el=>el.open),false,'Fresh visitors must not see an automatic popup');
+    await page.locator('.on-launcher').click();
+    assert.equal(await page.locator('dialog').evaluate(el=>el.open),true);
+    await page.locator('.on-close').click();
+    await page.clock.runFor(10000);
+    assert.equal(await page.locator('dialog').evaluate(el=>el.open),false,'Dismissed dialog must stay closed');
+    await page.reload();
+    await page.clock.runFor(10000);
+    assert.equal(await page.locator('dialog').evaluate(el=>el.open),false,'Returning visitors must not see an automatic popup');
     await page.goto(`http://127.0.0.1:${server.address().port}/news/index.html`);
     await page.locator('[data-newsletter-open]').click();
     assert.equal(await page.locator('input[name=consent]').count(),0);
