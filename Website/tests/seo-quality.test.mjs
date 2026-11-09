@@ -34,7 +34,7 @@ test('site names agree and imported App Store ratings are not review markup',asy
  }
  const app=nodes(main).find(n=>n['@type']==='MobileApplication');assert.equal(app.aggregateRating,undefined);assert.equal(app.review,undefined);
  const rating=facts.facts.app_store_rating,date=new Intl.DateTimeFormat('en-US',{month:'long',day:'numeric',year:'numeric',timeZone:'UTC'}).format(new Date(rating.checked_on+'T00:00:00Z'));
- assert.ok(main.includes(`${rating.count} US ratings`));assert.ok(main.includes(`Rating checked ${date}`));
+ assert.ok(main.includes(`${rating.count} US ratings`));assert.doesNotMatch(main,/Selected US App Store review excerpts from customers\.|Rating checked/);
  assert.ok(main.includes(`${rating.value.toFixed(1)} out of 5`));
  assert.ok((await read('/index.md')).includes(`Rated **${rating.value.toFixed(1)} out of 5** from ${rating.count} ratings in the US App Store · checked ${date}`));
  const token=await(await get('/tokens/usdc/base')).text();assert.equal(nodes(token).find(n=>n['@type']==='WebPage').isPartOf['@id'],origin+'/#site');assert.match(token,/property="og:site_name" content="Oath Wallet"/);

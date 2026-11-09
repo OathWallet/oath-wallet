@@ -205,8 +205,9 @@ for(const path of ['/','/features']){
  assert.equal(app.codeRepository,undefined);assert.equal(app.subjectOf['@type'],'SoftwareSourceCode');assert.equal(app.subjectOf.codeRepository,catalog.facts.source_code);
  if(path==='/')assert.doesNotMatch(html,/oath-transfer-entry|Before your next transfer|The right token\.|networks\/choose-token-network#prepare-transfer/);
  if(path==='/'){
-  const rating=catalog.facts.app_store_rating,date=new Intl.DateTimeFormat('en-US',{month:'long',day:'numeric',year:'numeric',timeZone:'UTC'}).format(new Date(rating.checked_on+'T00:00:00Z'));
-  assert.ok(html.includes(`${rating.count} US ratings`)&&html.includes(`${rating.value.toFixed(1)} out of 5`)&&html.includes(`Rating checked ${date}`),'Published rating snapshot differs from this commit');
+  const rating=catalog.facts.app_store_rating;
+  assert.ok(html.includes(`${rating.count} US ratings`)&&html.includes(`${rating.value.toFixed(1)} out of 5`),'Published rating snapshot differs from this commit');
+  assert.doesNotMatch(html,/Selected US App Store review excerpts from customers\.|Rating checked/);
  }
 }
 const tokenEntry=await fetch('https://oathwallet.org/tokens/usdc/base',{signal:AbortSignal.timeout(20000)});
