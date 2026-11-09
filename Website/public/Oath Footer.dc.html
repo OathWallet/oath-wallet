@@ -18,6 +18,10 @@
       <div style="display:flex;flex-direction:column;gap:14px;grid-column:{{ span }}">
         <div style="display:flex;align-items:center;gap:10px"><img src="{{ mark }}" alt="" style="display:block;width:30px;height:30px;border-radius:22%;overflow:hidden" role="presentation"><span style="font:600 20px/1 'Instrument Sans',sans-serif;letter-spacing:-.03em">Oath</span></div>
         <span style="font:400 italic 22px/1.2 'Instrument Serif',serif;color:var(--oath-c-8e8c86)">Made for your independence.</span>
+        <div class="oath-theme-switch" role="group" aria-label="Website appearance">
+          <button type="button" data-oath-theme-choice="light" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"></path></svg>Light</button>
+          <button type="button" data-oath-theme-choice="dark" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"></path></svg>Dark</button>
+        </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:2px">
         <span style="margin-bottom:8px;font:400 12px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--oath-c-8e8c86)">Product</span>
@@ -39,10 +43,6 @@
           <sc-for list="{{ col.links }}" as="l" hint-placeholder-count="4"><a href="{{ l.href }}" style="display:flex;align-items:center;min-height:40px;font:400 15px/1 'Instrument Sans',sans-serif;color:var(--oath-c-d6d4cd);text-decoration:none" style-hover="color:var(--oath-c-ffffff)">{{ l.t }}</a></sc-for>
         </div>
       </sc-for>
-    </div>
-    <div class="oath-theme-switch" role="group" aria-label="Website appearance">
-      <button type="button" data-oath-theme-choice="light" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"></path></svg>Light</button>
-      <button type="button" data-oath-theme-choice="dark" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"></path></svg>Dark</button>
     </div>
     <div aria-hidden="true" style="font:400 clamp(80px,19vw,300px)/.8 'Instrument Serif',serif;letter-spacing:-.04em;color:var(--oath-c-6e6c67);user-select:none">Oath</div>
     <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;padding-top:24px;border-top:1px solid rgba(var(--oath-rgb-f2f0ea),.12);font:400 13px/1.4 'Instrument Sans',sans-serif;color:var(--oath-c-8e8c86)">
