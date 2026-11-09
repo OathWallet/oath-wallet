@@ -53,7 +53,7 @@ test('private routes, redirects and cross-origin MCP protections remain intact',
  assert.equal((await worker.fetch(new Request('https://oathwallet.org/mcp',{method:'POST',headers:{Origin:'https://evil.invalid','Content-Type':'application/json'},body:'{}'}),env)).status,403);
  assert.equal((await worker.fetch(new Request('https://help.oathwallet.org/admin.md',{headers:{Accept:'text/markdown'}}),env)).status,404);
  assert.equal((await worker.fetch(new Request('http://help.oathwallet.org/articles/create-wallet',{headers:{Accept:'text/markdown'}}),env)).status,301);
- assert.match((await worker.fetch(new Request('https://oathwallet.org/wc',{headers:{Accept:'text/markdown'}}),env)).headers.get('X-Robots-Tag'),/noindex/);
+ assert.equal((await worker.fetch(new Request('https://oathwallet.org/wc',{headers:{Accept:'text/markdown'}}),env)).headers.get('X-Robots-Tag'),null);
  for(const host of ['oathwallet.org','help.oathwallet.org','articles.oathwallet.org'])assert.equal((await worker.fetch(new Request(`https://${host}/llms.txt`),env)).status,200);
 });
 

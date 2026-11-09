@@ -16,7 +16,7 @@ test('all configured website hosts have a security discovery route before HTML r
     assert.equal(response.headers.get('Content-Type'), 'text/plain; charset=utf-8');
     assert.equal(response.headers.get('X-Content-Type-Options'), 'nosniff');
     assert.match(response.headers.get('Strict-Transport-Security'), /max-age=31536000/);
-    assert.equal(response.headers.get('X-Robots-Tag'), 'noindex');
+    assert.equal(response.headers.get('X-Robots-Tag'), null);
     assert.equal(response.headers.get('Link'), `<${url}>; rel="canonical"`);
     assert.match(response.headers.get('Cache-Control'), /max-age=3600.*must-revalidate/);
     assert.equal(response.headers.get('Set-Cookie'), null);

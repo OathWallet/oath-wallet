@@ -22,7 +22,7 @@ test('retired articles and aliases cannot be served through HTML, Markdown or le
           for (const method of ['GET','HEAD']) {
             const response = await worker.fetch(new Request(origin+slug+suffix+'?from=old', {method,headers:{Accept:'text/markdown'}}), noAssets);
             assert.equal(response.status,410,origin+slug+suffix);
-            assert.equal(response.headers.get('X-Robots-Tag'),'noindex');
+            assert.equal(response.headers.get('X-Robots-Tag'),null);
             if (method === 'HEAD') assert.equal(await response.text(),'');
           }
         }

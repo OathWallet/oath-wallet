@@ -15,7 +15,7 @@ const env = { ASSETS: { async fetch(req) {
 test('reported press folder points to the press page and downloadable text stays out of search',async()=>{
  const folder=await worker.fetch(new Request('https://oathwallet.org/assets/press/2026-10/'),env);
  assert.equal(folder.status,308);assert.equal(folder.headers.get('Location'),'https://oathwallet.org/press');
- for(const name of ['brand-guide','press-facts']){const r=await worker.fetch(new Request('https://oathwallet.org/assets/press/2026-10/'+name+'.txt'),env);assert.equal(r.status,200);assert.equal(r.headers.get('X-Robots-Tag'),'noindex');assert.ok(r.headers.get('Link').includes('/press>'));}
+ for(const name of ['brand-guide','press-facts']){const r=await worker.fetch(new Request('https://oathwallet.org/assets/press/2026-10/'+name+'.txt'),env);assert.equal(r.status,200);assert.equal(r.headers.get('X-Robots-Tag'),null);assert.ok(r.headers.get('Link').includes('/press>'));}
 });
 test('main search sitemap excludes moved articles, support and machine representations', async () => {
   const xml = await readFile(new URL('sitemaps/pages.xml', publicURL), 'utf8');
@@ -42,7 +42,7 @@ test('alternate Markdown identifies its canonical web page while remaining acces
   }
   const r = await worker.fetch(new Request('https://oathwallet.org/llms.txt'), env);
   assert.equal(r.status, 200);
-  assert.equal(r.headers.get('X-Robots-Tag'), 'noindex');
+  assert.equal(r.headers.get('X-Robots-Tag'), null);
 });
 
 test('all core pages deliver readable content and navigation before JavaScript', async () => {

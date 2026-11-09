@@ -19,7 +19,7 @@ test('exact-asset preparation works across every released token network', async 
   for (const asset of samples) {
     const r = await get(transferURL(asset)), html = await r.text();
     assert.equal(r.status,200,asset.path);
-    assert.equal(r.headers.get('X-Robots-Tag'),'noindex, follow');
+    assert.equal(r.headers.get('X-Robots-Tag'),null);
     assert.equal(r.headers.get('Cache-Control'),'no-store');
     assert.ok(html.includes(`href="${origin+transferPath}"`));
     assert.ok(html.includes(`value="${asset.path}" data-token="${asset.slug}" selected`),asset.path);
@@ -55,7 +55,7 @@ test('same-network variants retain exact references and independent selections',
 
 test('bad selections, canonical aliases and unavailable snapshots fail truthfully', async () => {
   for (const query of ['token=usdc','token=usdc&network=cronos','token=missing-token&network=base','token=usdc&network=base&network=solana','token=constructor&network=base','token=%3Cscript%3E&network=base']) {
-    const r=await get(transferPath+'?'+query); assert.equal(r.status,404,query);assert.match(r.headers.get('X-Robots-Tag'),/noindex/);
+    const r=await get(transferPath+'?'+query); assert.equal(r.status,404,query);assert.equal(r.headers.get('X-Robots-Tag'),null);
   }
   const alias=await get(transferPath+'.html?token=usdc&network=base');assert.equal(alias.status,308);assert.equal(alias.headers.get('Location'),origin+transferPath+'?token=usdc&network=base');
   const tracking=await get(transferPath+'?utm_source=example');assert.equal(tracking.status,308);assert.equal(tracking.headers.get('Location'),origin+transferPath);

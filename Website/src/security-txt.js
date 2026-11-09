@@ -33,8 +33,7 @@ export function handleSecurityTxt(request) {
     'Content-Type': 'text/plain; charset=utf-8',
     'X-Content-Type-Options': 'nosniff',
     'Cache-Control': 'public, max-age=3600, must-revalidate',
-    'Access-Control-Allow-Origin': '*',
-    'X-Robots-Tag': 'noindex'
+    'Access-Control-Allow-Origin': '*'
   };
   if (!['GET', 'HEAD'].includes(request.method)) {
     return new Response('Method not allowed\n', {

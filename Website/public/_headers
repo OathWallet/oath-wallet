@@ -4,9 +4,6 @@
   X-Frame-Options: SAMEORIGIN
   Link: </llms.txt>; rel="describedby"; type="text/plain", </.well-known/mcp.json>; rel="mcp-server"; type="application/json"
 
-/*.dc.html
-  X-Robots-Tag: noindex
-
 /assets/vendor/*
   Cache-Control: public, max-age=31536000, immutable
 

@@ -21,14 +21,13 @@ export function handleWalletLinks(request) {
   return new Response(request.method === 'HEAD' ? null : landingHTML, { headers: {
     'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store',
     'Referrer-Policy': 'no-referrer', 'X-Content-Type-Options': 'nosniff',
-    'X-Robots-Tag': 'noindex, nofollow',
     'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
   } });
 }
 
 const landingHTML = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="referrer" content="no-referrer"><meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
 <title>Open Oath Wallet</title><link rel="stylesheet" href="/wallet-open.css"><script src="/wallet-open.js" defer></script>
 </head><body><main><img src="/wallet-logo.png" width="104" height="104" alt="Oath Wallet">
 <h1>Open Oath Wallet</h1><p id="message">Review your connection in Oath Wallet, then return to your app.</p>

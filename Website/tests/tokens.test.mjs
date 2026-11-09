@@ -39,7 +39,7 @@ test('edge cache keeps search and Markdown separate and survives asset read fail
   const first=await cachedTokens(new Request(main+'/tokens'),env,ctx);assert.equal(first.status,200);await Promise.all(pending);assert.equal(stored.size,1);
   const unavailable={ASSETS:{fetch:async()=>new Response(null,{status:503})}};
   const hit=await cachedTokens(new Request(main+'/tokens'),unavailable,ctx);assert.equal(hit.status,200);assert.match(await hit.text(),/Find your token/);
-  const search=await cachedTokens(new Request(main+'/tokens?q=USDC'),env,ctx);assert.match(search.headers.get('X-Robots-Tag'),/noindex/);
+  const search=await cachedTokens(new Request(main+'/tokens?q=USDC'),env,ctx);assert.equal(search.headers.get('X-Robots-Tag'),null);
   const md=await cachedTokens(new Request(main+'/tokens',{headers:{Accept:'text/markdown'}}),env,ctx);assert.match(md.headers.get('Content-Type'),/text\/markdown/);assert.equal(stored.size,1);
   assert.equal((await cachedTokens(new Request(main+'/tokens?q=USDC'),unavailable,ctx)).status,503);
  }finally{if(previous===undefined)delete globalThis.caches;else globalThis.caches=previous;}
@@ -120,7 +120,7 @@ test('rendering, canonical and Markdown work across every network and page type'
   const json=JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)[1]);assert.equal(json['@graph'][0].url,main+path);
   const md=await get(path,{headers:{Accept:'text/markdown'}});assert.equal(md.status,200);assert.match(md.headers.get('Content-Type'),/text\/markdown/);assert.equal(md.headers.get('X-Robots-Tag'),null);assert.ok((await md.text()).startsWith('Canonical: '+main+path));
   const separate=new URL(main+path);separate.pathname+='.md';
-  const alternate=await worker.fetch(new Request(separate),env);assert.equal(alternate.status,200);assert.match(alternate.headers.get('X-Robots-Tag'),/noindex/);assert.equal(alternate.headers.get('Link'),`<${main+path}>; rel="canonical"`);
+  const alternate=await worker.fetch(new Request(separate),env);assert.equal(alternate.status,200);assert.equal(alternate.headers.get('X-Robots-Tag'),null);assert.equal(alternate.headers.get('Link'),`<${main+path}>; rel="canonical"`);
   const head=await get(path,{method:'HEAD'});assert.equal(head.status,200);assert.equal(await head.text(),'');
  }
 });
@@ -166,7 +166,7 @@ test('search, filters, pagination and unknown pages have deliberate indexing beh
  for(const path of ['/tokens/no-such-token','/tokens/constructor','/tokens/usdt/no-such-network','/tokens/usdt/base-extra','/networks/bitcoin/tokens','/networks/cronos/tokens','/tokens?page=0','/tokens?page=999999','/tokens?page=1.5','/tokens/documents.json?page=999999'])assert.equal((await get(path)).status,404,path);
  for(const [path,target]of [['/tokens/','/tokens'],['/tokens?page=1','/tokens'],['/tokens?network=base','/networks/base/tokens']]){const r=await get(path);assert.equal(r.status,308);assert.equal(r.headers.get('Location'),main+target);}
  const one=rows.find(a=>rows.filter(b=>b.coinID===a.coinID).length===1);const r=await get('/tokens/'+one.slug);assert.equal(r.status,308);assert.equal(r.headers.get('Location'),main+one.path);
- for(const q of ['USDC','<script>alert(1)</script>','zzyynotpresentxxxx']){const redirect=await get('/tokens?q='+encodeURIComponent(q)+'&network=base');assert.equal(redirect.status,308);const r=await worker.fetch(new Request(redirect.headers.get('Location')),env);assert.equal(r.status,200);assert.match(r.headers.get('X-Robots-Tag'),/noindex/);const html=await r.text();assert.ok(!html.includes('<script>alert(1)</script>'));assert.ok(html.includes('value="'+escapeHTML(q)+'"'));}
+ for(const q of ['USDC','<script>alert(1)</script>','zzyynotpresentxxxx']){const redirect=await get('/tokens?q='+encodeURIComponent(q)+'&network=base');assert.equal(redirect.status,308);const r=await worker.fetch(new Request(redirect.headers.get('Location')),env);assert.equal(r.status,200);assert.equal(r.headers.get('X-Robots-Tag'),null);const html=await r.text();assert.ok(!html.includes('<script>alert(1)</script>'));assert.ok(html.includes('value="'+escapeHTML(q)+'"'));}
  assert.equal((await get('/tokens',{method:'POST'})).status,405);
  assert.equal((await get('/tokens.md')).status,200);
  const discovery=await get('/tokens/documents.json');assert.equal(discovery.status,200);const d=await discovery.json();assert.equal(d.documents.length,100);assert.ok(d.next.endsWith('page=2'));
@@ -209,12 +209,12 @@ test('catalog redirects consolidate ignored filters without losing format or att
   assert.match(followed.headers.get('Content-Type'),target.includes('.md')?/text\/markdown/:/text\/html/);
  }
  for(const path of ['/tokens?page=2&page=3','/tokens?q=USDC&q=USDT','/tokens?network=base&network=ethereum','/tokens?network=constructor','/tokens?network=__proto__','/tokens/usdc/base?page=2&page=3','/tokens/not-a-token?page=2']){
-  const response=await get(path);assert.equal(response.status,404,path);assert.match(response.headers.get('X-Robots-Tag'),/noindex/);assert.equal(response.headers.get('Cache-Control'),'no-store');
+  const response=await get(path);assert.equal(response.status,404,path);assert.equal(response.headers.get('X-Robots-Tag'),null);assert.equal(response.headers.get('Cache-Control'),'no-store');
  }
  const html=await(await get('/networks/ethereum/tokens?q=USDC')).text();
  assert.match(html,/Ethereum token entries/);assert.doesNotMatch(html,/Base token entries/);
  const paths=[...html.matchAll(/class="token-row" href="([^"]+)"/g)].map(m=>m[1]);assert.ok(paths.length);assert.ok(paths.every(p=>p.endsWith('/ethereum')));
- const search=await get('/networks/ethereum/tokens?q=USDC',{headers:{Accept:'text/markdown'}});assert.match(search.headers.get('X-Robots-Tag'),/noindex/);
+ const search=await get('/networks/ethereum/tokens?q=USDC',{headers:{Accept:'text/markdown'}});assert.equal(search.headers.get('X-Robots-Tag'),null);
 });
 
 test('ignored and ambiguous page parameters never create token HTML cache entries',async()=>{

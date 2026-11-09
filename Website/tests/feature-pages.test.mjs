@@ -56,7 +56,7 @@ test('each feature is complete in initial HTML and Markdown, canonical and disco
   const schema=JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/)[1]);
   assert.equal(schema['@graph'].find(x=>x['@type']==='WebPage').url,url);
   assert.deepEqual(schema['@graph'].find(x=>x['@type']==='BreadcrumbList').itemListElement.map(x=>x.item),[origin+'/',origin+'/features',url]);
-  const md=await worker.fetch(new Request(url+'.md'),env);assert.equal(md.status,200);assert.ok(md.headers.get('Link').includes(url));assert.equal(md.headers.get('X-Robots-Tag'),'noindex');
+  const md=await worker.fetch(new Request(url+'.md'),env);assert.equal(md.status,200);assert.ok(md.headers.get('Link').includes(url));assert.equal(md.headers.get('X-Robots-Tag'),null);
   const text=await md.text();
   for(const str of [f.intro,...f.scope.map(s=>s.detail),...f.steps.map(s=>s.text),...f.questions.map(q=>q.a)]){assert.ok(html.includes(escape(str)),f.slug+' HTML');assert.ok(text.includes(str),f.slug+' Markdown');}
   for(const g of f.guides){assert.ok(help.articles.some(a=>a.slug===g.slug));assert.ok(html.includes('https://help.oathwallet.org/articles/'+g.slug));}

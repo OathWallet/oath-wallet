@@ -69,10 +69,10 @@ test('directory, search, asset hub, detail, network and transfer surfaces includ
   assert.doesNotMatch(await markdown.text(),/\nUS\s*\n/);
 });
 
-test('public metadata is noindex; unknown identities, methods, query URLs and failed metadata are handled explicitly',async()=>{
+test('public metadata has no indexing directive; unknown identities, methods, query URLs and failed metadata are handled explicitly',async()=>{
   const env=environment(),row=rows.find(a=>a.artwork);
   const metadata=await handleArtwork(new Request(origin+manifest.prefix+'/'+row.artwork.split('/').at(-1).slice(0,2)+'.json'),env);
-  assert.equal(metadata.headers.get('X-Robots-Tag'),'noindex');
+  assert.equal(metadata.headers.get('X-Robots-Tag'),null);
   for(const path of ['/token-artwork/invalid',row.artwork+'?source=https://example.com',row.artwork.replace(manifest.version,'0'.repeat(16)),`/token-artwork/${manifest.version}/${'0'.repeat(32)}`])assert.equal((await handleArtwork(new Request(origin+path),env)).status,404);
   assert.equal((await handleArtwork(new Request(origin+row.artwork,{method:'POST'}),env)).status,405);
   assert.equal((await handleArtwork(new Request(origin+row.artwork),{ASSETS:{fetch:async()=>new Response(null,{status:503})}})).status,503);

@@ -9,7 +9,7 @@ export async function handleTransferPreparation(request, env) {
   const url = new URL(request.url);
   if (!(url.origin === 'https://oathwallet.org' || ['localhost', '127.0.0.1'].includes(url.hostname))) return null;
   if (![transferPath, transferPath + '.md'].includes(url.pathname) || !url.search) return null;
-  const headers = {'Cache-Control':'no-store', 'X-Robots-Tag':'noindex, follow', 'Link':`<${canonical}>; rel="canonical"`, 'Vary':'Accept', 'X-Content-Type-Options':'nosniff'};
+  const headers = {'Cache-Control':'no-store', 'Link':`<${canonical}>; rel="canonical"`, 'Vary':'Accept', 'X-Content-Type-Options':'nosniff'};
   const failure = (status, text) => new Response(request.method === 'HEAD' ? null : text, {status, headers:{...headers, 'Content-Type':'text/plain; charset=utf-8', ...(status === 503 ? {'Retry-After':'60'} : {})}});
   if (!['GET','HEAD'].includes(request.method)) return new Response(null, {status:405, headers:{...headers, Allow:'GET, HEAD'}});
   if ([...url.searchParams.keys()].some(key => !['token','network'].includes(key))) {
@@ -33,8 +33,7 @@ export async function handleTransferPreparation(request, env) {
     const markdown = url.pathname.endsWith('.md') || wantsMarkdown(request.headers.get('Accept') || '');
     // Markdown includes only the selected entry; HTML retains this group's other
     // entries for local selection without a provider or full-catalog download.
-    html = html.replace(markers, renderTransferPreparation(markdown ? [asset] : group.assets, manifest.networks, asset.path))
-      .replace(/(<meta name="robots" content=")[^"]*"/, '$1noindex,follow"');
+    html = html.replace(markers, renderTransferPreparation(markdown ? [asset] : group.assets, manifest.networks, asset.path));
     if (!['tether','usd-coin'].includes(group.coinID)) html = html.replace(/<section data-transfer-sources>[\s\S]*?<\/section>/, `<section><h2>Check the catalog source</h2><p><a href="https://www.coingecko.com/en/coins/${encodeURIComponent(group.coinID)}">Catalog provider asset record</a>. Verify the exact identifier with the issuer and sending service before transferring.</p></section>`);
     headers['X-Oath-Catalog-Version'] = manifest.version;
     headers['Content-Type'] = markdown ? 'text/markdown; charset=utf-8' : 'text/html; charset=utf-8';

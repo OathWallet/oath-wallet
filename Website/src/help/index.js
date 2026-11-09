@@ -26,7 +26,7 @@ export async function handleHelp(request, env) {
   if (url.pathname === '/') body=home(data);
   else if (url.pathname === '/search') body=searchResults(data,(url.searchParams.get('q')||'').trim().slice(0,120));
   else if (url.pathname === '/robots.txt') {
-    // Search pages carry noindex. Let Google crawl them to see that directive.
+    // Search pages are crawlable, like the rest of the Help Center.
     type='text/plain; charset=utf-8';body=publicSearchRobots(HELP_ORIGIN);
   }
   else if (url.pathname === '/sitemap.xml') {

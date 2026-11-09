@@ -10,7 +10,7 @@ export async function handleSearchVerification(request, env) {
   const asset = await env.ASSETS.fetch(request);
   const headers = new Headers(asset.headers);
   headers.set('Content-Type', url.pathname.endsWith('.xml') ? 'application/xml; charset=utf-8' : url.pathname.endsWith('.html') ? 'text/html; charset=utf-8' : 'text/plain; charset=utf-8');
-  headers.set('X-Robots-Tag','noindex');
+
   headers.set('Cache-Control','public, max-age=3600');
   return new Response(request.method==='HEAD'?null:asset.body, {status:asset.status,headers});
 }

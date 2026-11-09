@@ -87,18 +87,17 @@ export async function handleAgentContent(request,env) {
  const headers={'Content-Type':'text/markdown; charset=utf-8','Cache-Control':'public, max-age=60, stale-while-revalidate=120','X-Content-Type-Options':'nosniff','Access-Control-Allow-Origin':'*'};
  let body;
  if(u.pathname==='/llms.txt') {
-  body=guide(u.origin);headers['Content-Type']='text/plain; charset=utf-8';headers['X-Robots-Tag']='noindex';
+  body=guide(u.origin);headers['Content-Type']='text/plain; charset=utf-8';
  } else if(u.pathname==='/release-status.json') {
-  body=JSON.stringify(currentStatus);headers['Content-Type']='application/json; charset=utf-8';headers['X-Robots-Tag']='noindex';
+  body=JSON.stringify(currentStatus);headers['Content-Type']='application/json; charset=utf-8';
  } else if(u.pathname==='/agent-documents.json') {
-  body=JSON.stringify({schema_version:1,current_status:currentStatus,source_evidence:evidenceScope,token_catalog:tokenDiscovery,documents:documents.filter(d=>u.origin===main||new URL(d.url).origin===u.origin).map(publicDocument)});headers['Content-Type']='application/json; charset=utf-8';headers['X-Robots-Tag']='noindex';
+  body=JSON.stringify({schema_version:1,current_status:currentStatus,source_evidence:evidenceScope,token_catalog:tokenDiscovery,documents:documents.filter(d=>u.origin===main||new URL(d.url).origin===u.origin).map(publicDocument)});headers['Content-Type']='application/json; charset=utf-8';
  } else {
   const d=documents.find(d=>d.markdown_url===u.origin+u.pathname || d.url===u.origin+u.pathname);
   if(!d)return null;
   const negotiated=d.url===u.origin+u.pathname;
   if(negotiated&&!wantsMarkdown(request.headers.get('Accept')||''))return null;
   if(negotiated)headers.Vary='Accept';
-  else if(['feature','decision-guide'].includes(d.kind))headers['X-Robots-Tag']='noindex';
   try {
    const asset=d.file?await env.ASSETS.fetch(new Request(main+d.file)):undefined;
    if(asset){for(const [k,v] of asset.headers)if(!['content-length','content-encoding','etag','last-modified','content-type','link','vary','cache-control','access-control-allow-origin','x-content-type-options','x-robots-tag'].includes(k))headers[k]=v;}

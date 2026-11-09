@@ -69,9 +69,9 @@ async function fetchCandidate(source,fetcher,signal) {
 const fallback=initials=>new Response(`<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" rx="18" fill="#242427"/><text x="40" y="46" text-anchor="middle" fill="#d6d4cd" font-family="sans-serif" font-size="22">${String(initials).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}</text></svg>`,{headers:{...security,'Content-Type':'image/svg+xml','Cache-Control':'public, max-age=60','X-Oath-Artwork':'fallback'}});
 export async function handleArtwork(request,env,ctx) {
   const u=new URL(request.url);
-  if(u.pathname.startsWith('/token-artwork-data/')) {const response=await env.ASSETS.fetch(request),headers=new Headers(response.headers);headers.set('X-Robots-Tag','noindex');return new Response(request.method==='HEAD'?null:response.body,{status:response.status,headers});}
+  if(u.pathname.startsWith('/token-artwork-data/')) {const response=await env.ASSETS.fetch(request),headers=new Headers(response.headers);return new Response(request.method==='HEAD'?null:response.body,{status:response.status,headers});}
   if(!u.pathname.startsWith('/token-artwork/'))return null;
-  const fail=status=>new Response(null,{status,headers:{...security,'Cache-Control':'no-store','X-Robots-Tag':'noindex',...(status===405?{Allow:'GET, HEAD'}:{})}});
+  const fail=status=>new Response(null,{status,headers:{...security,'Cache-Control':'no-store',...(status===405?{Allow:'GET, HEAD'}:{})}});
   if(!['GET','HEAD'].includes(request.method))return fail(405);
   const match=/^\/token-artwork\/([a-f0-9]{16})\/([a-f0-9]{32})$/.exec(u.pathname);
   if(!match || match[1]!==manifest.version || u.search)return fail(404);
