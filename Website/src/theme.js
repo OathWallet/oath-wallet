@@ -1,18 +1,20 @@
 // The legacy site uses several template renderers. This shared palette adapter
 // gives their CSS the same semantic appearance without changing image pixels.
+// Match OathNeutralColors in OathAtmosphere/OathColorway.swift: white canvas,
+// #F0F0F0 fields. Neutral labels approximate native light appearance.
 export const palette = {
- '0d0d0f':'f2f1ed','131315':'f2f1ed','1b1b1f':'f2f1ed','2b2b2e':'d5d3cc','444448':'d5d3cc','83838e':'62615b','88888f':'62615b','888890':'62615b','888892':'62615b','8f8f99':'62615b','92929c':'62615b','97979f':'62615b','9999a1':'62615b','9db9ff':'494842','a2a2aa':'62615b','a9a9ae':'62615b','a9a9b1':'62615b','aaa9ae':'62615b','aaaab4':'62615b','b5b5bc':'494842','bcce98':'494842','bdbdc2':'494842','c3d2f4':'494842','c4c1b8':'494842','c8c7c2':'494842',
- '0a0a0b':'faf9f6','0b0b0d':'faf9f6','000000':'ffffff','111111':'f5f4f0',
- '111112':'f2f1ed','111113':'f2f1ed','101011':'f5f4f0','141416':'efeee9',
- '151516':'f0efeb','151517':'f0efeb','181819':'eeede8','1a1a1d':'eae9e4',
- '1b1b1c':'e8e7e2','1b1b1e':'e8e7e2','202023':'e5e4df','242425':'e2e1dc',
- '242426':'e2e1dc','242427':'e2e1dc','282829':'d9d8d2','303034':'d2d1cb',
- '333333':'d5d3cc','333337':'d5d3cc','393938':'c4c2ba','39393d':'c4c2ba',
- '434340':'b7b5ad','f2f0ea':'20201e','ffffff':'111111','eeece6':'252523',
- 'd6d4cd':'3c3b37','d6d3cd':'3c3b37','c5c3bd':'494842','b9b7b0':'55544e',
- 'a5a39d':'62615b','aaa8a2':'62615b','aaaaaa':'62615b','96948c':'66645d',
- '8e8c86':'6b6962','6e6c67':'77746c','777777':'77746c','77756f':'77746c',
- '62605a':'b9b7b0','383735':'d6d4cd',
+ '0d0d0f':'f0f0f0','131315':'f0f0f0','1b1b1f':'f0f0f0','2b2b2e':'d5d5d5','444448':'d5d5d5','83838e':'636363','88888f':'636363','888890':'636363','888892':'636363','8f8f99':'636363','92929c':'636363','97979f':'636363','9999a1':'636363','9db9ff':'494949','a2a2aa':'636363','a9a9ae':'636363','a9a9b1':'636363','aaa9ae':'636363','aaaab4':'636363','b5b5bc':'494949','bcce98':'494949','bdbdc2':'494949','c3d2f4':'494949','c4c1b8':'494949','c8c7c2':'494949',
+ '0a0a0b':'ffffff','0b0b0d':'ffffff','000000':'ffffff','111111':'f0f0f0',
+ '111112':'f0f0f0','111113':'f0f0f0','101011':'f0f0f0','141416':'f0f0f0',
+ '151516':'f0f0f0','151517':'f0f0f0','181819':'f0f0f0','1a1a1d':'ebebeb',
+ '1b1b1c':'e8e8e8','1b1b1e':'e8e8e8','202023':'e5e5e5','242425':'e2e2e2',
+ '242426':'e2e2e2','242427':'e2e2e2','282829':'d9d9d9','303034':'d2d2d2',
+ '333333':'d5d5d5','333337':'d5d5d5','393938':'c4c4c4','39393d':'c4c4c4',
+ '434340':'b7b7b7','f2f0ea':'000000','ffffff':'000000','eeece6':'252525',
+ 'd6d4cd':'3c3c3c','d6d3cd':'3c3c3c','c5c3bd':'494949','b9b7b0':'555555',
+ 'a5a39d':'636363','aaa8a2':'636363','aaaaaa':'636363','96948c':'666666',
+ '8e8c86':'6b6b6b','6e6c67':'737373','777777':'737373','77756f':'737373',
+ '62605a':'b9b9b9','383735':'d6d6d6',
  '1a1c19':'edf2e9','353b32':'c7d3bf','d4decf':'35462e','bdc5b9':'4d5e46',
  'b8d2bc':'315d3b','edbaab':'8c3d26','ed9c8c':'983a27','91caa8':'286341',
  '6da7ff':'175fc2','b7d5ff':'174c9b','b3c6ff':'314ea5'
@@ -48,8 +50,16 @@ export function themeDocument(html,{bootstrap=true}={}) {
  // Theme color follows the selected appearance; the pre-paint bootstrap adds it.
  return html.replace(/<meta\s+name=['"]theme-color['"][^>]*>/gi,'');
 }
+// Already-light utility pages share the same neutral surfaces and labels.
+const lightUtilityPalette = {
+ 'fafbf7':'ffffff','f6f7f3':'f0f0f0','edf2e7':'f0f0f0','e8eee3':'f0f0f0',
+ 'e7ebe3':'ebebeb','edf0e8':'f0f0f0','f0f3e9':'f0f0f0','f2f2f7':'f0f0f0','e5e5ea':'e5e5e5',
+ '25312a':'000000','1d2921':'000000','1b3023':'000000','475640':'494949',
+ '57655b':'636363','61705f':'636363','6e7b66':'636363','788077':'737373',
+ '7c847c':'737373','d5dbd2':'d5d5d5','e1e6dc':'e5e5e5'
+};
 export function paletteCSS() {
- const dayValues=light=>Object.entries(dayPalette).map(([day,dark])=>`--oath-day-c-${day}:#${light?day:dark};--oath-day-rgb-${day}:${rgb(light?day:dark)};`).join('');
+ const dayValues=light=>Object.entries(dayPalette).map(([day,dark])=>{const color=light?(lightUtilityPalette[day]||day):dark;return `--oath-day-c-${day}:#${color};--oath-day-rgb-${day}:${rgb(color)};`;}).join('');
  const values = light=>Object.entries(palette).map(([dark,day])=>`--oath-c-${dark}:#${light?day:dark};--oath-rgb-${dark}:${rgb(light?day:dark)};`).join('');
  return `:root{--oath-color-scheme:light;color-scheme:light;${values(true)}${dayValues(true)}}\n:root[data-oath-theme="dark"]{--oath-color-scheme:dark;color-scheme:dark;${values(false)}${dayValues(false)}}\n/* Product screenshots and press-kit specimens retain their exact brand colors. */\n:is([data-preview-device],.press-art,.press-swatch,.press-cover,.press-demonstrations,.press-donts){${values(false)}}\n`;
 }
