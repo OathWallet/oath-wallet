@@ -1,3 +1,4 @@
+import compatibility from '../content/compatibility/catalog.json' with {type:'json'};
 import {sharePreviewVersion} from '../src/brand.js';
 import decisionGuides from '../content/decision-guides.json' with {type:'json'};
 import features from '../content/features.json' with {type:'json'};
@@ -24,7 +25,7 @@ test('old support URLs permanently redirect to the canonical Help Center',async(
  }
  const sitemap=await(await worker.fetch(new Request('https://oathwallet.org/sitemaps/pages.xml'),env)).text();
  assert.doesNotMatch(sitemap,/\/support|\/articles|articles\.oathwallet/);
- assert.equal([...sitemap.matchAll(/<loc>/g)].length,9 + networks.networks.length + features.features.length + decisionGuides.pages.length);
+ assert.equal([...sitemap.matchAll(/<loc>/g)].length,9 + compatibility.pages.length + networks.networks.length + features.features.length + decisionGuides.pages.length);
 });
 test('article sitemap covers canonical editions with real modification dates and correct Markdown canonicals',async()=>{
  const sitemap=await(await handleArticleHost(new Request('https://articles.oathwallet.org/sitemap.xml'),env)).text();

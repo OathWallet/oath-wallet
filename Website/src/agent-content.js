@@ -1,3 +1,4 @@
+import compatibility from '../content/compatibility/catalog.json' with {type:'json'};
 import decisionGuides from '../content/decision-guides.json' with {type:'json'};
 import featureCatalog from '../content/features.json' with {type:'json'};
 import networkCatalog from '../content/networks.json' with {type:'json'};
@@ -12,6 +13,7 @@ const main='https://oathwallet.org', support='https://help.oathwallet.org', arti
 const pages=['index','features','about','networks','press','security','bug-bounty','terms','privacy'];
 const articlePath=p=>p.replace(/\/articles(?=\/|$)/,'')||'/';
 export const documents=[
+ ...compatibility.pages.map(p=>({url:main+p.path,markdown_url:main+p.path+'.md',title:p.title,summary:p.description,kind:'compatibility',file:p.path+'.md',updated_at:p.updated})),
  ...decisionGuides.pages.map(p=>({url:main+p.path,markdown_url:main+p.path+'.md',title:p.title,summary:p.description,kind:'decision-guide',file:p.path+'.md',updated_at:decisionGuides.updated})),
  ...featureCatalog.features.map(f=>({url:main+f.path,markdown_url:main+f.path+'.md',title:f.name,summary:f.description,kind:'feature',file:f.path+'.md',updated_at:featureCatalog.reviewed,app_version:featureCatalog.version})),
  ...networkCatalog.networks.map(n=>({url:main+'/networks/'+n.slug,markdown_url:main+'/networks/'+n.slug+'.md',title:n.name+' wallet: send, receive and dApp connections',summary:n.intro,kind:'network',file:'/networks/'+n.slug+'.md',updated_at:networkCatalog.reviewed})),

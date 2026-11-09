@@ -66,3 +66,8 @@ Oath 4.0.3 app screenshot with sample data. The address options depend on the im
 - [Check backup-format restrictions](https://oathwallet.org/features/icloud-wallet-backup)
 - [Find the network fee asset](https://oathwallet.org/networks/fees)
 - [Read current release information](https://articles.oathwallet.org/oath-wallet-release-history)
+
+
+## Compare the versioned evidence
+
+The [Wallet Compatibility Lab](https://oathwallet.org/compatibility) separates source review, reference-library checks and tests of Oath’s released Bitcoin core. [Read the November 9, 2026 results](https://oathwallet.org/compatibility/2026-11-09) for the exact account types, source revision, passing checks and limitations. Installed third-party apps and funded migrations were not tested in that edition.

@@ -1,5 +1,5 @@
 // Offline public-fixture checks only. No wallet inputs, signing, RPC or live funds.
-// Usage: node scripts/verify-migration-compatibility.mjs <released-checkout> <wallet-core-package-directory>
+// Usage: node scripts/verify-migration-compatibility.mjs <released-checkout> <wallet-core-package-directory> [output-json]
 // Install @trustwallet/wallet-core@4.8.4 in a temporary directory, never in the website bundle.
 import assert from 'node:assert/strict';
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
@@ -8,7 +8,7 @@ import {execFileSync} from 'node:child_process';
 import {createRequire} from 'node:module';
 import {resolve,join} from 'node:path';
 import catalog from '../content/wallet-migrations.json' with {type:'json'};
-const [release,packageDir]=process.argv.slice(2).map(p=>resolve(p));
+const [release,packageDir,outputFile]=process.argv.slice(2).map(p=>resolve(p));
 assert.ok(release&&packageDir,'Supply the released checkout and Wallet Core package directory');
 assert.equal(execFileSync('git',['rev-parse','HEAD'],{cwd:release,encoding:'utf8'}).trim(),catalog.sourceCommit);
 const pkg=JSON.parse(await readFile(join(packageDir,'package.json'),'utf8'));
@@ -65,5 +65,5 @@ base.delete();extended.delete();
 const electrum=JSON.parse(await read('Packages/OathBitcoin/Tests/OathBitcoinTests/Fixtures/electrum-reference.json'));
 const report={checkedAt:new Date().toISOString(),version:catalog.version,build:catalog.build,sourceCommit:catalog.sourceCommit,walletCore:pkg.version,method:'Released-source path comparison plus upstream Wallet Core WASM public fixtures. This does not execute the iOS app importer.',checks,sources,electrumFixtureInventory:{fixtures:electrum.length,addresses:electrum.reduce((n,v)=>n+v.addresses.length,0),kinds:[...new Set(electrum.map(v=>v.kind))].sort()},notPerformed:['iOS runtime or simulator tests','physical device tests','live funded transfers','all source-wallet versions or configurations']};
 const output=new URL('../Reports/wallet-migrations/',import.meta.url);await mkdir(output,{recursive:true});
-await writeFile(new URL('compatibility.json',output),JSON.stringify(report,null,2)+'\n');
+await writeFile(outputFile || new URL('compatibility.json',output),JSON.stringify(report,null,2)+'\n');
 console.log(`${checks.length} offline derivation checks passed; source hashes and limits recorded.`);

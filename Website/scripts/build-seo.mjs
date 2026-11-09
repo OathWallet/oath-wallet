@@ -1,3 +1,4 @@
+import compatibility from '../content/compatibility/catalog.json' with {type:'json'};
 import priorityGuidance from '../content/priority-guidance.json' with {type:'json'};
 import decisionGuides from '../content/decision-guides.json' with {type:'json'};
 // Canonical metadata and visible navigation for the existing three-site layout.
@@ -151,10 +152,12 @@ await write('articles.html',archive);
 // The main sitemap must not retain moved support or article URLs.
 const currentSitemap=await read('sitemap.xml');
 const oldSitemap=currentSitemap.includes('<sitemapindex')?await read('sitemaps/pages.xml'):currentSitemap;
-const mainPaths=[...decisionGuides.pages.map(p=>p.path),'/','/features','/press','/terms','/privacy','/security','/bug-bounty','/about','/networks',...networkCatalog.networks.map(n=>'/networks/'+n.slug),...featureCatalog.features.map(f=>f.path)];
+const mainPaths=[...compatibility.pages.map(p=>p.path),...decisionGuides.pages.map(p=>p.path),'/','/features','/press','/terms','/privacy','/security','/bug-bounty','/about','/networks',...networkCatalog.networks.map(n=>'/networks/'+n.slug),...featureCatalog.features.map(f=>f.path)];
 const dates=new Map([...oldSitemap.matchAll(/<url>[\s\S]*?<loc>([^<]+)<\/loc>[\s\S]*?<lastmod>([^<]+)<\/lastmod>[\s\S]*?<\/url>/g)].map(m=>[m[1],m[2]]));
 dates.set('https://oathwallet.org/press','2026-10-31');
 for (const path of mainPaths) {
+ const lab=compatibility.pages.find(p=>p.path===path);
+ if(lab){dates.set('https://oathwallet.org'+path,lab.updated);continue;}
  if(priorityGuidance.pages[path]?.updated) dates.set('https://oathwallet.org'+path,priorityGuidance.pages[path].updated);
  else if(decisionGuides.pages.some(p=>p.path===path)||priorityGuidance.pages[path]||path==='/about') dates.set('https://oathwallet.org'+path,'2026-11-06');
  else if(path==='/features'||path.startsWith('/features/')) dates.set('https://oathwallet.org'+path,featureCatalog.reviewed);

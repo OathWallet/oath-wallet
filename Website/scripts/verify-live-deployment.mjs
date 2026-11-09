@@ -292,3 +292,22 @@ for(let offset=0;offset<directoryChecks.length;offset+=5)await Promise.all(direc
 console.log(`Verified direct page browsing and collection metadata for all ${directoryChecks.length} catalog directories.`);
 
 await verifyIndexingPolicy();
+
+// Compatibility findings and downloads must be the accepted edition in this commit.
+const {default:compatibility}=await import('../content/compatibility/catalog.json',{with:{type:'json'}});
+for(const page of compatibility.pages){
+ const url='https://oathwallet.org'+page.path,response=await fetch(url,{signal:AbortSignal.timeout(20000)});
+ assert.equal(response.status,200,url);const html=stripCloudflareLabyrinth(await response.text());
+ const local=await readFile(new URL('../public'+page.path+'.html',import.meta.url),'utf8');
+ assert.equal(html.match(/<main\b[\s\S]*?<\/main>/)?.[0],local.match(/<main\b[\s\S]*?<\/main>/)?.[0],url+' compatibility content differs from commit');
+ assert.ok(html.includes(`<link rel="canonical" href="${url}">`));
+ assert.doesNotMatch(html.match(/<main\b[\s\S]*?<\/main>/)?.[0]||'',/<(?:input|textarea|iframe)\b/i);
+ const doc=documents.find(d=>d.url===url),md=await fetch(doc.markdown_url,{signal:AbortSignal.timeout(20000)});
+ assert.equal(md.status,200);assert.equal(await md.text(),await documentText(doc,{},new Response(await readFile(new URL('../public'+doc.file,import.meta.url)))));
+}
+for(const edition of compatibility.editions)for(const extension of ['json','csv']){
+ const path=`/compatibility/${edition}.${extension}`,response=await fetch('https://oathwallet.org'+path,{signal:AbortSignal.timeout(20000)});
+ assert.equal(response.status,200,path);assert.ok(response.headers.get('Link').includes(`/compatibility/${edition}>; rel="canonical"`));
+ assert.equal(await response.text(),await readFile(new URL('../public'+path,import.meta.url),'utf8'),path+' differs from accepted edition');
+}
+console.log(`Verified ${compatibility.pages.length} Compatibility Lab pages and ${compatibility.editions.length} accepted editions, including exact HTML, Markdown, JSON and CSV.`);
