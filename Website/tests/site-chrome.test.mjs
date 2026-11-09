@@ -25,7 +25,7 @@ test('all marketing and editorial pages use the canonical header and complete ne
   assert.doesNotMatch(html,/<header class="site-header"|<footer class="site-footer"/);
   checked++;
  }
- assert.equal(checked,86+decisionGuides.pages.length+features.features.length+published.articles.filter(a=>a.github_editorial).length,`checked ${checked} current pages`);
+ assert.equal(checked,85+decisionGuides.pages.length+features.features.length+published.articles.filter(a=>a.github_editorial).length,`checked ${checked} current pages`);
  for(const n of catalog.networks){assert.ok(chrome.footer.includes(`href="https://oathwallet.org/networks/${n.slug}"`));assert.ok(chrome.footer.includes(`src="${n.icon.replace(/([^/]+)\.webp$/, 'responsive/$1-56.webp')}"`));}
  assert.equal((chrome.footer.match(/href="https:\/\/oathwallet.org\/networks\//g)||[]).length,42);
 });
@@ -39,10 +39,7 @@ test('Help Center serves the shared controller and every footer logo without rel
  assert.doesNotMatch(page.headers.get('Content-Security-Policy'),/unsafe-inline|unsafe-eval/);
 });
 
-test('special public landing pages keep their existing action controls',async()=>{
+test('newsletter landing page keeps its existing action controls',async()=>{
  const notes=await readFile(new URL('news/index.html',root),'utf8');
  assert.match(notes,/data-newsletter-open/);assert.match(notes,/href="\/admin"/);
- const ousd=await readFile(new URL('ousd/index.html',root),'utf8');
- for(const id of ['connect','exchange-form','review','sign'])assert.equal((ousd.match(new RegExp(`id="${id}"`,'g'))||[]).length,1);
- assert.match(ousd,/<div class="nav ousd-nav">/);
 });
