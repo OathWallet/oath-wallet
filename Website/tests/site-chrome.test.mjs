@@ -10,13 +10,13 @@ import {handleHelp} from '../src/help/index.js';
 const root=new URL('../public/',import.meta.url);
 async function files(dir){return (await Promise.all((await readdir(dir,{withFileTypes:true})).map(e=>e.isDirectory()?files(new URL(e.name+'/',dir)):[new URL(e.name,dir)]))).flat();}
 test('all marketing and editorial pages use the canonical header and complete network footer',async()=>{
- const chrome=await buildSiteChrome();const light=await buildSiteChrome({light:true});let checked=0;
+ const chrome=await buildSiteChrome();let checked=0;
  assert.equal(await readFile(new URL('site-chrome.css',root),'utf8'),chrome.css);
  for(const file of await files(root)){
   if(!file.pathname.endsWith('.html')||file.pathname.endsWith('.dc.html'))continue;
   const html=await readFile(file,'utf8');
   if(!html.includes('oath-shared-header:start')&&!html.includes('id="oath-server-content"'))continue;
-  const expected=file.pathname.endsWith("/news/index.html")?light:chrome;
+  const expected=chrome;
   assert.ok(html.includes(expected.header),file.pathname);
   assert.ok(html.includes(expected.footer),file.pathname);
   assert.equal((html.match(/<header\b/g)||[]).length,1,file.pathname);

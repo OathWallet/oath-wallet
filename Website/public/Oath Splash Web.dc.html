@@ -9,7 +9,7 @@
 <template data-oath-template>
 <x-dc>
 <sc-if value="{{ show }}" hint-placeholder-val="{{ true }}">
-  <div aria-hidden="true" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#0A0A0B;opacity:{{ coverO }};transition:{{ coverTr }};pointer-events:{{ pe }}">
+  <div aria-hidden="true" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:var(--oath-c-0a0a0b);opacity:{{ coverO }};transition:{{ coverTr }};pointer-events:{{ pe }}">
     <img src="{{ mark }}" alt="" style="display:block;width:128px;height:86px;transform:{{ markT }};opacity:{{ markO }};transition:{{ markTr }};will-change:transform,opacity" role="presentation">
   </div>
 </sc-if>

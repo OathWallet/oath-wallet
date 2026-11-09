@@ -5,7 +5,7 @@ import {brandUrls} from './brand-urls.mjs';
 import {buildSiteChrome} from './build-help-chrome.mjs';
 const root=new URL('../public/',import.meta.url);
 const chrome=await buildSiteChrome();
-const lightChrome=await buildSiteChrome({light:true});
+const lightChrome=await buildSiteChrome();
 await writeFile(new URL('site-chrome.css',root),chrome.css);
 const header=`<!-- oath-shared-header:start -->${chrome.header}<!-- oath-shared-header:end -->`;
 const footer=`<!-- oath-shared-footer:start -->${chrome.footer}<!-- oath-shared-footer:end -->`;

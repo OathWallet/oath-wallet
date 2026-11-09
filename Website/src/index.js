@@ -1,3 +1,4 @@
+import {applyTheme} from './theme.js';
 import {handleSecurityTxt} from './security-txt.js';
 import {handleSearchVerification} from './search-verification.js';
 import {handleArtwork} from './artwork-route.js';
@@ -23,8 +24,9 @@ const hstsPolicy = 'max-age=31536000; includeSubDomains; preload';
 export default {
   async scheduled(_event, env, ctx) { ctx.waitUntil(newsletterScheduled(env)); },
   async fetch(request, env, ctx) {
+    const themePath = new URL(request.url).pathname;
     let response;
-    const special = handleSecurityTxt(request) || await handleSearchVerification(request, env) || handleRetiredArticle(request) || await handleTransferPreparation(request, env) || await handleAgentContent(request, env) || await handleOusd(request, env) || handleWalletLinks(request) || await handleHelp(request, env) || await handleArticleHost(request, env);
+    const special = (['/theme.js','/theme.css'].includes(themePath) ? await env.ASSETS.fetch(request) : null) || handleSecurityTxt(request) || await handleSearchVerification(request, env) || handleRetiredArticle(request) || await handleTransferPreparation(request, env) || await handleAgentContent(request, env) || await handleOusd(request, env) || handleWalletLinks(request) || await handleHelp(request, env) || await handleArticleHost(request, env);
     const newsletter = special || await handleNewsletter(request, env);
     if (newsletter) {
       response = newsletter;
@@ -42,6 +44,7 @@ export default {
         response = new HTMLRewriter().on('head', {element(el) { el.append('<script src="/visitor-events.js" defer></script><link rel="stylesheet" href="/newsletter.css"><script src="/newsletter.js" defer></script>', {html:true}); }}).transform(response);
       }
     }
+    response = await applyTheme(request, response);
     response = addAgentDiscovery(request, response);
     // Cover assets, redirects, API responses and 404s with the same HTTPS policy.
     if (new URL(request.url).protocol !== 'https:') return response;

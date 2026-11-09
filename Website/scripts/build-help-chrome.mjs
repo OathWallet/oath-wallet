@@ -3,6 +3,7 @@
 import {readFile, writeFile} from 'node:fs/promises';
 import {runInNewContext} from 'node:vm';
 import {fileURLToPath} from 'node:url';
+import {themeCSS} from '../src/theme.js';
 
 const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function value(expression, scope) {
@@ -106,7 +107,7 @@ export async function buildSiteChrome({light=false}={}) {
     +'#oath-network-menu::backdrop{background:rgba(0,0,0,.45);backdrop-filter:blur(5px)}\n'
     +'@media print{.oath-site-header,.oath-site-footer{display:none}.oath-site-header + main{margin-top:0}}\n';
   const note='// Generated from public/Oath Header.dc.html and public/Oath Footer.dc.html. Run npm run build:help-chrome.\n';
-  return {header:'<div class="oath-site-header">'+headerHTML+'</div>',footer:'<div class="oath-site-footer">'+wideFooter.html+'</div>',module:note+html,css:'/* Generated from the main website components. Do not edit directly. */\n@import url("/assets/fonts/oath-fonts.css");\n'+css};
+  return {header:'<div class="oath-site-header">'+headerHTML+'</div>',footer:'<div class="oath-site-footer">'+wideFooter.html+'</div>',module:note+html,css:'/* Generated from the main website components. Do not edit directly. */\n@import url("/assets/fonts/oath-fonts.css");\n'+themeCSS(css)};
 }
 export const buildHelpChrome = () => buildSiteChrome();
 if(process.argv[1]===fileURLToPath(import.meta.url)){

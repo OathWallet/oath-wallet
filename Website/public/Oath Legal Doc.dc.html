@@ -8,48 +8,48 @@
 <body>
 <template data-oath-template>
 <x-dc>
-<section data-screen-label="Legal document" style="max-width:1320px;margin:0 auto;padding:clamp(120px,17vw,170px) clamp(20px,5vw,32px) clamp(96px,12vw,140px);color:#F2F0EA">
-  <span style="font:400 12.5px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:#8E8C86">Legal</span>
-  <h1 style="margin:24px 0 0;font:400 clamp(52px,9vw,148px)/.9 'Instrument Serif',serif;letter-spacing:-.025em">{{ d.title }} <em style="color:#8E8C86">{{ d.titleEm }}</em></h1>
-  <div style="margin-top:clamp(28px,4vw,40px);display:flex;flex-wrap:wrap;gap:10px 28px;font:400 13px/1.4 'IBM Plex Mono',monospace;color:#8E8C86">
+<section data-screen-label="Legal document" style="max-width:1320px;margin:0 auto;padding:clamp(120px,17vw,170px) clamp(20px,5vw,32px) clamp(96px,12vw,140px);color:var(--oath-c-f2f0ea)">
+  <span style="font:400 12.5px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--oath-c-8e8c86)">Legal</span>
+  <h1 style="margin:24px 0 0;font:400 clamp(52px,9vw,148px)/.9 'Instrument Serif',serif;letter-spacing:-.025em">{{ d.title }} <em style="color:var(--oath-c-8e8c86)">{{ d.titleEm }}</em></h1>
+  <div style="margin-top:clamp(28px,4vw,40px);display:flex;flex-wrap:wrap;gap:10px 28px;font:400 13px/1.4 'IBM Plex Mono',monospace;color:var(--oath-c-8e8c86)">
     <span>Last updated · {{ d.updated }}</span><span>Effective · {{ d.updated }}</span><span>{{ readTime }}</span>
   </div>
 
-  <div style="margin-top:clamp(40px,6vw,64px);border-radius:clamp(22px,3vw,28px);background:#F2F0EA;color:#0A0A0B;padding:clamp(20px,3vw,32px);display:flex;flex-direction:column;gap:14px">
+  <div style="margin-top:clamp(40px,6vw,64px);border-radius:clamp(22px,3vw,28px);background:var(--oath-c-f2f0ea);color:var(--oath-c-0a0a0b);padding:clamp(20px,3vw,32px);display:flex;flex-direction:column;gap:14px">
     <span style="font:400 12px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:#5E5C57">In short</span>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px 28px">
       <sc-for list="{{ d.summary }}" as="s" hint-placeholder-count="3">
-        <div style="display:flex;gap:12px;align-items:flex-start"><span style="flex:none;width:22px;height:22px;margin-top:2px;border-radius:50%;background:#0A0A0B;color:#F2F0EA;display:flex;align-items:center;justify-content:center;font:600 11px/1 'Instrument Sans',sans-serif">✓</span><span style="font:400 clamp(19px,1.8vw,23px)/1.3 'Instrument Serif',serif">{{ s }}</span></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span style="flex:none;width:22px;height:22px;margin-top:2px;border-radius:50%;background:var(--oath-c-0a0a0b);color:var(--oath-c-f2f0ea);display:flex;align-items:center;justify-content:center;font:600 11px/1 'Instrument Sans',sans-serif">✓</span><span style="font:400 clamp(19px,1.8vw,23px)/1.3 'Instrument Serif',serif">{{ s }}</span></div>
       </sc-for>
     </div>
   </div>
 
   <div style="margin-top:clamp(56px,8vw,96px);display:grid;grid-template-columns:{{ cols }};gap:clamp(32px,5vw,80px);align-items:start">
-    <nav style="position:{{ navPos }};top:110px;display:flex;flex-direction:column;border-top:1px solid rgba(242,240,234,.12)">
-      <span style="padding:16px 0 10px;font:400 12px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:#8E8C86">Contents</span>
+    <nav style="position:{{ navPos }};top:110px;display:flex;flex-direction:column;border-top:1px solid rgba(var(--oath-rgb-f2f0ea),.12)">
+      <span style="padding:16px 0 10px;font:400 12px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--oath-c-8e8c86)">Contents</span>
       <sc-for list="{{ toc }}" as="t" hint-placeholder-count="10">
-        <a href="{{ t.href }}" style="display:flex;gap:12px;padding:9px 0;font:400 15px/1.35 'Instrument Sans',sans-serif;color:{{ t.c }};transition:color .3s" style-hover="color:#FFFFFF"><span style="flex:none;width:22px;font:400 12px/1.6 'IBM Plex Mono',monospace;color:#6E6C67">{{ t.n }}</span>{{ t.t }}</a>
+        <a href="{{ t.href }}" style="display:flex;gap:12px;padding:9px 0;font:400 15px/1.35 'Instrument Sans',sans-serif;color:{{ t.c }};transition:color .3s" style-hover="color:var(--oath-c-ffffff)"><span style="flex:none;width:22px;font:400 12px/1.6 'IBM Plex Mono',monospace;color:var(--oath-c-6e6c67)">{{ t.n }}</span>{{ t.t }}</a>
       </sc-for>
     </nav>
     <article style="display:flex;flex-direction:column;max-width:760px">
       <sc-for list="{{ sections }}" as="sec" hint-placeholder-count="8">
-        <div id="{{ sec.id }}" style="scroll-margin-top:100px;padding:36px 0;border-top:1px solid rgba(242,240,234,.12);display:flex;flex-direction:column;gap:16px">
-          <div style="display:flex;align-items:baseline;gap:16px"><span style="font:400 13px/1 'IBM Plex Mono',monospace;color:#8E8C86">{{ sec.n }}</span><h2 style="margin:0;font:400 clamp(28px,3vw,40px)/1.1 'Instrument Serif',serif;letter-spacing:-.015em">{{ sec.t }}</h2></div>
+        <div id="{{ sec.id }}" style="scroll-margin-top:100px;padding:36px 0;border-top:1px solid rgba(var(--oath-rgb-f2f0ea),.12);display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;align-items:baseline;gap:16px"><span style="font:400 13px/1 'IBM Plex Mono',monospace;color:var(--oath-c-8e8c86)">{{ sec.n }}</span><h2 style="margin:0;font:400 clamp(28px,3vw,40px)/1.1 'Instrument Serif',serif;letter-spacing:-.015em">{{ sec.t }}</h2></div>
           <sc-for list="{{ sec.p }}" as="para" hint-placeholder-count="2">
             <p style="margin:0;font:400 17px/1.7 'Instrument Sans',sans-serif;color:#C9C7C0;text-wrap:pretty">{{ para }}</p>
           </sc-for>
           <sc-if value="{{ sec.hasList }}" hint-placeholder-val="{{ false }}">
             <div style="display:flex;flex-direction:column;gap:10px;padding-left:4px">
               <sc-for list="{{ sec.list }}" as="li" hint-placeholder-count="3">
-                <div style="display:flex;gap:14px;font:400 17px/1.6 'Instrument Sans',sans-serif;color:#C9C7C0"><span style="flex:none;margin-top:11px;width:6px;height:6px;border-radius:50%;background:#8E8C86"></span><span>{{ li }}</span></div>
+                <div style="display:flex;gap:14px;font:400 17px/1.6 'Instrument Sans',sans-serif;color:#C9C7C0"><span style="flex:none;margin-top:11px;width:6px;height:6px;border-radius:50%;background:var(--oath-c-8e8c86)"></span><span>{{ li }}</span></div>
               </sc-for>
             </div>
           </sc-if>
         </div>
       </sc-for>
-      <div style="padding:36px 0 0;border-top:1px solid rgba(242,240,234,.12);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px">
+      <div style="padding:36px 0 0;border-top:1px solid rgba(var(--oath-rgb-f2f0ea),.12);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px">
         <span style="font:400 clamp(22px,2.4vw,30px)/1.2 'Instrument Serif',serif">Questions about this policy?</span>
-        <a href="mailto:care@oathwallet.org" style="height:50px;padding:0 22px;border-radius:999px;background:#F2F0EA;color:#0A0A0B;display:flex;align-items:center;font:600 15px/1 'Instrument Sans',sans-serif">care@oathwallet.org</a>
+        <a href="mailto:care@oathwallet.org" style="height:50px;padding:0 22px;border-radius:999px;background:var(--oath-c-f2f0ea);color:var(--oath-c-0a0a0b);display:flex;align-items:center;font:600 15px/1 'Instrument Sans',sans-serif">care@oathwallet.org</a>
       </div>
     </article>
   </div>
@@ -301,7 +301,7 @@ class Component extends DCLogic {
       readTime: Math.max(1, Math.round(words / 220)) + ' min read',
       cols: narrow ? 'minmax(0,1fr)' : 'minmax(0,260px) minmax(0,1fr)',
       navPos: narrow ? 'static' : 'sticky',
-      toc: d.sections.map((s, k) => ({ n: String(k + 1).padStart(2, '0'), t: s[0], href: '#s' + (k + 1), c: k === this.state.active ? '#F2F0EA' : '#8E8C86' })),
+      toc: d.sections.map((s, k) => ({ n: String(k + 1).padStart(2, '0'), t: s[0], href: '#s' + (k + 1), c: k === this.state.active ? 'var(--oath-c-f2f0ea)' : 'var(--oath-c-8e8c86)' })),
       sections: d.sections.map((s, k) => ({ id: 's' + (k + 1), n: String(k + 1).padStart(2, '0'), t: s[0], p: s[1], list: s[2] || [], hasList: !!(s[2] && s[2].length) })),
     };
   }
