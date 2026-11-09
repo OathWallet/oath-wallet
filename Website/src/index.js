@@ -16,7 +16,7 @@ import { handleAnalytics } from './analytics.js';
 import { handleMCP } from './mcp.js';
 import { articleRoutes } from './article-routes.js';
 import { handleNewsletter, newsletterScheduled } from './newsletter.js';
-import { handleOusd } from './ousd.js';
+import { handleRetiredTradingPages } from './retired-trading-pages.js';
 
 const pageNames = new Set([...decisionGuides.pages.map(p=>p.path.slice(1)), 'features', 'articles', 'support', 'press', 'terms', 'privacy', 'security', 'bug-bounty', 'about', 'networks', ...networkCatalog.networks.map(n => 'networks/' + n.slug), ...featureCatalog.features.map(f => f.path.slice(1))]);
 const hstsPolicy = 'max-age=31536000; includeSubDomains; preload';
@@ -26,7 +26,7 @@ export default {
   async fetch(request, env, ctx) {
     const themePath = new URL(request.url).pathname;
     let response;
-    const special = (['/theme.js','/theme.css'].includes(themePath) ? await env.ASSETS.fetch(request) : null) || handleSecurityTxt(request) || await handleSearchVerification(request, env) || handleRetiredArticle(request) || await handleTransferPreparation(request, env) || await handleAgentContent(request, env) || await handleOusd(request, env) || handleWalletLinks(request) || await handleHelp(request, env) || await handleArticleHost(request, env);
+    const special = handleRetiredTradingPages(request) || (['/theme.js','/theme.css'].includes(themePath) ? await env.ASSETS.fetch(request) : null) || handleSecurityTxt(request) || await handleSearchVerification(request, env) || handleRetiredArticle(request) || await handleTransferPreparation(request, env) || await handleAgentContent(request, env) || handleWalletLinks(request) || await handleHelp(request, env) || await handleArticleHost(request, env);
     const newsletter = special || await handleNewsletter(request, env);
     if (newsletter) {
       response = newsletter;

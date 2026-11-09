@@ -5,6 +5,15 @@ import {tokenPageTitle} from '../src/token-titles.js';
 import {escapeHTML} from '../src/tokens.js';
 import {renderSecurityTxt, securityHosts, securityTxtPath} from '../src/security-txt.js';
 
+// Old trading URLs must never fall back to a cached or bundled exchange UI.
+for (const path of ['/ousd', '/ousd/index.html', '/ousd/app.js', '/ousd/api/rpc', '/ousd/api/route', '/ousd/api/reconcile', '/swap', '/swaps']) {
+  const response = await fetch('https://oathwallet.org'+path, {redirect: 'manual', signal: AbortSignal.timeout(20000)});
+  assert.equal(response.status, 410, path+' must remain retired');
+  assert.equal(response.headers.get('Cache-Control'), 'no-store');
+  assert.equal(await response.text(), 'This page is no longer available.');
+}
+console.log('Verified retired OUSD and Swap screens, bundles and APIs.');
+
 // A successful deployment must expose the exact reviewed reporting document,
 // including on hosts whose HTML routers previously returned 404 for this path.
 for (const host of securityHosts) {
