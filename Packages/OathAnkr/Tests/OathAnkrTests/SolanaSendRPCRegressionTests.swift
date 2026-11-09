@@ -2,6 +2,17 @@ import XCTest
 @testable import OathAnkr
 
 @MainActor final class SolanaSendRPCRegressionTests:XCTestCase {
+    func testEarlySenderPreparation() async throws {
+        for kind in ["native", "spl", "token2022", "transferFee"] {
+            let (p,t,c) = try setup(kind:kind)
+            let s = try await c.prepareSender(sender:p.sender,reference:p.reference,decimals:p.decimals)
+            XCTAssertEqual(s.assetBalance,"100000000")
+            let methods = await t.methods
+            XCTAssertFalse(methods.contains("getFeeForMessage")); XCTAssertFalse(methods.contains("simulateTransaction"))
+            XCTAssertFalse(methods.contains("getLatestBlockhash"))
+        }
+    }
+
     private func setup(_ mode:String="normal",kind:String="native") throws -> (SolanaSendPlan,SolanaRPCFixture,SolanaSendClient) {
         let helper=SolanaSendTests(),v=try helper.fixtures().vectors.first { $0.kind==kind }!,p=helper.plan(v)
         let fixture=SolanaRPCFixture(plan:p,mode:mode)
@@ -150,6 +161,7 @@ actor SolanaRPCFixture:AnkrTransport {
         }
         let result:SolanaJSON
         switch method {
+        case "getSlot":result=n(p.slot)
         case "getGenesisHash":result = .string(mode=="wrongNetwork" ? SolanaSendNetwork.testnet.genesis:p.network.genesis)
         case "getLatestBlockhash":result = .object(["context":.object(["slot":n(p.slot)]),"value":.object(["blockhash":.string(p.blockhash),"lastValidBlockHeight":n(p.lastValidBlockHeight)])])
         case "getBalance":result=wrap(n(mode=="poor" ? 100:mode=="rentOnly" ? 10_000:mode=="zeroNative" ? 0:100_000_000))

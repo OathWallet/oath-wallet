@@ -92,7 +92,7 @@ struct OathPermissionRemovalSummary: View {
                 VStack(alignment:.leading,spacing:6) {
                     Text(verbatim:isControl ? strings.text(.permissionControl)
                         : model.name(permission) ?? WalletPermission.abbreviated(permission.identityAddress))
-                        .oathFont(.title3,weight:.semibold)
+                        .oathFont(.title3,weight:.medium)
                     Text(verbatim:OathImportChain(rawValue:permission.network)?.name ?? permission.network)
                         .oathFont(.subheadline).foregroundStyle(.secondary)
                 }

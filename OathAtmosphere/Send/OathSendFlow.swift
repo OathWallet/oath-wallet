@@ -7,6 +7,7 @@ import OathDiagnostics
 struct OathSendFlow: View {
     let session: OathWalletSession
     @Environment(\.oathLocalizer) private var strings
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dismiss) private var dismiss
     @State private var model: OathSendModel
     @State private var bitcoin = OathBitcoinSendModel()
@@ -76,7 +77,7 @@ struct OathSendFlow: View {
                 .navigationTitle(strings.text(.sendChooseAsset))
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar { ToolbarItem(placement: .topBarLeading) {
-                    OathCloseButton { dismiss() }
+                    OathCloseButton(systemImage: "chevron.down") { dismiss() }
                         .accessibilityIdentifier("send.close")
                 } }
                 .navigationDestination(for: OathSendModel.Step.self) { step in
@@ -127,6 +128,16 @@ struct OathSendFlow: View {
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .interactiveDismissDisabled(!allowed || isSubmitting)
+        .task(id: scenePhase == .active ? model.balanceIdentity(session: session) : nil) {
+            guard scenePhase == .active, allowed, model.balanceIdentity(session: session) != nil else {
+                model.invalidateBalancePreparation()
+                return
+            }
+            await model.startBalancePreparation(session: session)
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active { model.invalidateBalancePreparation() }
+        }
         .task(id: observationID) {
             guard allowed else { return }
             await model.observe(currency: session.portfolio?.currency ?? "USD")
@@ -181,12 +192,12 @@ struct OathSendFlow: View {
             if !allowed && session.isUnlocked && !session.wallets.contains(where: { $0.id == model.walletID }) {
                 model.senderUnavailable()
             }
-            if !allowed { model.cancelScannedAssetResolution(); scannedAssetSearch.reset(); bitcoin.cancel(); sui.cancel(); xrpl.cancel(); stellar.cancel(); tron.cancel(); near.cancel(); polkadot.cancel(); solana.cancel(); aptos.cancel(); thorchain.cancel(); arc.cancel(); evm.cancel(); ton.cancel() }
+            if !allowed { model.invalidateBalancePreparation(); model.cancelScannedAssetResolution(); scannedAssetSearch.reset(); bitcoin.cancel(); sui.cancel(); xrpl.cancel(); stellar.cancel(); tron.cancel(); near.cancel(); polkadot.cancel(); solana.cancel(); aptos.cancel(); thorchain.cancel(); arc.cancel(); evm.cancel(); ton.cancel() }
         }
         .onChange(of: session.changingWallet) { _, changing in
-            if changing { model.cancelScannedAssetResolution(); scannedAssetSearch.reset() }
+            if changing { model.invalidateBalancePreparation(); model.cancelScannedAssetResolution(); scannedAssetSearch.reset(); bitcoin.cancel(); sui.cancel(); xrpl.cancel(); stellar.cancel(); tron.cancel(); near.cancel(); polkadot.cancel(); solana.cancel(); aptos.cancel(); thorchain.cancel(); arc.cancel(); evm.cancel(); ton.cancel() }
         }
-        .onDisappear { model.cancelScannedAssetResolution(); scannedAssetSearch.reset(); bitcoin.cancel(); sui.cancel(); xrpl.cancel(); stellar.cancel(); tron.cancel(); near.cancel(); polkadot.cancel(); solana.cancel(); aptos.cancel(); thorchain.cancel(); arc.cancel(); evm.cancel(); ton.cancel() }
+        .onDisappear { model.invalidateBalancePreparation(); model.cancelScannedAssetResolution(); scannedAssetSearch.reset(); bitcoin.cancel(); sui.cancel(); xrpl.cancel(); stellar.cancel(); tron.cancel(); near.cancel(); polkadot.cancel(); solana.cancel(); aptos.cancel(); thorchain.cancel(); arc.cancel(); evm.cancel(); ton.cancel() }
         .accessibilityIdentifier("send.flow")
     }
 
@@ -208,7 +219,7 @@ struct OathSendFlow: View {
         let holdings = scannedRecipient?.prioritized(available, network: { $0.networkID }, reference: { $0.reference }, symbol: { $0.symbol }) ?? available
         let firstID = holdings.first?.id
         let searchRequest = tokenSearchRequest
-        return OathEmptyStateScrollView(centersContent: (holdings.isEmpty && !searchRequest.hasQuery) || model.failed) {
+        return OathEmptyStateScrollView(centersContent: (holdings.isEmpty && !searchRequest.showsCatalogResults) || model.failed) {
             VStack(spacing: 0) {
                 if model.loading && model.snapshot == nil {
                     ProgressView().frame(maxWidth: .infinity).padding(36)
@@ -236,25 +247,26 @@ struct OathSendFlow: View {
                             OathActionButton(title: strings.text(.tryAgain), appearance: .secondary) { model.retrySharedPaymentAsset() }
                         }
                     }.padding(20)
-                } else if holdings.isEmpty && !searchRequest.hasQuery {
+                } else if holdings.isEmpty && !searchRequest.showsCatalogResults {
                     OathEmptyState(strings.text(.sendNoAssets), systemImage: "magnifyingglass")
                 } else {
                     LazyVStack(spacing: 0) {
                         ForEach(holdings) { holding in
                             OathButton(feedback: nil) { model.choose(holding, scannedRecipient: scannedRecipient) } label: {
-                                OathAssetSelectionRow(holding: holding, currency: model.currency, showsSeparator: holding.id != firstID)
+                                OathAssetSelectionRow(holding: holding, currency: model.currency, showsSeparator: holding.id != firstID).equatable()
                             }.buttonStyle(OathSettingsRowButtonStyle())
                                 .accessibilityIdentifier("send.asset.\(holding.id)")
                         }
                     }
                 }
-                if scannedRecipient?.sharedPaymentScope != .asset && searchRequest.hasQuery && model.snapshot != nil && !model.failed {
+                if scannedRecipient?.sharedPaymentScope != .asset && searchRequest.showsCatalogResults && model.snapshot != nil && !model.failed {
                     OathTokenPickerSearch(request: searchRequest, session: session, hasSavedMatches: !holdings.isEmpty) { holding, snapshot in
                         model.choose(holding, from: snapshot, scannedRecipient: scannedRecipient)
                     }
                 }
             }.frame(maxWidth: 600).frame(maxWidth: .infinity)
         }
+        .id(model.searchScope)
     }
 
 }

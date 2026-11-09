@@ -63,6 +63,24 @@ final class OathSendModel {
     private(set) var failed = false
     private(set) var recipients: [SendRecipient] = []
     private(set) var contactsFailed = false
+    /// The balance used for amount validation and Max is spendable, not gross
+    /// holdings. An entered/previously reviewed amount is never enlarged here.
+    var validatedBalance: String? {
+        guard let holding, let value = senderSnapshot, let identity = senderSnapshotIdentity,
+              identity.wallet == walletID, identity.account == holding.accountID,
+              identity.asset == holding.assetID, identity.reference == holding.reference,
+              identity.decimals == holding.decimals,
+              identity.observation == holding.balanceObservedAt,
+              identity.pending == holding.pendingTransactionCount else { return holding?.amountAtomic }
+        return value.spendable
+    }
+
+    @ObservationIgnored let balancePreparation = OathSendBalancePreparation<OathSendBalanceIdentity, SendSenderSnapshot>()
+    var balancePreparationGeneration = UUID()
+    var senderSnapshot: SendSenderSnapshot?
+    var activePreparationIdentity: OathSendBalanceIdentity?
+    var senderSnapshotIdentity: OathSendBalanceIdentity?
+    var balancePreparationFailed = false
     private var generation = UUID()
     private var contactsGeneration = UUID()
     private var initialHoldingID: String?
@@ -503,7 +521,7 @@ final class OathSendModel {
     }
 
     func amountFailure(locale: Locale) -> OathSendAmount.Failure? {
-        do { return OathSendAmount.validate(try atomic(locale: locale), balance: holding?.amountAtomic) }
+        do { return OathSendAmount.validate(try atomic(locale: locale), balance: validatedBalance) }
         catch let error as OathSendAmount.Failure { return error } // diagnostics: expected live amount validation
         catch { OathDiagnostics.record(error); return .invalid }
     }
@@ -522,7 +540,7 @@ final class OathSendModel {
     var reviewNeedsUpdate: Bool {
         guard let raw = reviewAtomic else { return true }
         if let closure = xrplAccountClosure, holding?.amountAtomic != String(closure.nativeBalance) { return true }
-        return (supportsBitcoinSend && reviewOptions != bitcoinOptions) || failed || loading || reviewCurrency != currency || OathSendAmount.validate(raw, balance: holding?.amountAtomic) != nil
+        return (supportsBitcoinSend && reviewOptions != bitcoinOptions) || failed || loading || reviewCurrency != currency || OathSendAmount.validate(raw, balance: validatedBalance) != nil
     }
 
     @discardableResult func useAccountClosure(_ plan: XrplSendPlan) -> Bool {
@@ -536,7 +554,7 @@ final class OathSendModel {
     func useBalance() {
         xrplAccountClosure = nil
         guard let holding,
-              let maximum = OathSendMaximumAmount(balance: holding.amountAtomic, decimals: holding.decimals) else { return }
+              let maximum = OathSendMaximumAmount(balance: validatedBalance, decimals: holding.decimals) else { return }
         maximumAmount = maximum
         amount = maximum.units
         // Max is a temporary native display, not a new saved unit preference.

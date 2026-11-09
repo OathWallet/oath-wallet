@@ -1,6 +1,7 @@
 import OathDiagnostics
 import Foundation
 import OathBitcoin
+import OathAnkr
 import OathDatabase
 
 /// One flight per account, including foreground and pull-to-refresh callers.
@@ -69,9 +70,10 @@ actor OathBitcoinSync {
 
     private func refreshSpendable(accountID: String, vault: OathWalletVault, reuseRecentSnapshot: Bool = false) async throws {
         guard !isCancelling else { throw CancellationError() }
-        if let flight = flights[accountID] { return try await flight.task.value }
+        if let flight = flights[accountID] { return try await SendTaskValue.value(of: flight.task) }
         let id = UUID()
         let task = Task { [pools] in
+            defer { if flights[accountID]?.id == id { flights[accountID] = nil } }
             try await OathDiagnostics.$operationID.withValue(OathDiagnostics.operationID ?? id) {
                 try Task.checkCancellation()
                 try await vault.prepareBitcoin(accountID: accountID)
@@ -105,8 +107,7 @@ actor OathBitcoinSync {
             }
         }
         flights[accountID] = (id, task)
-        defer { if flights[accountID]?.id == id { flights[accountID] = nil } }
-        try await task.value
+        try await SendTaskValue.value(of: task)
     }
 
     func cancel() async {

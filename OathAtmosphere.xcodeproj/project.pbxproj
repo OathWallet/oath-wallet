@@ -414,6 +414,13 @@
 		FD367FC41ACDE6E800D47C42 /* OathXrplSendService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7F6274C0F1DDEAB62FF56CB /* OathXrplSendService.swift */; };
 		FD97EB88EE4C65C78B408DFD /* OathSolanaSendService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3093B57C4C70740188E7FBE /* OathSolanaSendService.swift */; };
 		FF33B8140944F5CDFF5DAE51 /* OathWalletConnectSuiViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25F55BC1C3B84B01732B656C /* OathWalletConnectSuiViews.swift */; };
+		5EF57A3F4BECE47018CD83B2 /* OathAssetFilterModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7780E4912025FC1C2CA11B38 /* OathAssetFilterModel.swift */; };
+		75B1883CBD4C6E02999EF80B /* OathFeatureRotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26C6F68D7397DB83D60C7A55 /* OathFeatureRotation.swift */; };
+		B52B30A74A6C6335AF73BD42 /* OathSendBalanceIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A90813A86452EB4D328C11DC /* OathSendBalanceIdentity.swift */; };
+		FD9973EEB71AB950518C32FB /* OathSendBalanceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 371B3A228BB5FF07CB483B74 /* OathSendBalanceService.swift */; };
+		9E86E48464674B0D8B754DBA /* OathSendModel+BalancePreparation.swift in Sources */ = {isa = PBXBuildFile; fileRef = F43151D2353BDFB51057A934 /* OathSendModel+BalancePreparation.swift */; };
+		33CDBFCE7CAD84665B3CE3E7 /* OathManageTokensModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D41527C6FC06BA973E730DCD /* OathManageTokensModel.swift */; };
+		0BD6BA5E64B54EB1C7409C67 /* OathManageTokensScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FB2ABE77C8D528F3DC48628 /* OathManageTokensScreen.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -856,6 +863,13 @@
 		FED3DE33425669A73B55FD91 /* OathScanAddress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OathScanAddress.swift; sourceTree = "<group>"; };
 		FED41AD9665A6030377DB40E /* OathLockInterruptionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OathLockInterruptionTests.swift; sourceTree = "<group>"; };
 		FFA2D5EB1AEAB314F95CF70B /* OathSecureInputTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OathSecureInputTests.swift; sourceTree = "<group>"; };
+		7780E4912025FC1C2CA11B38 /* OathAssetFilterModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OathAssetFilterModel.swift; sourceTree = "<group>"; };
+		26C6F68D7397DB83D60C7A55 /* OathFeatureRotation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OathFeatureRotation.swift; sourceTree = "<group>"; };
+		A90813A86452EB4D328C11DC /* OathSendBalanceIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OathSendBalanceIdentity.swift; sourceTree = "<group>"; };
+		371B3A228BB5FF07CB483B74 /* OathSendBalanceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OathSendBalanceService.swift; sourceTree = "<group>"; };
+		F43151D2353BDFB51057A934 /* OathSendModel+BalancePreparation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OathSendModel+BalancePreparation.swift"; sourceTree = "<group>"; };
+		D41527C6FC06BA973E730DCD /* OathManageTokensModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OathManageTokensModel.swift; sourceTree = "<group>"; };
+		3FB2ABE77C8D528F3DC48628 /* OathManageTokensScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OathManageTokensScreen.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -944,6 +958,9 @@
 		34E40093605928F92C50BF9E /* Send */ = {
 			isa = PBXGroup;
 			children = (
+				F43151D2353BDFB51057A934 /* OathSendModel+BalancePreparation.swift */,
+				371B3A228BB5FF07CB483B74 /* OathSendBalanceService.swift */,
+				A90813A86452EB4D328C11DC /* OathSendBalanceIdentity.swift */,
 				72C79F7ACBB8D31B0F20B95D /* OathAptosSendModel.swift */,
 				B0DA2CB15DA8B73AC304E03E /* OathAptosSendService.swift */,
 				0596865EAE70F6B02F35F394 /* OathArcSendModel.swift */,
@@ -1011,6 +1028,7 @@
 		4B9781522B470707E18AA602 /* Home */ = {
 			isa = PBXGroup;
 			children = (
+				7780E4912025FC1C2CA11B38 /* OathAssetFilterModel.swift */,
 				03C13AD047E1BEF5727F1A18 /* OathAboutPage.swift */,
 				5D866F95B5F0EA859894C75F /* OathAllWalletBackupPage.swift */,
 				31FD062495D8A84370540AD2 /* OathAssetAmountFormat.swift */,
@@ -1098,6 +1116,8 @@
 		7ADB199797EDDCE94F6FDF8F /* Tokens */ = {
 			isa = PBXGroup;
 			children = (
+				3FB2ABE77C8D528F3DC48628 /* OathManageTokensScreen.swift */,
+				D41527C6FC06BA973E730DCD /* OathManageTokensModel.swift */,
 				025253B8EE64CDB7620B2162 /* OathAssetSearchBar.swift */,
 				BD4CAFD9C67719EE33E9E149 /* OathAssetSearchFilter.swift */,
 				1C9235805D65FC98EC7282A8 /* OathAssetSearchScope.swift */,
@@ -1296,6 +1316,7 @@
 		DEF108737E1B7982BD632FB2 /* OathAtmosphere */ = {
 			isa = PBXGroup;
 			children = (
+				26C6F68D7397DB83D60C7A55 /* OathFeatureRotation.swift */,
 				DD6CC10A15ADCB338259874E /* OathArtworkEnergyObserver.swift */,
 				2A8EB690DE480486BDBAC281 /* OathArtworkEnergyPolicy.swift */,
 				06B126733424B9D7C6A2D438 /* OathArtworkFrame.swift */,
@@ -1858,6 +1879,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0BD6BA5E64B54EB1C7409C67 /* OathManageTokensScreen.swift in Sources */,
+				33CDBFCE7CAD84665B3CE3E7 /* OathManageTokensModel.swift in Sources */,
+				9E86E48464674B0D8B754DBA /* OathSendModel+BalancePreparation.swift in Sources */,
+				FD9973EEB71AB950518C32FB /* OathSendBalanceService.swift in Sources */,
+				B52B30A74A6C6335AF73BD42 /* OathSendBalanceIdentity.swift in Sources */,
+				75B1883CBD4C6E02999EF80B /* OathFeatureRotation.swift in Sources */,
+				5EF57A3F4BECE47018CD83B2 /* OathAssetFilterModel.swift in Sources */,
 				B3F43D3BE0A8AFF55457E6F2 /* OathAboutPage.swift in Sources */,
 				232D67D70ECAC3B9CB8CDA5C /* OathActionButton.swift in Sources */,
 				4E605FF32F89292310D9CF97 /* OathActionMetrics.swift in Sources */,

@@ -279,7 +279,7 @@ struct OathTransactionReceiptContent<Header: View, Supplement: View>: View {
             OathWalletSheet(title: .sendOnChainMessage) {
                 if let output = endpoint.dataOutput {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text(verbatim: "OP_RETURN").oathFont(.subheadline, weight: .semibold)
+                        Text(verbatim: "OP_RETURN").oathFont(.subheadline, weight: .medium)
                         Text(verbatim: output.displayValue).oathFont(.body).textSelection(.enabled)
                             .fixedSize(horizontal: false, vertical: true)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -340,7 +340,7 @@ struct OathTransactionReceiptContent<Header: View, Supplement: View>: View {
                         .accessibilityLabel(value)
                     if ownership == .change {
                         Text(strings.text(.privateKeyChangeAddresses))
-                            .oathFont(.caption, weight: .semibold)
+                            .oathFont(.caption, weight: .medium)
                             .foregroundStyle(.primary)
                             .padding(.horizontal, 6).padding(.vertical, 2)
                             .background(Color(uiColor: .tertiarySystemFill), in: Capsule())
@@ -392,7 +392,7 @@ struct OathTransactionReceiptContent<Header: View, Supplement: View>: View {
                                 .foregroundStyle(.secondary)
                                 .multilineTextAlignment(.trailing)
                             Image(systemName: "chevron.forward")
-                                .font(.footnote.weight(.semibold)).foregroundStyle(.secondary)
+                                .font(.footnote.weight(.medium)).foregroundStyle(.secondary)
                                 .rotationEffect(.degrees(expanded ? (layoutDirection == .rightToLeft ? -90 : 90) : 0))
                                 .accessibilityHidden(true)
                         }
@@ -433,7 +433,7 @@ struct OathTransactionReceiptContent<Header: View, Supplement: View>: View {
         return field(title: title) {
             if let output = endpoint.dataOutput {
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text(verbatim: "OP_RETURN").oathFont(.subheadline, weight: .semibold)
+                    Text(verbatim: "OP_RETURN").oathFont(.subheadline, weight: .medium)
                         .foregroundStyle(.secondary)
                     OathButton(feedback: .navigate) { selectedDataOutput = endpoint } label: {
                         Text(verbatim: output.displayValue)
@@ -505,7 +505,7 @@ struct OathTransactionReceiptHeader<Logo: View>: View {
             logo()
             Text(title).oathFont(.title2, weight: .semibold)
             Text(strings.invariant(fiat ?? strings.text(.assetPriceUnavailable)))
-                .oathFont(.largeTitle, weight: .semibold).minimumScaleFactor(0.5).lineLimit(1)
+                .oathFont(.largeTitle, weight: .medium).minimumScaleFactor(0.5).lineLimit(1)
                 .oathBalanceConcealed(balancesHidden, radius: 16)
                 .accessibilityIdentifier("transaction.amountFiat")
             Text(strings.invariant(amount))

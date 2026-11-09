@@ -79,6 +79,18 @@ for root in roots:
             markers = delegated.get(file.relative_to(ROOT).as_posix())
             if markers and all(marker in body for marker in markers) and 'throw error' in body:
                 continue
+            delegated = {
+                'OathAtmosphere/Send/OathSendModel+BalancePreparation.swift':
+                    ('diagnostics: send-balance-preparation-feedback', 'balancePreparationFailed = true'),
+                'Packages/OathAnkr/Sources/OathAnkr/SendBalancePreparation.swift':
+                    ('diagnostics: preparation-owner-rethrows', 'throw error'),
+                'Packages/OathMarketData/Sources/OathMarketData/MarketDataService.swift':
+                    ('diagnostics: market-load-consumer-propagation', 'ReportedMarketLoadFailure.mark(error)', 'throw error'),
+                'Packages/OathTokenImages/Sources/OathTokenImages/ArtworkLoader.swift':
+                    ('diagnostics: artwork-flight-propagation', 'return .failure(error)'),
+            }.get(file.relative_to(ROOT).as_posix())
+            if delegated and all(marker in body for marker in delegated):
+                continue  # Exact consumer paths: tested provider boundaries record the original failure once.
             if any(kind in label for kind in expected):
                 continue
             if file.relative_to(ROOT).as_posix() == 'Packages/OathDatabase/Sources/OathDatabase/XrplSynchronizer.swift' and label.strip() == 'XrplError.historyWindowExpired':

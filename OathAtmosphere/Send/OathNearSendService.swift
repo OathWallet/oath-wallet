@@ -14,7 +14,7 @@ actor OathNearSendService {
     static let shared = OathNearSendService()
     private var client: NearSendClient?
     private var flights = Set<String>()
-    private func connection() throws -> NearSendClient {
+    func connection() throws -> NearSendClient {
         if let client { return client }
         let value = try OathTokenRPCConfiguration.bundled().makeNearSendClient()
         client = value; return value
@@ -41,7 +41,7 @@ actor OathNearSendService {
         return (policy.address,state,pending ? nil : plan.map { .init(walletID:walletID,accountID:account.id,assetID:"near:native",plan:$0) },pending)
     }
     func quote(walletID: String, accountID: String, assetID: String, reference: String,
-               recipient: String, amount: String, decimals: Int, maximum: Bool, vault: OathWalletVault) async throws -> OathNearQuote {
+               recipient: String, amount: String, decimals: Int, maximum: Bool, vault: OathWalletVault, preparedSender: SendSenderSnapshot? = nil) async throws -> OathNearQuote {
         try await OathDiagnostics.$chain.withValue("near") {
             try await OathDiagnostics.$operationID.withValue(UUID()) {
                 do {
@@ -49,7 +49,7 @@ actor OathNearSendService {
                     guard let account = try await database.accounts(walletID:walletID).first(where:{$0.id == accountID && $0.networkID == "near"}) else { throw NearSendError.wrongOwner }
                     let publicKey = try await vault.nearPublicKey(walletID:walletID,accountID:accountID)
                     let policy = try await vault.nearMultisigPolicy(walletID:walletID)
-                    let plan = try await connection().quote(sender:account.address,recipient:recipient,reference:reference,publicKey:publicKey,decimals:decimals,amount:amount,maximum:maximum,multisig:policy)
+                    let plan = try await connection().quote(sender:account.address,recipient:recipient,reference:reference,publicKey:publicKey,decimals:decimals,amount:amount,maximum:maximum,multisig:policy,preparedSender:preparedSender)
                     return .init(walletID:walletID,accountID:accountID,assetID:assetID,plan:plan)
                 } catch {
                     OathDiagnostics.record(error,component:"near_send",operation:"quote",context:["chain":"near"])

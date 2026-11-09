@@ -14,7 +14,7 @@ actor OathTronSendService {
     static let shared = OathTronSendService()
     private var client: TronSendClient?
     private var flights = Set<String>()
-    private func connection() throws -> TronSendClient {
+    func connection() throws -> TronSendClient {
         if let client { return client }
         let value = try OathTokenRPCConfiguration.bundled().makeTronSendClient()
         client = value; return value
@@ -118,13 +118,14 @@ actor OathTronSendService {
             return .init(txid:signed.hash,accepted:receipt.accepted)
         } catch {
             OathDiagnostics.record(error,component:"tron_send",operation:stage,context:["chain":"tron","stage":stage])
-            if let stored = await OathDiagnostics.attemptOptional("tron_send_state",body:{ try await db.send(id) }) {
-                if ["queued","draft"].contains(stored.state) {
-                    _ = await OathDiagnostics.attempt("tron_send_cancel",body:{ try await db.transitionSend(id,from:stored.state,to:"cancelled") })
-                } else if ["signed","broadcast"].contains(stored.state), let payload = stored.signedPayload {
+            // Authentication/preparation has fully unwound here. Cleanup owns
+            // a cancellation-independent database transaction, retaining any
+            // already-journaled signature for the status tracker.
+            if let stored = await OathDiagnostics.attemptOptional("tron_send_cleanup",body:{ try await db.finishFailedTronSend(sendID:id) }) {
+                if ["signed","broadcast"].contains(stored.state), let payload = stored.signedPayload {
                     let signed = try JSONDecoder().decode(TronSignedSend.self,from:payload)
                     let observed = await OathDiagnostics.attemptOptional("tron_send_submission",body:{
-                        try await db.tronSubmission(walletID:quote.walletID,hash:signed.hash)
+                        try await Task { try await db.tronSubmission(walletID:quote.walletID,hash:signed.hash) }.value
                     })
                     return .init(txid:signed.hash,accepted:acknowledgedHash == signed.hash || observed?.accepted == true)
                 }

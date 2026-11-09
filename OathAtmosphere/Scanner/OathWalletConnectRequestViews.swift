@@ -195,7 +195,7 @@ struct OathWCResultContent<Content: View>: View {
             VStack(spacing: 8) {
                 OathDAppLogo(icons: identity.icons, size: 44)
                     .padding(.bottom, 4)
-                Text(identity.displayName).oathFont(.body, weight: .semibold)
+                Text(identity.displayName).oathFont(.body, weight: .medium)
                 Text(identity.domain).oathFont(.subheadline).foregroundStyle(.secondary)
                     .environment(\.layoutDirection, .leftToRight)
             }

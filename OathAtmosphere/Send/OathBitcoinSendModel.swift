@@ -2,6 +2,7 @@ import OathDiagnostics
 import Foundation
 import Observation
 import OathBitcoin
+import OathAnkr
 
 @MainActor @Observable final class OathBitcoinSendModel {
     private(set) var quote: OathBitcoinQuote?
@@ -22,12 +23,19 @@ import OathBitcoin
         cancel(); busy = true; needsRefresh = false; needsAmountChange = false; needsMessageChange = false; quote = nil
         let token = generation, wallet = model.walletID, recipient = model.address
         let options = model.reviewOptions
+        let sessionGeneration = session.sendSessionGeneration
         work = Task(priority: .userInitiated) {
             do {
                 let service = try OathBitcoinSendService.service(for: network)
-                let quote = try await service.quote(walletID: wallet, recipient: recipient, amount: amount, options: options, vault: session.vault, forceRefresh: forceRefresh)
-                guard generation == token, !Task.isCancelled, session.isUnlocked else { return }
-                self.quote = quote; busy = false
+                let quote = try await service.quote(walletID: wallet, recipient: recipient, amount: amount, options: options, vault: session.vault, forceRefresh: forceRefresh, senderPreparation: {
+                    _ = try await model.preparedSender(session: session, retryFailure: true)
+                })
+                guard generation == token, !Task.isCancelled, session.isUnlocked, !session.resetting, !session.changingWallet, session.sendSessionGeneration == sessionGeneration else { return }
+                guard SendReviewAmounts.isWithinRequestedAmount(String(quote.plan.recipientAmount), requested: atomic) else {
+                    busy = false; needsRefresh = true; needsAmountChange = true
+                    return // Changed Max intent is form validation, not an app error.
+                }
+                SendPerformance.publish { self.quote = quote; busy = false }
             } catch { OathDiagnostics.record(error, component: "send", operation: "prepare", context: ["chain": network.rawValue, "stage": "quote"]);
                 guard generation == token, !Task.isCancelled else { return }
                 busy = false; needsRefresh = true

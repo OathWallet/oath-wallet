@@ -24,12 +24,18 @@ import OathDiagnostics
             .flatMap { Decimal(string:$0,locale:Locale(identifier:"en_US_POSIX")) }
         let token = generation, walletID = model.walletID, recipient = model.address
         let maximum = model.maximumAmount != nil
+        let sessionGeneration = session.sendSessionGeneration
         work = Task(priority:.userInitiated) {
             do {
+                let prepared = try await model.preparedSender(session: session, retryFailure: true)
                 let value = try await OathEVMSendService.shared.quote(network:network,walletID:walletID,accountID:holding.accountID,assetID:holding.assetID,
-                    reference:holding.reference,recipient:recipient,amount:amount,decimals:holding.decimals,maximum:maximum,vault:session.vault)
-                guard generation == token, !Task.isCancelled, session.isUnlocked else { return }
-                quote = value; busy = false
+                    reference:holding.reference,recipient:recipient,amount:amount,decimals:holding.decimals,maximum:maximum,vault:session.vault, preparedSender: prepared)
+                guard generation == token, !Task.isCancelled, session.isUnlocked, !session.resetting, !session.changingWallet, session.sendSessionGeneration == sessionGeneration else { return }
+                guard SendReviewAmounts.isWithinRequestedAmount(String(describing: value.plan.amount), requested: String(describing: amount)) else {
+                    busy = false; needsRefresh = true; needsAmountChange = true
+                    return // Changed Max intent is form validation, not an app error.
+                }
+                SendPerformance.publish { quote = value; busy = false }
             } catch {
                 // diagnostics: evm-preparation-feedback
                 // EVMSendPreparation reports unexpected quote failures with

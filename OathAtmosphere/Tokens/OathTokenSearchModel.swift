@@ -6,6 +6,7 @@ import OathAnkr
 
 protocol OathTokenDiscovering: Sendable {
     func search(_ query: String, networks: Set<String>, excluding: Set<String>, limit: Int) async -> [TokenDiscoveryEntry]
+    func tokens(on network: String, excluding: Set<String>) async -> [TokenDiscoveryEntry]
     func refreshIfNeeded() async -> Bool
 }
 extension TokenDiscoveryCatalog: OathTokenDiscovering {}
@@ -19,6 +20,7 @@ struct OathTokenSearchRequest: Hashable {
     let networks: Set<OathImportChain>
     let savedIDs: Set<String>
     let requiredReference: String?
+    let selectedChain: OathImportChain?
     var attempt: Int = 0
 
     init(query: String, walletID: String?, active: Bool, snapshot: WalletSnapshot?,
@@ -27,6 +29,7 @@ struct OathTokenSearchRequest: Hashable {
         self.query = query
         self.walletID = walletID
         self.requiredReference = requiredReference
+        self.selectedChain = scope.chain
         let snapshot = snapshot?.wallet.id == walletID ? snapshot : nil
         let available = Set((snapshot?.accounts ?? []).compactMap { OathImportChain(rawValue: $0.networkID) })
         networks = available.intersection(scope.networks(permitted: permittedNetworks))
@@ -35,6 +38,7 @@ struct OathTokenSearchRequest: Hashable {
     }
 
     var hasQuery: Bool { !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    var showsCatalogResults: Bool { hasQuery || selectedChain != nil }
 }
 
 @Observable @MainActor final class OathTokenSearchModel {
@@ -60,17 +64,22 @@ struct OathTokenSearchRequest: Hashable {
     }
 
     func search(_ request: OathTokenSearchRequest) async {
-        guard request.active else { reset(); return }
+        guard request.active else {
+            reset()
+            unavailableForWallet = request.selectedChain != nil && request.networks.isEmpty
+            return
+        }
         await search(request.query, available: request.networks, savedIDs: request.savedIDs,
-                     requiredReference: request.requiredReference)
+                     requiredReference: request.requiredReference, browsingChain: request.selectedChain)
     }
 
     func search(_ raw: String, available: Set<OathImportChain>, savedNetworks: Set<String> = [], savedIDs: Set<String> = [],
-                requiredReference: String? = nil) async {
+                requiredReference: String? = nil, browsingChain: OathImportChain? = nil) async {
         reset()
         let request = generation
         let query = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty, query.utf8.count <= 4096 else { return }
+        let browse = query.isEmpty ? browsingChain.flatMap { available.contains($0) ? $0 : nil } : nil
+        guard (!query.isEmpty || browse != nil), query.utf8.count <= 4096 else { return }
         isCatalogQuery = true; isSearching = true
         defer { if generation == request { isSearching = false } }
         // A scanned native-coin payment must never turn into a token payment.
@@ -85,10 +94,16 @@ struct OathTokenSearchRequest: Hashable {
                 ? token.reference.lowercased() == requiredReference.lowercased()
                 : token.reference == requiredReference
         }
-        do { try await Task.sleep(for: .milliseconds(150)) } catch { return }
+        // Chain selection displays the local catalog immediately. Only typing
+        // is debounced; All + an empty query remains a wallet-only list.
+        if browse == nil {
+            do { try await Task.sleep(for: .milliseconds(150)) } catch { return }
+        }
         guard !Task.isCancelled, generation == request else { return }
         let networkIDs = Set(available.map(\.id))
-        let found = await catalog.search(query, networks: networkIDs, excluding: savedIDs, limit: 200)
+        let found: [TokenDiscoveryEntry]
+        if let browse { found = await catalog.tokens(on: browse.id, excluding: savedIDs) }
+        else { found = await catalog.search(query, networks: networkIDs, excluding: savedIDs, limit: 200) }
         let definitions = await Task.detached(priority: .userInitiated) {
             found.compactMap(OathTokenDefinition.discovery).filter(matches)
         }.value
@@ -104,7 +119,9 @@ struct OathTokenSearchRequest: Hashable {
             isSearching = results.isEmpty
             if await catalog.refreshIfNeeded() {
                 guard !Task.isCancelled, generation == request else { return }
-                let updated = await catalog.search(query, networks: networkIDs, excluding: savedIDs, limit: 200)
+                let updated: [TokenDiscoveryEntry]
+                if let browse { updated = await catalog.tokens(on: browse.id, excluding: savedIDs) }
+                else { updated = await catalog.search(query, networks: networkIDs, excluding: savedIDs, limit: 200) }
                 let definitions = await Task.detached(priority: .userInitiated) {
                     updated.compactMap(OathTokenDefinition.discovery).filter(matches)
                 }.value

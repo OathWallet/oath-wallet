@@ -43,7 +43,7 @@ struct OathSendRecipientPage: View {
                 }
                 VStack(alignment: .leading, spacing: 16) {
                     OathHairline().padding(.vertical, 4)
-                    Text(strings.text(.contacts)).oathFont(.title3, weight: .semibold)
+                    Text(strings.text(.contacts)).oathFont(.title3, weight: .medium)
                 }
             }.padding(20).frame(maxWidth: .infinity, alignment: .leading)
         } content: {

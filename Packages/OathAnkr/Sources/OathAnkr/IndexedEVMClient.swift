@@ -255,6 +255,10 @@ public struct IndexedEVMClient: Sendable {
                     var found: [String: IndexedEVMToken] = [:]
                     for (i, ref) in batch.enumerated() {
                         let offset = 1 + i * 3
+                        // ERC-20 decimals are optional. A valid empty return is
+                        // missing metadata, not a malformed provider envelope.
+                        // Positive/unknown holdings still leave coverage partial.
+                        if rows[offset]["error"].isNull, rows[offset]["result"].string == "0x" { continue }
                         let token = OathDiagnostics.attempt("token_metadata") {
                             guard let decimals = Int(try IndexedEVMIdentity.amount(Self.result(rows[offset]))) else { throw AnkrError.invalidResponse }
                             // Optional ERC-20 name/symbol methods may revert or use
@@ -275,7 +279,7 @@ public struct IndexedEVMClient: Sendable {
             return (tokens, archive)
         }
     }
-    private func discover(owner: String) async throws -> ([IndexedEVMToken], [Data], Set<String>) {
+    private func discover(owner: String) async throws -> ([IndexedEVMToken], [Data], Set<String>, Set<String>) {
         if chain == .monad { return try await monadDiscovery(owner: owner) }
         var cursor: String?, visited: Set<String> = [], tokens: [String: IndexedEVMToken] = [:]
         var raw: [Data] = [], missing: [String] = [], seen: Set<String> = []
@@ -299,8 +303,62 @@ public struct IndexedEVMClient: Sendable {
         } while cursor != nil
         let (resolved, metadataRaw) = try await metadata(missing)
         tokens.merge(resolved, uniquingKeysWith: { first, _ in first })
-        return (tokens.values.sorted { $0.reference < $1.reference }, raw + metadataRaw, seen)
+        return (tokens.values.sorted { $0.reference < $1.reference }, raw + metadataRaw, seen, [])
     }
+    /// Alchemy may return a zero-balance EIP-7702 account in its ERC-20 list.
+    /// Treat it as a non-token only when two independent nodes agree at the
+    /// pinned block: identical delegation code and no ABI balance/decimals.
+    /// A saved holding, positive index quantity, normal contract, provider error
+    /// or ambiguous response can never take this path. No balance is fabricated.
+    private func nonTokenIndexReferences(_ references: [String], owner: String, blockNumber: String,
+                                         blockHash: String) async -> (Set<String>, [Data]) {
+        guard chain == .monad, let alternate = alchemyEndpoint, alternate != endpoint else { return ([], []) }
+        let refs = Array(references.sorted().prefix(16)) // Bound recovery work during a broad provider outage.
+        var backup = self; backup.endpoint = alternate
+        let independent = backup
+        let balanceData = "0x70a08231" + String(repeating: "0", count: 24) + owner.dropFirst(2)
+        var verified: Set<String> = [], archive: [Data] = []
+        for offset in stride(from: 0, to: refs.count, by: 2) {
+            let chunk = Array(refs[offset..<min(offset + 2, refs.count)])
+            var calls: [(String, [SolanaJSON])] = [("eth_chainId", []), ("eth_getBlockByNumber", [.string(blockNumber), .bool(false)])]
+            for ref in chunk {
+                calls += [("eth_getCode", [.string(ref), .string(blockNumber)]),
+                          ("eth_call", [.object(["to": .string(ref), "data": .string(balanceData)]), .string(blockNumber)]),
+                          ("eth_call", [.object(["to": .string(ref), "data": .string("0x313ce567")]), .string(blockNumber)])]
+            }
+            let requests = calls
+            let proof = await OathDiagnostics.withChain(chain.rawValue) {
+                await OathDiagnostics.attempt("non_token_index_validation") {
+                    try Task.checkCancellation()
+                    async let primary = rpc(requests)
+                    async let secondary = independent.rpc(requests)
+                    let (left, right) = try await (primary, secondary)
+                    for rows in [left.0, right.0] {
+                        guard try IndexedEVMIdentity.amount(Self.result(rows[0])) == String(chain.chainID),
+                              try Self.result(rows[1])["hash"].string == blockHash,
+                              try Self.result(rows[1])["number"].string == blockNumber else { throw AnkrError.invalidResponse }
+                    }
+                    var found: Set<String> = []
+                    for (index, ref) in chunk.enumerated() {
+                        let start = 2 + index * 3
+                        guard let code = try Self.result(left.0[start]).string?.lowercased(),
+                              code.range(of: "^0xef0100[0-9a-f]{40}$", options: .regularExpression) != nil,
+                              code.suffix(40) != String(repeating: "0", count: 40),
+                              try Self.result(right.0[start]).string?.lowercased() == code,
+                              try Self.result(left.0[start + 1]).string == "0x",
+                              try Self.result(right.0[start + 1]).string == "0x",
+                              try Self.result(left.0[start + 2]).string == "0x",
+                              try Self.result(right.0[start + 2]).string == "0x" else { continue }
+                        found.insert(ref)
+                    }
+                    return (found, [left.1, right.1])
+                }
+            }
+            if let proof { verified.formUnion(proof.0); archive += proof.1 }
+        }
+        return (verified, archive)
+    }
+
     public func inventory(owner: String, tracked: [IndexedEVMToken] = []) async throws -> IndexedEVMInventory {
         do { return try await inventoryFromRPC(owner: owner, tracked: tracked) }
         catch {
@@ -363,6 +421,8 @@ public struct IndexedEVMClient: Sendable {
         let pinnedReader = stateReader
         let chunks = stride(from: 0, to: list.count, by: chain.batchLimit / 2).map { Array(list[$0..<min($0 + chain.batchLimit / 2, list.count)]) }
         let body = "0x70a08231" + String(repeating: "0", count: 24) + owner.dropFirst(2)
+        let nonTokenCandidates = discovered?.3.subtracting(Set(tokens.keys)) ?? []
+        async let nonTokens = nonTokenIndexReferences(Array(nonTokenCandidates), owner: owner, blockNumber: blockNumber, blockHash: hash)
         let gathered = try await withThrowingTaskGroup(of: ([IndexedEVMHolding], Data).self) { group in
             var next = 0, output: [IndexedEVMHolding] = [], raw: [Data] = []
             func enqueue() {
@@ -416,16 +476,18 @@ public struct IndexedEVMClient: Sendable {
                   try IndexedEVMIdentity.height(archiveBlock["number"]) == height else { throw AnkrError.invalidResponse }
             stateIdentityRaw.append(raw)
         }
+        let nonTokenProof = await nonTokens
+        try Task.checkCancellation()
         // Refuse a mixed snapshot if the pinned block was reorganized while
         // batches were in flight. Cached balances remain untouched on failure.
         let (check, checkRaw) = try await rpc([("eth_getBlockByNumber", [.string(blockNumber), .bool(false)])])
         guard try Self.result(check[0])["hash"].string == hash else { throw AnkrError.invalidResponse }
-        let archive = try JSONEncoder().encode(["head": [headRaw, checkRaw] + stateIdentityRaw, "index": discovered?.1 ?? [], "state": gathered.1])
+        let archive = try JSONEncoder().encode(["head": [headRaw, checkRaw] + stateIdentityRaw, "index": discovered?.1 ?? [], "state": gathered.1, "nonTokenIndex": nonTokenProof.1])
         // A saved token can fill a discovery-metadata hole only after the
         // pinned state reads above verify its exact decimals and balance.
-        // Every indexed reference must still be represented. Failed pagination
-        // remains nil discovery; unknown tokens cannot become a complete scan.
-        let metadataCovered = discovered.map { $0.2.isSubset(of: Set(tokens.keys)) } == true
+        // Every indexed reference needs verified metadata or the narrow two-node
+        // non-token proof. Failed pagination and unknown tokens remain partial.
+        let metadataCovered = discovered.map { $0.2.isSubset(of: Set(tokens.keys).union(nonTokenProof.0)) } == true
         return .init(chain: chain, owner: owner, block: height, blockHash: hash, observedAt: .now,
                      holdings: gathered.0, complete: metadataCovered && gathered.0.allSatisfy { $0.amount != nil }, raw: archive)
     }
@@ -973,8 +1035,9 @@ private extension IndexedEVMClient {
         } catch { OathDiagnostics.record(error, operation: "monad_index"); await indexPermits.release(); throw error }
     }
 
-    private func monadDiscovery(owner: String) async throws -> ([IndexedEVMToken], [Data], Set<String>) {
+    private func monadDiscovery(owner: String) async throws -> ([IndexedEVMToken], [Data], Set<String>, Set<String>) {
         var page: String?, visited: Set<String> = [], references: Set<String> = [], raw: [Data] = []
+        var indexedZero: Set<String> = [], ineligibleZero: Set<String> = []
         repeat {
             var params: [SolanaJSON] = [.string(owner), .string("erc20")]
             if let page { params.append(.object(["pageKey": .string(page)])) }
@@ -983,7 +1046,12 @@ private extension IndexedEVMClient {
                   let balances = response.value["tokenBalances"].array, balances.count <= 1000 else { throw AnkrError.invalidResponse }
             for balance in balances {
                 guard let address = balance["contractAddress"].string else { throw AnkrError.invalidResponse }
-                references.insert(try IndexedEVMIdentity.address(address))
+                let reference = try IndexedEVMIdentity.address(address)
+                references.insert(reference)
+                // Only a hint for independent non-token validation. Never use
+                // this index quantity as an on-chain zero balance.
+                if balance["error"].isNull, (try? IndexedEVMIdentity.amount(balance["tokenBalance"])) == "0" { indexedZero.insert(reference) }
+                else { ineligibleZero.insert(reference) }
             }
             raw.append(response.raw)
             guard references.count <= 10_000, raw.reduce(0, { $0 + $1.count }) <= 32 * 1024 * 1024 else { throw AnkrError.responseTooLarge }
@@ -995,7 +1063,7 @@ private extension IndexedEVMClient {
         // Discovery is only a contract list. Values, decimals and chain identity
         // are read independently from the selected RPC at the pinned block.
         let (tokens, metadataRaw) = try await metadata(Array(references))
-        return (tokens.values.sorted { $0.reference < $1.reference }, raw + metadataRaw, references)
+        return (tokens.values.sorted { $0.reference < $1.reference }, raw + metadataRaw, references, indexedZero.subtracting(ineligibleZero))
     }
 
     private func monadHistory(owner: String, stream: IndexedEVMHistoryStream, cursor: String?) async throws -> Exchange {

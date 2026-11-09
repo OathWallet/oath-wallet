@@ -14,13 +14,13 @@ actor OathAptosSendService {
     static let shared = OathAptosSendService()
     private var client: AptosSendClient?
     private var flights = Set<String>()
-    private func connection() throws -> AptosSendClient {
+    func connection() throws -> AptosSendClient {
         if let client { return client }
         let value = try OathTokenRPCConfiguration.bundled().makeAptosSendClient()
         client = value; return value
     }
     func quote(walletID: String, accountID: String, assetID: String, reference: String,
-               recipient: String, amount: String, decimals: Int, maximum: Bool, vault: OathWalletVault) async throws -> OathAptosQuote {
+               recipient: String, amount: String, decimals: Int, maximum: Bool, vault: OathWalletVault, preparedSender: SendSenderSnapshot? = nil) async throws -> OathAptosQuote {
         try await OathDiagnostics.$chain.withValue("aptos") {
             try await OathDiagnostics.$operationID.withValue(UUID()) {
                 do {
@@ -28,7 +28,7 @@ actor OathAptosSendService {
                     guard let account = try await database.accounts(walletID:walletID).first(where:{$0.id == accountID && $0.networkID == "aptos"}) else { throw AptosSendError.wrongOwner }
                     let publicKey = try await vault.aptosPublicKey(walletID:walletID,accountID:accountID)
                     let policy = try await vault.aptosMultisigPolicy(walletID: walletID)
-                    let plan = try await connection().quote(sender:account.address,recipient:recipient,reference:reference,publicKey:publicKey,decimals:decimals,amount:amount,maximum:maximum,multisig:policy)
+                    let plan = try await connection().quote(sender:account.address,recipient:recipient,reference:reference,publicKey:publicKey,decimals:decimals,amount:amount,maximum:maximum,multisig:policy,preparedSender:preparedSender)
                     return .init(walletID:walletID,accountID:accountID,assetID:assetID,plan:plan)
                 } catch {
                     OathDiagnostics.record(error,component:"aptos_send",operation:"quote",context:["chain":"aptos"])

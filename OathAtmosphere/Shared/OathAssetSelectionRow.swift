@@ -3,19 +3,25 @@ import OathDatabase
 import OathTokenImages
 
 /// Saved-asset pickers share the search layout and Home's amount formatting.
-struct OathAssetSelectionRow: View {
+struct OathAssetSelectionRow: View, Equatable {
     let holding: Holding
     let currency: String
     var showsSeparator = false
     @Environment(\.oathLocalizer) private var strings
 
+    nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.currency == rhs.currency && lhs.showsSeparator == rhs.showsSeparator &&
+            lhs.holding.hasSameAssetSelectionContent(as: rhs.holding)
+    }
+
     var body: some View {
         let format = OathAssetAmountFormat(locale: strings.language.locale, selectedCurrencyCode: currency)
         let amounts = OathAssetAmounts(native: holding.nativeDisplayValue, fiat: holding.fiatDisplayValue, currencyCode: currency)
+        let fiat = String(format.fiat(amounts).characters)
         let chain = OathImportChain(rawValue: holding.networkID)
         OathRefinedListRow(title: strings.invariant(holding.symbol),
             subtitle: strings.invariant(holding.name),
-            value: String(format.fiat(amounts).characters),
+            value: fiat,
             primaryFontWeight: .medium,
             detail: strings.invariant(format.nativeSummary(amounts.native, ticker: holding.symbol)),
             showsSeparator: showsSeparator,
@@ -25,7 +31,7 @@ struct OathAssetSelectionRow: View {
                 OathSendLogo(holding: holding, size: size, showsChainBadge: false)
             }
             .accessibilityLabel([holding.symbol, holding.name, chain?.name,
-                String(format.fiat(amounts).characters), format.native(amounts.native, ticker: holding.symbol)]
+                fiat, format.native(amounts.native, ticker: holding.symbol)]
                 .compactMap { $0 }.joined(separator: ", "))
     }
 }

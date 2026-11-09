@@ -389,10 +389,8 @@ struct OathHomeScreen: View {
                 case .receive: OathReceivePicker(addresses: profile?.addresses ?? [], session: session)
                 case .assetFilters:
                     let walletID = profile?.id.uuidString ?? ""
-                    OathAssetFilterSheet(holdings: session.portfolio?.holdings ?? [], currency: assetFilterCurrency,
-                                         selection: assetFilters) { selection in
-                        try await session.saveAssetFilters(selection, walletID: walletID)
-                    }
+                    OathAssetFilterSheet(session: session, walletID: walletID, currency: assetFilterCurrency,
+                                         selection: assetFilters)
                 case .address(let address): OathReceiveSheet(address: address, session: session)
                 case .priceUntracked:
                     OathWalletInfoSheet(title: .assetPriceUnavailable, icon: "exclamationmark.circle",
@@ -593,6 +591,10 @@ struct OathHomeScreen: View {
                             .padding(.horizontal, 20).padding(.bottom, 20)
                             .frame(maxWidth: 700).frame(maxWidth: .infinity)
                     }
+                    // A new chain starts at its first asset, not the previous
+                    // chain's scroll offset. Keep the search toolbar outside
+                    // this identity so keyboard/focus and the query survive.
+                    .id(searchScope)
                     .background(Color(uiColor: OathSurfaceColors.groupedCanvas).ignoresSafeArea())
                     .navigationTitle(strings.text(.assets))
                     .navigationBarTitleDisplayMode(.inline)
@@ -839,20 +841,24 @@ struct OathHomeScreen: View {
                     if assetFilters.activeCount > 0 {
                         OathButton(strings.text(.historyResetFilters), feedback: .selection) {
                             guard let walletID = profile?.id.uuidString else { return }
+                            let editor = session.assetFilterEditor(walletID: walletID, currency: assetFilterCurrency,
+                                                                  selection: assetFilters)
+                            editor.reset()
                             Task {
-                                do { try await session.saveAssetFilters(.init(), walletID: walletID) }
-                                catch is CancellationError { }
-                                catch {
-                                    OathDiagnostics.record(error, component: "asset_filters", operation: "reset")
-                                    walletActionFailed = true
-                                }
+                                await editor.waitForPendingSave()
+                                if editor.saveFailed { walletActionFailed = true }
                             }
                         }
                             .buttonStyle(.bordered)
+                            .buttonBorderShape(.capsule)
+                            .controlSize(.large)
+                            .tint(Color(uiColor: .systemGray))
+                            .foregroundStyle(.primary)
+                            .oathFont(.body, weight: .medium)
                             .accessibilityIdentifier("home.assetFilters.reset")
                     }
                 }
-            } else if searching && visibleHoldings.isEmpty && !tokenSearchRequest.hasQuery {
+            } else if searching && visibleHoldings.isEmpty && !tokenSearchRequest.showsCatalogResults {
                 OathEmptyState(strings.text(.noSearchResults), systemImage: "magnifyingglass",
                                description: strings.format(.noSearchResultsDetail, query))
             } else {
@@ -861,7 +867,7 @@ struct OathHomeScreen: View {
                 }
                 .padding(.horizontal, -20)
             }
-            if searching && tokenSearchRequest.hasQuery {
+            if searching && tokenSearchRequest.showsCatalogResults {
                 OathTokenSearchResults(model: tokenSearch, session: session, walletID: tokenSearchRequest.walletID,
                     active: tokenSearchRequest.active, hasSavedMatches: !visibleHoldings.isEmpty,
                     balancesHidden: balancesHidden, permittedNetworks: tokenSearchRequest.networks, onSelected: { holding, snapshot in

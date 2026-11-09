@@ -7,7 +7,7 @@ public actor StellarSendClient {
     private var verifiedStates: [URL:(State,Date)] = [:]
     private let transport: any AnkrTransport
     public init(network: StellarSendNetwork, apiKey: String? = nil, transport: any AnkrTransport = AnkrHTTPTransport()) throws {
-        self.network=network;self.transport=transport
+        self.network=network;self.transport=SendMeasuredTransport(base: transport)
         if network == .mainnet, let apiKey, !apiKey.isEmpty {
             guard apiKey.count <= 256, apiKey.utf8.allSatisfy({(48...57).contains($0)||(65...90).contains($0)||(97...122).contains($0)}) else { throw StellarSendError.configuration }
             horizons=[URL(string:"https://rpc.ankr.com/http/stellar_horizon")!,network.horizon]
@@ -122,6 +122,84 @@ public actor StellarSendClient {
         }
         return nil
     }
+    /// Contract balance/decimals are read-only invocations, never a transfer or fee quote.
+    private func senderRead(_ function: String, reference: String, owner: String, ledger: UInt32, endpoint: URL) async throws -> StellarJSON {
+        guard ["balance", "decimals"].contains(function) else { throw StellarSendError.malformed }
+        let info = try await rpc("getNetwork", [:], endpoint: endpoint)
+        guard info["passphrase"].string == network.passphrase else { throw StellarSendError.wrongNetwork }
+        let word = StellarIdentity.u32, name = Array(function.utf8)
+        var bytes = word(2) + word(0) + (try StellarIdentity.bytes(owner, version: 48))
+        bytes += word(100) + Array(repeating: UInt8(0), count: 8) + word(0) + word(0) + word(1) + word(0) + word(24) + word(0) + word(1)
+        bytes += (try StellarIdentity.bytes(reference, version: 16)) + word(UInt32(name.count)) + name + Array(repeating: UInt8(0), count: (4-name.count%4)%4)
+        bytes += word(function == "balance" ? 1 : 0)
+        if function == "balance" { bytes += Array(try StellarSendXDR.scAddress(owner)) }
+        bytes += word(0) + word(0) + word(0)
+        let result = try await rpc("simulateTransaction", ["transaction": .string(Data(bytes).base64EncodedString())], endpoint: endpoint)
+        guard result["error"].isNull, let height = result["latestLedger"].integer, height >= UInt64(ledger),
+              let values = result["results"].array, values.count == 1 else { throw StellarSendError.changed }
+        return values[0]["xdr"]
+    }
+
+    public func prepareSender(sender: String, reference: String, decimals: Int, multisig: StellarMultisigPolicy? = nil) async throws -> SendSenderSnapshot {
+        let observed = Date.now
+        _ = try StellarIdentity.address(sender); _ = try StellarIdentity.reference(reference)
+        for (index, base) in horizons.enumerated() {
+            do {
+                async let source = account(base, sender)
+                async let latest = state(base, fees: false)
+                let (src, s) = try await (source, latest)
+                guard let src, let native = try classic(src, reference: "native"),
+                      let sub = src["subentry_count"].integer, let sponsoring = src["num_sponsoring"].integer,
+                      let sponsored = src["num_sponsored"].integer, sub <= 1_000_000, sponsoring <= 1_000_000,
+                      sponsored <= 2 + sub + sponsoring else { throw StellarSendError.unsupportedAccount }
+                if let multisig {
+                    try multisig.validate()
+                    guard multisig.account == sender, multisig.matches(src) else { throw StellarSendError.changed }
+                } else {
+                    guard let threshold = src["thresholds"]["med_threshold"].integer,
+                          let signer = src["signers"].array?.first(where: { $0["key"].string == sender && $0["type"].string == "ed25519_public_key" }),
+                          let weight = signer["weight"].integer, weight > 0, weight >= threshold else { throw StellarSendError.unsupportedAccount }
+                }
+                let balance = try Self.atomic(native.row, "balance"), liabilities = try Self.atomic(native.row, "selling_liabilities")
+                let reserve = (2 + sub + sponsoring - sponsored) * s.reserve
+                guard balance >= reserve, liabilities <= balance - reserve else { throw StellarSendError.reserve }
+                var asset = String(balance), spendable = String(balance - reserve - liabilities)
+                if let holding = try classic(src, reference: reference) {
+                    guard decimals == 7 else { throw StellarSendError.changed }
+                    if reference != "native" {
+                        guard holding.row["is_authorized"] == .bool(true) else { throw StellarSendError.restricted }
+                        let total = try Self.atomic(holding.row, "balance"), selling = try Self.atomic(holding.row, "selling_liabilities")
+                        guard total >= selling else { throw StellarSendError.insufficientFunds }
+                        asset = String(total); spendable = String(total - selling)
+                    }
+                } else {
+                    var found = false
+                    for (rpcIndex, endpoint) in rpcEndpoints.enumerated() {
+                        do {
+                            async let b = senderRead("balance", reference: reference, owner: sender, ledger: s.ledger, endpoint: endpoint)
+                            async let d = senderRead("decimals", reference: reference, owner: sender, ledger: s.ledger, endpoint: endpoint)
+                            let (raw, scale) = try await (b, d), bytes = try StellarDecoding.scBytes(scale)
+                            guard bytes.count == 8, try StellarDecoding.u32(bytes, 0) == 3, Int(try StellarDecoding.u32(bytes, 4)) == decimals else { throw StellarSendError.changed }
+                            asset = try StellarDecoding.scAmount(raw); spendable = asset; found = true; break
+                        } catch {
+                            if error is CancellationError || Task.isCancelled { throw CancellationError() }
+                            OathDiagnostics.record(error, component: "stellar_send", operation: "sender_contract", context: ["chain": "stellar"])
+                            if rpcIndex == rpcEndpoints.count - 1 || !Self.retryable(error) { throw error }
+                        }
+                    }
+                    guard found else { throw StellarSendError.transport }
+                }
+                return try .init(chain: "stellar", sender: sender, reference: reference, decimals: decimals, assetBalance: asset,
+                                 nativeBalance: String(balance), spendable: spendable, observedAt: observed)
+            } catch {
+                if error is CancellationError || Task.isCancelled { throw CancellationError() }
+                OathDiagnostics.record(error, component: "stellar_send", operation: "sender_preparation", context: ["chain": "stellar"])
+                if index == horizons.count - 1 || !Self.retryable(error) { throw error }
+            }
+        }
+        throw StellarSendError.transport
+    }
+
     public func quote(sender: String, recipient: String, reference: String, decimals: Int, amount: String,
                       memo: StellarSendMemo = .init(), maximum: Bool = false, multisig: StellarMultisigPolicy? = nil) async throws -> StellarSendPlan {
         try await OathDiagnostics.$chain.withValue("stellar") {

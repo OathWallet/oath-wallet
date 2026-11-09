@@ -9,7 +9,7 @@ public actor ThorchainSendClient {
     private let api:URL,rpc:URL,transport:any AnkrTransport
     private let permits=AnkrPermits(count:4)
     public init(network:ThorchainSendNetwork = .mainnet,localAPI:URL?=nil,localRPC:URL?=nil,transport:any AnkrTransport = AnkrHTTPTransport()) throws {
-        self.network=network;self.transport=transport
+        self.network=network;self.transport=SendMeasuredTransport(base: transport)
         if network == .mainnet {
             guard localAPI==nil,localRPC==nil else {throw ThorchainSendError.configuration}
             api=ThorchainClient.node;rpc=ThorchainClient.rpc
@@ -164,6 +164,26 @@ public actor ThorchainSendClient {
         }
         return try validated("metadata") {throw ThorchainSendError.malformed}
     }
+    public func prepareSender(sender: String, reference: String, publicKey: Data, decimals: Int, multisig: ThorchainMultisigPolicy? = nil) async throws -> SendSenderSnapshot {
+        let observed = Date.now
+        _ = try ThorchainSendCrypto.addressBytes(sender, network: network); _ = try ThorchainIdentity.reference(reference)
+        if let multisig {
+            try multisig.validate()
+            guard multisig.aminoPublicKey == publicKey, multisig.address(network: network) == sender else { throw ThorchainSendError.wrongOwner }
+        } else { guard try ThorchainSendCrypto.address(publicKey: publicKey, network: network) == sender else { throw ThorchainSendError.wrongOwner } }
+        let height = try await head().0
+        async let limits: Void = validateMultisigLimit(multisig)
+        async let state = account(sender)
+        async let native = balance(owner: sender, reference: "native")
+        async let token: String? = reference == "native" ? nil : balance(owner: sender, reference: reference)
+        async let units = self.decimals(reference)
+        async let status: Void = enabled(height: height)
+        let (_, _, n, t, d, _) = try await (limits, state, native, token, units, status)
+        guard d == decimals else { throw ThorchainSendError.metadataChanged }
+        return try .init(chain: "thorchain", sender: sender, reference: reference, decimals: decimals,
+                         assetBalance: t ?? n, nativeBalance: n, observedAt: observed)
+    }
+
     public func quote(sender:String,recipient:String,reference:String,publicKey:Data,decimals:Int,amount:String,memo:String="",maximum:Bool=false,multisig:ThorchainMultisigPolicy?=nil) async throws -> ThorchainSendPlan {
         _ = try ThorchainSendCrypto.addressBytes(sender,network:network);_ = try ThorchainSendCrypto.addressBytes(recipient,network:network)
         _ = try ThorchainIdentity.reference(reference);_ = try ThorchainSendAmount.checked(amount)

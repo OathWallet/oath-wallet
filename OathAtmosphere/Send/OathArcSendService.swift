@@ -14,19 +14,19 @@ actor OathArcSendService {
     static let shared = OathArcSendService()
     private var client: ArcSendClient?
     private var flights = Set<String>()
-    private func connection() -> ArcSendClient {
+    func connection() -> ArcSendClient {
         if let client { return client }
         let value = OathTokenRPCConfiguration.bundled().makeArcSendClient()
         client = value; return value
     }
     func quote(walletID: String, accountID: String, assetID: String, reference: String,
-               recipient: String, amount: String, decimals: Int, maximum: Bool, vault: OathWalletVault) async throws -> OathArcQuote {
+               recipient: String, amount: String, decimals: Int, maximum: Bool, vault: OathWalletVault, preparedSender: SendSenderSnapshot? = nil) async throws -> OathArcQuote {
         try await OathDiagnostics.$chain.withValue("arc") {
             try await OathDiagnostics.$operationID.withValue(UUID()) {
                 do {
                     let database = try await vault.database()
                     guard let account = try await database.accounts(walletID:walletID).first(where:{$0.id == accountID && $0.networkID == "arc"}) else { throw ArcSendError.wrongOwner }
-                    let plan = try await connection().quote(sender:account.address,recipient:recipient,reference:reference,decimals:decimals,amount:amount,maximum:maximum)
+                    let plan = try await connection().quote(sender:account.address,recipient:recipient,reference:reference,decimals:decimals,amount:amount,maximum:maximum,preparedSender:preparedSender)
                     return .init(walletID:walletID,accountID:accountID,assetID:assetID,plan:plan)
                 } catch {
                     OathDiagnostics.record(error,component:"arc_send",operation:"quote",context:["chain":"arc"])

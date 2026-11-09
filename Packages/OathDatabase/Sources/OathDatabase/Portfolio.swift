@@ -20,6 +20,10 @@ public struct Holding: Decodable, FetchableRecord, Sendable, Equatable, Identifi
     public let priceObservedAt: Double?
     public let priceSource: String?
     public let transactionCount: Int
+    /// Home presentation only; tracking never supplies verification evidence.
+    public var homeVerified: Bool? = nil
+    public var isVerifiedForHome: Bool { reference == "native" || homeVerified == true }
+
     // Optional for older cached projections; live portfolio queries always supply a count.
     var pendingTransactionCountValue: Int? = nil
     public var pendingTransactionCount: Int { pendingTransactionCountValue ?? 0 }
@@ -28,6 +32,7 @@ public struct Holding: Decodable, FetchableRecord, Sendable, Equatable, Identifi
     public private(set) var isCatalogPreview = false
 
     private enum CodingKeys: String, CodingKey {
+        case homeVerified
         case pendingTransactionCountValue = "pendingTransactionCount"
         case accountID, networkID, address, assetID, reference, name, symbol, decimals, logo
         case amountAtomic, balanceObservedAt, usdPrice, exchangeRate, priceObservedAt, priceSource, transactionCount
@@ -50,7 +55,7 @@ public struct Holding: Decodable, FetchableRecord, Sendable, Equatable, Identifi
         Holding(accountID: accountID, networkID: networkID, address: address, assetID: assetID,
                 reference: reference, name: name, symbol: symbol, decimals: decimals, logo: logo,
                 amountAtomic: nil, balanceObservedAt: nil, usdPrice: usdPrice, exchangeRate: exchangeRate,
-                priceObservedAt: priceObservedAt, priceSource: priceSource, transactionCount: 0,
+                priceObservedAt: priceObservedAt, priceSource: priceSource, transactionCount: 0, homeVerified: homeVerified,
                 isCatalogPreview: isCatalogPreview)
     }
 
@@ -195,7 +200,7 @@ extension OathDatabase {
                               hiddenAssetIDs: Set(try String.fetchAll(db, sql: "SELECT assetID FROM hiddenAssets WHERE walletID=?", arguments: [walletID])))
     }
     /// Shared holdings query for the locally stored portfolio.
-    private static func holdings(_ db: Database, walletID: String, currency: String,
+    static func holdings(_ db: Database, walletID: String, currency: String,
                                  hidesUnverifiedTokens: Bool, includeAllAssets: Bool) throws -> [Holding] {
         return try Holding.fetchAll(db, sql: """
             WITH visibility(hidesUnverified) AS (VALUES (?)),
@@ -308,6 +313,20 @@ extension OathDatabase {
             SELECT c.id AS accountID,c.networkID,CASE WHEN c.networkID='solana' THEN
                    COALESCE((SELECT address FROM solanaReceiveAddresses WHERE accountID=c.id AND isSelected=1),c.address)
                    ELSE c.address END AS address,a.id AS assetID,a.reference,a.name,a.symbol,a.decimals,a.logo,
+                   (a.reference='native' OR (c.networkID='thorchain' AND EXISTS(SELECT 1 FROM tokenHistoryTrust v WHERE v.networkID=c.networkID AND v.reference=a.reference AND v.decimals=a.decimals)) OR EXISTS(SELECT 1 FROM ankrAssets v WHERE v.accountID=c.id AND v.assetID=a.id AND v.onlyWhitelisted=1) OR
+                       EXISTS(SELECT 1 FROM solanaHoldings v WHERE v.accountID=c.id AND v.assetID=a.id AND v.verified=1 AND v.owner=COALESCE((SELECT address FROM solanaReceiveAddresses WHERE accountID=c.id AND isSelected=1),c.address)) OR
+                       EXISTS(SELECT 1 FROM tronHoldings v WHERE v.accountID=c.id AND v.assetID=a.id AND v.verified=1) OR
+                       EXISTS(SELECT 1 FROM tonHoldings v WHERE v.accountID=c.id AND v.assetID=a.id AND v.verified=1) OR
+                       EXISTS(SELECT 1 FROM aptosHoldings v WHERE v.accountID=c.id AND v.assetID=a.id AND v.verified=1) OR
+                       EXISTS(SELECT 1 FROM suiHoldings v WHERE v.accountID=c.id AND v.assetID=a.id AND v.verified=1) OR
+                       EXISTS(SELECT 1 FROM nearHoldings v WHERE v.accountID=c.id AND v.assetID=a.id AND v.verified=1) OR
+                       EXISTS(SELECT 1 FROM xrplHoldings v WHERE v.accountID=c.id AND v.assetID=a.id AND v.verified=1) OR
+                       EXISTS(SELECT 1 FROM polkadotHoldings v WHERE v.accountID=c.id AND v.assetID=a.id AND v.verified=1) OR
+                       EXISTS(SELECT 1 FROM stellarHoldings v WHERE v.accountID=c.id AND v.assetID=a.id AND v.verified=1) OR
+                       EXISTS(SELECT 1 FROM arcHoldings v WHERE v.accountID=c.id AND v.assetID=a.id AND v.verified=1) OR
+                       EXISTS(SELECT 1 FROM robinhoodHoldings v WHERE v.accountID=c.id AND v.assetID=a.id AND v.verified=1) OR
+                       EXISTS(SELECT 1 FROM hyperevmHoldings v WHERE v.accountID=c.id AND v.assetID=a.id AND v.verified=1) OR
+                       EXISTS(SELECT 1 FROM indexedEVMHoldings v WHERE v.accountID=c.id AND v.assetID=a.id AND v.verified=1)) AS homeVerified,
                    b.amountAtomic,b.observedAt AS balanceObservedAt,p.value AS usdPrice,p.observedAt AS priceObservedAt,p.source AS priceSource,
                    COALESCE(tc.count,0) AS transactionCount,COALESCE(tc.pendingCount,0) AS pendingTransactionCount,
                    CASE WHEN ?='USD' THEN '1' ELSE fx.unitsPerUSD END AS exchangeRate

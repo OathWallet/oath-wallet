@@ -2,6 +2,40 @@ import XCTest
 @testable import OathAnkr
 
 @MainActor final class AptosSendTests: XCTestCase {
+    func testEarlySenderPreparation() async throws {
+        for reference in ["native", "0x123::example::Token", "0x456"] {
+            let p = try plan(reference: reference), t = AptosSendFixture(plan: p)
+            let c = try AptosSendClient(network: .testnet, transport: t)
+            let s = try await c.prepareSender(sender:p.sender,reference:p.reference,publicKey:p.publicKey,decimals:p.decimals)
+            XCTAssertEqual(s.assetBalance, "100000000"); XCTAssertNotNil(s.block)
+            let paths = await t.paths; XCTAssertFalse(paths.contains(where: { $0.contains("simulate") || $0.contains("estimate_gas") }))
+            let quote = try await c.quote(sender:p.sender,recipient:p.recipient,reference:p.reference,publicKey:p.publicKey,decimals:p.decimals,amount:"123456",preparedSender:s)
+            try quote.validate(); XCTAssertEqual(quote.fee,66_600)
+        }
+    }
+
+    func testEarlyMultisigPreparationAuthenticatesPolicy() async throws {
+        let keys = try [Data(repeating: 1, count: 32), Data(repeating: 2, count: 32)].map(AptosSendCrypto.publicKey)
+        let policy = try AptosMultisigPolicy(required: 2, publicKeys: keys)
+        for reference in ["native", "0x123::example::Token", "0x456"] {
+            let base = try plan(reference: reference)
+            var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(base)) as? [String: Any])
+            json["sender"] = policy.address; json["publicKey"] = policy.bytes.base64EncodedString()
+            json["multisig"] = try JSONSerialization.jsonObject(with: JSONEncoder().encode(policy))
+            let plan = try JSONDecoder().decode(AptosSendPlan.self, from: JSONSerialization.data(withJSONObject: json))
+            // This fixture's transaction fields are unused by read-only preparation.
+            let unused = AptosSignedSend(bytes: Data(), publicKey: policy.bytes, signature: Data(), hash: "0x" + String(repeating: "0", count: 64))
+            let transport = AptosSendFixture(plan: plan, signed: unused), client = try AptosSendClient(network: .testnet, transport: transport)
+            let prepared = try await client.prepareSender(sender: policy.address, reference: plan.reference, publicKey: policy.bytes, decimals: plan.decimals, multisig: policy)
+            XCTAssertEqual(prepared.assetBalance, "100000000")
+            let paths = await transport.paths
+            XCTAssertFalse(paths.contains { $0.contains("simulate") || $0.contains("estimate_gas") })
+            await transport.setMode("wrongOwner")
+            do { _ = try await client.prepareSender(sender: policy.address, reference: plan.reference, publicKey: policy.bytes, decimals: plan.decimals, multisig: policy); XCTFail("Accepted changed authentication key") }
+            catch { XCTAssertEqual(error as? AptosSendError, .wrongOwner) }
+        }
+    }
+
     nonisolated static let key=Data(repeating:1,count:32)
     func plan(reference:String="native",network:AptosSendNetwork = .testnet,now:Date = .now) throws -> AptosSendPlan {
         .init(network:network,sender:try AptosSendCrypto.address(privateKey:Self.key),recipient:try AptosSendCrypto.address(privateKey:Data(repeating:2,count:32)),reference:try AptosIdentity.reference(reference),publicKey:try AptosSendCrypto.publicKey(privateKey:Self.key),decimals:reference=="native" ? 8:6,requestedAmount:123456,amount:123456,assetBalance:100_000_000,nativeBalance:100_000_000,sequence:7,gasUnitPrice:100,maxGasAmount:2000,expiration:UInt64(now.timeIntervalSince1970)+300,createdAt:now)

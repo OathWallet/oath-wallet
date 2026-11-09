@@ -33,6 +33,7 @@ private actor TronSendTransportFixture:AnkrTransport {
             let address=p["address"].string!
             if address==sender,options["senderInactive"] == .bool(true){result = .object([:])}
             else if address==recipient,options["activation"] == .bool(true){result = .object([:])}
+            else if address==sender, let multisig = options["multisigAccount"] { result = multisig }
             else {result = .object(["address":.string(address),"balance":options["balance"] ?? .number("1000000000"),"owner_permission":.object(["threshold":.number("1"),"keys":.array([.object(["address":.string(address),"weight":options["weight"] ?? .number("1")])])]),"assetV2":.array([.object(["key":.string("1005416"),"value":.number("10000000")])])])}
         case "getaccountresource":result=options["resources"] ?? .object([:])
         case "getchainparameters":
@@ -64,6 +65,38 @@ private actor TronSendTransportFixture:AnkrTransport {
     }
 }
 @MainActor final class TronSendBoundaryTests:XCTestCase {
+    func testEarlySenderPreparation() async throws {
+        for reference in ["native", "1005416", "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf"] {
+            let (c,_,a,_) = try fixture()
+            let s = try await c.prepareSender(sender:a,reference:reference,decimals:6)
+            XCTAssertFalse(s.assetBalance.isEmpty); XCTAssertEqual(s.reference,reference)
+        }
+    }
+
+    func testEarlyMultisigPreparationVerifiesPermissions() async throws {
+        let (client, transport, sender, recipient) = try fixture()
+        let signers = try [Data(repeating: 21, count: 32), Data(repeating: 22, count: 32)].map { try TronSendCrypto.address(privateKey: $0) }
+        let policy = try TronMultisigPolicy(required: 2, signers: signers)
+        func permission(_ type: Int, threshold: Int) -> TronJSON {
+            var fields: [String: TronJSON] = ["type": .number(String(type)), "id": .number(type == 0 ? "0" : "2"), "permission_name": .string(type == 0 ? "owner" : "active"), "threshold": .number(String(threshold)), "keys": .array(signers.map { .object(["address": .string($0), "weight": .number("1")]) })]
+            if type == 2 { fields["operations"] = .string(TronMultisigPolicy.operations) }; return .object(fields)
+        }
+        func account(_ threshold: Int) -> TronJSON {
+            .object(["address": .string(sender), "balance": .number("1000000000"), "owner_permission": permission(0, threshold: threshold), "active_permission": .array([permission(2, threshold: threshold)]), "assetV2": .array([.object(["key": .string("1005416"), "value": .number("10000000")])])])
+        }
+        await transport.configure(["multisigAccount": account(2)])
+        for reference in ["native", "1005416", recipient] {
+            let prepared = try await client.prepareSender(sender: sender, reference: reference, decimals: 6, multisig: policy)
+            XCTAssertEqual(prepared.nativeBalance, "1000000000")
+        }
+        let requests = await transport.requests
+        XCTAssertFalse(requests.contains { $0.url?.lastPathComponent == "getchainparameters" })
+        let calls = await transport.contractCalls(); XCTAssertFalse(calls.contains { $0["function_selector"].string == "transfer(address,uint256)" })
+        await transport.configure(["multisigAccount": account(1)])
+        do { _ = try await client.prepareSender(sender: sender, reference: "native", decimals: 6, multisig: policy); XCTFail("Accepted changed permissions") }
+        catch { XCTAssertEqual(error as? TronSendError, .unsupportedAccount) }
+    }
+
     let key=Data(repeating:31,count:32)
     private func fixture(network:TronSendNetwork = .nile) throws ->(TronSendClient,TronSendTransportFixture,String,String){
         let a=try TronSendCrypto.address(privateKey:key),b=try TronSendCrypto.address(privateKey:Data(repeating:32,count:32)),t=TronSendTransportFixture(sender:a,recipient:b)

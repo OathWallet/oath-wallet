@@ -30,7 +30,7 @@ struct OathHelpCenterPage: View {
                     }
                 } header: {
                     Text(section.category.title)
-                        .oathFont(.subheadline, weight: .semibold)
+                        .oathFont(.subheadline, weight: .medium)
                         .foregroundStyle(.secondary).textCase(nil)
                         .padding(.vertical, 12)
                 }

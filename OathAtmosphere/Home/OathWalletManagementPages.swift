@@ -348,7 +348,7 @@ struct OathWalletListRow: View {
                 ProgressView().accessibilityHidden(true)
             } else if showsDisclosure {
                 Image(systemName: "chevron.forward")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(.secondary).accessibilityHidden(true)
             }
         }

@@ -17,6 +17,7 @@ private struct AbsentOrFailedLookup: OathTokenLookingUp {
 }
 
 private struct EmptyDiscovery: OathTokenDiscovering {
+    func tokens(on network: String, excluding: Set<String>) async -> [TokenDiscoveryEntry] { [] }
     func search(_ query: String, networks: Set<String>, excluding: Set<String>, limit: Int) async -> [TokenDiscoveryEntry] { [] }
     func refreshIfNeeded() async -> Bool { false }
 }
@@ -769,6 +770,7 @@ private struct UnexpectedLookup: OathTokenLookingUp {
 }
 
 private struct FixedDiscovery: OathTokenDiscovering {
+    func tokens(on network: String, excluding: Set<String>) async -> [TokenDiscoveryEntry] { entries.filter { $0.network == network && !excluding.contains($0.id) } }
     let entries: [TokenDiscoveryEntry]
     func search(_ query: String, networks: Set<String>, excluding: Set<String>, limit: Int) async -> [TokenDiscoveryEntry] {
         entries.filter { networks.contains($0.network) && !excluding.contains($0.id) }
@@ -777,6 +779,7 @@ private struct FixedDiscovery: OathTokenDiscovering {
 }
 
 private actor ControlledRefreshDiscovery: OathTokenDiscovering {
+    func tokens(on network: String, excluding: Set<String>) async -> [TokenDiscoveryEntry] { entries.filter { $0.network == network && !excluding.contains($0.id) } }
     let entries: [TokenDiscoveryEntry]
     let delay: Duration
     let started: XCTestExpectation
@@ -882,4 +885,112 @@ private final class RPCRequestCounter: @unchecked Sendable {
     func increment(_ key: String) { lock.withLock { values[key, default: 0] += 1 } }
     func count(_ key: String) -> Int { lock.withLock { values[key, default: 0] } }
     func reset() { lock.withLock { values = [:] } }
+}
+
+extension TokenLookupTests {
+    func testEmptyQueryChainBrowsePublishesCacheBeforeRefreshAndRejectsObsoleteCompletion() async throws {
+        let bytes = Data(#"[{"id":"fixture","name":"Fixture Token","symbol":"TEST","platforms":{"ethereum":"0x0000000000000000000000000000000000000001"}}]"#.utf8)
+        // Explicit entries from the production bundled directory avoid coupling
+        // this test to a third-party platform spelling for 0G.
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let production = TokenDiscoveryCatalog(transport: UnavailableDirectory(), directory: folder)
+        let zeroG = await production.tokens(on: "zerog")
+        XCTAssertFalse(zeroG.isEmpty)
+        let ethereum = try TokenDiscoveryCatalog.decode(bytes).filter { $0.network == "ethereum" }
+        let catalog = GatedBrowseDiscovery(entries: zeroG + ethereum)
+        let model = OathTokenSearchModel(service: UnexpectedLookup(), catalog: catalog)
+        await model.search("", available: [.zerog, .ethereum])
+        XCTAssertTrue(model.results.isEmpty, "All must not browse the entire catalog")
+        let untouched = await catalog.browseCalls
+        XCTAssertTrue(untouched.isEmpty)
+
+        let pending = Task { await model.search("", available: [.zerog], browsingChain: .zerog) }
+        await catalog.waitUntilRefreshing()
+        XCTAssertEqual(Set(model.results.map(\.id)), Set(zeroG.map(\.id)))
+        XCTAssertFalse(model.isSearching, "Cached results must be usable while refresh is held")
+        await model.search("", available: [.ethereum], browsingChain: .ethereum)
+        XCTAssertEqual(model.results.map(\.network.chain), [.ethereum])
+        await catalog.release()
+        await pending.value
+        XCTAssertEqual(model.results.map(\.network.chain), [.ethereum], "Old chain must not publish after selection changes")
+
+        await model.search("", available: [.zerog], savedIDs: Set(zeroG.map(\.id)), browsingChain: .zerog)
+        XCTAssertTrue(model.results.isEmpty, "Saved token rows must not be duplicated")
+        await model.search("", available: [.ethereum], requiredReference: "native", browsingChain: .ethereum)
+        XCTAssertTrue(model.results.isEmpty, "A native payment link cannot become a token payment")
+        await model.search("", available: [.ethereum])
+        XCTAssertFalse(model.isCatalogQuery)
+        XCTAssertTrue(model.results.isEmpty, "Returning to All clears the chain directory")
+    }
+}
+
+extension TokenLookupTests {
+    func testChainBrowseRequestCoversAllEnabledWalletAccountsIncludingUnobservedNativeCoins() async throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let database = try await OathDatabase.open(at: folder.appendingPathComponent("wallet.sqlite"))
+        let chains = OathImportChain.enabledCases
+        XCTAssertEqual(chains.count, 42)
+        try await database.seed(networks: chains.enumerated().map { index, chain in
+            .init(id: chain.id, name: chain.name, family: "fixture", symbol: chain.shortName, decimals: 18,
+                  derivationPath: "fixture", logo: chain.logoAsset, sortOrder: index)
+        }, assets: chains.map {
+            .init(id: $0.id + ":native", networkID: $0.id, reference: "native", name: $0.name, symbol: $0.shortName, decimals: 18)
+        })
+        try await database.importWalletIfNeeded(.init(id: "fixture", name: "", kind: "hd", vaultReference: "fixture", createdAt: 1),
+            accounts: chains.map { .init(id: $0.id, walletID: "fixture", networkID: $0.id, address: "public-fixture", derivationPath: "fixture") })
+        let snapshot = try await database.snapshot(walletID: "fixture", currency: "USD")
+        let catalog = TokenDiscoveryCatalog(transport: UnavailableDirectory(), directory: folder.appendingPathComponent("catalog"))
+        let model = OathTokenSearchModel(service: UnexpectedLookup(), catalog: catalog)
+        for chain in chains {
+            let scope = OathAssetSearchScope(chain: chain)
+            let request = OathTokenSearchRequest(query: "", walletID: "fixture", active: true, snapshot: snapshot, scope: scope)
+            XCTAssertTrue(request.active, chain.id)
+            XCTAssertTrue(request.showsCatalogResults, chain.id)
+            XCTAssertEqual(request.networks, [chain])
+            let native = snapshot.holdings.filter { scope.includes(networkID: $0.networkID) && $0.reference == "native" }
+            XCTAssertEqual(native.count, 1, chain.id)
+            XCTAssertNil(native.first?.amountAtomic, "Unknown balances are not fabricated")
+            let expected = await catalog.tokens(on: chain.id, excluding: request.savedIDs)
+                .compactMap(OathTokenDefinition.discovery).map(\.id)
+            await model.search(request)
+            XCTAssertEqual(Set(model.results.map(\.id)), Set(expected), chain.id)
+            XCTAssertTrue(model.results.allSatisfy { $0.network.chain == chain }, chain.id)
+        }
+        let all = OathTokenSearchRequest(query: "", walletID: "fixture", active: true, snapshot: snapshot)
+        XCTAssertFalse(all.showsCatalogResults)
+        await model.search(all)
+        XCTAssertTrue(model.results.isEmpty)
+    }
+}
+
+private actor GatedBrowseDiscovery: OathTokenDiscovering {
+    let entries: [TokenDiscoveryEntry]
+    private(set) var browseCalls: [String] = []
+    private var refresh: CheckedContinuation<Bool, Never>?
+    private var started = false
+    private var observers: [CheckedContinuation<Void, Never>] = []
+    init(entries: [TokenDiscoveryEntry]) { self.entries = entries }
+    func tokens(on network: String, excluding: Set<String>) -> [TokenDiscoveryEntry] {
+        browseCalls.append(network)
+        return entries.filter { $0.network == network && !excluding.contains($0.id) }
+    }
+    func search(_ query: String, networks: Set<String>, excluding: Set<String>, limit: Int) -> [TokenDiscoveryEntry] {
+        XCTFail("Empty-query chain browsing must use the complete directory")
+        return []
+    }
+    func refreshIfNeeded() async -> Bool {
+        guard !started else { return false }
+        started = true
+        return await withCheckedContinuation { continuation in
+            refresh = continuation
+            observers.forEach { $0.resume() }; observers.removeAll()
+        }
+    }
+    func waitUntilRefreshing() async {
+        if refresh != nil { return }
+        await withCheckedContinuation { observers.append($0) }
+    }
+    func release() { refresh?.resume(returning: true); refresh = nil }
 }

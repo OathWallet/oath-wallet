@@ -28,7 +28,6 @@ struct OathOnboardingLayout: Equatable {
     let introduction: CGRect
     let actions: CGRect
     let logoSize: CGSize
-    let introductionTopPadding: CGFloat
     let spreadDivider: CGFloat?
 
     init(
@@ -43,14 +42,9 @@ struct OathOnboardingLayout: Equatable {
         let actionHeight = actionHeight.isFinite ? max(0, actionHeight) : 200
         let introductionHeight = introductionHeight.isFinite ? max(0, introductionHeight) : 175
         let bounds = CGRect(origin: .zero, size: size)
-        let margin = OathActionMetrics.screenMargin(for: size.width)
-        let horizontalInset = min(margin, size.width / 2)
-        let verticalInset = min(16, size.height / 2)
-        // insetBy returns CGRect.null (infinite origin) when the inset exceeds
-        // the proposed size. Construct a finite empty rectangle instead.
-        let content = CGRect(x: horizontalInset, y: verticalInset,
-                             width: max(0, size.width - 2 * horizontalInset),
-                             height: max(0, size.height - 2 * verticalInset))
+        // Divide the safe area only. Each pane applies SwiftUI's default
+        // padding, including room outside its scroll view for glass effects.
+        let content = bounds
         var hero: CGRect
         var controls: CGRect
         let mode: Arrangement
@@ -105,16 +99,16 @@ struct OathOnboardingLayout: Equatable {
         hero = Self.avoidingOcclusions(hero, occlusions)
         controls = Self.avoidingOcclusions(controls, occlusions)
 
-        let topPadding: CGFloat = mode == .stacked ? min(28, hero.height * 0.04) : 0
-        let desiredHeight = min(225, hero.height * 0.43)
-        let availableHeight = max(72, hero.height - introductionHeight - topPadding - 12)
-        let logoWidth = min(300, hero.width * 0.78, min(desiredHeight, availableHeight) / 0.75)
+        // Preserve the supplied SVG's 768 x 528 viewBox at a smaller hero size.
+        let logoAspect: CGFloat = 528.0 / 768.0
+        let desiredHeight = min(132, hero.height * 0.26)
+        let availableHeight = max(72, hero.height - introductionHeight)
+        let logoWidth = min(180, hero.width * 0.48, min(desiredHeight, availableHeight) / logoAspect)
 
         arrangement = mode
         introduction = hero
         actions = controls
-        logoSize = CGSize(width: logoWidth, height: logoWidth * 0.75)
-        introductionTopPadding = topPadding
+        logoSize = CGSize(width: logoWidth, height: logoWidth * logoAspect)
     }
 
     /// Keep every important element inside a usable rectangle, including when
@@ -142,6 +136,7 @@ struct OathArtworkPlacement: Equatable {
     var copy: CGRect = .zero
     var actions: CGRect = .zero
     var spreadDivider: CGFloat?
+    var rendersLogo = true
 
     var spread: Bool { spreadDivider != nil }
 
@@ -150,6 +145,6 @@ struct OathArtworkPlacement: Equatable {
              logoClip: logoClip.offsetBy(dx: dx, dy: dy),
              copy: copy.offsetBy(dx: dx, dy: dy),
              actions: actions.offsetBy(dx: dx, dy: dy),
-             spreadDivider: spreadDivider.map { $0 + dx })
+             spreadDivider: spreadDivider.map { $0 + dx }, rendersLogo: rendersLogo)
     }
 }

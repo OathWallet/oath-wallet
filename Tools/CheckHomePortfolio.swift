@@ -6,12 +6,13 @@ import OathDatabase
     static func holding(_ index: Int, amount: String = "123456789", timestamp: Double = 1,
                         network: String = "ethereum", activity: Int = 0, pending: Int = 0,
                         native: Bool = false, account: String? = nil, price: String? = "12.5",
-                        rate: String? = "1", priceTimestamp: Double? = nil) throws -> Holding {
+                        rate: String? = "1", priceTimestamp: Double? = nil, verified: Bool = true) throws -> Holding {
         var json: [String: Any] = ["accountID": account ?? "fixture-" + network, "networkID": network,
             "address": "public-fixture", "assetID": "asset-\(index)", "reference": native ? "native" : "token-\(index)",
             "name": "Token \(index)", "symbol": "T\(index)", "decimals": 8, "amountAtomic": amount,
             "balanceObservedAt": timestamp,
             "priceObservedAt": priceTimestamp ?? timestamp, "priceSource": "fixture", "transactionCount": activity, "pendingTransactionCount": pending]
+        json["homeVerified"] = verified
         json["usdPrice"] = price
         json["exchangeRate"] = rate
         return try JSONDecoder().decode(Holding.self, from: JSONSerialization.data(withJSONObject: json))
@@ -75,11 +76,25 @@ import OathDatabase
     }
 
     @MainActor static func main() async throws {
+        try await verifyLiveAssetFilters()
         try await verifyRefreshPublication()
         let matrix = try JSONDecoder().decode([String: String].self, from: Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1])))
         precondition(Set(matrix.keys) == Set(OathImportChain.enabledCases.map(\.id)), "Every enabled chain must have executable refresh coverage; disabled chains must not be in the matrix")
         precondition(matrix.values.allSatisfy { !$0.isEmpty })
         print("PASS: executable balance-refresh coverage matches all \(matrix.count) enabled production chains")
+
+        let verificationBuilder = OathHomePortfolioBuilder()
+        let unverified = try holding(99, verified: false)
+        let verified = try holding(100)
+        let protected = try await verificationBuilder.build(input([unverified, verified]))
+        precondition(protected.rows.map(\.id) == [verified.id])
+        precondition(protected.searchRows.count == 2, "Unverified tokens remain searchable")
+        var includeUnverified = PortfolioFilter(); includeUnverified.hidesUnverifiedTokens = false
+        let revealed = try await verificationBuilder.build(input([unverified, verified], filter: includeUnverified))
+        precondition(revealed.rows.count == 2)
+        let restored = try await verificationBuilder.build(input([unverified, verified]))
+        precondition(restored.rows.map(\.id) == [verified.id])
+        print("PASS: verification filtering toggles cached rows without changing discovery")
 
         let priceBuilder = OathHomePortfolioBuilder()
         func quote(_ value: String?, _ time: Double, amount: String = "123456789", rate: String? = "1") throws -> Holding {

@@ -6,7 +6,7 @@ private actor SendFixture: AnkrTransport {
     enum Mode: Sendable { case normal, wrongFallback, wrongNetwork, badOwner, failPrimary, failedSimulation, duplicateCoins, unknownBroadcast, failedExecution }
     let mode: Mode
     let sender: String
-    var calls = 0, writes = 0, reconciles = 0
+    var calls = 0, writes = 0, reconciles = 0, simulations = 0
     var writtenBytes = Set<Data>()
     init(_ mode:Mode = .normal, sender:String) { self.mode = mode; self.sender = sender }
     func send(_ request:URLRequest) async throws -> (Data,Int) {
@@ -29,7 +29,10 @@ private actor SendFixture: AnkrTransport {
         } else if query.contains("transaction(digest:") {
             reconciles += 1; data["transaction"] = .null
         } else if query.contains("simulateTransaction") {
+            simulations += 1
             data["simulateTransaction"] = .object(["effects":effects(status:mode == .failedSimulation ? "FAILURE":"SUCCESS")])
+        } else if query.contains("coinMetadata") {
+            data["coinMetadata"] = .object(["decimals":.number("6")])
         } else if query.contains("referenceGasPrice") {
             data["epoch"] = .object(["epochId":.string("1000"),"referenceGasPrice":.string("1000")])
         } else if query.contains("address(address:") {
@@ -43,6 +46,30 @@ private actor SendFixture: AnkrTransport {
     }
 }
 final class SuiSendTransportTests: XCTestCase {
+    func testEarlySenderPreparation() async throws {
+        let sender = try SuiSendCrypto.address(privateKey:key), t = SendFixture(sender:sender), c = try SuiSendClient(network:.mainnet,transport:t)
+        let s = try await c.prepareSender(sender:sender,reference:"native",decimals:9)
+        XCTAssertEqual(s.assetBalance,"20000000")
+        let token = try await c.prepareSender(sender:sender,reference:"0x123::coin::COIN",decimals:6)
+        XCTAssertEqual(token.assetBalance,"20000000")
+        let writes = await t.writes; XCTAssertEqual(writes,0)
+        let simulations = await t.simulations; XCTAssertEqual(simulations,0)
+    }
+
+    func testEarlyMultisigPreparationAndWrongPolicy() async throws {
+        let keys = try [Data(repeating: 1, count: 32), Data(repeating: 2, count: 32)].map(SuiSendCrypto.publicKey)
+        let policy = try SuiMultisigPolicy(required: 2, publicKeys: keys)
+        let transport = SendFixture(sender: policy.address), client = try SuiSendClient(network: .mainnet, transport: transport)
+        for reference in ["native", "0x123::coin::COIN"] {
+            let prepared = try await client.prepareSender(sender: policy.address, reference: reference, decimals: reference == "native" ? 9 : 6, multisig: policy)
+            XCTAssertEqual(prepared.assetBalance, "20000000")
+        }
+        let simulations = await transport.simulations; XCTAssertEqual(simulations, 0)
+        let wrong = try SuiMultisigPolicy(required: 1, publicKeys: keys)
+        do { _ = try await client.prepareSender(sender: policy.address, reference: "native", decimals: 9, multisig: wrong); XCTFail("Accepted a different signing policy") }
+        catch { XCTAssertEqual(error as? SuiSendError, .wrongOwner) }
+    }
+
     let key = Data(repeating:7,count:32)
     func testColdFallbackIsVerifiedBeforeReceivingSignedBytes() async throws {
         let sender=try SuiSendCrypto.address(privateKey:key),t=SendFixture(.wrongFallback,sender:sender),c=try SuiSendClient(network:.mainnet,apiKey:"testfixture",transport:t)

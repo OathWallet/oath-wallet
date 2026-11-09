@@ -18,7 +18,7 @@ struct OathAssetInformationSheet: View {
                 VStack(spacing: 10) {
                     OathAssetLogo(holding: holding, information: model.information?.value, size: 64)
                     Text(strings.invariant(model.information?.value.name ?? holding.name))
-                        .oathFont(.title2, weight: .semibold).multilineTextAlignment(.center)
+                        .oathFont(.title2, weight: .medium).multilineTextAlignment(.center)
                     Text(strings.invariant(holding.symbol)).oathFont(.subheadline).foregroundStyle(.secondary)
                 }.frame(maxWidth: .infinity)
                 VStack(spacing: 18) {
@@ -96,7 +96,7 @@ struct OathAssetInformationSheet: View {
                         .environment(\.layoutDirection, .leftToRight)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     Image(systemName: "chevron.forward")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(.secondary)
                         .accessibilityHidden(true)
                 }

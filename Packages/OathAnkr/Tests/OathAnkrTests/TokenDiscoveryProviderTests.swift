@@ -38,6 +38,39 @@ final class TokenDiscoveryProviderTests: XCTestCase, @unchecked Sendable {
     }
     private func folder() -> URL { FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString) }
 
+    func testSelectedChainBrowseReturnsEntireDirectoryAndReopensOffline() async throws {
+        let directory = folder(); defer { try? FileManager.default.removeItem(at: directory) }
+        let tokens = (1...650).map {
+            row(address: "0x" + String(format: "%040x", $0), chain: 16661, name: "Token \($0)")
+        }
+        let bytes = try JSONSerialization.data(withJSONObject: ["tokens": [
+            "16661": tokens + [row(address: "0x" + String(repeating: "0", count: 40), chain: 16661)],
+            "1": [row(address: address)]
+        ]])
+        let feed = DiscoveryProviderFeed(primary: .http(bytes, 200), fallback: .http(Data(), 503))
+        let catalog = TokenDiscoveryCatalog(transport: feed, directory: directory, seed: Data())
+        let refreshed = await catalog.refreshIfNeeded()
+        XCTAssertTrue(refreshed)
+        let all = await catalog.tokens(on: "zerog")
+        XCTAssertEqual(all.count, 650, "Browsing must not use the 200/500 text-search limit")
+        XCTAssertEqual(Set(all.map(\.id)).count, all.count)
+        XCTAssertTrue(all.allSatisfy { $0.network == "zerog" && $0.source == .lifi })
+        let searched = await catalog.search("Token", networks: ["zerog"], limit: 200)
+        XCTAssertEqual(searched.count, 200, "Typing keeps its existing bounded search")
+        let excluded = await catalog.tokens(on: "zerog", excluding: [all[0].id])
+        XCTAssertEqual(Set(excluded.map(\.id)), Set(all.dropFirst().map(\.id)))
+        let other = await catalog.tokens(on: "ethereum")
+        XCTAssertEqual(other.count, 1)
+        let absent = await catalog.tokens(on: "bitcoin")
+        XCTAssertTrue(absent.isEmpty, "Catalogs must not invent a token or native balance")
+        let offline = DiscoveryProviderFeed(primary: .timeout, fallback: .timeout)
+        let reopened = TokenDiscoveryCatalog(transport: offline, directory: directory, seed: Data())
+        let cached = await reopened.tokens(on: "zerog")
+        XCTAssertEqual(cached, all)
+        let calls = await offline.hosts
+        XCTAssertTrue(calls.isEmpty, "Cached chain selection needs no network request")
+    }
+
     func testColdStartWithoutUsableSeedOrDiskUsesLifiAndPersists() async throws {
         let directory = folder(); defer { try? FileManager.default.removeItem(at: directory) }
         let feed = DiscoveryProviderFeed(primary: .http(lifi, 200), fallback: .http(Data(), 503))
@@ -197,6 +230,94 @@ final class TokenDiscoveryProviderTests: XCTestCase, @unchecked Sendable {
         let hosts = await feed.hosts
         XCTAssertEqual(hosts, ["li.quest", "api.coingecko.com", "li.quest"])
     }
+    func testManagementPreservesLifiOrderThroughCacheAndFallbackAndRanksSearchFirst() async throws {
+        let directory = folder(); defer { try? FileManager.default.removeItem(at: directory) }
+        // Provider sequence intentionally disagrees with names and contract IDs.
+        let payload = list([row(address: second, name: "Zulu", symbol: "ZZ"),
+                            row(address: address, name: "! First alphabetically", symbol: "AA")])
+        let feed = DiscoveryProviderFeed(primary: .http(payload, 200), fallback: .http(gecko, 200))
+        let catalog = TokenDiscoveryCatalog(transport: feed, directory: directory, seed: Data())
+        _ = await catalog.refreshIfNeeded()
+        let entries = await catalog.managementEntries(query: "", networks: ["ethereum"])
+        XCTAssertEqual(entries.map(\.reference), [second, address])
+        XCTAssertEqual(entries.map(\.lifiOrder), [0, 1])
+        let exact = await catalog.managementEntries(query: "AA", networks: ["ethereum"])
+        XCTAssertEqual(exact.map(\.reference), [address])
+        let offline = DiscoveryProviderFeed(primary: .timeout, fallback: .timeout)
+        let reopened = TokenDiscoveryCatalog(transport: offline, directory: directory, seed: Data())
+        let cached = await reopened.managementEntries(query: "", networks: ["ethereum"])
+        XCTAssertEqual(cached, entries)
+        let hosts = await offline.hosts
+        XCTAssertTrue(hosts.isEmpty)
+
+        let path = directory.appendingPathComponent("catalog-v1.json")
+        var disk = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: path)) as? [String: Any])
+        disk["fetchedAt"] = Date.distantPast.timeIntervalSinceReferenceDate
+        try JSONSerialization.data(withJSONObject: disk).write(to: path)
+        await feed.setPrimary(.http(Data(), 503))
+        let fallback = TokenDiscoveryCatalog(transport: feed, directory: directory, seed: Data())
+        _ = await fallback.refreshIfNeeded()
+        let merged = await fallback.managementEntries(query: "", networks: ["ethereum"])
+        XCTAssertEqual(Array(merged.prefix(2)), entries)
+        XCTAssertEqual(merged.last?.coinID, "usd-coin")
+    }
+
+    func testManagementOrderIsPerChainAndDoesNotDependOnDictionaryIteration() async throws {
+        let payload = try JSONSerialization.data(withJSONObject: ["tokens": [
+            "1": [row(address: second, name: "Zulu"), row(address: address, name: "Alpha")],
+            "56": [row(address: address, chain: 56, name: "Omega"), row(address: second, chain: 56, name: "Beta")]
+        ]])
+        let feed = DiscoveryProviderFeed(primary: .http(payload, 200), fallback: .timeout)
+        let catalog = TokenDiscoveryCatalog(transport: feed, seed: Data())
+        _ = await catalog.refreshIfNeeded()
+        let all = await catalog.managementEntries(query: "", networks: ["ethereum", "bnb"])
+        XCTAssertEqual(all.map(\.id), ["bnb:" + address, "ethereum:" + second, "bnb:" + second, "ethereum:" + address])
+        let eth = await catalog.managementEntries(query: "", networks: ["ethereum"])
+        XCTAssertEqual(eth.map(\.reference), [second, address])
+    }
+
+    func testOldCatalogWithoutOrderRemainsUsableAndRefreshesOrder() async throws {
+        let directory = folder(); defer { try? FileManager.default.removeItem(at: directory) }
+        let payload = list([row(address: second, name: "Zulu"), row(address: address, name: "Alpha")])
+        let feed = DiscoveryProviderFeed(primary: .http(payload, 200), fallback: .timeout)
+        let catalog = TokenDiscoveryCatalog(transport: feed, directory: directory, seed: Data())
+        _ = await catalog.refreshIfNeeded()
+        let path = directory.appendingPathComponent("catalog-v1.json")
+        var disk = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: path)) as? [String: Any])
+        let bytes = try XCTUnwrap(Data(base64Encoded: try XCTUnwrap(disk["data"] as? String)))
+        var snapshot = try XCTUnwrap(JSONSerialization.jsonObject(with: bytes) as? [String: Any])
+        var entries = try XCTUnwrap(snapshot["entries"] as? [[String: Any]])
+        for i in entries.indices {
+            entries[i].removeValue(forKey: "lifiOrder")
+            // Independent fallback coverage can carry older LI.FI metadata.
+            if entries[i]["reference"] as? String == address {
+                entries[i]["source"] = "coingecko"
+                entries[i]["coinID"] = "old-fallback-token"
+            }
+        }
+        snapshot["entries"] = entries
+        disk.removeValue(forKey: "orderVersion")
+        disk["data"] = try JSONSerialization.data(withJSONObject: snapshot).base64EncodedString()
+        try JSONSerialization.data(withJSONObject: disk).write(to: path)
+        let reopened = TokenDiscoveryCatalog(transport: feed, directory: directory, seed: Data())
+        let old = await reopened.managementEntries(query: "", networks: ["ethereum"])
+        XCTAssertEqual(old.count, 2)
+        XCTAssertTrue(old.allSatisfy { $0.lifiOrder == nil })
+        // LI.FI can omit an entry retained by independent fallback coverage;
+        // its absent rank must not cause an upgrade request on every visit.
+        await feed.setPrimary(.http(list([row(address: second, name: "Zulu")]), 200))
+        let refreshed = await reopened.refreshIfNeeded()
+        XCTAssertTrue(refreshed, "Ordering upgrade must not wait 24 hours for a fresh legacy cache")
+        let fresh = await reopened.managementEntries(query: "", networks: ["ethereum"])
+        XCTAssertEqual(fresh.map(\.reference), [second, address])
+        XCTAssertNil(fresh.last?.lifiOrder)
+        let immediateRefresh = await reopened.refreshIfNeeded()
+        XCTAssertFalse(immediateRefresh)
+        let again = TokenDiscoveryCatalog(transport: feed, directory: directory, seed: Data())
+        let reopenedRefresh = await again.refreshIfNeeded()
+        XCTAssertFalse(reopenedRefresh, "An upgraded cache must retain the normal refresh interval after reopening")
+    }
+
 }
 
 private actor LifiLiveDiscoveryFeed: AnkrTransport {
@@ -225,6 +346,13 @@ final class TokenDiscoveryProviderLiveTests: XCTestCase, @unchecked Sendable {
         let reopened = TokenDiscoveryCatalog(transport: feed, directory: directory, seed: Data())
         let saved = await reopened.search("USDC", networks: networks)
         XCTAssertEqual(saved, results)
+        for network in ["zerog", "ethereum", "bnb", "solana", "sui", "tron"] {
+            let live = await catalog.tokens(on: network)
+            let cached = await reopened.tokens(on: network)
+            XCTAssertEqual(cached, live)
+            XCTAssertTrue(live.allSatisfy { $0.network == network && $0.source == .lifi })
+            print("LI.FI live chain browse: \(network) \(live.count) tokens, identical offline cache")
+        }
         let calls = await feed.calls
         XCTAssertEqual(calls, 1)
         print("LI.FI live: \(results.count) USDC matches; cold-start catalog persisted and searched after reopening without another request")

@@ -949,7 +949,7 @@ struct OathMultisigChainScreen: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 Text(strings.text(.chains))
-                    .oathFont(.footnote, weight: .semibold)
+                    .oathFont(.footnote, weight: .medium)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 20)
                     .padding(.vertical, 12)
@@ -1163,7 +1163,7 @@ struct OathMultisigSetupScreen: View {
                         draft.changeSource(slot.source, at: index)
                     }
                     .buttonStyle(.plain)
-                    .oathFont(.subheadline, weight: .semibold)
+                    .oathFont(.subheadline, weight: .medium)
                     .oathNeutralControl()
                     .frame(minWidth: 44, minHeight: 44)
                     .padding(.trailing, 24)
@@ -1172,7 +1172,7 @@ struct OathMultisigSetupScreen: View {
                 }
             } else {
                 Text(keyTitle(index))
-                    .oathFont(.footnote, weight: .semibold).foregroundStyle(.secondary)
+                    .oathFont(.footnote, weight: .medium).foregroundStyle(.secondary)
                     .padding(.horizontal, 20).padding(.top, 8)
                     .accessibilityAddTraits(.isHeader)
                 sourceMenu(index: index, slot: slot)

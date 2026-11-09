@@ -29,7 +29,7 @@ public actor EVMSendClient {
     private var primaryLogHistoryLimit: (from: UInt64, expires: ContinuousClock.Instant)?
     public init(network:EVMSendNetwork,endpoints:[URL],transport:any AnkrTransport = AnkrHTTPTransport()) throws {
         guard !endpoints.isEmpty,endpoints.count<=4,endpoints.allSatisfy({$0.scheme=="https" && $0.host != nil}) else { throw EVMSendError.configuration }
-        self.network=network;self.transport=transport;self.endpoints=endpoints
+        self.network=network;self.transport=SendMeasuredTransport(base: transport);self.endpoints=endpoints
     }
     /// Each request verifies the chain on the same provider, including fallbacks.
     /// One attempt per endpoint, with bounded Celo replica-lag retries for reads.
@@ -330,7 +330,34 @@ public actor EVMSendClient {
         }
         if gas { obj["gas"]=Self.hex(plan.gasLimit) };return .object(obj)
     }
-    public func quote(sender:String,recipient:String,reference:String,decimals:Int,amount:String,maximum:Bool=false,removal:EVMPermissionRemoval?=nil,request:WalletConnectEVMRequest?=nil,reservations:[EVMSendReservation]=[]) async throws -> EVMSendPlan {
+    /// Sender-only checks: no gas price, nonce, recipient or simulation request.
+    public func prepareSender(sender: String, reference: String, decimals: Int) async throws -> SendSenderSnapshot {
+        let sender = try network.address(sender), reference = try EVMSendIdentity.reference(reference)
+        let observed = Date.now
+        let head = try await block(.string("latest"), requireFresh: true), height = try Self.uint(head["number"])
+        guard let hash = head["hash"].string, AnkrQuantity.hash(hash),
+              abs(Double(try Self.uint(head["timestamp"])) - Date.now.timeIntervalSince1970) < (network.isFilecoin ? 180 : 60) else { throw EVMSendError.expired }
+        let tag = network == .hyperevm ? SolanaJSON.string("latest") : Self.hex(height)
+        async let native = balance(owner: sender, reference: "native", tag: tag)
+        async let token: String? = reference == "native" ? nil : balance(owner: sender, reference: reference, tag: tag)
+        async let units = self.decimals(reference, tag: tag)
+        let (n, t, d) = try await (native, token, units)
+        guard d == decimals else { throw EVMSendError.metadataChanged }
+        guard try await block(Self.hex(height))["hash"].string == hash else { throw EVMSendError.changed }
+        return try .init(chain: network.rawValue, sender: sender, reference: reference, decimals: decimals,
+                         assetBalance: t ?? n, nativeBalance: n, observedAt: observed,
+                         block: network == .hyperevm ? nil : .init(height: height, hash: hash))
+    }
+
+    func preparedBalance(_ prepared: SendSenderSnapshot?, native: Bool, sender: String, reference: String, tag: SolanaJSON) async throws -> String {
+        if let prepared { return native ? prepared.nativeBalance : prepared.assetBalance }
+        return try await balance(owner: sender, reference: native ? "native" : reference, tag: tag)
+    }
+    func preparedDecimals(_ prepared: SendSenderSnapshot?, reference: String, tag: SolanaJSON) async throws -> Int {
+        if let prepared { return prepared.decimals }
+        return try await decimals(reference, tag: tag)
+    }
+    public func quote(sender:String,recipient:String,reference:String,decimals:Int,amount:String,maximum:Bool=false,removal:EVMPermissionRemoval?=nil,request:WalletConnectEVMRequest?=nil,reservations:[EVMSendReservation]=[], preparedSender: SendSenderSnapshot? = nil) async throws -> EVMSendPlan {
         let sender=try network.address(sender),recipient=try network.address(recipient),reference=try EVMSendIdentity.reference(reference)
         let requested=try EVMSendAmount.checked(amount)
         if let request {
@@ -357,9 +384,13 @@ public actor EVMSendClient {
         let legacy=request?.legacy ?? !hasBaseFee
         guard legacy || hasBaseFee else { throw EVMSendError.wrongNetwork }
         let base=hasBaseFee ? try Self.uint(head["baseFeePerGas"]) : 0
-        async let nativeWork=balance(owner:sender,reference:"native",tag:tag)
-        async let tokenWork:String? = reference == "native" ? nil:balance(owner:sender,reference:reference,tag:tag)
-        async let decimalsWork=self.decimals(reference,tag:tag)
+        let prepared = preparedSender.flatMap { value in
+            value.matches(chain: network.rawValue, sender: sender, reference: reference, decimals: decimals,
+                          block: .init(height: height, hash: hash)) ? value : nil
+        }
+        async let nativeWork = preparedBalance(prepared, native: true, sender: sender, reference: reference, tag: tag)
+        async let tokenWork:String? = reference == "native" ? nil:preparedBalance(prepared, native: false, sender: sender, reference: reference, tag: tag)
+        async let decimalsWork = preparedDecimals(prepared, reference: reference, tag: tag)
         async let nonceWork=rpc("eth_getTransactionCount",[.string(sender),tag])
         async let pendingWork=rpc("eth_getTransactionCount",[.string(sender),.string(network.nonceTag)])
         async let priceWork=rpc("eth_gasPrice",[])

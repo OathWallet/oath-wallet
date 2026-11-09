@@ -89,25 +89,25 @@ struct OathSettingsRow: View {
             } else {
                 if isSelected {
                     Image(systemName: "checkmark")
-                        .font(.body.weight(.semibold))
+                        .font(.body.weight(.medium))
                         .foregroundStyle(OathOnboardingColors.blue)
                         .accessibilityHidden(true)
                 }
                 switch accessory {
                 case .disclosure:
                     Image(systemName: "chevron.forward")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(Color(uiColor: .secondaryLabel))
                         .accessibilityHidden(true)
                 case .selection(let selected):
                     Image(systemName: "checkmark")
-                        .font(.body.weight(.semibold))
+                        .font(.body.weight(.medium))
                         .foregroundStyle(OathOnboardingColors.blue)
                         .opacity(selected ? 1 : 0)
                         .accessibilityHidden(true)
                 case .completed:
                     Image(systemName: "checkmark")
-                        .font(.body.weight(.semibold))
+                        .font(.body.weight(.medium))
                         .foregroundStyle(.green)
                         .accessibilityHidden(true)
                 case .none:

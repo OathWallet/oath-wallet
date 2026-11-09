@@ -43,21 +43,25 @@ extension EVMSendClient {
         return try .init(configured: true, nonce: Self.uint(n), executorBalance: b)
     }
     public func quoteMultisig(policy: EVMMultisigPolicy, recipient: String, reference: String, decimals: Int,
-                              amount: String, maximum: Bool = false, setup: Bool = false) async throws -> EVMSendPlan {
+                              amount: String, maximum: Bool = false, setup: Bool = false, preparedSender: SendSenderSnapshot? = nil) async throws -> EVMSendPlan {
         let sender = try policy.address, to = try network.address(recipient), ref = try EVMSendIdentity.reference(reference)
         guard sender != to else { throw EVMSendError.sameRecipient }
         let state = try await multisigState(policy)
         if !setup, !state.configured { throw EVMSendError.multisigSetupRequired }
         guard state.configured != setup else { throw EVMSendError.changed }
         guard !setup || (to == EVMMultisigPolicy.factory && ref == "native" && amount == "0") else { throw EVMSendError.changed }
-        let head = try await block(.string("latest")), height = try Self.uint(head["number"])
+        let head = try await block(.string("latest"),requireFresh:true), height = try Self.uint(head["number"])
         guard abs(Double(try Self.uint(head["timestamp"])) - Date.now.timeIntervalSince1970) < 60 else { throw EVMSendError.expired }
-        async let funds = balance(owner: sender, reference: "native")
-        async let token = balance(owner: sender, reference: ref)
+        guard let hash = head["hash"].string, AnkrQuantity.hash(hash) else { throw EVMSendError.malformed }
+        let prepared = preparedSender.flatMap { $0.matches(chain:network.rawValue,sender:sender,reference:ref,decimals:decimals,block:.init(height:height,hash:hash)) ? $0:nil }
+        let tag = SolanaJSON.string(network == .hyperevm ? "latest":"0x"+String(height,radix:16))
+        async let funds = preparedBalance(prepared,native:true,sender:sender,reference:ref,tag:tag)
+        async let token: String? = ref == "native" ? nil:preparedBalance(prepared,native:false,sender:sender,reference:ref,tag:tag)
         async let count = rpc("eth_getTransactionCount", [.string(policy.executor), .string(network.nonceTag)])
         async let price = rpc("eth_gasPrice", [])
-        async let precision = self.decimals(ref, tag: .string("latest"))
-        let (native, asset, nonce, gasPrice, d) = try await (funds, token, count, price, precision)
+        async let precision = preparedDecimals(prepared,reference:ref,tag:tag)
+        let (native, tokenBalance, nonce, gasPrice, d) = try await (funds, token, count, price, precision)
+        let asset = tokenBalance ?? native
         guard d == decimals else { throw EVMSendError.metadataChanged }
         let legacy = head["baseFeePerGas"].isNull, base = legacy ? 0 : try Self.uint(head["baseFeePerGas"]), market = try Self.uint(gasPrice)
         guard base <= 100_000_000_000_000, market > 0, market <= 100_000_000_000_000 else { throw EVMSendError.feeTooHigh }

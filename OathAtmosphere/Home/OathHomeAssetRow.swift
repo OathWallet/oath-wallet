@@ -148,7 +148,7 @@ struct OathAssetTreeHeading: View {
         HStack(spacing: 12) {
             OathNetworkLogo(asset: chain.logoAsset, size: iconSize).frame(width: iconColumnWidth)
                 .accessibilityHidden(true)
-            Text(strings.invariant(chain.name)).oathFont(.callout, weight: .semibold)
+            Text(strings.invariant(chain.name)).oathFont(.callout, weight: .medium)
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 20).padding(.vertical, 13).frame(minHeight: 78)

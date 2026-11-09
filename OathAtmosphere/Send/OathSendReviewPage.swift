@@ -282,7 +282,7 @@ struct OathSendReviewPage: View {
                 .foregroundStyle(guidance.isBlocking ? Color.red : Color.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             OathButton(strings.text(.accountLearnMore), feedback: .navigate) { accountHelp = guidance }
-                .oathFont(.footnote, weight: .semibold).oathNeutralControl()
+                .oathFont(.footnote, weight: .medium).oathNeutralControl()
                 .accessibilityIdentifier("send.accountHelp.open")
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -356,43 +356,55 @@ struct OathSendReviewPage: View {
     private func suiAssetMoney(_ atomic: UInt64) -> String {
         suiMoney(atomic,decimals:model.holding?.decimals ?? 9,symbol:model.holding?.symbol ?? "SUI",price:model.reviewPrice)
     }
+    private var reviewAmounts: SendReviewAmounts? {
+        func amounts(_ amount: String, reference: String, fee: String, nativeDecimals: Int, nativeSymbol: String,
+                     debit: String? = nil, cost: String? = nil) -> SendReviewAmounts {
+            .init(amount: amount, assetDebit: debit, decimals: model.holding?.decimals ?? nativeDecimals,
+                  symbol: model.holding?.symbol ?? nativeSymbol, native: reference == "native", fee: fee,
+                  nativeCost: cost, nativeDecimals: nativeDecimals, nativeSymbol: nativeSymbol)
+        }
+        if model.supportsEVMSend { return evm.quote.map { let p = $0.plan; return amounts(p.amount, reference: p.reference, fee: String(p.fee), nativeDecimals: 18, nativeSymbol: p.network.symbol) } }
+        if model.supportsArcSend { return arc.quote.map { let p = $0.plan; return amounts(p.amount, reference: p.reference, fee: String(p.fee), nativeDecimals: 18, nativeSymbol: "USDC") } }
+        if model.supportsTonSend { return ton.quote.map { let p = $0.plan; return amounts(String(p.amount), reference: p.reference, fee: String(p.fee), nativeDecimals: 9, nativeSymbol: "GRAM") } }
+        if model.supportsSolanaSend { return solana.quote.map { let p = $0.plan; return amounts(String(p.amount), reference: p.reference, fee: String(p.transactionFee), nativeDecimals: 9, nativeSymbol: "SOL", cost: String(p.fee)) } }
+        if model.supportsThorchainSend { return thorchain.quote.map { let p = $0.plan; return amounts(p.amount, reference: p.reference, fee: String(p.fee), nativeDecimals: 8, nativeSymbol: "RUNE") } }
+        if model.supportsAptosSend { return aptos.quote.map { let p = $0.plan; return amounts(String(p.amount), reference: p.reference, fee: String(p.fee), nativeDecimals: 8, nativeSymbol: "APT") } }
+        if model.supportsPolkadotSend { return polkadot.quote.map { let p = $0.plan; return amounts(p.amount, reference: p.reference, fee: p.fee, nativeDecimals: 10, nativeSymbol: "DOT") } }
+        if model.supportsNearSend { return near.quote.map { let p = $0.plan; return amounts(p.amount, reference: p.reference, fee: p.fee, nativeDecimals: 24, nativeSymbol: "NEAR", cost: p.reference == "native" ? p.fee : p.nativeDebit) } }
+        if model.supportsTronSend { return tron.quote.map { let p = $0.plan; return amounts(p.amount, reference: p.reference, fee: String(p.feeExcludingAccountCreation), nativeDecimals: 6, nativeSymbol: "TRX", cost: String(p.fee)) } }
+        if model.supportsStellarSend { return stellar.quote.map { let p = $0.plan; return amounts(p.amount, reference: p.reference, fee: String(p.fee), nativeDecimals: 7, nativeSymbol: "XLM") } }
+        if model.supportsXrplSend { return xrpl.quote.map { let p = $0.plan; return amounts(p.amount, reference: p.reference, fee: String(p.fee), nativeDecimals: 6, nativeSymbol: "XRP", debit: p.assetDebit) } }
+        if model.supportsSuiSend { return sui.quote.map { let p = $0.plan; return amounts(String(p.amount), reference: p.reference, fee: String(p.estimatedFee), nativeDecimals: 9, nativeSymbol: "SUI") } }
+        return bitcoin.quote.map { let p = $0.plan; return amounts(String(p.recipientAmount), reference: "native", fee: String(p.fee), nativeDecimals: 8, nativeSymbol: model.holding?.symbol ?? "BTC") }
+    }
+    private var nativeFeePrice: Decimal? {
+        if model.supportsEVMSend { return evm.gasPrice }
+        if model.supportsArcSend { return arc.gasPrice }
+        if model.supportsTonSend { return ton.gasPrice }
+        if model.supportsSolanaSend { return solana.gasPrice }
+        if model.supportsThorchainSend { return thorchain.gasPrice }
+        if model.supportsAptosSend { return aptos.gasPrice }
+        if model.supportsPolkadotSend { return polkadot.gasPrice }
+        if model.supportsNearSend { return near.gasPrice }
+        if model.supportsTronSend { return tron.gasPrice }
+        if model.supportsStellarSend { return stellar.gasPrice }
+        if model.supportsXrplSend { return xrpl.gasPrice }
+        if model.supportsSuiSend { return sui.gasPrice }
+        return model.reviewPrice
+    }
     private var feeValue: String? {
-        if model.supportsEVMSend { return evm.quote.map { suiMoney($0.plan.fee,decimals:18,symbol:$0.plan.network.symbol,price:evm.gasPrice) } }
-        if model.supportsArcSend { return arc.quote.map { suiMoney($0.plan.fee,decimals:18,symbol:"USDC",price:arc.gasPrice) } }
-        if model.supportsTonSend { return ton.quote.map { suiMoney($0.plan.fee,decimals:9,symbol:"GRAM",price:ton.gasPrice) } }
-        if model.supportsSolanaSend { return solana.quote.map { suiMoney($0.plan.transactionFee,decimals:9,symbol:"SOL",price:solana.gasPrice) } }
-        if model.supportsThorchainSend { return thorchain.quote.map { suiMoney($0.plan.fee,decimals:8,symbol:"RUNE",price:thorchain.gasPrice) } }
-        if model.supportsAptosSend { return aptos.quote.map { suiMoney($0.plan.fee,decimals:8,symbol:"APT",price:aptos.gasPrice) } }
-        if model.supportsPolkadotSend { return polkadot.quote.map { polkadotMoney($0.plan.fee) } }
-        if model.supportsNearSend { return near.quote.map { nearMoney($0.plan.fee) } }
-        if model.supportsTronSend { return tron.quote.map { suiMoney($0.plan.feeExcludingAccountCreation,decimals:6,symbol:"TRX",price:tron.gasPrice) } }
-        if model.supportsStellarSend { return stellar.quote.map { suiMoney(UInt64($0.plan.fee),decimals:7,symbol:"XLM",price:stellar.gasPrice) } }
-        if model.supportsXrplSend { return xrpl.quote.map { suiMoney($0.plan.fee,decimals:6,symbol:"XRP",price:xrpl.gasPrice) } }
-        if model.supportsSuiSend { return sui.quote.map { suiMoney($0.plan.estimatedFee,decimals:9,symbol:"SUI",price:sui.gasPrice) } }
-        return bitcoin.quote.map { money($0.plan.fee) }
+        guard let amount = reviewAmounts?.fee else { return nil }
+        if let value = amount.value(price: nativeFeePrice) {
+            return OathAssetAmountFormat(locale: strings.language.locale, selectedCurrencyCode: model.reviewCurrency ?? model.currency).money(value)
+        }
+        return strings.invariant(amount.units + " " + amount.symbol)
     }
     private var totalValue: String? {
-        if model.supportsEVMSend { return evmTotal }
-        if model.supportsArcSend { return arcTotal }
-        if model.supportsTonSend { return tonTotal }
-        if model.supportsSolanaSend { return solanaTotal }
-        if model.supportsThorchainSend { return thorchainTotal }
-        if model.supportsAptosSend { return aptosTotal }
-        if model.supportsPolkadotSend { return polkadotTotal }
-        if model.supportsNearSend { return nearTotal }
-        if model.supportsTronSend { return tronTotal }
-        if model.supportsStellarSend { return stellarTotal }
-        if model.supportsXrplSend { return xrplTotal }
-        guard model.supportsSuiSend else { return bitcoin.quote.map { money($0.plan.total) } }
-        guard let plan = sui.quote?.plan else { return nil }
-        if plan.reference == "native" { return suiAssetMoney(plan.amount+plan.estimatedFee) }
-        // Token quantity and SUI gas have different units and prices. Never
-        // subtract SUI gas from a token balance or value it at the token price.
-        if let price = model.reviewPrice, let gasPrice = sui.gasPrice,
-           let units, let value = Decimal(string:units,locale:Locale(identifier:"en_US_POSIX")) {
-            return OathAssetAmountFormat(locale: strings.language.locale, selectedCurrencyCode: model.reviewCurrency ?? model.currency).money((value*price+Decimal(plan.estimatedFee)/1_000_000_000*gasPrice))
+        guard let amounts = reviewAmounts else { return nil }
+        if let value = amounts.totalValue(assetPrice: model.reviewPrice, nativePrice: nativeFeePrice) {
+            return OathAssetAmountFormat(locale: strings.language.locale, selectedCurrencyCode: model.reviewCurrency ?? model.currency).money(value)
         }
-        return suiAssetMoney(plan.amount)+" + "+(feeValue ?? "—")
+        return amounts.totals.map { strings.invariant($0.units + " " + $0.symbol) }.joined(separator: " + ")
     }
 
     private func xrplAssetMoney(_ atomic: String) -> String {
@@ -402,100 +414,14 @@ struct OathSendReviewPage: View {
         }
         return strings.invariant(units+" "+(model.holding?.symbol ?? "XRP"))
     }
-    private var xrplTotal: String? {
-        guard let plan = xrpl.quote?.plan else { return nil }
-        if plan.reference == "native", let drops = UInt64(plan.assetDebit) { return xrplAssetMoney(String(drops+plan.fee)) }
-        if let raw = OathSendAmount.units(plan.assetDebit,decimals:model.holding?.decimals ?? 96),
-           let value = Decimal(string:raw,locale:Locale(identifier:"en_US_POSIX")),
-           let price = model.reviewPrice, let gasPrice = xrpl.gasPrice {
-            let total = value*price+Decimal(plan.fee)/1_000_000*gasPrice
-            if !total.isNaN { return OathAssetAmountFormat(locale: strings.language.locale, selectedCurrencyCode: model.reviewCurrency ?? model.currency).money(total) }
-        }
-        return xrplAssetMoney(plan.assetDebit)+" + "+(feeValue ?? "—")
-    }
 
-    private var stellarTotal: String? {
-        guard let plan = stellar.quote?.plan else { return nil }
-        if plan.reference == "native" { return xrplAssetMoney(StellarIdentity.sum(plan.amount,String(plan.fee))) }
-        if let raw = OathSendAmount.units(plan.amount,decimals:plan.decimals),
-           let value = Decimal(string:raw,locale:Locale(identifier:"en_US_POSIX")),
-           let price = model.reviewPrice, let gasPrice = stellar.gasPrice {
-            let total = value*price+Decimal(plan.fee)/10_000_000*gasPrice
-            if !total.isNaN { return OathAssetAmountFormat(locale: strings.language.locale, selectedCurrencyCode: model.reviewCurrency ?? model.currency).money(total) }
-        }
-        return xrplAssetMoney(plan.amount)+" + "+(feeValue ?? "—")
-    }
-    private var tronTotal: String? {
-        guard let plan = tron.quote?.plan else { return nil }
-        if plan.reference == "native" { return xrplAssetMoney(StellarIdentity.sum(plan.amount,String(plan.fee))) }
-        if let raw = OathSendAmount.units(plan.amount,decimals:plan.decimals),
-           let value = Decimal(string:raw,locale:Locale(identifier:"en_US_POSIX")),
-           let price = model.reviewPrice, let gasPrice = tron.gasPrice {
-            let total = value*price+Decimal(plan.fee)/1_000_000*gasPrice
-            if !total.isNaN { return OathAssetAmountFormat(locale: strings.language.locale, selectedCurrencyCode: model.reviewCurrency ?? model.currency).money(total) }
-        }
-        return xrplAssetMoney(plan.amount)+" + "+suiMoney(plan.fee,decimals:6,symbol:"TRX",price:tron.gasPrice)
-    }
 
-    private var solanaTotal: String? {
-        guard let plan=solana.quote?.plan else { return nil }
-        if plan.reference=="native" { return xrplAssetMoney(String(plan.amount+plan.fee)) }
-        if let raw=OathSendAmount.units(String(plan.amount),decimals:plan.decimals),
-           let value=Decimal(string:raw,locale:Locale(identifier:"en_US_POSIX")),let price=model.reviewPrice,let gasPrice=solana.gasPrice {
-            return OathAssetAmountFormat(locale: strings.language.locale, selectedCurrencyCode: model.reviewCurrency ?? model.currency).money((value*price+Decimal(plan.fee)/1_000_000_000*gasPrice))
-        }
-        return xrplAssetMoney(String(plan.amount))+" + "+suiMoney(plan.fee,decimals:9,symbol:"SOL",price:solana.gasPrice)
-    }
 
-    private var arcTotal: String? {
-        guard let plan=arc.quote?.plan else { return nil }
-        if plan.reference=="native" { return xrplAssetMoney(StellarIdentity.sum(plan.amount,String(plan.fee))) }
-        if let raw=OathSendAmount.units(plan.amount,decimals:plan.decimals),
-           let value=Decimal(string:raw,locale:Locale(identifier:"en_US_POSIX")),let price=model.reviewPrice,let gasPrice=arc.gasPrice {
-            return OathAssetAmountFormat(locale: strings.language.locale, selectedCurrencyCode: model.reviewCurrency ?? model.currency).money((value*price+Decimal(plan.fee)/1_000_000_000_000_000_000*gasPrice))
-        }
-        return xrplAssetMoney(plan.amount)+" + "+(feeValue ?? "—")
-    }
 
-    private var evmTotal: String? {
-        guard let plan=evm.quote?.plan else { return nil }
-        if plan.reference=="native" { return xrplAssetMoney(StellarIdentity.sum(plan.amount,String(plan.fee))) }
-        if let raw=OathSendAmount.units(plan.amount,decimals:plan.decimals),
-           let value=Decimal(string:raw,locale:Locale(identifier:"en_US_POSIX")),let price=model.reviewPrice,let gasPrice=evm.gasPrice {
-            return OathAssetAmountFormat(locale: strings.language.locale, selectedCurrencyCode: model.reviewCurrency ?? model.currency).money((value*price+Decimal(plan.fee)/1_000_000_000_000_000_000*gasPrice))
-        }
-        return xrplAssetMoney(plan.amount)+" + "+(feeValue ?? "—")
-    }
 
-    private var aptosTotal: String? {
-        guard let plan=aptos.quote?.plan else { return nil }
-        if plan.reference=="native" { return xrplAssetMoney(String(plan.amount+plan.fee)) }
-        if let raw=OathSendAmount.units(String(plan.amount),decimals:plan.decimals),
-           let value=Decimal(string:raw,locale:Locale(identifier:"en_US_POSIX")),let price=model.reviewPrice,let gasPrice=aptos.gasPrice {
-            return OathAssetAmountFormat(locale: strings.language.locale, selectedCurrencyCode: model.reviewCurrency ?? model.currency).money((value*price+Decimal(plan.fee)/100_000_000*gasPrice))
-        }
-        return xrplAssetMoney(String(plan.amount))+" + "+(feeValue ?? "—")
-    }
 
-    private var thorchainTotal: String? {
-        guard let plan=thorchain.quote?.plan else { return nil }
-        if plan.reference=="native" { return xrplAssetMoney(StellarIdentity.sum(plan.amount,String(plan.fee))) }
-        if let raw=OathSendAmount.units(String(plan.amount),decimals:plan.decimals),
-           let value=Decimal(string:raw,locale:Locale(identifier:"en_US_POSIX")),let price=model.reviewPrice,let gasPrice=thorchain.gasPrice {
-            return OathAssetAmountFormat(locale: strings.language.locale, selectedCurrencyCode: model.reviewCurrency ?? model.currency).money((value*price+Decimal(plan.fee)/100_000_000*gasPrice))
-        }
-        return xrplAssetMoney(String(plan.amount))+" + "+(feeValue ?? "—")
-    }
 
-    private var tonTotal: String? {
-        guard let plan=ton.quote?.plan else { return nil }
-        if plan.reference=="native" { return xrplAssetMoney(String(plan.amount+plan.fee)) }
-        if let raw=OathSendAmount.units(String(plan.amount),decimals:plan.decimals),
-           let value=Decimal(string:raw,locale:Locale(identifier:"en_US_POSIX")),let price=model.reviewPrice,let gasPrice=ton.gasPrice {
-            return OathAssetAmountFormat(locale: strings.language.locale, selectedCurrencyCode: model.reviewCurrency ?? model.currency).money((value*price+Decimal(plan.fee)/1_000_000_000*gasPrice))
-        }
-        return xrplAssetMoney(String(plan.amount))+" + "+(feeValue ?? "—")
-    }
+
 
     private func nearMoney(_ atomic:String) -> String {
         let units=OathSendAmount.units(atomic,decimals:24) ?? "—"
@@ -504,17 +430,6 @@ struct OathSendReviewPage: View {
         }
         return strings.invariant(units+" NEAR")
     }
-    private var nearTotal:String? {
-        guard let plan=near.quote?.plan else { return nil }
-        if plan.reference=="native" { return nearMoney(plan.nativeDebit) }
-        if let raw=OathSendAmount.units(plan.amount,decimals:plan.decimals),let value=Decimal(string:raw,locale:Locale(identifier:"en_US_POSIX")),
-           let gasUnits=OathSendAmount.units(plan.nativeDebit,decimals:24),let gas=Decimal(string:gasUnits,locale:Locale(identifier:"en_US_POSIX")),
-           let price=model.reviewPrice,let gasPrice=near.gasPrice {
-            let total=value*price+gas*gasPrice
-            if !total.isNaN { return OathAssetAmountFormat(locale: strings.language.locale, selectedCurrencyCode: model.reviewCurrency ?? model.currency).money(total) }
-        }
-        return xrplAssetMoney(plan.amount)+" + "+nearMoney(plan.nativeDebit)
-    }
 
     private func polkadotMoney(_ atomic:String) -> String {
         let units=OathSendAmount.units(atomic,decimals:10) ?? "—"
@@ -522,17 +437,6 @@ struct OathSendReviewPage: View {
             return OathAssetAmountFormat(locale: strings.language.locale, selectedCurrencyCode: model.reviewCurrency ?? model.currency).money((value*price))
         }
         return strings.invariant(units+" DOT")
-    }
-    private var polkadotTotal:String? {
-        guard let plan=polkadot.quote?.plan else { return nil }
-        if plan.reference=="native" { return polkadotMoney(plan.nativeDebit) }
-        if let raw=OathSendAmount.units(plan.amount,decimals:plan.decimals),let value=Decimal(string:raw,locale:Locale(identifier:"en_US_POSIX")),
-           let gasUnits=OathSendAmount.units(plan.nativeDebit,decimals:10),let gas=Decimal(string:gasUnits,locale:Locale(identifier:"en_US_POSIX")),
-           let price=model.reviewPrice,let gasPrice=polkadot.gasPrice {
-            let total=value*price+gas*gasPrice
-            if !total.isNaN { return OathAssetAmountFormat(locale: strings.language.locale, selectedCurrencyCode: model.reviewCurrency ?? model.currency).money(total) }
-        }
-        return xrplAssetMoney(plan.amount)+" + "+polkadotMoney(plan.nativeDebit)
     }
 
     private var canSend: Bool {
@@ -550,7 +454,8 @@ struct OathSendReviewPage: View {
     private var recipientAddress: String { (model.supportsEVMSend ? evm.quote?.plan.recipient : model.supportsArcSend ? arc.quote?.plan.recipient : model.supportsTonSend ? ton.quote?.plan.recipient : model.supportsSolanaSend ? solana.quote?.plan.recipient : model.supportsAptosSend ? aptos.quote?.plan.recipient : model.supportsThorchainSend ? thorchain.quote?.plan.recipient : model.supportsPolkadotSend ? polkadot.quote?.plan.recipient : model.supportsNearSend ? near.quote?.plan.recipient : model.supportsTronSend ? tron.quote?.plan.recipient : model.supportsStellarSend ? stellar.quote?.plan.recipient : model.supportsXrplSend ? xrpl.quote?.plan.recipient : model.supportsSuiSend ? sui.quote?.plan.recipient : bitcoin.quote?.plan.recipient) ?? model.address }
 
     private var units: String? {
-        guard let holding = model.holding, let raw = (model.supportsEVMSend ? evm.quote?.plan.amount : model.supportsArcSend ? arc.quote?.plan.amount : model.supportsTonSend ? ton.quote.map({ String($0.plan.amount) }) : model.supportsSolanaSend ? solana.quote.map({ String($0.plan.amount) }) : model.supportsAptosSend ? aptos.quote.map({ String($0.plan.amount) }) : model.supportsThorchainSend ? thorchain.quote.map({ String($0.plan.amount) }) : model.supportsPolkadotSend ? polkadot.quote?.plan.amount : model.supportsNearSend ? near.quote?.plan.amount : model.supportsTronSend ? tron.quote?.plan.amount : model.supportsStellarSend ? stellar.quote?.plan.amount : model.supportsXrplSend ? xrpl.quote?.plan.amount : model.supportsSuiSend ? sui.quote.map({ String($0.plan.amount) }) : bitcoin.quote.map({ String($0.plan.recipientAmount) })) ?? model.reviewAtomic else { return nil }
+        if let amounts = reviewAmounts { return amounts.sent.units }
+        guard let raw = model.reviewAtomic, let holding = model.holding else { return nil }
         return OathSendAmount.units(raw, decimals: holding.decimals)
     }
     private var native: String { strings.invariant((units ?? "—") + " " + (model.holding?.symbol ?? "")) }
@@ -851,7 +756,7 @@ struct OathSendReviewPage: View {
                         .accessibilityAddTraits(.isHeader)
                         .id(receiptTitle).transition(receiptTransition)
                 }
-                Text(fiat ?? native).oathFont(.largeTitle, weight: .semibold).multilineTextAlignment(.center)
+                Text(fiat ?? native).oathFont(.largeTitle, weight: .medium).multilineTextAlignment(.center)
                 ZStack {
                     if showsRecipientReceipt {
                         Text(receiptMessage(compactAddress: compactAddress))
@@ -1018,7 +923,7 @@ struct OathSendReviewPage: View {
         VStack(spacing: 14) {
             if let holding = model.holding { OathSendLogo(holding: holding, size: 40) }
             Text(strings.text(.sendYoureSending)).oathFont(.body).foregroundStyle(.secondary)
-            Text(fiat ?? native).oathFont(.largeTitle, weight: .semibold, size: 46)
+            Text(fiat ?? native).oathFont(.largeTitle, weight: .medium, size: 46)
                 .lineLimit(2).minimumScaleFactor(0.5).multilineTextAlignment(.center)
             Text(fiat == nil ? strings.text(.assetPriceUnavailable) : native)
                 .oathFont(.title3).foregroundStyle(.secondary)

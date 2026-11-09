@@ -60,6 +60,182 @@ import GRDB
         try await db.journalTronSignature(sendID:"two",signed:signed)
         do { _ = try await db.transitionSend("two",from:"signed",to:"cancelled"); XCTFail("Signed send released") } catch { XCTAssertEqual(error as? StoreError,.invalidTransition) }
     }
+
+    func testFailureCleanupSurvivesTaskCancellationAndIsIdempotent() async throws {
+        let (db, folder, plan) = try await fixture()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        for state in ["draft", "queued"] {
+            try await draft(state, plan: plan, db: db)
+            if state == "queued" { try await db.queueTronSend(sendID: state, plan: plan) }
+            let cleanup = Task {
+                withUnsafeCurrentTask { $0?.cancel() }
+                XCTAssertTrue(Task.isCancelled)
+                return try await db.finishFailedTronSend(sendID: state)
+            }
+            let result = try await cleanup.value
+            XCTAssertEqual(result?.state, "cancelled")
+            XCTAssertNil(result?.signedPayload)
+            let repeated = try await db.finishFailedTronSend(sendID: state)
+            XCTAssertEqual(repeated, result)
+        }
+        try await draft("retry", wallet: 2, plan: plan, db: db)
+        try await db.queueTronSend(sendID: "retry", plan: plan)
+    }
+
+    func testExpiredUnsignedReservationRecoversWithoutRestartAcrossWallets() async throws {
+        let (db, folder, plan) = try await fixture()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try await draft("orphan", plan: plan, db: db)
+        try await db.queueTronSend(sendID: "orphan", plan: plan)
+        let expired = try await ageStoredPlan("orphan", seconds: 91, db: db)
+        try expired.validate(checkAge: false)
+        try await draft("retry", wallet: 2, plan: plan, db: db)
+        try await db.queueTronSend(sendID: "retry", plan: plan)
+        let orphan = try await db.send("orphan"), retry = try await db.send("retry")
+        XCTAssertEqual(orphan?.state, "cancelled")
+        XCTAssertEqual(retry?.state, "queued")
+        let historyCount = try await db.pool.read { try Int.fetchOne($0, sql: "SELECT COUNT(*) FROM transactions") }
+        XCTAssertEqual(historyCount, 0)
+        // Even if the original authentication returns late, it cannot journal
+        // or broadcast after another send has acquired the reservation.
+        let signed = try TronSendCrypto.sign(plan, privateKey: key)
+        do { try await db.journalTronSignature(sendID: "orphan", signed: signed); XCTFail("Expired owner journaled") }
+        catch { XCTAssertEqual(error as? StoreError, .invalidTransition) }
+    }
+
+    func testCleanupAndLocalExpiryNeverReleaseSignedOrBroadcastReservations() async throws {
+        for state in ["signed", "broadcast"] {
+            let (db, folder, plan) = try await fixture()
+            defer { try? FileManager.default.removeItem(at: folder) }
+            try await draft("signed", plan: plan, db: db)
+            try await db.queueTronSend(sendID: "signed", plan: plan)
+            let signed = try TronSendCrypto.sign(plan, privateKey: key)
+            try await db.journalTronSignature(sendID: "signed", signed: signed)
+            if state == "broadcast" { _ = try await db.transitionSend("signed", from: "signed", to: "broadcast") }
+            let cleanup = Task {
+                withUnsafeCurrentTask { $0?.cancel() }
+                return try await db.finishFailedTronSend(sendID: "signed")
+            }
+            let preserved = try await cleanup.value
+            XCTAssertEqual(preserved?.state, state)
+            XCTAssertEqual(try JSONDecoder().decode(TronSignedSend.self, from: XCTUnwrap(preserved?.signedPayload)), signed)
+            _ = try await ageStoredPlan("signed", seconds: 200, db: db)
+            try await draft("retry", wallet: 2, plan: plan, db: db)
+            do { try await db.queueTronSend(sendID: "retry", plan: plan); XCTFail("Signed reservation released by local age") }
+            catch { XCTAssertEqual(error as? TronSendError, .busy) }
+        }
+    }
+
+    func testValidUnsignedReservationAndUnrelatedSenderRemainProtected() async throws {
+        let (db, folder, plan) = try await fixture()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try await draft("active", plan: plan, db: db)
+        try await db.queueTronSend(sendID: "active", plan: plan)
+        try await draft("retry", wallet: 2, plan: plan, db: db)
+        do { try await db.queueTronSend(sendID: "retry", plan: plan); XCTFail("Concurrent unsigned send replaced") }
+        catch { XCTAssertEqual(error as? TronSendError, .busy) }
+        let active = try await db.send("active")
+        XCTAssertEqual(active?.state, "queued")
+        // Expired records belonging to other senders cannot interfere with or
+        // be cleaned up by this sender's reservation transaction.
+        _ = try await db.finishFailedTronSend(sendID: "active")
+        try await db.pool.write { try $0.execute(sql: "UPDATE sends SET senderAddress=?, state='queued' WHERE id='active'", arguments: [plan.recipient]) }
+        _ = try await ageStoredPlan("active", seconds: 200, db: db)
+        try await db.queueTronSend(sendID: "retry", plan: plan)
+        let unrelated = try await db.send("active")
+        XCTAssertEqual(unrelated?.state, "queued")
+    }
+
+    func testExpiredTokenReservationDoesNotBlockNativeSend() async throws {
+        let (db, folder, plan) = try await fixture()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let contract = try TronSendCrypto.address(privateKey: Data(repeating: 9, count: 32))
+        let asset = AssetRecord(id: "test-token", networkID: "tron", reference: contract,
+                               name: "Fixture", symbol: "TEST", decimals: 6)
+        try await db.pool.write { try asset.insert($0) }
+        let tokenPlan = TronSendPlan(network: .mainnet, sender: plan.sender, recipient: plan.recipient,
+            reference: contract, amount: "1000000", requestedAmount: "1000000", assetBalance: "10000000",
+            decimals: 6, nativeBalance: plan.nativeBalance, fee: 1000000, estimatedFee: 1000000,
+            feeLimit: 1000000, energyPrice: plan.energyPrice, bandwidthPrice: plan.bandwidthPrice,
+            blockID: plan.blockID, blockNumber: plan.blockNumber, timestamp: plan.timestamp, expiration: plan.expiration)
+        let now = Date.now.timeIntervalSince1970
+        try await db.saveDraft(.init(id: "token", walletID: "w1", accountID: "a1", networkID: "tron",
+            assetID: asset.id, idempotencyKey: "token", recipient: tokenPlan.recipient,
+            amountAtomic: tokenPlan.amount, state: "draft", createdAt: now, updatedAt: now))
+        try await db.queueTronSend(sendID: "token", plan: tokenPlan)
+        try await draft("native", wallet: 2, plan: plan, db: db)
+        do { try await db.queueTronSend(sendID: "native", plan: plan); XCTFail("Token and native double reservation") }
+        catch { XCTAssertEqual(error as? TronSendError, .busy) }
+        _ = try await ageStoredPlan("token", seconds: 91, db: db)
+        try await db.queueTronSend(sendID: "native", plan: plan)
+        let token = try await db.send("token")
+        XCTAssertEqual(token?.state, "cancelled")
+    }
+
+    func testExpiredUnsignedMultisigSetupIsRecoverableWithoutRestart() async throws {
+        let (db, folder, base) = try await fixture()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let policy = try TronMultisigPolicy(required: 2, signers: try [8, 9, 10].map {
+            try TronSendCrypto.address(privateKey: Data(repeating: UInt8($0), count: 32))
+        })
+        let plan = TronSendPlan(network: .mainnet, sender: base.sender, recipient: base.sender,
+            reference: "native", amount: "0", requestedAmount: "0", assetBalance: base.assetBalance,
+            decimals: 6, nativeBalance: base.nativeBalance, fee: base.fee, estimatedFee: base.estimatedFee,
+            feeLimit: 0, energyPrice: base.energyPrice, bandwidthPrice: base.bandwidthPrice,
+            blockID: base.blockID, blockNumber: base.blockNumber, timestamp: base.timestamp,
+            expiration: base.expiration, multisigSetup: policy)
+        try await draft("setup", plan: plan, db: db)
+        try await db.queueTronSend(sendID: "setup", plan: plan)
+        let active = try await db.pendingTronMultisigSetup(walletID: "w1")
+        XCTAssertEqual(active?.id, "setup")
+        _ = try await ageStoredPlan("setup", seconds: 91, db: db)
+        let recovered = try await db.pendingTronMultisigSetup(walletID: "w1")
+        let stored = try await db.send("setup")
+        XCTAssertNil(recovered)
+        XCTAssertEqual(stored?.state, "cancelled")
+    }
+
+    func testConcurrentRecoveryStillGrantsOnlyOneReservation() async throws {
+        let (db, folder, plan) = try await fixture()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try await draft("orphan", plan: plan, db: db)
+        try await db.queueTronSend(sendID: "orphan", plan: plan)
+        _ = try await ageStoredPlan("orphan", seconds: 91, db: db)
+        for id in ["first", "second"] { try await draft(id, plan: plan, db: db) }
+        let results = await withTaskGroup(of: Bool.self, returning: [Bool].self) { group in
+            for id in ["first", "second"] {
+                group.addTask {
+                    do { try await db.queueTronSend(sendID: id, plan: plan); return true }
+                    catch { XCTAssertEqual(error as? TronSendError, .busy); return false }
+                }
+            }
+            var values: [Bool] = []
+            for await result in group { values.append(result) }
+            return values
+        }
+        XCTAssertEqual(results.filter { $0 }.count, 1)
+        let reserved = try await db.pool.read {
+            try Int.fetchOne($0, sql: "SELECT COUNT(*) FROM sends WHERE state='queued'")
+        }
+        XCTAssertEqual(reserved, 1)
+    }
+
+    /// Advance persisted observation/block times together, leaving the fresh
+    /// replacement plan and wall clock untouched. No waiting or live providers.
+    @discardableResult
+    func ageStoredPlan(_ id: String, seconds: Double, db: OathDatabase) async throws -> TronSendPlan {
+        try await db.pool.write { connection in
+            let bytes = try XCTUnwrap(Data.fetchOne(connection, sql: "SELECT plan FROM tronSendPlans WHERE sendID=?", arguments: [id]))
+            var object = try XCTUnwrap(JSONSerialization.jsonObject(with: bytes) as? [String: Any])
+            for field in ["createdAt", "timestamp", "expiration"] {
+                let value = try XCTUnwrap(object[field] as? NSNumber)
+                object[field] = value.doubleValue - seconds * (field == "createdAt" ? 1 : 1000)
+            }
+            let aged = try JSONSerialization.data(withJSONObject: object)
+            try connection.execute(sql: "UPDATE tronSendPlans SET plan=? WHERE sendID=?", arguments: [aged, id])
+            return try JSONDecoder().decode(TronSendPlan.self, from: aged)
+        }
+    }
     func testExactSignedBytesSurviveReopenAndUnknownBroadcastReservesSender() async throws {
         let (db,folder,plan) = try await fixture(); defer { try? FileManager.default.removeItem(at:folder) }
         try await draft("one",plan:plan,db:db); try await db.queueTronSend(sendID:"one",plan:plan)

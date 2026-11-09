@@ -36,6 +36,7 @@ extension OathDatabase {
 
     public func setAssetHidden(_ hidden: Bool, assetID: String, walletID: String) async throws {
         try await storageWrite { db in
+            try Task.checkCancellation()
             guard try Bool.fetchOne(db, sql: "SELECT EXISTS(SELECT 1 FROM metadata WHERE key='walletReset')") == false,
                   try Bool.fetchOne(db, sql: """
                     SELECT EXISTS(SELECT 1 FROM wallets w JOIN walletAccounts c ON c.walletID=w.id

@@ -7,10 +7,11 @@ struct OathFeatureCapsule: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
-    @State private var feature = Feature.send
+    @State private var rotation = OathFeatureRotation()
+    @ScaledMetric(relativeTo: .subheadline) private var badgeSize: CGFloat = 20
 
-    private var displayedFeature: Feature {
-        reduceMotion || voiceOverEnabled ? .selfCustody : feature
+    private var displayedRotation: OathFeatureRotation {
+        reduceMotion || voiceOverEnabled ? OathFeatureRotation() : rotation
     }
 
     private var shouldCycle: Bool {
@@ -28,13 +29,14 @@ struct OathFeatureCapsule: View {
                 guard shouldCycle else { return }
                 while !Task.isCancelled {
                     do {
-                        try await Task.sleep(for: feature.dwell)
+                        try await Task.sleep(for: rotation.feature.dwell)
                     } catch {
+                        // Task.sleep only throws for expected lifecycle cancellation.
                         return
                     }
                     guard !Task.isCancelled else { return }
                     withAnimation(.smooth(duration: 0.52)) {
-                        feature = feature.next
+                        rotation.advance()
                     }
                 }
             }
@@ -56,61 +58,49 @@ struct OathFeatureCapsule: View {
     }
 
     private var caption: some View {
-        HStack(spacing: 8) {
-            if let symbol = displayedFeature.symbol {
-                Image(systemName: symbol)
-                    .symbolRenderingMode(.monochrome)
-                    .id(displayedFeature)
-                    .transition(.blurReplace)
-                    .accessibilityHidden(true)
-            }
+        ZStack {
+            if let chain = displayedRotation.chain {
+                HStack(spacing: 8) {
+                    // Keep Receive mounted while only the badge and name transition.
+                    Text(strings.text(.receive))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .layoutPriority(1)
 
-            Text(strings.text(displayedFeature.title))
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-                .id(displayedFeature)
+                    ZStack(alignment: .leading) {
+                        chainCaption(chain)
+                            .id(chain)
+                            .transition(.blurReplace)
+                    }
+                }
                 .transition(.blurReplace)
+            } else {
+                HStack(spacing: 8) {
+                    if let symbol = displayedRotation.feature.symbol {
+                        Image(systemName: symbol)
+                            .symbolRenderingMode(.monochrome)
+                            .accessibilityHidden(true)
+                    }
+                    Text(strings.text(displayedRotation.feature.title))
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .id(displayedRotation.feature)
+                .transition(.blurReplace)
+            }
         }
         .oathFont(.subheadline, weight: .medium)
         .foregroundStyle(.white)
         .padding(.horizontal, 18)
         .padding(.vertical, 11)
-        .frame(minWidth: 112, minHeight: 42)
+        .frame(minHeight: 42)
     }
 
-    private enum Feature: Int, CaseIterable {
-        case send, receive, pay, request, selfCustody
-
-        var title: OathStringKey {
-            switch self {
-            case .send: .send
-            case .receive: .receive
-            case .pay: .pay
-            case .request: .requestCrypto
-            case .selfCustody: .selfCustody
-            }
-        }
-
-        var symbol: String? {
-            switch self {
-            case .send: "arrow.up.forward"
-            case .receive: "arrow.down.backward"
-            case .pay: "qrcode.viewfinder"
-            case .request: "arrow.down.message"
-            case .selfCustody: nil
-            }
-        }
-
-        var dwell: Duration {
-            switch self {
-            case .send, .receive, .pay: .seconds(2.4)
-            case .request: .seconds(2.8)
-            case .selfCustody: .seconds(3.2)
-            }
-        }
-
-        var next: Self {
-            Self.allCases[(rawValue + 1) % Self.allCases.count]
+    private func chainCaption(_ chain: OathImportChain) -> some View {
+        HStack(spacing: 6) {
+            OathNetworkLogo(asset: chain.logoAsset, size: badgeSize)
+            Text(verbatim: chain.name)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }

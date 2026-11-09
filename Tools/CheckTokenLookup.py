@@ -18,6 +18,7 @@ parser.add_argument('--scratch', help='Isolated reusable host build directory')
 args = parser.parse_args()
 root = Path(__file__).resolve().parents[1]
 env = os.environ.copy()
+env['OATH_MANAGEMENT_SEED'] = str(root / 'Packages/OathAnkr/Sources/OathAnkr/Resources/TokenDiscoverySeed.json')
 if args.live or args.all_networks or args.six_chains:
     with (root / 'OathApp/Private/TokenRPC.plist').open('rb') as file:
         env['OATH_TOKEN_LOOKUP_LIVE_KEY'] = plistlib.load(file)['AnkrAPIKey']
@@ -31,7 +32,7 @@ with tempfile.TemporaryDirectory(prefix='oath-token-lookup-') as temporary:
     sources, tests = work / 'Sources/TokenLookup', work / 'Tests/TokenLookupTests'
     sources.mkdir(parents=True); tests.mkdir(parents=True)
     for name in ['Tokens/OathTokenNetwork.swift', 'Tokens/OathTokenService.swift',
-                 'Tokens/OathTokenSearchModel.swift', 'Tokens/OathAssetSearchScope.swift', 'Import/OathImportCatalog.swift']:
+                 'Tokens/OathManageTokensModel.swift', 'Tokens/OathTokenSearchModel.swift', 'Tokens/OathAssetSearchScope.swift', 'Import/OathImportCatalog.swift']:
         shutil.copyfile(root / 'OathAtmosphere' / name, sources / Path(name).name)
     codec = (root / 'OathAtmosphere/Tokens/OathTokenCodec.swift').read_text()
     (sources / 'OathTokenCodec.swift').write_text(codec.replace('import WalletCore', 'import OathAnkr')
@@ -52,6 +53,7 @@ struct OathLocalizer {
 }
 ''')
     shutil.copyfile(root / 'Tools/TokenLookupValidation/TokenLookupTests.swift', tests / 'TokenLookupTests.swift')
+    shutil.copyfile(root / 'Tools/TokenLookupValidation/ManageTokensTests.swift', tests / 'ManageTokensTests.swift')
     packages = ['OathAnkr', 'OathDatabase', 'OathBitcoin', 'OathDiagnostics', 'OathTokenImages']
     deps = ', '.join('.package(path: %s)' % json.dumps(str(root / 'Packages' / p)) for p in packages)
     names = ', '.join(json.dumps(p) for p in packages)
@@ -62,6 +64,7 @@ let package = Package(name: "TokenLookup", platforms: [.macOS("15.5")], dependen
  .testTarget(name: "TokenLookupTests", dependencies: ["TokenLookup", "OathDiagnostics"])],
  swiftLanguageModes: [.v6])
 ''' % (deps, names))
-    raise SystemExit(subprocess.run(['swift', 'test', '--package-path', str(work), '--scratch-path',
-        args.scratch or env.get('OATH_VALIDATION_SCRATCH', '/tmp/oath-token-lookup-host')]
-        + (['--filter', args.filter] if args.filter else []), env=env, timeout=600).returncode)
+    for suite in ([args.filter] if args.filter else ['ManageTokensTests', 'TokenLookupTests.TokenLookupTests']):
+        result = subprocess.run(['swift', 'test', '--build-system', 'native', '-j', '4', '--package-path', str(work), '--scratch-path',
+            args.scratch or env.get('OATH_VALIDATION_SCRATCH', '/tmp/oath-token-lookup-host'), '--filter', suite], env=env, timeout=1200)
+        if result.returncode: raise SystemExit(result.returncode)

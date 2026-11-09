@@ -155,7 +155,7 @@ struct OathBalanceChangePill: View {
                 Image(systemName: change.amount > 0 ? "arrowtriangle.up.fill" : "arrowtriangle.down.fill")
                     .font(.caption2).foregroundStyle(color)
             }
-            Text(amount).fontWeight(.semibold).foregroundStyle(color)
+            Text(amount).fontWeight(.medium).foregroundStyle(color)
             if let percentage { Text(verbatim: "(\(percentage))").foregroundStyle(.white.opacity(0.85)) }
             Text(strings.text(period.titleKey)).foregroundStyle(.white.opacity(0.85))
         }

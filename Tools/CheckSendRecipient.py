@@ -17,7 +17,7 @@ with tempfile.TemporaryDirectory(prefix="oath-recipient-") as temporary:
     source.mkdir(parents=True)
     for file in ["Tokens/OathAssetSearchScope.swift", "Import/OathImportCatalog.swift", "Import/OathMnemonicValidator.swift",
                  "Scanner/OathScanAddress.swift", "Scanner/OathScanPayload.swift", "Scanner/OathWalletLink.swift",
-                 "Send/OathSendRecipientRules.swift", "Send/OathSendModel.swift", "Send/OathSendAmount.swift",
+                 "Send/OathSendRecipientRules.swift", "Send/OathSendBalanceIdentity.swift", "Send/OathSendModel.swift", "Send/OathSendAmount.swift",
                  "Localization/OathStringKey.swift"]:
         shutil.copyfile(root / "OathAtmosphere" / file, source / Path(file).name)
     registry = (root / "OathAtmosphere/Tokens/OathTokenNetwork.swift").read_text()

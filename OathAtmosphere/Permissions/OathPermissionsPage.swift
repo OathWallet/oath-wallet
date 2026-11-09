@@ -218,7 +218,7 @@ private struct OathPermissionList: View {
         } header: {
             HStack(spacing:8) {
                 OathNetworkLogo(asset:"network-"+network,size:22)
-                Text(networkName(network)).oathFont(.subheadline,weight:.semibold)
+                Text(networkName(network)).oathFont(.subheadline,weight:.medium)
             }.textCase(nil).padding(.vertical,8)
         }
     }

@@ -11,7 +11,7 @@ public actor PolkadotSendClient {
     public init(network: PolkadotSendNetwork = .mainnet, endpoints: [URL]? = nil, transport: any AnkrTransport = AnkrHTTPTransport()) throws {
         let endpoints = endpoints ?? (network == .mainnet ? [network.endpoint,URL(string:"https://asset-hub.selvagelabs.io")!] : [network.endpoint])
         guard !endpoints.isEmpty, endpoints.count <= 4, endpoints.allSatisfy({ $0.scheme == "https" }) else { throw PolkadotSendError.configuration }
-        self.network=network;self.endpoints=endpoints;self.transport=transport
+        self.network=network;self.endpoints=endpoints;self.transport=SendMeasuredTransport(base: transport)
     }
     private func call(_ endpoint: URL, _ method: String, _ params: [SolanaJSON]) async throws -> SolanaJSON {
         var request = URLRequest(url:endpoint); request.timeoutInterval=25;request.httpMethod="POST"
@@ -71,11 +71,12 @@ public actor PolkadotSendClient {
         let runtime=try PolkadotRuntime(PolkadotIdentity.bytes(hex)); if runtimes.count>=4 { runtimes.removeAll() };runtimes[spec]=runtime
         return (runtime,spec,tx)
     }
-    private func storage(_ key: String, at hash: String) async throws -> Data {
+    private func storage(_ key: String, at hash: String, prepared: SendSenderSnapshot? = nil) async throws -> Data {
+        if let data = prepared?.evidence?.polkadotStorage[key] { return data }
         let result=try await rpc("state_getStorage",[.string(key),.string(hash)])
         if result.isNull { return Data() }; guard let hex=result.string else { throw PolkadotSendError.malformed };return try PolkadotIdentity.bytes(hex)
     }
-    private func token(reference: String, at hash: String, known: PolkadotToken?) async throws -> PolkadotToken {
+    private func token(reference: String, at hash: String, known: PolkadotToken?, prepared: SendSenderSnapshot? = nil) async throws -> PolkadotToken {
         if reference == "native" { return .init(reference:"native",name:"Polkadot",symbol:network == .mainnet ? "DOT" : network == .paseo ? "PAS" : "WND",decimals:network.decimals,pallet:"System",key:Data()) }
         let ref=try PolkadotIdentity.reference(reference), pallet:String, key:Data
         if ref.hasPrefix("foreign:") {
@@ -87,14 +88,62 @@ public actor PolkadotSendClient {
         } else { pallet=ref.hasPrefix("assets:") ? "Assets":"PoolAssets";key=PolkadotScale.le(UInt32(ref.split(separator:":")[1])!) }
         guard let prefix=PolkadotStorage.pallets[pallet] else { throw PolkadotSendError.malformed }
         let storageKey="0x"+prefix+PolkadotStorage.metadata+PolkadotIdentity.hex(PolkadotIdentity.concat(key)).dropFirst(2)
-        let raw=try await storage(storageKey,at:hash)
+        let raw=try await storage(storageKey,at:hash,prepared:prepared)
         return try PolkadotStorage.token(key:storageKey,value:.string(PolkadotIdentity.hex(raw.isEmpty ? Data(repeating:0,count:20):raw)),pallet:pallet)
     }
-    public func quote(sender: String, recipient: String, reference: String, decimals: Int, amount: String, maximum: Bool = false, knownToken: PolkadotToken? = nil) async throws -> PolkadotSendPlan {
+    public func prepareSender(sender: String, reference: String, decimals: Int, knownToken: PolkadotToken? = nil) async throws -> SendSenderSnapshot {
+        let observed = Date.now, sender = try PolkadotIdentity.address(sender)
+        let (hash, height) = try await finalized()
+        async let runtimeWork = runtime(at: hash)
+        async let sourceWork = storage(PolkadotStorage.nativeKey(sender), at: hash)
+        async let tokenWork = token(reference: reference, at: hash, known: knownToken)
+        let ((runtime, _, _), raw, token) = try await (runtimeWork, sourceWork, tokenWork)
+        var evidence = [try PolkadotStorage.nativeKey(sender): raw]
+        guard token.decimals == decimals, let edRaw = runtime.pallets["Balances"]?.constants["ExistentialDeposit"] else { throw PolkadotSendError.metadataChanged }
+        let source = try runtime.decode(raw, pallet: "System", storage: "Account")
+        let free = try PolkadotIdentity.amount(source["data"]["free"]), reserved = try PolkadotIdentity.amount(source["data"]["reserved"]), frozen = try PolkadotIdentity.amount(source["data"]["frozen"]), ed = PolkadotIdentity.uint(edRaw)
+        let lock = XrplSendAmount.less(reserved, frozen) ? try NearSendAmount.subtract(frozen, reserved) : "0"
+        let total = try NearSendAmount.add(free, reserved), reserve = try NearSendAmount.add(reserved, XrplSendAmount.less(lock, ed) ? ed : lock)
+        var asset = total, spendable = XrplSendAmount.less(total, reserve) ? "0" : try NearSendAmount.subtract(total, reserve)
+        if reference != "native" {
+            let prefix = PolkadotStorage.pallets[token.pallet]!, suffix = PolkadotIdentity.hex(PolkadotIdentity.concat(token.key)).dropFirst(2)
+            async let detailsWork = storage("0x" + prefix + PolkadotStorage.asset + suffix, at: hash)
+            async let assetWork = storage(PolkadotStorage.accountKey(token, owner: sender), at: hash)
+            let (detailsRaw, assetRaw) = try await (detailsWork, assetWork)
+            evidence["0x" + prefix + PolkadotStorage.asset + suffix] = detailsRaw
+            evidence[try PolkadotStorage.accountKey(token, owner: sender)] = assetRaw
+            guard !detailsRaw.isEmpty, !assetRaw.isEmpty else { throw PolkadotSendError.insufficientFunds }
+            let details = try runtime.decode(detailsRaw, pallet: token.pallet, storage: "Asset"), account = try runtime.decode(assetRaw, pallet: token.pallet, storage: "Account")
+            guard details["status"]["type"].string == "Live", account["status"]["type"].string == "Liquid" else { throw PolkadotSendError.frozen }
+            asset = try PolkadotIdentity.amount(account["balance"])
+            let minimum = try PolkadotIdentity.amount(details["min_balance"])
+            var frozenAmount="0",heldAmount="0",hasConstraint=false
+            if token.pallet == "Assets" {
+                let accountSuffix=PolkadotIdentity.hex(PolkadotIdentity.concat(token.key)+PolkadotIdentity.concat(try PolkadotIdentity.publicKey(sender))).dropFirst(2)
+                async let frozenTask=storage("0x35b7c66f50d9dd5ea57fd81d50aabe4e0aae5fbb94f8a30f52f9a263e67b53c8"+accountSuffix,at:hash)
+                async let heldTask=storage("0x8c5b9c237726a63375a5d60e5cf1b0b3ea054aacc32ece6e888367287e12de1e"+accountSuffix,at:hash)
+                let (frozenRaw,heldRaw)=try await (frozenTask,heldTask)
+                evidence["0x35b7c66f50d9dd5ea57fd81d50aabe4e0aae5fbb94f8a30f52f9a263e67b53c8"+accountSuffix] = frozenRaw
+                evidence["0x8c5b9c237726a63375a5d60e5cf1b0b3ea054aacc32ece6e888367287e12de1e"+accountSuffix] = heldRaw
+                guard runtime.pallets["AssetsFreezer"] != nil, runtime.pallets["AssetsHolder"] != nil else { throw PolkadotSendError.runtimeUnsupported }
+                if !frozenRaw.isEmpty { frozenAmount=try PolkadotIdentity.amount(runtime.decode(frozenRaw,pallet:"AssetsFreezer",storage:"FrozenBalances"));hasConstraint=true }
+                if !heldRaw.isEmpty { heldAmount=try PolkadotIdentity.amount(runtime.decode(heldRaw,pallet:"AssetsHolder",storage:"BalancesOnHold"));hasConstraint=true }
+            }
+            let locked=XrplSendAmount.less(heldAmount,frozenAmount) ? try NearSendAmount.subtract(frozenAmount,heldAmount):"0"
+            let constraint = minimum == "1" && !hasConstraint ? "0" : (XrplSendAmount.less(locked, minimum) ? minimum : locked)
+            spendable = XrplSendAmount.less(asset, constraint) ? "0" : try NearSendAmount.subtract(asset, constraint)
+        }
+        return try .init(chain: "polkadot", sender: sender, reference: reference, decimals: decimals, assetBalance: asset,
+                         nativeBalance: total, spendable: spendable, observedAt: observed, block: .init(height: height, hash: hash),
+                         evidence: .init(polkadotStorage: evidence))
+    }
+
+    public func quote(sender: String, recipient: String, reference: String, decimals: Int, amount: String, maximum: Bool = false, knownToken: PolkadotToken? = nil, preparedSender: SendSenderSnapshot? = nil) async throws -> PolkadotSendPlan {
         let sender=try PolkadotIdentity.address(sender),recipient=try PolkadotIdentity.address(recipient)
         let (hash,height)=try await finalized()
+        let prepared = preparedSender?.matches(chain: "polkadot", sender: sender, reference: reference, decimals: decimals, block: .init(height: height, hash: hash)) == true ? preparedSender : nil
         async let runtimeTask=runtime(at:hash)
-        async let senderTask=storage(PolkadotStorage.nativeKey(sender),at:hash)
+        async let senderTask=storage(PolkadotStorage.nativeKey(sender),at:hash,prepared:prepared)
         async let recipientTask=storage(PolkadotStorage.nativeKey(recipient),at:hash)
         async let nonceTask=rpc("system_accountNextIndex",[.string(sender)])
         async let tokenTask=token(reference:reference,at:hash,known:knownToken)
@@ -110,8 +159,8 @@ public actor PolkadotSendClient {
         var balance=total, minimum=ed, targetBalance=try PolkadotIdentity.amount(destination["data"]["free"]), callName="transfer_keep_alive"
         if reference != "native" {
             let prefix=PolkadotStorage.pallets[token.pallet]!, suffix=PolkadotIdentity.hex(PolkadotIdentity.concat(token.key)).dropFirst(2)
-            async let detailsTask=storage("0x"+prefix+PolkadotStorage.asset+suffix,at:hash)
-            async let sourceTask=storage(PolkadotStorage.accountKey(token,owner:sender),at:hash)
+            async let detailsTask=storage("0x"+prefix+PolkadotStorage.asset+suffix,at:hash,prepared:prepared)
+            async let sourceTask=storage(PolkadotStorage.accountKey(token,owner:sender),at:hash,prepared:prepared)
             async let targetTask=storage(PolkadotStorage.accountKey(token,owner:recipient),at:hash)
             let (detailsRaw,sourceRaw,targetRaw)=try await (detailsTask,sourceTask,targetTask)
             guard !detailsRaw.isEmpty, !sourceRaw.isEmpty else { throw PolkadotSendError.insufficientFunds }
@@ -129,8 +178,8 @@ public actor PolkadotSendClient {
             var frozenAmount="0",heldAmount="0",hasConstraint=false
             if token.pallet == "Assets" {
                 let accountSuffix=PolkadotIdentity.hex(PolkadotIdentity.concat(token.key)+PolkadotIdentity.concat(try PolkadotIdentity.publicKey(sender))).dropFirst(2)
-                async let frozenTask=storage("0x35b7c66f50d9dd5ea57fd81d50aabe4e0aae5fbb94f8a30f52f9a263e67b53c8"+accountSuffix,at:hash)
-                async let heldTask=storage("0x8c5b9c237726a63375a5d60e5cf1b0b3ea054aacc32ece6e888367287e12de1e"+accountSuffix,at:hash)
+                async let frozenTask=storage("0x35b7c66f50d9dd5ea57fd81d50aabe4e0aae5fbb94f8a30f52f9a263e67b53c8"+accountSuffix,at:hash,prepared:prepared)
+                async let heldTask=storage("0x8c5b9c237726a63375a5d60e5cf1b0b3ea054aacc32ece6e888367287e12de1e"+accountSuffix,at:hash,prepared:prepared)
                 let (frozenRaw,heldRaw)=try await (frozenTask,heldTask)
                 guard runtime.pallets["AssetsFreezer"] != nil, runtime.pallets["AssetsHolder"] != nil else { throw PolkadotSendError.runtimeUnsupported }
                 if !frozenRaw.isEmpty { frozenAmount=try PolkadotIdentity.amount(runtime.decode(frozenRaw,pallet:"AssetsFreezer",storage:"FrozenBalances"));hasConstraint=true }

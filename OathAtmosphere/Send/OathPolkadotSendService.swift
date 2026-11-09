@@ -14,20 +14,20 @@ actor OathPolkadotSendService {
     static let shared = OathPolkadotSendService()
     private var client: PolkadotSendClient?
     private var flights = Set<String>()
-    private func connection() throws -> PolkadotSendClient {
+    func connection() throws -> PolkadotSendClient {
         if let client { return client }
         let value = try PolkadotSendClient()
         client = value; return value
     }
     func quote(walletID: String, accountID: String, assetID: String, reference: String,
-               recipient: String, amount: String, decimals: Int, maximum: Bool, vault: OathWalletVault) async throws -> OathPolkadotQuote {
+               recipient: String, amount: String, decimals: Int, maximum: Bool, vault: OathWalletVault, preparedSender: SendSenderSnapshot? = nil) async throws -> OathPolkadotQuote {
         try await OathDiagnostics.$chain.withValue("polkadot") {
             try await OathDiagnostics.$operationID.withValue(UUID()) {
                 do {
                     let database = try await vault.database()
                     guard let account = try await database.accounts(walletID:walletID).first(where:{$0.id == accountID && $0.networkID == "polkadot"}) else { throw PolkadotSendError.wrongOwner }
                     let knownToken = try await database.polkadotInventory(accountID:accountID)?.holdings.first { $0.token.reference == reference }?.token
-                    let plan = try await connection().quote(sender:account.address,recipient:recipient,reference:reference,decimals:decimals,amount:amount,maximum:maximum,knownToken:knownToken)
+                    let plan = try await connection().quote(sender:account.address,recipient:recipient,reference:reference,decimals:decimals,amount:amount,maximum:maximum,knownToken:knownToken,preparedSender:preparedSender)
                     return .init(walletID:walletID,accountID:accountID,assetID:assetID,plan:plan)
                 } catch {
                     OathDiagnostics.record(error,component:"polkadot_send",operation:"quote",context:["chain":"polkadot","stage":"quote"])

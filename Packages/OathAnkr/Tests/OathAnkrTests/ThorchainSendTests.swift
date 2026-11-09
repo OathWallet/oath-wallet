@@ -3,6 +3,33 @@ import OathDiagnostics
 @testable import OathAnkr
 
 @MainActor final class ThorchainSendTests:XCTestCase {
+    func testEarlySenderPreparation() async throws {
+        for reference in ["native", "x/oath-test"] {
+            let p = try plan(reference:reference), t = ThorchainSendFixture(plan:p), c = try ThorchainSendClient(transport:t)
+            let s = try await c.prepareSender(sender:p.sender,reference:reference,publicKey:p.publicKey,decimals:p.decimals)
+            XCTAssertFalse(s.assetBalance.isEmpty); XCTAssertEqual(s.reference,reference)
+        }
+    }
+
+    func testEarlyMultisigPreparationAndProtocolLimit() async throws {
+        let keys = try [Data(repeating: 1, count: 32), Data(repeating: 2, count: 32), Data(repeating: 3, count: 32)].map(ThorchainSendCrypto.publicKey)
+        let policy = try ThorchainMultisigPolicy(required: 2, publicKeys: keys)
+        for reference in ["native", "x/oath-test"] {
+            let base = try plan(reference: reference)
+            var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(base)) as? [String: Any])
+            json["sender"] = try policy.address(network: .mainnet); json["publicKey"] = policy.aminoPublicKey.base64EncodedString()
+            json["multisig"] = try JSONSerialization.jsonObject(with: JSONEncoder().encode(policy))
+            let plan = try JSONDecoder().decode(ThorchainSendPlan.self, from: JSONSerialization.data(withJSONObject: json))
+            let transport = ThorchainSendFixture(plan: plan), client = try ThorchainSendClient(transport: transport)
+            let prepared = try await client.prepareSender(sender: plan.sender, reference: reference, publicKey: policy.aminoPublicKey, decimals: plan.decimals, multisig: policy)
+            XCTAssertEqual(prepared.assetBalance, "10000000000")
+            let paths = await transport.paths; XCTAssertFalse(paths.contains { $0.hasSuffix("/network") })
+            await transport.mode("limit_reduced")
+            do { _ = try await client.prepareSender(sender: plan.sender, reference: reference, publicKey: policy.aminoPublicKey, decimals: plan.decimals, multisig: policy); XCTFail("Accepted lower protocol signer limit") }
+            catch { XCTAssertEqual(error as? ThorchainSendError, .changed) }
+        }
+    }
+
     let key=Data(repeating:1,count:32)
     func plan(reference:String="native",sequence:UInt64=7,now:Date = .now) throws -> ThorchainSendPlan {
         let pub=try ThorchainSendCrypto.publicKey(privateKey:key),other=try ThorchainSendCrypto.publicKey(privateKey:Data(repeating:2,count:32))

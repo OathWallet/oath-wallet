@@ -299,11 +299,11 @@ private struct OathReceiveFlow: View {
                                                addresses: addresses, query: query, scope: searchScope)
         let firstID = assets.first?.id
         let searchRequest = tokenSearchRequest
-        return OathEmptyStateScrollView(centersContent: assets.isEmpty && !searchRequest.hasQuery) {
+        return OathEmptyStateScrollView(centersContent: assets.isEmpty && !searchRequest.showsCatalogResults) {
             VStack(spacing: 0) {
                 if session.portfolio == nil {
                     ProgressView().frame(maxWidth: .infinity).padding(36)
-                } else if assets.isEmpty && !searchRequest.hasQuery {
+                } else if assets.isEmpty && !searchRequest.showsCatalogResults {
                     OathEmptyState(strings.text(.sendNoAssets), systemImage: "magnifyingglass")
                 } else {
                     LazyVStack(spacing: 0) {
@@ -312,14 +312,14 @@ private struct OathReceiveFlow: View {
                                 choose(asset)
                             } label: {
                                 OathAssetSelectionRow(holding: asset.holding, currency: session.portfolio?.currency ?? "USD",
-                                    showsSeparator: asset.id != firstID)
+                                    showsSeparator: asset.id != firstID).equatable()
                             }
                             .buttonStyle(OathSettingsRowButtonStyle())
                             .accessibilityIdentifier("receive.asset.\(asset.id)")
                         }
                     }
                 }
-                if searchRequest.hasQuery && session.portfolio != nil {
+                if searchRequest.showsCatalogResults && session.portfolio != nil {
                     OathTokenPickerSearch(request: searchRequest, session: session, hasSavedMatches: !assets.isEmpty) { holding, _ in
                         if let asset = OathReceiveAsset.available(holdings: [holding], addresses: addresses, query: "").first {
                             choose(asset)
@@ -328,6 +328,7 @@ private struct OathReceiveFlow: View {
                 }
             }.frame(maxWidth: 600).frame(maxWidth: .infinity)
         }
+        .id(searchScope)
         .modifier(OathAssetSearchFilter(query: $query, scope: $searchScope))
         .scrollDismissesKeyboard(.interactively)
     }
@@ -536,42 +537,30 @@ private struct OathReceiveContent: View {
             ScrollView {
                 VStack(spacing: 0) {
                     ZStack {
-                        Color.white
+                        Color.clear
                         if let qr, !preparingAddress {
-                            Image(decorative: qr, scale: 1).interpolation(.none).resizable().scaledToFit()
-                                .overlay {
-                                    GeometryReader { geometry in
-                                        let badgeSide = geometry.size.width * OathReceiveQRCode.badgeFraction
-                                        ZStack {
-                                            // Also covers the circular cutout in older cached QR images.
-                                            RoundedRectangle(cornerRadius: badgeSide * TokenArtworkStyle.cornerRadiusFraction,
-                                                             style: .continuous)
-                                                .fill(.white)
-                                                .frame(width: badgeSide, height: badgeSide)
-                                            receiveLogo(size: geometry.size.width * OathReceiveQRCode.logoFraction)
-                                        }
-                                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                            .accessibilityHidden(true)
-                                    }
-                                }
+                            OathReceiveQRArtwork(image: qr,
+                                badgeCornerRadiusFraction: TokenArtworkStyle.cornerRadiusFraction) { size in
+                                receiveLogo(size: size)
+                            }
                         } else if qrFailed {
                             OathButton(strings.text(.tryAgain), action: onRetry)
-                                .oathFont(.body, weight: .semibold)
-                                .foregroundStyle(.black)
+                                .oathFont(.body, weight: .medium)
+                                .foregroundStyle(.primary)
                                 .accessibilityIdentifier("receive.qr.retry")
-                        } else { ProgressView().tint(.black) }
+                        } else { ProgressView().tint(.primary) }
                     }
                     // Use the available width on smaller sheets; keep the encoded quiet
                     // zone and center-logo proportions intact at every display size.
                     .aspectRatio(1, contentMode: .fit)
                     .frame(width: min(360, geometry.size.width * 0.86) * 1.05)
-                    .clipShape(.rect(cornerRadius: 16))
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(strings.text(.receiveQRCode))
                     .accessibilityIdentifier("receive.qr")
 
                     receiveAddress
                         .padding(.horizontal, 24)
+                        .padding(.top)
                         .padding(.bottom, 16)
 
                     OathReceiveNetworkNotice(key: isNativeAsset ? guide.notice : .receiveSelectedTokenNotice,
@@ -684,7 +673,7 @@ private struct OathReceiveContent: View {
             .buttonBorderShape(.capsule)
             .tint(Color(uiColor: OathSurfaceColors.field))
             .foregroundStyle(Color.primary.opacity(0.8))
-            .oathFont(.body, weight: .semibold)
+            .oathFont(.body, weight: .medium)
             .padding(.top, 12)
             .disabled(preparingAddress || qr == nil)
         }
@@ -875,7 +864,7 @@ private struct OathReceiveIdentity: View {
                     OathNetworkLogo(asset: chain.logoAsset, size: 44)
                 }
             }
-            Text(strings.invariant(holding?.name ?? chain.name)).oathFont(.title3, weight: .semibold)
+            Text(strings.invariant(holding?.name ?? chain.name)).oathFont(.title3, weight: .medium)
                 .multilineTextAlignment(.center)
                 .accessibilityIdentifier("receive.networkName")
             if let holding, holding.reference != "native" {
@@ -899,7 +888,7 @@ private struct OathReceiveExamplesButton: View {
                     logos
                 }
                 Image(systemName: "chevron.forward")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(Color(uiColor: .secondaryLabel))
                     .accessibilityHidden(true)
             }
@@ -963,7 +952,7 @@ private struct OathReceiveExplanation: View {
             if !examples.isEmpty {
                 VStack(alignment: .leading, spacing: 16) {
                     Text(strings.format(.receiveExamplesOnNetwork, strings.invariant(chain.name)))
-                        .oathFont(.subheadline, weight: .semibold)
+                        .oathFont(.subheadline, weight: .medium)
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 54), spacing: 12)], spacing: 16) {
                         ForEach(examples) { asset in
                             VStack(spacing: 6) {
@@ -1000,7 +989,7 @@ private struct OathReceiveExplanation: View {
         HStack(alignment: .top, spacing: 16) {
             OathSettingsIcon(symbol: icon)
             VStack(alignment: .leading, spacing: 6) {
-                Text(strings.text(title)).oathFont(.body, weight: .semibold)
+                Text(strings.text(title)).oathFont(.body, weight: .medium)
                 Text(detail).oathFont(.subheadline).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }.frame(maxWidth: .infinity, alignment: .leading)

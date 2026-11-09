@@ -115,7 +115,7 @@ struct OathSendAccountHelp: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     Text(guidance.cost.map { $0.amountText(strings: strings) } ?? guidance.summary(strings: strings))
-                        .oathFont(.title3, weight: .semibold)
+                        .oathFont(.title3, weight: .medium)
                         .foregroundStyle(guidance.isBlocking ? Color.red : Color.primary)
                     if let cost = guidance.cost {
                         Text(strings.text(cost.inclusion == .payment ? .accountCostPaymentExplanation : .accountCostExtraExplanation))
@@ -126,7 +126,7 @@ struct OathSendAccountHelp: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Text(strings.text(guidance.topic == .tronActivation ? .accountRequiredFees : .accountMinimumPayment))
                                 .oathFont(.footnote).foregroundStyle(.secondary)
-                            Text(minimum).oathFont(.title2, weight: .semibold)
+                            Text(minimum).oathFont(.title2, weight: .medium)
                         }
                     }
                     Text(strings.text(guidance.cost?.detailKey ?? guidance.detailKey)).oathFont(.body)

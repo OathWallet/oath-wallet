@@ -7,7 +7,7 @@ enum OathWalletSummaryStyle {
     static let maximumWidth: CGFloat = 700
     static let identityHeight: CGFloat = 56
     static let detailHeight: CGFloat = 44
-    static let balanceFont = Font.system(size: 58, weight: .semibold, design: .default)
+    static let balanceFont = Font.system(size: 58, weight: .medium, design: .default)
 }
 
 struct OathWalletSummary<Balance: View, Detail: View, Send: View, Receive: View>: View {

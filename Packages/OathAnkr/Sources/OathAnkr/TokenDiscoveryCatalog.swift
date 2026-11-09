@@ -21,6 +21,9 @@ public struct TokenDiscoveryEntry: Codable, Sendable, Equatable, Identifiable {
     public var lifiVerificationStatus: String? = nil
     public var lifiDecimals: Int? = nil
     public var lifiFetchedAt: Date? = nil
+    /// Position in LI.FI's per-chain response, not an inferred popularity score.
+    /// Optional so existing bundled and disk catalogs remain readable.
+    public var lifiOrder: Int? = nil
     public var id: String { network + ":" + reference }
 }
 
@@ -53,6 +56,9 @@ public enum TokenDiscoveryNetworks {
 
     public static func canonical(_ value: String, network: String) throws -> String {
         guard value.utf8.count <= 4096 else { throw TokenDiscoveryError.malformed }
+        // Hexadecimal prefixes are case-insensitive; retain payload case for
+        // networks whose references are case-sensitive.
+        let value = value.hasPrefix("0X") ? "0x" + value.dropFirst(2) : value
         switch network {
         case "iotex": return try IoTeXIdentity.ethereum(value)
         case "filecoin": return try FilecoinIdentity.ethereum(value)
@@ -108,6 +114,7 @@ public actor TokenDiscoveryCatalog {
         let fetchedAt: Date
         let retryAt: Date
         let data: Data
+        var orderVersion: Int? = nil
     }
     private struct Detail: Codable, Sendable {
         struct Platform: Codable, Sendable { let decimal_place: Int?; let contract_address: String? }
@@ -140,10 +147,12 @@ public actor TokenDiscoveryCatalog {
     private var loaded = false
     private var rows: [IndexRow] = []
     private var identities: [String: TokenDiscoveryEntry] = [:]
+    private var managementRows: [IndexRow] = []
     private var assetHubEntries: [TokenDiscoveryEntry] = []
     private var sourceData = Data()
     private var fetchedAt = Date.distantPast
     private var retryAt = Date.distantPast
+    private var requiresOrderRefresh = false
     private var refreshFlight: Task<Bool, Never>?
     private var detailFlights: [String: Task<Data, Error>] = [:]
     private var details: [String: (Date, Detail)] = [:]
@@ -208,7 +217,9 @@ public actor TokenDiscoveryCatalog {
                   !entry.reference.isEmpty, entry.reference != "native", entry.reference.utf8.count <= 4096,
                   ContractIdentity.clean(entry.name) == entry.name,
                   ContractIdentity.clean(entry.symbol) == entry.symbol, entry.symbol.utf8.count <= 64,
-                  entry.decimals == nil || (0...255).contains(entry.decimals!), seen.insert(entry.id).inserted else { throw TokenDiscoveryError.malformed }
+                  entry.decimals == nil || (0...255).contains(entry.decimals!),
+                  entry.lifiOrder.map({ (0..<100_000).contains($0) }) ?? true,
+                  seen.insert(entry.id).inserted else { throw TokenDiscoveryError.malformed }
         }
         // Old bundled/downloaded snapshots were normalized before Celo support.
         // Native aliases are expected duplicate metadata, not provider failures.
@@ -247,7 +258,9 @@ public actor TokenDiscoveryCatalog {
             guard let known = registered[entry.id], known.coinID == entry.coinID else { return entry }
             return .init(network: entry.network, reference: entry.reference, coinID: entry.coinID,
                 name: entry.name, symbol: entry.symbol, decimals: entry.decimals ?? known.decimals,
-                logo: entry.logo ?? known.logo, source: entry.source)
+                logo: entry.logo ?? known.logo, source: entry.source,
+                lifiPriceUSD: entry.lifiPriceUSD, lifiVerificationStatus: entry.lifiVerificationStatus,
+                lifiDecimals: entry.lifiDecimals, lifiFetchedAt: entry.lifiFetchedAt, lifiOrder: entry.lifiOrder)
         }
         entries += assetHubEntries.filter { !supplied.contains($0.id) }
         entries.sort { $0.id < $1.id }
@@ -255,6 +268,16 @@ public actor TokenDiscoveryCatalog {
         let prepared = try JSONEncoder().encode(PreparedSnapshot(format: 1, entries: entries))
         guard prepared.count <= 32_000_000 else { throw TokenDiscoveryError.malformed }
         rows = entries.map { IndexRow(entry: $0, name: Self.fold($0.name), symbol: Self.fold($0.symbol)) }
+        // Prepare browsing order once per installed catalog. LI.FI supplies
+        // separate chain arrays; interleave their positions with a stable
+        // network tie-break, then append independent fallback coverage.
+        managementRows = rows.sorted { a, b in
+            let left = a.entry.lifiOrder ?? Int.max, right = b.entry.lifiOrder ?? Int.max
+            if left != right { return left < right }
+            if left != Int.max, a.entry.network != b.entry.network { return a.entry.network < b.entry.network }
+            if a.name != b.name { return a.name < b.name }
+            return a.entry.id < b.entry.id
+        }
         identities = Dictionary(uniqueKeysWithValues: entries.map { ($0.id, $0) })
         sourceData = prepared
     }
@@ -279,6 +302,7 @@ public actor TokenDiscoveryCatalog {
                 let disk = try JSONDecoder().decode(Disk.self, from: Data(contentsOf: url))
                 guard disk.version == 1 else { throw TokenDiscoveryError.malformed }
                 try installLocal(disk.data)
+                requiresOrderRefresh = disk.orderVersion != 1 && rows.contains { $0.entry.lifiFetchedAt != nil && $0.entry.lifiOrder == nil }
                 let now = Date()
                 if disk.fetchedAt <= now.addingTimeInterval(300), disk.retryAt <= now.addingTimeInterval(Self.refreshInterval) {
                     fetchedAt = disk.fetchedAt
@@ -335,34 +359,22 @@ public actor TokenDiscoveryCatalog {
         }
     }
 
+    /// Explicit single-chain browsing is not a text search. Return the complete
+    /// validated, bounded directory for that chain without the search-result cap.
+    /// Do not prefetch every logo: visible rows request their artwork lazily.
+    public func tokens(on network: String, excluding: Set<String> = []) -> [TokenDiscoveryEntry] {
+        load()
+        return rows.filter { $0.entry.network == network && !excluding.contains($0.entry.id) }
+            .sorted { $0.name == $1.name ? $0.entry.id < $1.entry.id : $0.name < $1.name }
+            .map { enriched($0.entry) }
+    }
+
     /// Bounded result count with a best match reserved for every matching network.
     /// Saved-token filtering uses full identities, never hides an entire network.
     public func search(_ raw: String, networks: Set<String>, excluding: Set<String> = [], limit: Int = 200) -> [TokenDiscoveryEntry] {
         load()
-        let query = Self.fold(raw.trimmingCharacters(in: .whitespacesAndNewlines))
-        guard !query.isEmpty, query.utf8.count <= 4096 else { return [] }
-        let words = query.split(whereSeparator: { $0.isWhitespace }).map(String.init)
-        let references = Dictionary(uniqueKeysWithValues: networks.compactMap { network -> (String, String)? in
-            guard let ref = try? TokenDiscoveryNetworks.canonical(raw, network: network) else { return nil }
-            return (network, ref)
-        })
-        var matches: [(Int, IndexRow)] = []
-        for row in rows where networks.contains(row.entry.network) && !excluding.contains(row.entry.id) {
-            let exactAddress = references[row.entry.network] == row.entry.reference
-            let rank: Int
-            if exactAddress { rank = 0 }
-            else if row.symbol == query { rank = 1 }
-            else if row.name == query { rank = 2 }
-            else if row.symbol.hasPrefix(query) { rank = 3 }
-            else if words.allSatisfy({ row.name.contains($0) || row.symbol.contains($0) || row.entry.network.contains($0) }) { rank = 4 }
-            else { continue }
-            matches.append((rank, row))
-        }
-        matches.sort { a, b in
-            if a.0 != b.0 { return a.0 < b.0 }
-            if a.1.name != b.1.name { return a.1.name < b.1.name }
-            return a.1.entry.id < b.1.entry.id
-        }
+        guard !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return [] }
+        let matches = ranked(raw, networks: networks, excluding: excluding)
         var selected: Set<String> = [], seenNetworks: Set<String> = []
         for (_, row) in matches where seenNetworks.insert(row.entry.network).inserted { selected.insert(row.entry.id) }
         let cap = max(selected.count, min(max(limit, 1), 500))
@@ -377,12 +389,81 @@ public actor TokenDiscoveryCatalog {
         return results
     }
 
+    /// Complete local management query, bounded by the catalog's 100,000-entry
+    /// storage limit. The caller pages visible rows and loads artwork lazily.
+    public func managementEntries(query: String, networks: Set<String>) -> [TokenDiscoveryEntry] {
+        guard !Task.isCancelled else { return [] }
+        load()
+        guard !Task.isCancelled else { return [] }
+        let text = Self.fold(query.trimmingCharacters(in: .whitespacesAndNewlines))
+        guard text.utf8.count <= 4096 else { return [] }
+        let words = text.split(whereSeparator: { $0.isWhitespace }).map(String.init)
+        let references = Dictionary(uniqueKeysWithValues: networks.compactMap { network -> (String, String)? in
+            guard !text.isEmpty, let reference = try? TokenDiscoveryNetworks.canonical(query, network: network) else { return nil }
+            return (network, reference)
+        })
+        // Stable buckets retain provider order within each search relevance
+        // tier. No full-catalog sort on every query, switch or balance update.
+        var buckets = Array(repeating: [TokenDiscoveryEntry](), count: 5)
+        for row in managementRows {
+            guard !Task.isCancelled else { return [] }
+            guard networks.contains(row.entry.network) else { continue }
+            let rank: Int
+            if text.isEmpty { rank = 4 }
+            else if references[row.entry.network] == row.entry.reference { rank = 0 }
+            else if row.symbol == text { rank = 1 }
+            else if row.name == text { rank = 2 }
+            else if row.symbol.hasPrefix(text) { rank = 3 }
+            else if words.allSatisfy({ row.name.contains($0) || row.symbol.contains($0) || row.entry.network.contains($0) }) { rank = 4 }
+            else { continue }
+            buckets[rank].append(enriched(row.entry))
+        }
+        return buckets.flatMap { $0 }
+    }
+
+    public func hasManagementEntries(networks: Set<String>) -> Bool {
+        guard !Task.isCancelled else { return false }
+        load()
+        return rows.contains { networks.contains($0.entry.network) }
+    }
+
+    private func ranked(_ raw: String, networks: Set<String>, excluding: Set<String>) -> [(Int, IndexRow)] {
+        let query = Self.fold(raw.trimmingCharacters(in: .whitespacesAndNewlines))
+        guard query.utf8.count <= 4096 else { return [] }
+        let words = query.split(whereSeparator: { $0.isWhitespace }).map(String.init)
+        let references = Dictionary(uniqueKeysWithValues: networks.compactMap { network -> (String, String)? in
+            guard let ref = try? TokenDiscoveryNetworks.canonical(raw, network: network) else { return nil }
+            return (network, ref)
+        })
+        var matches: [(Int, IndexRow)] = []
+        for row in rows where networks.contains(row.entry.network) && !excluding.contains(row.entry.id) {
+            let exactAddress = references[row.entry.network] == row.entry.reference
+            let rank: Int
+            if query.isEmpty { rank = 4 }
+            else if exactAddress { rank = 0 }
+            else if row.symbol == query { rank = 1 }
+            else if row.name == query { rank = 2 }
+            else if row.symbol.hasPrefix(query) { rank = 3 }
+            else if words.allSatisfy({ row.name.contains($0) || row.symbol.contains($0) || row.entry.network.contains($0) }) { rank = 4 }
+            else { continue }
+            matches.append((rank, row))
+        }
+        matches.sort { a, b in
+            if a.0 != b.0 { return a.0 < b.0 }
+            if a.1.name != b.1.name { return a.1.name < b.1.name }
+            return a.1.entry.id < b.1.entry.id
+        }
+        return matches
+    }
+
     /// Returns whether a fresh index was installed. Cancellation of a search
     /// waiter does not cancel the shared catalog download or other consumers.
     public func refreshIfNeeded() async -> Bool {
         load()
         if let flight = refreshFlight { return await flight.value }
-        guard Date().timeIntervalSince(fetchedAt) >= Self.refreshInterval, Date() >= retryAt else { return false }
+        // Upgrade older caches that discarded LI.FI ordering without clearing
+        // their usable metadata. Existing failure cooldowns still apply.
+        guard Date().timeIntervalSince(fetchedAt) >= Self.refreshInterval || requiresOrderRefresh, Date() >= retryAt else { return false }
         let flight = Task(priority: .utility) { await self.refresh() }
         refreshFlight = flight
         return await flight.value
@@ -402,6 +483,7 @@ public actor TokenDiscoveryCatalog {
             do {
                 let data = try await read(LifiTokenDiscovery.endpoint, maximumBytes: 32_000_000)
                 try mergeDirectory(LifiTokenDiscovery.decode(data), source: .lifi)
+                requiresOrderRefresh = false
                 fetchedAt = .now; retryAt = .distantPast
                 persist(); return true
             } catch {
@@ -449,7 +531,8 @@ public actor TokenDiscoveryCatalog {
                     lifiPriceUSD: source == .lifi ? entry.lifiPriceUSD : previous.lifiPriceUSD,
                     lifiVerificationStatus: source == .lifi ? entry.lifiVerificationStatus : previous.lifiVerificationStatus,
                     lifiDecimals: source == .lifi ? entry.lifiDecimals : previous.lifiDecimals,
-                    lifiFetchedAt: source == .lifi ? entry.lifiFetchedAt : previous.lifiFetchedAt)
+                    lifiFetchedAt: source == .lifi ? entry.lifiFetchedAt : previous.lifiFetchedAt,
+                    lifiOrder: source == .lifi ? entry.lifiOrder : previous.lifiOrder)
             } else if merged.count < 100_000 {
                 merged[entry.id] = entry
             }
@@ -462,7 +545,8 @@ public actor TokenDiscoveryCatalog {
         guard let url = cacheURL, !sourceData.isEmpty else { return }
         do {
             try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-            try JSONEncoder().encode(Disk(version: 1, fetchedAt: fetchedAt, retryAt: retryAt, data: sourceData)).write(to: url, options: .atomic)
+            try JSONEncoder().encode(Disk(version: 1, fetchedAt: fetchedAt, retryAt: retryAt, data: sourceData,
+                orderVersion: requiresOrderRefresh ? nil : 1)).write(to: url, options: .atomic)
         } catch { OathDiagnostics.record(error, component: "token_discovery", operation: "cache_write") }
     }
 
@@ -476,7 +560,7 @@ public actor TokenDiscoveryCatalog {
             name: entry.name, symbol: entry.symbol, decimals: decimals,
             logo: entry.logo ?? detail.image?.small.flatMap { URL(string: $0)?.scheme == "https" ? $0 : nil }, source: entry.source,
             lifiPriceUSD: entry.lifiPriceUSD, lifiVerificationStatus: entry.lifiVerificationStatus,
-            lifiDecimals: entry.lifiDecimals, lifiFetchedAt: entry.lifiFetchedAt)
+            lifiDecimals: entry.lifiDecimals, lifiFetchedAt: entry.lifiFetchedAt, lifiOrder: entry.lifiOrder)
     }
 
     /// Only selected-token metadata is requested; one coin response covers its

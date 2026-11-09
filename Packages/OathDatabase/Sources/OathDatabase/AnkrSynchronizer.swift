@@ -97,10 +97,10 @@ public actor AnkrSynchronizer {
     /// A changed visibility preference must not join an older filtered scan
     /// and stop there. Finish any prior balance flights, then read the saved
     /// preference again. History and other wallets are not canceled.
-    public func refreshBalances(walletID: String) async throws -> [AnkrSyncOutcome] {
+    public func refreshBalances(walletID: String, networkIDs: Set<String>? = nil) async throws -> [AnkrSyncOutcome] {
         try Task.checkCancellation()
         let generation = epoch
-        let accounts = try await database.accounts(walletID: walletID).filter { Self.supports(networkID: $0.networkID) }
+        let accounts = try await database.accounts(walletID: walletID).filter { Self.supports(networkID: $0.networkID) && (networkIDs?.contains($0.networkID) ?? true) }
         let pending = accounts.compactMap { account -> (String, UUID, Task<AnkrSyncOutcome, Never>)? in
             let key = account.id + ":balances"
             guard let flight = flights[key] else { return nil }

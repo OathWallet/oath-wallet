@@ -14,13 +14,13 @@ actor OathXrplSendService {
     static let shared = OathXrplSendService()
     private var client: XrplSendClient?
     private var flights = Set<String>()
-    private func connection() throws -> XrplSendClient {
+    func connection() throws -> XrplSendClient {
         if let client { return client }
         let value = try OathTokenRPCConfiguration.bundled().makeXrplSendClient()
         client = value; return value
     }
     func quote(walletID: String, accountID: String, assetID: String, reference: String,
-               recipient: String, amount: String, destinationTag: UInt32?, maximum: Bool, closure: XrplSendPlan? = nil, vault: OathWalletVault) async throws -> OathXrplQuote {
+               recipient: String, amount: String, destinationTag: UInt32?, maximum: Bool, closure: XrplSendPlan? = nil, vault: OathWalletVault, preparedSender: SendSenderSnapshot? = nil) async throws -> OathXrplQuote {
         let database = try await vault.database()
         guard let account = try await database.accounts(walletID:walletID).first(where:{$0.id == accountID && $0.networkID == "xrpl"}) else { throw XrplSendError.wrongOwner }
         if let closure {
@@ -31,7 +31,7 @@ actor OathXrplSendService {
             return .init(walletID:walletID,accountID:accountID,assetID:assetID,plan:closure)
         }
         let policy = try await vault.xrplMultisigPolicy(walletID:walletID)
-        let plan = try await connection().quote(sender:account.address,recipient:recipient,reference:reference,amount:amount,destinationTag:destinationTag,maximum:maximum,multisig:policy)
+        let plan = try await connection().quote(sender:account.address,recipient:recipient,reference:reference,amount:amount,destinationTag:destinationTag,maximum:maximum,multisig:policy,preparedSender:preparedSender)
         return .init(walletID:walletID,accountID:accountID,assetID:assetID,plan:plan)
     }
     func multisigSetup(walletID: String, vault: OathWalletVault) async throws -> (String, XrplMultisigState, OathXrplQuote?, Bool) {

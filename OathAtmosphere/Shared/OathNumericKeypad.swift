@@ -207,7 +207,7 @@ private final class OathKeypadButton: UIButton {
             let legend = OathKeypadGeometry.letters[digit]
             if !legend.isEmpty {
                 config.attributedSubtitle = AttributedString(legend, attributes: AttributeContainer([
-                    .font: UIFont.systemFont(ofSize: lettersSize, weight: .semibold),
+                    .font: UIFont.systemFont(ofSize: lettersSize, weight: .medium),
                     .kern: 2
                 ]))
             }

@@ -50,7 +50,7 @@ struct OathTextInput: UIViewRepresentable {
             let language = context.environment.oathLanguage
             let style: UIFont.TextStyle = prominent ? .largeTitle : .body
             field.font = UIFontMetrics(forTextStyle: style).scaledFont(for: .systemFont(ofSize: prominent ? 34 : 17,
-                                                                                      weight: prominent ? .semibold : .regular))
+                                                                                      weight: prominent ? .medium : .regular))
             field.textColor = prominent ? .white : .label
             field.keyboardType = keyboardType ?? (secret || address ? .asciiCapable : .default)
             field.returnKeyType = returnKeyType

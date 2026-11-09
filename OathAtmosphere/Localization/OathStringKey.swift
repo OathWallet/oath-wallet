@@ -2,6 +2,9 @@ import Foundation
 
 /// Stable English localization keys shared by SwiftUI, UIKit, and system prompts.
 enum OathStringKey: String, CaseIterable, Sendable {
+    case assetFilterReset = "asset.filter.reset_action"
+    case manageTokens = "assets.manage_tokens"
+    case manageTokensFilterDetail = "assets.manage_tokens.filter_detail"
     case browserTabs, browserNewTab
     case wcNearCreateAccount, wcNearDeployContract, wcNearStake, wcNearAddKey, wcNearDeleteKey, wcNearDeleteAccount, wcNearFullAccess, wcArguments, wcPublicKey, wcDeposit, wcGasAllowance, wcAllowedMethods, wcAllMethods, wcRemainingBalance, wcAtomicAmount
 

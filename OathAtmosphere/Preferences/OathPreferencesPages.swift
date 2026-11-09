@@ -135,7 +135,7 @@ struct OathCurrencyPage: View {
 
     private func sectionTitle(_ title: OathStringKey) -> some View {
         Text(strings.text(title))
-            .oathFont(.subheadline, weight: .semibold)
+            .oathFont(.subheadline, weight: .medium)
             .foregroundStyle(.secondary)
             .textCase(nil)
             .accessibilityAddTraits(.isHeader)

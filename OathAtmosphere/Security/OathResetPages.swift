@@ -40,7 +40,7 @@ struct OathResetWarningPage: View {
         HStack(alignment: .top, spacing: 16) {
             OathSettingsIcon(symbol: icon)
             VStack(alignment: .leading, spacing: 6) {
-                Text(strings.text(title)).oathFont(.body, weight: .semibold)
+                Text(strings.text(title)).oathFont(.body, weight: .medium)
                 Text(strings.text(body)).oathFont(.subheadline).foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)

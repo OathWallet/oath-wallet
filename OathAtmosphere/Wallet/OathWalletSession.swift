@@ -30,6 +30,9 @@ final class OathWalletSession {
         didSet {
             let hidden = portfolio?.settings["balancesHidden"] == "true"
             if balancesHidden != hidden { balancesHidden = hidden }
+            if let portfolio, assetFilterEditorState?.walletID == portfolio.wallet.id {
+                assetFilterEditorState?.model.acceptCommitted(portfolio.assetFilter)
+            }
         }
     }
     let homePortfolio = OathHomePortfolioModel()
@@ -68,8 +71,11 @@ final class OathWalletSession {
     @ObservationIgnored private var solanaWork: Task<Void, Never>?
     @ObservationIgnored private var ankrWork: Task<Void, Never>?
     @ObservationIgnored private var assetFilterWork: Task<Void, Never>?
+    @ObservationIgnored private var assetFilterEditorState: (walletID: String, model: OathAssetFilterModel)?
     @ObservationIgnored private var addedTokenPriceWork: Task<Void, Never>?
     @ObservationIgnored let tokenSelection = OathTokenSelectionModel()
+    let managedTokenOperations = OathManagedTokenOperations()
+    @ObservationIgnored private let managedTokenRefreshes = OathManagedTokenRefreshQueue()
     private(set) var ankrRefreshFailed = false
     private(set) var ankrRevision = 0
     private(set) var resetFailed = false
@@ -100,7 +106,13 @@ final class OathWalletSession {
     @ObservationIgnored private var backgroundLock: Task<Void, Never>?
     @ObservationIgnored private var vaultLockWork: Task<Void, Never>?
     let vault: OathWalletVault
-    @ObservationIgnored private var generation = UUID()
+    @ObservationIgnored private var generation = UUID() {
+        didSet {
+            assetFilterEditorState?.model.cancel()
+            assetFilterEditorState = nil
+        }
+    }
+    var sendSessionGeneration: UUID { generation }
     @ObservationIgnored private var unlockWork: Task<OathWalletProfile, Error>?
     @ObservationIgnored private let portfolioRefresh = PortfolioRefreshCoordinator<WalletSnapshot>()
     @ObservationIgnored private var balanceSnapshotWork: Task<Void, Never>?
@@ -411,6 +423,7 @@ final class OathWalletSession {
         assetFilterWork?.cancel(); assetFilterWork = nil
         addedTokenPriceWork?.cancel(); addedTokenPriceWork = nil
         tokenSelection.cancel()
+        managedTokenOperations.cancel(); managedTokenRefreshes.cancel()
         solanaWork?.cancel(); solanaWork = nil
         bitcoinRefreshing = false
         portfolioRefresh.stop()
@@ -1091,7 +1104,22 @@ final class OathWalletSession {
         }
     }
 
-    func saveAssetFilters(_ selection: PortfolioFilter, walletID: String) async throws {
+    func assetFilterEditor(walletID: String, currency: String, selection: PortfolioFilter) -> OathAssetFilterModel {
+        if let cached = assetFilterEditorState, cached.walletID == walletID { return cached.model }
+        assetFilterEditorState?.model.cancel()
+        let token = generation
+        let model = OathAssetFilterModel(selection: selection, currency: currency) { [weak self] value in
+            guard let self, self.generation == token, self.isUnlocked,
+                  !self.changingWallet, !self.resetting, self.displayedProfile?.id.uuidString == walletID else {
+                throw CancellationError()
+            }
+            try await self.saveAssetFilters(value, walletID: walletID)
+        }
+        assetFilterEditorState = (walletID, model)
+        return model
+    }
+
+    private func saveAssetFilters(_ selection: PortfolioFilter, walletID: String) async throws {
         guard isUnlocked, !changingWallet, !resetting, displayedProfile?.id.uuidString == walletID else {
             throw OathWalletError.locked
         }
@@ -1100,9 +1128,14 @@ final class OathWalletSession {
         try Task.checkCancellation()
         guard token == generation, isUnlocked else { throw CancellationError() }
         let previous = try await database.portfolioFilter(walletID: walletID)
+        try Task.checkCancellation()
+        guard token == generation, isUnlocked, !changingWallet, !resetting,
+              displayedProfile?.id.uuidString == walletID else { throw CancellationError() }
         try await database.savePortfolioFilter(selection, walletID: walletID)
         let snapshot = try await database.snapshot(walletID: walletID, currency: portfolio?.currency ?? "USD")
-        guard token == generation, isUnlocked else { throw CancellationError() }
+        try Task.checkCancellation()
+        guard token == generation, isUnlocked, !changingWallet, !resetting,
+              displayedProfile?.id.uuidString == walletID else { throw CancellationError() }
         portfolio = snapshot
         if previous.hidesUnverifiedTokens && !selection.hidesUnverifiedTokens {
             assetFilterWork?.cancel()
@@ -1127,6 +1160,123 @@ final class OathWalletSession {
         let snapshot = try await database.snapshot(walletID: walletID, currency: portfolio?.currency ?? "USD")
         guard request == generation, isUnlocked, portfolio?.wallet.id == walletID else { throw CancellationError() }
         portfolio = snapshot
+    }
+
+    func setManagedTokenEnabled(_ enabled: Bool, row: OathManagedTokenRow, walletID: String) async throws {
+        let ticket = generation
+        func check() throws {
+            try Task.checkCancellation()
+            guard ticket == generation, isUnlocked, !changingWallet, !resetting,
+                  portfolio?.wallet.id == walletID else { throw CancellationError() }
+        }
+        try check()
+        let database = try await vault.database()
+        let managed = try await database.managedAssets(walletID: walletID, currency: portfolio?.currency ?? "USD")
+        try check()
+        let cached = try await database.asset(networkID: row.networkID, reference: row.reference)
+        try check()
+        if let cached, let decimals = row.decimals, cached.decimals != decimals {
+            throw StoreError.conflictingIdentity
+        }
+        // Metadata is shared across wallets. A validated stored identity can be
+        // tracked offline even when this wallet has never held that token.
+        let existing = cached
+        var enabledAsset: AssetRecord?
+        if let existing {
+            if enabled && existing.reference != "native" {
+                enabledAsset = try await database.enableManagedToken(existing, walletID: walletID)
+            } else {
+                try await database.setAssetHidden(!enabled, assetID: existing.id, walletID: walletID)
+            }
+        } else {
+            guard enabled, let token = row.token,
+                  managed.networks.contains(where: { $0.id == token.network.id }),
+                  try TokenDiscoveryNetworks.canonical(token.reference, network: token.network.id) == token.reference else {
+                throw StoreError.conflictingIdentity
+            }
+            let owner = portfolio?.accounts.first { $0.networkID == token.network.id }?.address
+            let resolved = try await OathTokenService.shared.resolveForAdding(token, owner: owner)
+            guard let decimals = resolved.decimals else { throw OathTokenLookupError.metadataUnavailable }
+            try check()
+            enabledAsset = try await database.enableManagedToken(.init(id: resolved.id, networkID: resolved.network.id,
+                reference: resolved.reference, name: resolved.name, symbol: resolved.symbol, decimals: decimals,
+                logo: resolved.logoURL?.absoluteString), walletID: walletID)
+        }
+        try check()
+        // The write succeeded. A presentation read failure must not roll back a
+        // committed switch; the independent database observer can still recover.
+        if let snapshot = await OathDiagnostics.attempt("managed_token_snapshot", body: {
+            try await database.snapshot(walletID: walletID, currency: self.portfolio?.currency ?? "USD")
+        }) {
+            try check()
+            portfolio = snapshot
+        }
+        if let asset = enabledAsset {
+            queueManagedTokenRefresh(asset, walletID: walletID, ticket: ticket)
+        }
+    }
+
+    private func queueManagedTokenRefresh(_ asset: AssetRecord, walletID: String, ticket: UUID) {
+        managedTokenRefreshes.enqueue("price:" + asset.id) { [weak self] in
+            guard let self, self.generation == ticket, self.isUnlocked else { return }
+            await OathDiagnostics.$chain.withValue(asset.networkID) {
+                await OathDiagnostics.$operationID.withValue(UUID()) {
+                    do {
+                        let service = try await OathMarketEnvironment.shared.service()
+                        _ = try await service.quote(for: .init(id: asset.id, networkID: asset.networkID,
+                            reference: asset.reference, decimals: asset.decimals))
+                    } catch is CancellationError { }
+                    catch {
+                        if error as? MarketDataError != .notListed {
+                            OathDiagnostics.record(error, component: "manage_tokens", operation: "price")
+                        }
+                    }
+                }
+            }
+        }
+        let accounts = portfolio?.accounts.filter { $0.networkID == asset.networkID } ?? []
+        managedTokenRefreshes.enqueue("balance:" + walletID + ":" + asset.networkID) { [weak self] in
+            guard let self, self.generation == ticket, self.isUnlocked else { return }
+            await OathDiagnostics.$chain.withValue(asset.networkID) {
+                await OathDiagnostics.$operationID.withValue(UUID()) {
+                    do {
+                        if AnkrSynchronizer.supports(networkID: asset.networkID) {
+                            try await OathAnkrSync.shared.refreshBalances(walletID: walletID, networkIDs: [asset.networkID])
+                        } else {
+                            for account in accounts {
+                                try Task.checkCancellation()
+                                do { try await self.refreshManagedAccount(account) }
+                                catch is CancellationError { throw CancellationError() }
+                                catch { OathDiagnostics.record(error, component: "manage_tokens", operation: "balance_account") }
+                            }
+                        }
+                    } catch is CancellationError { }
+                    catch { OathDiagnostics.record(error, component: "manage_tokens", operation: "balance") }
+                }
+            }
+        }
+    }
+
+    private func refreshManagedAccount(_ account: AccountRecord) async throws {
+        let sync = OathAnkrSync.shared
+        switch account.networkID {
+        case "solana": try await sync.refreshSolana(accountID: account.id)
+        case "tron": try await sync.refreshTron(accountID: account.id)
+        case "ton": try await sync.refreshTon(accountID: account.id)
+        case "aptos": try await sync.refreshAptos(accountID: account.id)
+        case "sui": try await sync.refreshSui(accountID: account.id)
+        case "thorchain": try await sync.refreshThorchain(accountID: account.id)
+        case "near": try await sync.refreshNear(accountID: account.id)
+        case "xrpl": try await sync.refreshXrpl(accountID: account.id)
+        case "polkadot": try await sync.refreshPolkadot(accountID: account.id)
+        case "stellar": try await sync.refreshStellar(accountID: account.id)
+        case "arc": try await sync.refreshArc(accountID: account.id)
+        case "hyperevm": try await sync.refreshHyperEVM(accountID: account.id)
+        case "robinhood": try await sync.refreshRobinhood(accountID: account.id)
+        default:
+            guard let chain = IndexedEVMChain(rawValue: account.networkID) else { throw StoreError.invalidValue("network") }
+            try await sync.refreshIndexedEVM(accountID: account.id, chain: chain)
+        }
     }
 
     @discardableResult
@@ -1339,6 +1489,7 @@ final class OathWalletSession {
         assetFilterWork?.cancel(); assetFilterWork = nil
         addedTokenPriceWork?.cancel(); addedTokenPriceWork = nil
         tokenSelection.cancel()
+        managedTokenOperations.cancel(); managedTokenRefreshes.cancel()
         solanaWork?.cancel(); solanaWork = nil
         bitcoinWork?.cancel(); bitcoinWork = nil
         deletionTimer?.cancel(); deletionTimer = nil
@@ -1581,6 +1732,7 @@ final class OathWalletSession {
             // A journal write failure can leave the in-memory vault locked,
             // even when the user disabled their PIN. Reconcile both modes.
             generation = UUID()
+            managedTokenOperations.cancel(); managedTokenRefreshes.cancel()
             displayedProfile = nil; portfolio = nil; wallets = []; recentlyDeletedWallets = []
             homePortfolio.reset(); homeHistory = nil
             stopBalanceDayObservation(); balanceDaySummary = nil
@@ -1607,6 +1759,7 @@ final class OathWalletSession {
         assetFilterWork?.cancel(); assetFilterWork = nil
         addedTokenPriceWork?.cancel(); addedTokenPriceWork = nil
         tokenSelection.cancel()
+        managedTokenOperations.cancel(); managedTokenRefreshes.cancel()
         solanaWork?.cancel(); solanaWork = nil
         await OathSendStatusTracking.shared.beginReset()
         await OathPostSendBalanceRefresh.shared.reset()

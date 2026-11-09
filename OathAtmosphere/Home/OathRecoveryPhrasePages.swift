@@ -52,7 +52,7 @@ struct OathRecoveryWarningContent: View {
         HStack(alignment: .top, spacing: 16) {
             OathSettingsIcon(symbol: icon)
             VStack(alignment: .leading, spacing: 6) {
-                Text(strings.text(title)).oathFont(.body, weight: .semibold)
+                Text(strings.text(title)).oathFont(.body, weight: .medium)
                 Text(strings.text(detail)).oathFont(.subheadline).foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -174,7 +174,7 @@ struct OathRecoveryWordsContent: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
             Label(strings.text(.recoveryKeepSafe), systemImage: "exclamationmark.shield")
-                .oathFont(.subheadline, weight: .semibold)
+                .oathFont(.subheadline, weight: .medium)
                 .foregroundStyle(.orange)
                 .fixedSize(horizontal: false, vertical: true)
             if let text = model.multisigRecoveryText {

@@ -37,24 +37,68 @@ extension OathDatabase {
         try plan.validate()
         guard plan.network == .mainnet else { throw TronSendError.wrongNetwork }
         try await storageWrite { db in
+            // Recheck after waiting for the writer. An expired reservation must
+            // never be replaced by another plan that expired in the meantime.
+            let now = Date.now
+            try plan.validate(now: now)
             guard var send = try SendRecord.fetchOne(db,key:sendID), send.state == "draft", send.networkID == "tron",
                   let account = try AccountRecord.fetchOne(db,key:send.accountID), account.walletID == send.walletID,
                   account.networkID == "tron", try TronIdentity.address(account.address) == plan.sender,
                   let asset = try AssetRecord.fetchOne(db,key:send.assetID), asset.networkID == "tron", asset.reference == plan.reference, asset.decimals == plan.decimals,
                   send.recipient == plan.recipient, send.amountAtomic == String(plan.amount) else { throw TronSendError.changed }
             let others = try SendRecord.fetchAll(db,sql:"SELECT * FROM sends WHERE networkID='tron' AND state IN ('queued','signed','broadcast')")
-            guard try !others.contains(where:{ try TronIdentity.address($0.senderAddress) == plan.sender }) else { throw TronSendError.busy }
+            for other in others where try TronIdentity.address(other.senderAddress) == plan.sender {
+                guard try Self.releaseExpiredUnsignedTronSend(other, now: now, db: db) else { throw TronSendError.busy }
+            }
             try db.execute(sql:"INSERT INTO tronSendPlans(sendID,plan) VALUES(?,?)",arguments:[sendID,try JSONEncoder().encode(plan)])
             send.state = "queued"; send.updatedAt = Date.now.timeIntervalSince1970
             try send.update(db)
         }
     }
+    /// Only called after this submission's signing/preparation work has ended.
+    /// GRDB honors task cancellation, so cleanup must have its own task lifetime.
+    /// A single transaction checks the latest state and cannot release a send
+    /// whose signature was committed while the original operation was unwinding.
+    public func finishFailedTronSend(sendID: String) async throws -> SendRecord? {
+        try await Task {
+            try await storageWrite { db in
+                guard var send = try SendRecord.fetchOne(db, key: sendID) else { return nil }
+                guard send.networkID == "tron" else { throw TronSendError.changed }
+                if ["draft", "queued"].contains(send.state), send.signedPayload == nil, send.transactionID == nil {
+                    send.state = "cancelled"
+                    send.updatedAt = Date.now.timeIntervalSince1970
+                    try send.update(db)
+                }
+                return send
+            }
+        }.value
+    }
+
+    /// Recovery for an older app run/failed cleanup within this process. Local
+    /// expiry is sufficient ONLY before a signature exists. Signed/broadcast
+    /// reservations still require the existing solid-ledger reconciliation.
+    private static func releaseExpiredUnsignedTronSend(_ record: SendRecord, now: Date, db: Database) throws -> Bool {
+        guard record.state == "queued", record.signedPayload == nil, record.transactionID == nil,
+              let bytes = try Data.fetchOne(db, sql: "SELECT plan FROM tronSendPlans WHERE sendID=?", arguments: [record.id]) else { return false }
+        let plan = try JSONDecoder().decode(TronSendPlan.self, from: bytes)
+        try plan.validate(checkAge: false)
+        guard plan.network == .mainnet, plan.sender == (try TronIdentity.address(record.senderAddress)),
+              plan.recipient == record.recipient, plan.amount == record.amountAtomic else { throw TronSendError.changed }
+        guard now.timeIntervalSince(plan.createdAt) > 90 || now.timeIntervalSince1970 * 1000 + 5_000 >= Double(plan.expiration) else { return false }
+        var send = record
+        send.state = "cancelled"
+        send.updatedAt = now.timeIntervalSince1970
+        try send.update(db)
+        return true
+    }
+
     public func pendingTronMultisigSetup(walletID: String) async throws -> SendRecord? {
-        try await pool.read { db in
+        try await storageWrite { db in
             let sends = try SendRecord.fetchAll(db, sql: "SELECT s.* FROM sends s JOIN tronSendPlans p ON p.sendID=s.id WHERE s.walletID=? AND s.networkID='tron' AND s.state IN ('queued','signed','broadcast')", arguments: [walletID])
             for send in sends {
                 if let bytes = try Data.fetchOne(db, sql: "SELECT plan FROM tronSendPlans WHERE sendID=?", arguments: [send.id]),
-                   try JSONDecoder().decode(TronSendPlan.self, from: bytes).multisigSetup != nil { return send }
+                   try JSONDecoder().decode(TronSendPlan.self, from: bytes).multisigSetup != nil,
+                   try !Self.releaseExpiredUnsignedTronSend(send, now: .now, db: db) { return send }
             }
             return nil
         }

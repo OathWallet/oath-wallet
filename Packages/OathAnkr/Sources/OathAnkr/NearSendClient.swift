@@ -11,7 +11,7 @@ public actor NearSendClient {
     struct MultisigFinalPart { let receipt:NearSendReceipt; let returnedID:UInt32? }
     var multisigFinalParts:[String:MultisigFinalPart]=[:]
     public init(network:NearSendNetwork = .mainnet,apiKey:String?=nil,transport:any AnkrTransport = AnkrHTTPTransport()) throws {
-        self.network=network; self.transport=transport
+        self.network=network; self.transport=SendMeasuredTransport(base: transport)
         if let apiKey {
             guard !apiKey.isEmpty, apiKey.count<=256, apiKey.utf8.allSatisfy({(48...57).contains($0)||(65...90).contains($0)||(97...122).contains($0)}),network == .mainnet else { throw NearSendError.configuration }
             endpoints=[URL(string:"https://rpc.ankr.com/near")!.appendingPathComponent(apiKey),network.endpoint]
@@ -19,7 +19,7 @@ public actor NearSendClient {
     }
     public init(network:NearSendNetwork,endpoints:[URL],transport:any AnkrTransport) throws {
         guard (1...2).contains(endpoints.count),endpoints.allSatisfy({$0.scheme=="https"}) else { throw NearSendError.configuration }
-        self.network=network; self.endpoints=endpoints; self.transport=transport
+        self.network=network; self.endpoints=endpoints; self.transport=SendMeasuredTransport(base: transport)
     }
     private func request(_ url:URL,method:String,params:NearJSON,unknownAllowed:Bool=false) async throws -> NearJSON {
         var req=URLRequest(url:url); req.httpMethod="POST"; req.timeoutInterval=15
@@ -106,11 +106,53 @@ public actor NearSendClient {
         let k=try await query(["request_type":.string("view_access_key"),"account_id":.string(sender),"public_key":.string(NearSendCrypto.keyString(pub))],block:block)
         guard multisig != nil || k["permission"].string=="FullAccess" else { throw NearSendError.unsupportedAccount };return k
     }
-    public func quote(sender:String,recipient:String,reference:String,publicKey:Data,decimals:Int,amount:String,maximum:Bool=false,multisig:NearMultisigPolicy? = nil) async throws -> NearSendPlan {
+    public func prepareSender(sender: String, reference: String, publicKey: Data, decimals: Int, multisig: NearMultisigPolicy? = nil) async throws -> SendSenderSnapshot {
+        let observed = Date.now
+        _ = try NearIdentity.address(sender); _ = try NearIdentity.reference(reference)
+        let header = try await finalBlock(), hash = try NearIdentity.hash(header["hash"])
+        guard let height = header["height"].integer, let nanos = header["timestamp_nanosec"].text.flatMap(Double.init) ?? header["timestamp"].text.flatMap(Double.init),
+              abs(nanos / 1_000_000_000 - Date.now.timeIntervalSince1970) < 60 else { throw NearSendError.expired }
+        if let multisig {
+            guard sender == multisig.address, publicKey == multisig.publicKeys.first else { throw NearSendError.wrongOwner }
+            guard try await multisigState(multisig, block: hash).0.configured else { throw NearSendError.unsupportedAccount }
+        }
+        async let state = account(sender, block: hash)
+        async let access = key(sender, publicKey, block: hash, multisig: multisig)
+        async let configuration = rpc("EXPERIMENTAL_protocol_config", .object(["block_id": .string(hash)]))
+        let (a, _, config) = try await (state, access, configuration)
+        guard config["chain_id"].string == network.rawValue, let storage = a["storage_usage"].integer, storage <= UInt64.max - 32_768 else { throw NearSendError.malformed }
+        let native = try NearIdentity.amount(a["amount"]), locked = try NearIdentity.amount(a["locked"])
+        let stake = try NearSendAmount.multiply(NearIdentity.amount(config["runtime_config"]["storage_amount_per_byte"]), storage + (multisig == nil ? 0 : 32_768))
+        let reserve = XrplSendAmount.less(locked, stake) ? try NearSendAmount.subtract(stake, locked) : "0"
+        var asset = native
+        if reference == "native" { guard decimals == 24 else { throw NearSendError.metadataChanged } }
+        else {
+            async let metadata = call(reference, "ft_metadata", block: hash)
+            async let token = call(reference, "ft_balance_of", ["account_id": .string(sender)], block: hash)
+            guard try await NearToken.decode(metadata, reference: reference).decimals == decimals else { throw NearSendError.metadataChanged }
+            asset = try await NearIdentity.amount(token)
+        }
+        let spendable = reference == "native" ? (XrplSendAmount.less(native, reserve) ? "0" : try NearSendAmount.subtract(native, reserve)) : asset
+        return try .init(chain: "near", sender: sender, reference: reference, decimals: decimals, assetBalance: asset,
+                         nativeBalance: native, spendable: spendable, observedAt: observed, block: .init(height: height, hash: hash))
+    }
+
+    private func preparedUnits(_ reference: String, block: String) async throws -> Int {
+        try await NearToken.decode(call(reference,"ft_metadata",block:block),reference:reference).decimals
+    }
+    private func preparedBalance(_ value: String?, sender: String, reference: String, block: String) async throws -> String {
+        if let value { return value }
+        return try await NearIdentity.amount(call(reference,"ft_balance_of",["account_id":.string(sender)],block:block))
+    }
+    public func quote(sender:String,recipient:String,reference:String,publicKey:Data,decimals:Int,amount:String,maximum:Bool=false,multisig:NearMultisigPolicy? = nil,preparedSender:SendSenderSnapshot? = nil) async throws -> NearSendPlan {
         _ = try NearIdentity.address(sender); _ = try NearIdentity.address(recipient); _ = try NearIdentity.reference(reference)
         _ = try NearSendAmount.checked(amount)
         guard sender != recipient,publicKey.count==32,amount != "0" else { throw NearSendError.amount }
         let header=try await finalBlock(),hash=try NearIdentity.hash(header["hash"])
+        let reusable = header["height"].integer.flatMap { height in preparedSender.flatMap {
+            $0.matches(chain: "near", sender: sender, reference: reference, decimals: decimals,
+                       block: .init(height: height, hash: hash)) ? $0 : nil
+        } }
         var multisigContext:NearMultisigContext?
         if let multisig {
             guard sender==multisig.address,publicKey==multisig.publicKeys.first else { throw NearSendError.wrongOwner }
@@ -143,12 +185,12 @@ public actor NearSendClient {
         let creationCharge=createsAccount && !runtime["account_creation_charge"].isNull ? try NearIdentity.amount(runtime["account_creation_charge"]):"0"
         var balance=native,deposit="0"
         if reference != "native" {
-            async let metadataWork=call(reference,"ft_metadata",block:hash)
-            async let balanceWork=call(reference,"ft_balance_of",["account_id":.string(sender)],block:hash)
+            async let unitsWork: Int = reusable != nil ? decimals : preparedUnits(reference,block:hash)
+            async let balanceWork = preparedBalance(reusable?.assetBalance, sender:sender, reference:reference, block:hash)
             async let registeredWork=storageBalance(reference,recipient:recipient,block:hash)
-            let (metadata,tokenBalance,registered)=try await (metadataWork,balanceWork,registeredWork)
-            guard try NearToken.decode(metadata,reference:reference).decimals==decimals else { throw NearSendError.metadataChanged }
-            balance=try NearIdentity.amount(tokenBalance)
+            let (units,tokenBalance,registered)=try await (unitsWork,balanceWork,registeredWork)
+            guard units==decimals else { throw NearSendError.metadataChanged }
+            balance=tokenBalance
             if let registered, registered.isNull {
                 let bounds=try await call(reference,"storage_balance_bounds",block:hash)
                 deposit=try NearIdentity.amount(bounds["min"])

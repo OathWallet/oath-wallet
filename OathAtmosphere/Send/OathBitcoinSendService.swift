@@ -1,6 +1,7 @@
 import OathDiagnostics
 import Foundation
 import OathBitcoin
+import OathAnkr
 import OathDatabase
 
 struct OathBitcoinQuote: Sendable, Equatable {
@@ -37,26 +38,45 @@ actor OathBitcoinSendService {
         try await Self.fees.rate(for: network)
     }
 
-    func quote(walletID: String, recipient: String, amount: Int64, options: BitcoinSendOptions = .init(), vault: OathWalletVault, forceRefresh: Bool = false) async throws -> OathBitcoinQuote {
+    func prepareSender(walletID: String, sender: String, vault: OathWalletVault) async throws -> SendSenderSnapshot {
+        let db = try await vault.database()
+        let accounts = try await db.accounts(walletID: walletID).filter { $0.networkID == network.rawValue }
+        guard !accounts.isEmpty else { throw BitcoinSendError.invalidInput }
+        try await prepareAccounts(accounts, vault: vault, forceRefresh: false)
+        return try await db.bitcoinSenderSnapshot(walletID: walletID, sender: sender, network: network)
+    }
+
+    private func prepareAccounts(_ accounts: [AccountRecord], vault: OathWalletVault, forceRefresh: Bool) async throws {
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            for account in accounts {
+                group.addTask { try await OathBitcoinSync.shared.prepareForSend(accountID: account.id, vault: vault, forceRefresh: forceRefresh) }
+            }
+            // next() observes the first failure, unlike waitForAll() which waits
+            // for every account before throwing. Child waits are cancellable.
+            while try await group.next() != nil {}
+        }
+    }
+
+    func quote(walletID: String, recipient: String, amount: Int64, options: BitcoinSendOptions = .init(), vault: OathWalletVault, forceRefresh: Bool = false,
+               senderPreparation: (@Sendable () async throws -> Void)? = nil) async throws -> OathBitcoinQuote {
         try await OathDiagnostics.$chain.withValue(network.rawValue) {
             try await OathDiagnostics.$operationID.withValue(UUID()) {
-                try await quoteWithDiagnostics(walletID: walletID, recipient: recipient, amount: amount, options: options, vault: vault, forceRefresh: forceRefresh)
+                try await quoteWithDiagnostics(walletID: walletID, recipient: recipient, amount: amount, options: options, vault: vault, forceRefresh: forceRefresh, senderPreparation: senderPreparation)
             }
         }
     }
-    private func quoteWithDiagnostics(walletID: String, recipient: String, amount: Int64, options: BitcoinSendOptions = .init(), vault: OathWalletVault, forceRefresh: Bool) async throws -> OathBitcoinQuote {
+    private func quoteWithDiagnostics(walletID: String, recipient: String, amount: Int64, options: BitcoinSendOptions = .init(), vault: OathWalletVault, forceRefresh: Bool, senderPreparation: (@Sendable () async throws -> Void)?) async throws -> OathBitcoinQuote {
         do {
             try options.validate(chain: network)
-            // Independent of wallet/database preparation; launch at the first
-            // suspension so provider latency overlaps all funding work.
-            async let rate = feeRate()
             let db = try await vault.database()
             let accounts = try await db.accounts(walletID: walletID).filter { $0.networkID == network.rawValue }
             guard let first = accounts.first else { throw BitcoinSendError.invalidInput }
-            try await withThrowingTaskGroup(of: Void.self) { group in
-                for account in accounts { group.addTask { try await OathBitcoinSync.shared.prepareForSend(accountID: account.id, vault: vault, forceRefresh: forceRefresh) } }
-                try await group.waitForAll()
-            }
+            let rate = try await SendPreparationJoin.run(prepare: {
+                if !forceRefresh, let senderPreparation { try await senderPreparation() }
+                // Recheck the database scan window and local invalidations even
+                // when the flow already has a prepared balance. Fresh scans reuse.
+                try await self.prepareAccounts(accounts, vault: vault, forceRefresh: forceRefresh)
+            }, fee: { try await self.feeRate() })
             try Task.checkCancellation()
             let outputs = try await db.bitcoinSpendableOutputs(walletID: walletID, network: network)
             return try await makeQuote(walletID: walletID, accountID: first.id, recipient: recipient, amount: amount,

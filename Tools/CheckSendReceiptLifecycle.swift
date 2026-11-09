@@ -9,11 +9,13 @@ struct FixturePlan: Sendable, Equatable {
     let reference = "native"
     let recipient = "public-fixture-recipient"
     let closesAccount = false
+    let recipientAmount: Int64 = 10000
+    let amount = "10000"
 }
 struct FixtureQuote: Sendable, Equatable { let plan = FixturePlan(); let identity = UUID() }
 struct OathBitcoinSubmission: Sendable { let txid: String; let accepted: Bool }
 struct OathWalletVault: Sendable {}
-@MainActor final class OathWalletSession { var isUnlocked = true; let vault = OathWalletVault() }
+@MainActor final class OathWalletSession { var isUnlocked = true; var resetting = false; var changingWallet = false; var sendSessionGeneration = UUID(); let vault = OathWalletVault() }
 enum OathWalletError: Error { case wrongPasscode, throttled }
 struct OathBiometricCredentialError: Error {}
 enum OathSendDiagnostics { static func isExpectedAuthenticationFallback(_ error: any Error) -> Bool { error is OathBiometricCredentialError } }
@@ -25,6 +27,7 @@ enum OathSendDiagnostics { static func isExpectedAuthenticationFallback(_ error:
 struct FixtureHolding { var networkID = "bnb"; let accountID = "fixture"; let assetID = "fixture:native"; let reference = "native"; let decimals = 18; let price: String? = "2" }
 struct FixtureSnapshot { let holdings: [FixtureHolding] = [.init()] }
 @MainActor final class OathSendModel {
+    func preparedSender(session: OathWalletSession, retryFailure: Bool = false) async throws -> SendSenderSnapshot { try .init(chain: "bnb", sender: "fixture", reference: "native", decimals: 18, assetBalance: "100000", nativeBalance: "100000", observedAt: Date()) }
     var holding: FixtureHolding? = .init()
     let snapshot: FixtureSnapshot? = .init()
     let reviewAtomic: String? = "10000"

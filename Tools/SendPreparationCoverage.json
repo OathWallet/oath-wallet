@@ -1,0 +1,170 @@
+{
+  "aptos": {
+    "package": "OathAnkr",
+    "test": "AptosSendTests.testEarlySenderPreparation"
+  },
+  "arbitrum": {
+    "package": "OathAnkr",
+    "test": "SendEarlyEVMTests.testEveryEnabledEVMNativeAndTokenPreparesWithoutFeesThenQuotes"
+  },
+  "arc": {
+    "package": "OathAnkr",
+    "test": "SendEarlyEVMTests.testArcPreparedNativeAndToken"
+  },
+  "avalanche": {
+    "package": "OathAnkr",
+    "test": "SendEarlyEVMTests.testEveryEnabledEVMNativeAndTokenPreparesWithoutFeesThenQuotes"
+  },
+  "base": {
+    "package": "OathAnkr",
+    "test": "SendEarlyEVMTests.testEveryEnabledEVMNativeAndTokenPreparesWithoutFeesThenQuotes"
+  },
+  "bitcoin": {
+    "package": "OathDatabase",
+    "test": "BitcoinLedgerTests.testEveryUTXOChainPreparesVerifiedSenderWithoutRenewingScan"
+  },
+  "bitcoincash": {
+    "package": "OathDatabase",
+    "test": "BitcoinLedgerTests.testEveryUTXOChainPreparesVerifiedSenderWithoutRenewingScan"
+  },
+  "bnb": {
+    "package": "OathAnkr",
+    "test": "SendEarlyEVMTests.testEveryEnabledEVMNativeAndTokenPreparesWithoutFeesThenQuotes"
+  },
+  "celo": {
+    "package": "OathAnkr",
+    "test": "SendEarlyEVMTests.testEveryEnabledEVMNativeAndTokenPreparesWithoutFeesThenQuotes"
+  },
+  "chiliz": {
+    "package": "OathAnkr",
+    "test": "SendEarlyEVMTests.testEveryEnabledEVMNativeAndTokenPreparesWithoutFeesThenQuotes"
+  },
+  "dogecoin": {
+    "package": "OathDatabase",
+    "test": "BitcoinLedgerTests.testEveryUTXOChainPreparesVerifiedSenderWithoutRenewingScan"
+  },
+  "ethereum": {
+    "package": "OathAnkr",
+    "test": "SendEarlyEVMTests.testEveryEnabledEVMNativeAndTokenPreparesWithoutFeesThenQuotes"
+  },
+  "fantom": {
+    "package": "OathAnkr",
+    "test": "SendEarlyEVMTests.testEveryEnabledEVMNativeAndTokenPreparesWithoutFeesThenQuotes"
+  },
+  "filecoin": {
+    "package": "OathAnkr",
+    "test": "SendEarlyEVMTests.testEveryEnabledEVMNativeAndTokenPreparesWithoutFeesThenQuotes"
+  },
+  "flare": {
+    "package": "OathAnkr",
+    "test": "SendEarlyEVMTests.testEveryEnabledEVMNativeAndTokenPreparesWithoutFeesThenQuotes"
+  },
+  "gnosis": {
+    "package": "OathAnkr",
+    "test": "SendEarlyEVMTests.testEveryEnabledEVMNativeAndTokenPreparesWithoutFeesThenQuotes"
+  },
+  "hyperevm": {
+    "package": "OathAnkr",
+    "test": "SendEarlyEVMTests.testEveryEnabledEVMNativeAndTokenPreparesWithoutFeesThenQuotes"
+  },
+  "iotex": {
+    "package": "OathAnkr",
+    "test": "SendEarlyEVMTests.testEveryEnabledEVMNativeAndTokenPreparesWithoutFeesThenQuotes"
+  },
+  "linea": {
+    "package": "OathAnkr",
+    "test": "SendEarlyEVMTests.testEveryEnabledEVMNativeAndTokenPreparesWithoutFeesThenQuotes"
+  },
+  "litecoin": {
+    "package": "OathDatabase",
+    "test": "BitcoinLedgerTests.testEveryUTXOChainPreparesVerifiedSenderWithoutRenewingScan"
+  },
+  "monad": {
+    "package": "OathAnkr",
+    "test": "SendEarlyEVMTests.testEveryEnabledEVMNativeAndTokenPreparesWithoutFeesThenQuotes"
+  },
+  "near": {
+    "package": "OathAnkr",
+    "test": "NearSendBoundaryTests.testEarlySenderPreparation"
+  },
+  "optimism": {
+    "package": "OathAnkr",
+    "test": "SendEarlyEVMTests.testEveryEnabledEVMNativeAndTokenPreparesWithoutFeesThenQuotes"
+  },
+  "polkadot": {
+    "package": "OathAnkr",
+    "test": "PolkadotSendTests.testEarlySenderPreparation"
+  },
+  "polygon": {
+    "package": "OathAnkr",
+    "test": "SendEarlyEVMTests.testEveryEnabledEVMNativeAndTokenPreparesWithoutFeesThenQuotes"
+  },
+  "robinhood": {
+    "package": "OathAnkr",
+    "test": "SendEarlyEVMTests.testEveryEnabledEVMNativeAndTokenPreparesWithoutFeesThenQuotes"
+  },
+  "scroll": {
+    "package": "OathAnkr",
+    "test": "SendEarlyEVMTests.testEveryEnabledEVMNativeAndTokenPreparesWithoutFeesThenQuotes"
+  },
+  "sei": {
+    "package": "OathAnkr",
+    "test": "SendEarlyEVMTests.testEveryEnabledEVMNativeAndTokenPreparesWithoutFeesThenQuotes"
+  },
+  "solana": {
+    "package": "OathAnkr",
+    "test": "SolanaSendRPCRegressionTests.testEarlySenderPreparation"
+  },
+  "somnia": {
+    "package": "OathAnkr",
+    "test": "SendEarlyEVMTests.testEveryEnabledEVMNativeAndTokenPreparesWithoutFeesThenQuotes"
+  },
+  "stellar": {
+    "package": "OathAnkr",
+    "test": "StellarSendBoundaryTests.testEarlySenderPreparation"
+  },
+  "story": {
+    "package": "OathAnkr",
+    "test": "SendEarlyEVMTests.testEveryEnabledEVMNativeAndTokenPreparesWithoutFeesThenQuotes"
+  },
+  "sui": {
+    "package": "OathAnkr",
+    "test": "SuiSendTransportTests.testEarlySenderPreparation"
+  },
+  "taiko": {
+    "package": "OathAnkr",
+    "test": "SendEarlyEVMTests.testEveryEnabledEVMNativeAndTokenPreparesWithoutFeesThenQuotes"
+  },
+  "telos": {
+    "package": "OathAnkr",
+    "test": "SendEarlyEVMTests.testEveryEnabledEVMNativeAndTokenPreparesWithoutFeesThenQuotes"
+  },
+  "thorchain": {
+    "package": "OathAnkr",
+    "test": "ThorchainSendTests.testEarlySenderPreparation"
+  },
+  "ton": {
+    "package": "OathAnkr",
+    "test": "TonSendTests.testEarlySenderPreparation"
+  },
+  "tron": {
+    "package": "OathAnkr",
+    "test": "TronSendBoundaryTests.testEarlySenderPreparation"
+  },
+  "unichain": {
+    "package": "OathAnkr",
+    "test": "SendEarlyEVMTests.testEveryEnabledEVMNativeAndTokenPreparesWithoutFeesThenQuotes"
+  },
+  "xlayer": {
+    "package": "OathAnkr",
+    "test": "SendEarlyEVMTests.testEveryEnabledEVMNativeAndTokenPreparesWithoutFeesThenQuotes"
+  },
+  "xrpl": {
+    "package": "OathAnkr",
+    "test": "XrplSendPreparationTests.testEarlySenderPreparation"
+  },
+  "zerog": {
+    "package": "OathAnkr",
+    "test": "SendEarlyEVMTests.testEveryEnabledEVMNativeAndTokenPreparesWithoutFeesThenQuotes"
+  }
+}

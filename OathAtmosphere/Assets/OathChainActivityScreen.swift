@@ -156,7 +156,7 @@ struct OathChainActivityScreen: View {
                 OathNavigationToolbarSymbol(filters.wrappedValue.activeCount == 0
                     ? "line.3.horizontal.decrease" : "line.3.horizontal.decrease.circle.fill")
                 if filters.wrappedValue.activeCount > 0 {
-                    Text(strings.number(filters.wrappedValue.activeCount)).oathFont(.caption, weight: .semibold)
+                    Text(strings.number(filters.wrappedValue.activeCount)).oathFont(.caption, weight: .medium)
                 }
             }
             .frame(minWidth: 44, minHeight: 44)
@@ -191,7 +191,7 @@ struct OathChainActivityScreen: View {
             ProgressView().frame(maxWidth: .infinity).padding()
         } else if model.failed {
             OathButton(strings.text(.tryAgain)) { model.loadMoreOrRetry() }
-                .oathFont(.body, weight: .semibold)
+                .oathFont(.body, weight: .medium)
                 .frame(maxWidth: .infinity, minHeight: 44)
                 .accessibilityIdentifier("chain.activity.more")
         } else if model.hasMore {
@@ -217,14 +217,14 @@ struct OathChainActivityScreen: View {
                         filters.wrappedValue.clear(category)
                     } label: {
                         HStack(spacing: 6) { Text(title); Image(systemName: "xmark").imageScale(.small) }
-                            .oathFont(.caption, weight: .semibold)
+                            .oathFont(.caption, weight: .medium)
                     }
                     .buttonStyle(.bordered).buttonBorderShape(.capsule)
                     .oathNeutralControl()
                     .accessibilityLabel(strings.format(.historyRemoveFilter, title))
                 }
                 OathButton(strings.text(.historyResetFilters)) { filters.wrappedValue = .init() }
-                    .oathFont(.caption, weight: .semibold).frame(minHeight: 44)
+                    .oathFont(.caption, weight: .medium).frame(minHeight: 44)
                     .oathNeutralControl()
             }.padding(.horizontal, 20)
         }
@@ -410,7 +410,7 @@ struct OathHistorySwapSummary: View {
                     badge(output.networkID)
                     Text(strings.invariant(output.symbol))
                 }
-                .oathFont(.body, weight: .semibold)
+                .oathFont(.body, weight: .medium)
                 .lineLimit(1).minimumScaleFactor(0.7)
                 HStack(spacing: 12) {
                     leg(item.holding, atomic: item.entry.amountAtomic, direction: "outgoing")
