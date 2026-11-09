@@ -93,11 +93,11 @@ test('changing selection resets review, constrains network choices and announces
   assert.equal(location,transferPath+'#prepare-transfer');
 });
 
-test('current copy, structured metadata and homepage discovery agree with the published release', async () => {
+test('current copy and structured metadata agree with the release; homepage omits the transfer promotion', async () => {
   const data=JSON.parse(await read('/oath-data.json')),release=JSON.parse(await read('/release-status.json'));
   for(const path of ['/index.html','/index.md','/features.html','/features.md']) {
     const text=await read(path);assert.doesNotMatch(text,/4\.1\.14|5\.0\.0|use physical entropy|addEntropy|Roll 6 dice/,path);
-    if(path.includes('index'))assert.ok(text.includes('networks/choose-token-network#prepare-transfer'));
+    if(path.includes('index'))assert.doesNotMatch(text,/oath-transfer-entry|Before your next transfer|The right token\.|networks\/choose-token-network#prepare-transfer/);
   }
   assert.equal(data.facts.app_version,release.version);
   for(const page of ['index','features']){

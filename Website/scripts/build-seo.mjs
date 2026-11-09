@@ -66,10 +66,7 @@ await write('security.html',security);
 let home=await read('index.html');
 const transferStart='<!-- oath-transfer-entry:start -->',transferEnd='<!-- oath-transfer-entry:end -->';
 const transferBlock=new RegExp(transferStart+'[\\s\\S]*?'+transferEnd+'\\s*','g');
-const transferSection=`${transferStart}<section id="transfer-preparation" style="max-width:1320px;margin:0 auto;padding:72px clamp(20px,5vw,32px);border-top:1px solid rgba(242,240,234,.14)"><p style="font:12px/1.5 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#B9B7B0">Before your next transfer</p><h2 style="margin:16px 0 24px;font:400 clamp(36px,5vw,64px)/1.08 'Instrument Serif',serif">The right token.<br>The right network.</h2><p style="max-width:64ch;font:400 18px/1.6 'Instrument Sans',sans-serif;color:#B9B7B0">A familiar symbol is only the beginning. Match the exact token, check its receiving network and find the fee asset before you send.</p><p style="font:400 17px/1.6 'Instrument Sans',sans-serif"><a href="/networks/choose-token-network#prepare-transfer" style="display:inline-block;padding:14px 22px;background:#F2F0EA;color:#0A0A0B;border-radius:8px;text-decoration:none">Prepare a transfer →</a></p><p style="font:400 15px/1.6 'Instrument Sans',sans-serif;color:#B9B7B0">Start with USDT or USDC, or <a href="/tokens">find your token</a> in Oath’s catalog.</p></section>${transferEnd}`;
 home=home.replace(transferBlock,'');
-if(!home.includes('<section id="get"'))throw Error('Homepage transfer entry anchor missing');
-home=home.replace('<section id="get"',transferSection+'\n<section id="get"');
 home=home.replace(/<link rel="stylesheet" href="\/self-custody\.css[^"]*">\s*/g,'');
 home=home.replace('</head>','<link rel="stylesheet" href="/self-custody.css?v=20261031-list"></head>');
 const section=`<!-- oath-self-custody:start --><section id="self-custody" style="max-width:1320px;margin:0 auto;padding:80px clamp(20px,5vw,32px);border-top:1px solid rgba(242,240,234,.14)">
@@ -101,7 +98,6 @@ home=home.replace(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g,(
 await write('index.html',home);
 let markdown=await read('index.md');
 markdown=markdown.replace(transferBlock,'');
-markdown+='\n'+transferStart+'\n## The right token. The right network.\n\nMatch the exact token, check its receiving network and find the fee asset before you send. Start with USDT or USDC, or find your token in Oath’s catalog.\n\n[Prepare a transfer](https://oathwallet.org/networks/choose-token-network#prepare-transfer) · [Find your token](https://oathwallet.org/tokens)\n'+transferEnd+'\n';
 markdown=markdown.replace(/\n<!-- oath-questions:start -->[\s\S]*?<!-- oath-questions:end -->\n?/g,'')
  .replace(/Rated \*\*[\d.]+ out of 5\*\* from \d+ ratings in the US App Store · checked [A-Z][a-z]+ \d{1,2}, \d{4} on the App Store\./,`Rated **${rating.value.toFixed(1)} out of 5** from ${rating.count} ratings in the US App Store · checked ${ratingDate} on the App Store.`);
 markdown+='\n<!-- oath-questions:start -->\n## Self-custody, explained\n\n'+questions.map(q=>`### ${q.question}\n\n${q.answer}\n\n[${q.label}](${q.url})`).join('\n\n')+'\n<!-- oath-questions:end -->\n';
