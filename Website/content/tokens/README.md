@@ -13,9 +13,9 @@ The accepted snapshot is `source.json.gz`. It is extracted from the app revision
 
 ## Rendering and discovery
 
-The Worker serves complete HTML and Markdown, using 256 bounded asset shards, 50-row directory pages and a server-only search index. Page caches are keyed by the complete catalog/template version. Cache failures fall back to the accepted static snapshot; provider outages do not affect page rendering. Search pages are noindex. Unfiltered pagination has self-canonicals and normal previous/next links. Single-network overview URLs redirect to their exact detail pages. Unknown and removed identities return 404; unavailable build assets return 503, never a successful empty page.
+The Worker serves complete HTML and Markdown, using 256 bounded asset shards, 50-row directory pages and a server-only search index. Page caches are keyed by the complete catalog/template version. Cache failures fall back to the accepted static snapshot; provider outages do not affect page rendering. Search pages omit indexing exclusions while retaining uncached responses. Unfiltered pagination has self-canonicals and normal previous/next links. Single-network overview URLs redirect to their exact detail pages. Unknown and removed identities return 404; unavailable build assets return 503, never a successful empty page.
 
-`/sitemap.xml` is an index. `sitemaps/pages.xml` contains core pages; token files contain at most 10,000 canonical URLs each. Help and Articles retain their own sitemaps. `/tokens/documents.json?page=N` exposes at most 100 documents and a next link. The existing agent index and MCP link to this directory, and `read_document` accepts valid catalog URLs. Markdown and JSON are not alternate indexed pages.
+`/sitemap.xml` is an index. `sitemaps/pages.xml` contains core pages; token files contain at most 10,000 canonical URLs each. Help and Articles retain their own sitemaps. `/tokens/documents.json?page=N` exposes at most 100 documents and a next link. The existing agent index and MCP link to this directory, and `read_document` accepts valid catalog URLs. Markdown representations retain canonical links to the corresponding HTML pages.
 
 Catalog inclusion is discovery evidence, not issuer verification or tested sending. Unknown logos use a text monogram; unknown decimals are omitted. XRP Ledger's internal scale sentinel is not presented as token decimals. Network fee and capability notes come from the existing reviewed guides. USDT/USDC pages add network-specific guidance and issuer reference links without declaring every catalog deployment issuer-approved.
 
@@ -28,7 +28,7 @@ linking directly to every paginated page, labeled with its first and last token
 names. The compact `directory/index.json` and `networks/{network}/index.json`
 chunks are generated from the same sorted rows as the pages. All links exist
 in initial HTML, independent of JavaScript. Search results omit this index and
-remain `noindex`; ordinary pages retain their own canonical URLs. Directory
+have no indexing exclusions; ordinary pages retain their own canonical URLs. Directory
 structured data lists the visible entries with their overall positions and
 the full collection count. Token detail metadata identifies an asset by its
 network and exact contract, mint or other chain reference, never its symbol alone.
@@ -56,4 +56,4 @@ The browser test covers 320/390/1024/1440 widths, real assets, keyboard navigati
 
 Production search audits traverse every sitemap, check robots access for every URL, and inspect all existing core/help/article pages plus bounded samples from every token network and page type. Exhaustive catalog validation is offline; production audit output states its scope. IndexNow notifications are batched at 10,000 URLs. Acknowledgement is not indexing confirmation.
 
-After GitHub deployment, submit the sitemap index in Search Console, inspect priority and representative pages, and record indexing requests separately from confirmed index coverage. Google controls crawling and inclusion. Keep legitimate redirects, retired content and machine-format exclusions intact. Roll back an observed production regression by reverting the website change through GitHub and verifying the restored Deploy website run.
+After GitHub deployment, submit the sitemap index in Search Console, inspect priority and representative pages, and record indexing requests separately from confirmed index coverage. Google controls crawling and inclusion. Keep legitimate redirects, retired-content statuses and canonical links intact. Roll back an observed production regression by reverting the website change through GitHub and verifying the restored Deploy website run.

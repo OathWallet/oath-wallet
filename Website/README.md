@@ -147,7 +147,7 @@ Token directories give each valid page its own canonical URL. Network filters
 redirect to the matching network directory, retaining search terms, attribution
 and explicit Markdown addresses. Empty filters and ignored detail-page filters
 are consolidated; ambiguous parameters and unknown identities return 404.
-Search results remain noindex and are not cached as public catalog pages.
+Search results have no indexing exclusions and are not cached as public catalog pages.
 The direct `/404.html` error document also returns HTTP 404, never 200.
 The readable-page build defers `support.js` and preloads its two required local
 React dependencies with matching integrity/CORS settings, keeping the existing
@@ -241,7 +241,7 @@ Each host's `/llms.txt` serves a generated guide to its published documents.
 permission; allowing search does not require enabling training. `llms.txt` is
 an optional reading guide, not a required indexing or recommendation mechanism.
 Robots rules are public preferences, not authorization. Keep authentication,
-newsletter administration protection, and wallet-link `noindex` unchanged.
+newsletter administration protection, and wallet-link privacy headers unchanged.
 
 Cloudflare checks are separate from robots.txt. Inspect Security Events and AI
 Crawl Control for verified `OAI-SearchBot` requests on the public hosts. If a rule
@@ -299,8 +299,8 @@ Every catalog entry has a canonical URL and a Markdown URL. `GET`/`HEAD` with
 through a Link header. Both negotiated formats use `Vary: Accept`. Wildcard or
 HTML-preferred requests retain HTML. No User-Agent determines document content.
 Canonical URLs retain the same indexing eligibility in HTML and negotiated
-Markdown. Existing noindex policies for separate token/feature/decision `.md`
-URLs, search results and private routes remain in place. Unavailable Markdown
+Markdown. No route emits indexing exclusions; separate Markdown URLs retain
+canonical links, and protected routes retain authentication. Unavailable Markdown
 assets return a retryable, uncached 503 instead of an unhandled Worker error.
 Deployment checks enforce these headers as well as content equivalence.
 

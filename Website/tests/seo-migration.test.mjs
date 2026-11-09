@@ -50,7 +50,7 @@ test('Help Center structured data mirrors visible author, image and breadcrumb h
   assert.equal(trail[2].item,post.mainEntityOfPage);
  }
  for(const c of data.categories)assert.ok(schemas(collection(data,c)).some(n=>n['@type']==='BreadcrumbList'));
- assert.match(searchResults(data,'backup'),/name="robots" content="noindex,follow"/);
+ assert.doesNotMatch(searchResults(data,'backup'),/name="robots" content="noindex/);
 });
 test('article media and the published security reference remain reachable after the host move',async()=>{
  for(const path of ['/assets/articles/054e319a27e8-slide-to-send.mp4','/data/security-model.json']){
@@ -70,7 +70,7 @@ test('article migration does not confuse the og directory with a language or cor
  assert.ok(html.includes(`property="og:image" content="${image}"`));
  assert.ok(html.includes(`name="twitter:image" content="${image}"`));
 });
-test('Help sitemap has actual content dates and search noindex can be crawled',async()=>{
+test('Help sitemap has actual content dates and search can be crawled',async()=>{
  const original=globalThis.fetch;globalThis.fetch=async()=>{throw Error('Use bundled data');};
  try{
   const xml=await(await handleHelp(new Request('https://help.oathwallet.org/sitemap.xml'),env)).text();

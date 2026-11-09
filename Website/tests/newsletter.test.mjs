@@ -5,7 +5,7 @@ import { handleNewsletter } from '../src/newsletter.js';
 const env={NEWSLETTER_GATEWAY_KEY:'unit-test-key',ASSETS:{fetch:async request=>new Response(await readFile(new URL('../public'+new URL(request.url).pathname,import.meta.url)),{headers:{'Content-Type':'text/html'}})}};
 test('admin page is available but protected APIs reject cross-origin requests',async()=>{
  const page=await handleNewsletter(new Request('https://news.oathwallet.org/admin'),env);
- assert.equal(page.status,200);assert.match(page.headers.get('Content-Security-Policy'),/frame-ancestors 'none'/);assert.equal(page.headers.get('X-Robots-Tag'),'noindex, nofollow');assert.match(await page.text(),/Admin password/);
+ assert.equal(page.status,200);assert.match(page.headers.get('Content-Security-Policy'),/frame-ancestors 'none'/);assert.equal(page.headers.get('X-Robots-Tag'),null);assert.match(await page.text(),/Admin password/);
  const r=await handleNewsletter(new Request('https://news.oathwallet.org/api/subscribers',{method:'POST',headers:{Origin:'https://evil.example','Content-Type':'application/json'},body:'{}'}),env);assert.equal(r.status,403);
 });
 test('public input cannot select privileged backend actions or supply a session',async()=>{

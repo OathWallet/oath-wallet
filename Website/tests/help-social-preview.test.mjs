@@ -41,7 +41,7 @@ test('guide metadata stays specific and escapes content without affecting the im
   assert.equal(meta(html, 'twitter:title'), 'Wallet &quot;A&quot; &amp; &lt;B&gt;');
   assert.equal(meta(html, 'twitter:description'), 'A &quot;quoted&quot; description &lt;script&gt;');
   assert.equal(meta(html, 'twitter:image'), HELP_SOCIAL_IMAGE);
-  assert.match(searchResults(data, 'wallet'), /name="robots" content="noindex,follow"/);
+  assert.doesNotMatch(searchResults(data, 'wallet'), /name="robots" content="noindex/);
 });
 
 test('global preview is a small valid PNG at the advertised dimensions and is served as an asset', async () => {

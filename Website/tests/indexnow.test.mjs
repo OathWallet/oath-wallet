@@ -18,7 +18,7 @@ test('each public host serves Bing, Yandex and IndexNow ownership files without 
     const url=`https://${host}${path}`;
     const response=await worker.fetch(new Request(url),env);
     assert.equal(response.status,200);
-    assert.match(response.headers.get('X-Robots-Tag'),/noindex/);
+    assert.equal(response.headers.get('X-Robots-Tag'),null);
     if(path.endsWith('.html')) assert.equal(response.headers.get('Content-Type'),'text/html; charset=utf-8');
     assert.equal(await response.text(),await readFile(new URL('../public'+path,import.meta.url),'utf8'));
     const head=await worker.fetch(new Request(url,{method:'HEAD'}),env);

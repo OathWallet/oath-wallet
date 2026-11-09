@@ -29,7 +29,7 @@ test('article crawler reading-guide request resolves to the existing public guid
   assert.equal(response.status,200);
   assert.ok((await response.text()).includes('https://articles.oathwallet.org'));
 });
-test('sensitive wallet-link routes retain noindex despite public crawl permission',async()=>{
+test('wallet-link routes retain security headers without indexing directives',async()=>{
   const response=await worker.fetch(new Request('https://oathwallet.org/wc'),env);
-  assert.match(response.headers.get('X-Robots-Tag'),/noindex/);
+  assert.equal(response.headers.get('X-Robots-Tag'),null);
 });

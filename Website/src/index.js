@@ -118,7 +118,7 @@ async function serveRequest(request, env, ctx) {
   const asset = await env.ASSETS.fetch(request);
   if (url.pathname === '/404.html') {
     const headers=new Headers(asset.headers);
-    headers.set('X-Robots-Tag','noindex');headers.set('Cache-Control','no-store');
+    headers.set('Cache-Control','no-store');
     return new Response(request.method==='HEAD'?null:asset.body,{status:404,headers});
   }
   if (asset.ok && url.pathname === '/sitemap.xml') {
@@ -138,9 +138,8 @@ async function serveRequest(request, env, ctx) {
   if (asset.ok && /\.(md|json|txt)$/.test(url.pathname)) {
     const headers=new Headers(asset.headers); headers.delete('Content-Length'); headers.delete('ETag'); headers.set('Access-Control-Allow-Origin','*');
     if(url.pathname.endsWith('.md')) { headers.set('Content-Type','text/markdown; charset=utf-8'); headers.set('Link', `<https://oathwallet.org${url.pathname === '/index.md' ? '/' : url.pathname.slice(0,-3)}>; rel="canonical"`); }
-    if (url.pathname === '/llms.txt' || url.pathname === '/llms-full.txt') headers.set('X-Robots-Tag','noindex');
-    if (/^\/assets\/press\/[^/]+\/[^/]+\.txt$/.test(url.pathname)) { headers.set('X-Robots-Tag','noindex');headers.set('Link','<https://oathwallet.org/press>; rel="canonical"'); }
-    return new Response(migrateArticleLinks(await asset.text()),{status:asset.status,headers});
+    if (/^\/assets\/press\/[^/]+\/[^/]+\.txt$/.test(url.pathname)) { headers.set('Link','<https://oathwallet.org/press>; rel="canonical"'); }
+    return new Response(request.method === 'HEAD' ? null : migrateArticleLinks(await asset.text()),{status:asset.status,headers});
   }
   const response = new Response(asset.body, asset);
   if (asset.ok && /\.(md|txt|json|xml)$/.test(url.pathname)) {
@@ -152,9 +151,6 @@ async function serveRequest(request, env, ctx) {
       if (canonicalPath === '/' || pageNames.has(canonicalPath.slice(1)) || typeof articleRoutes[canonicalPath] === 'string') {
         response.headers.append('Link', `<https://oathwallet.org${canonicalPath}>; rel="canonical"`);
       }
-    }
-    if (url.pathname === '/llms.txt' || url.pathname === '/llms-full.txt') {
-      response.headers.set('X-Robots-Tag', 'noindex');
     }
   }
   return response;

@@ -12,6 +12,6 @@ export function handleRetiredArticle(request) {
   if (url.protocol !== 'https:') { url.protocol = 'https:'; return Response.redirect(url.href, 301); }
   return new Response(request.method === 'HEAD' ? null : 'This article is no longer available.', {
     status: 410,
-    headers: {'Content-Type': 'text/plain; charset=utf-8', 'X-Robots-Tag': 'noindex', 'Cache-Control': 'public, max-age=300'}
+    headers: {'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=300'}
   });
 }

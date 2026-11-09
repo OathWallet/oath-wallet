@@ -1,3 +1,4 @@
+import {verifyIndexingPolicy} from './verify-indexing-policy.mjs';
 import assert from 'node:assert/strict';
 import {stripCloudflareLabyrinth} from './cloudflare-html.mjs';
 import {tokenPageTitle} from '../src/token-titles.js';
@@ -51,7 +52,7 @@ for(let offset=0;offset<tokens.samples.length;offset+=5){
  }));
 }
 const search=await fetch('https://oathwallet.org/tokens?q=USDC&network=base',{signal:AbortSignal.timeout(20000)});
-assert.equal(search.status,200);assert.ok(search.headers.get('x-robots-tag')?.includes('noindex'));assert.ok((await search.text()).includes('/tokens/usdc/base'));
+assert.equal(search.status,200);assert.equal(search.headers.get('x-robots-tag'),null);assert.ok((await search.text()).includes('/tokens/usdc/base'));
 const tokenDocuments=await fetch('https://oathwallet.org/tokens/documents.json',{signal:AbortSignal.timeout(20000)});
 assert.equal(tokenDocuments.status,200);assert.equal((await tokenDocuments.json()).documents.length,100);
 console.log(`Verified catalog ${tokens.version}: ${tokens.count} identities; ${tokens.samples.length} live samples covering every token network, search and bounded discovery.`);
@@ -67,10 +68,10 @@ for(const [path,target]of [
 }
 for(const path of ['/404.html','/tokens?page=2&page=3','/tokens?network=constructor']){
  const response=await fetch('https://oathwallet.org'+path,{signal:AbortSignal.timeout(20000)});
- assert.equal(response.status,404,path);assert.match(response.headers.get('x-robots-tag'),/noindex/);
+ assert.equal(response.status,404,path);assert.equal(response.headers.get('x-robots-tag'),null);
 }
 const filtered=await fetch('https://oathwallet.org/networks/ethereum/tokens?q=USDC',{signal:AbortSignal.timeout(20000)});
-assert.equal(filtered.status,200);assert.match(filtered.headers.get('x-robots-tag'),/noindex/);
+assert.equal(filtered.status,200);assert.equal(filtered.headers.get('x-robots-tag'),null);
 const filteredHTML=await filtered.text();assert.match(filteredHTML,/Ethereum token entries/);assert.doesNotMatch(filteredHTML,/Base token entries/);
 console.log('Verified catalog query normalization, explicit Markdown redirects, correct network search and real 404 responses.');
 
@@ -170,7 +171,7 @@ for(const path of ['/transfer-preparation.js','/decision-guides.css']){
 for(const network of Object.values(tokens.networks)){
  const asset=network.featured[0];
  const response=await fetch('https://oathwallet.org'+transferURL(asset),{signal:AbortSignal.timeout(20000)});
- assert.equal(response.status,200,asset.path);assert.match(response.headers.get('x-robots-tag'),/noindex/);
+ assert.equal(response.status,200,asset.path);assert.equal(response.headers.get('x-robots-tag'),null);
  const html=await response.text();
  assert.ok(html.includes(`data-transfer-path="${asset.path}">`),asset.path+' is not preselected');
  assert.ok(html.includes(`href="https://oathwallet.org${transferPath}"`));
@@ -259,3 +260,5 @@ for(let offset=0;offset<directoryChecks.length;offset+=5)await Promise.all(direc
  assert.equal(page.mainEntity.itemListElement.length,Math.min(50,directory.total));
 }));
 console.log(`Verified direct page browsing and collection metadata for all ${directoryChecks.length} catalog directories.`);
+
+await verifyIndexingPolicy();
