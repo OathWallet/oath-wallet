@@ -22,6 +22,11 @@ platforms; they are not changed by a website release.
 
 ## App releases
 
+For **5.0.3 (110)**, use source tag `v5.0.3-build110`. The
+[release verification record](../releases/5.0.3.md) includes the exact workflow
+inputs, local verification commands and receipt checks. The earlier `v5.0.3`
+tag remains the historical build-105 preview; it must not be used for build 110.
+
 1. Update both project version/build settings, release notes, in-app version history
    and all affected localization strings. Put App Store release notes at
    `Distribution/metadata/<version>/<locale>/release_notes.txt`. Keep reviewer
