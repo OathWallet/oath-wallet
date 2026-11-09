@@ -79,6 +79,10 @@ No. Compatibility depends on the network, wallet account and action requested by
 
 
 
+
+
+
+
 ## When a dApp will not connect
 
 ### The dApp shows only browser-extension wallets. Can Oath connect?
@@ -94,7 +98,7 @@ A session and a signing request have separate reviews. Read the website, account
 - [Find network-specific connection guidance](https://oathwallet.org/networks)
 - [Find the fee asset for your network](https://oathwallet.org/networks/fees)
 
-Product guidance for Oath 5.0.2 (104); updated 2026-11-06. [How we review guides](https://oathwallet.org/about#editorial).
+Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-06. [How we review guides](https://oathwallet.org/about#editorial).
 
 
 ## Release and source details

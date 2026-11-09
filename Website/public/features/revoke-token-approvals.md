@@ -81,6 +81,10 @@ Yes, supported revocations require the relevant network fee asset. Review the ac
 
 
 
+
+
+
+
 ## If a permission still appears
 
 ### What should I check after revoking?
@@ -96,7 +100,7 @@ Review the WalletConnect session separately. Disconnecting stops that session’
 - [Find the fee asset for your network](https://oathwallet.org/networks/fees)
 - [Check pending, confirmed or failed activity](https://help.oathwallet.org/articles/transaction-status)
 
-Product guidance for Oath 5.0.2 (104); updated 2026-11-06. [How we review guides](https://oathwallet.org/about#editorial).
+Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-06. [How we review guides](https://oathwallet.org/about#editorial).
 
 
 ## Release and source details

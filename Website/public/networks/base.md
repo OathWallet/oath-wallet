@@ -50,6 +50,12 @@ Features depend on the app version, network, wallet type and the service you con
 [Get Oath for iPhone and iPad](https://apps.apple.com/app/id6780187283) · [All networks](https://oathwallet.org/networks)
 
 
+![Receive crypto with a QR code in Oath](https://oathwallet.org/help/assets/guide-05-receive.webp)
+
+Oath 4.0.3. Existing app capture with sample data. Appearance can differ in newer releases; this image is not a completed transfer.
+
+
+
 ## When a transfer needs a closer look
 
 ### Can ETH on Ethereum pay a Base fee?
@@ -73,11 +79,7 @@ Stop and check the original transaction before sending again. A matching address
 - [Check pending, confirmed or failed activity](https://help.oathwallet.org/articles/transaction-status)
 - [Follow the receiving instructions](https://help.oathwallet.org/articles/receive-crypto)
 
-![Receive crypto with a QR code in Oath](https://oathwallet.org/help/assets/guide-05-receive.webp)
-
-Oath 4.0.3. Existing app capture with sample data. Appearance can differ in newer releases; this image is not a completed transfer.
-
-Product guidance for Oath 5.0.2 (104); updated 2026-11-06. [How we review guides](https://oathwallet.org/about#editorial).
+Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-06. [How we review guides](https://oathwallet.org/about#editorial).
 
 <!-- token-catalog:start -->
 ## Tokens on Base
