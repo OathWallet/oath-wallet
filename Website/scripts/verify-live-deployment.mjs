@@ -4,6 +4,16 @@ import {stripCloudflareLabyrinth} from './cloudflare-html.mjs';
 import {tokenPageTitle} from '../src/token-titles.js';
 import {escapeHTML} from '../src/tokens.js';
 import {renderSecurityTxt, securityHosts, securityTxtPath} from '../src/security-txt.js';
+import {appBanner} from '../src/app-banner.js';
+
+for (const url of ['https://oathwallet.org/', 'https://oathwallet.org/networks/ethereum', 'https://help.oathwallet.org/', 'https://articles.oathwallet.org/']) {
+  const response = await fetch(url, {signal: AbortSignal.timeout(20000)});
+  assert.equal(response.status, 200, url);
+  const html = await response.text();
+  assert.ok(html.match(/<head\b[^>]*>[\s\S]*?<\/head>/i)?.[0].includes(appBanner), url+' native app banner');
+  assert.equal((html.match(/name="apple-itunes-app"/g)||[]).length, 1, url+' duplicate app banner');
+}
+console.log('Verified native Smart App Banner metadata across website hosts.');
 
 // Old trading URLs must never fall back to a cached or bundled exchange UI.
 for (const path of ['/ousd', '/ousd/index.html', '/ousd/app.js', '/ousd/api/rpc', '/ousd/api/route', '/ousd/api/reconcile', '/swap', '/swaps']) {
