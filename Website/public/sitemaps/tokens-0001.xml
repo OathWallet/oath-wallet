@@ -1097,7 +1097,7 @@
 <url><loc>https://oathwallet.org/tokens/bonk/solana</loc></url>
 <url><loc>https://oathwallet.org/tokens/bonk/unichain</loc></url>
 <url><loc>https://oathwallet.org/tokens/cellena-finance/aptos</loc></url>
-<url><loc>https://oathwallet.org/tokens/usdt</loc></url>
+<url><loc>https://oathwallet.org/tokens/usdt</loc><lastmod>2026-11-09</lastmod></url>
 <url><loc>https://oathwallet.org/tokens/usdt/aptos</loc></url>
 <url><loc>https://oathwallet.org/tokens/usdt/avalanche</loc></url>
 <url><loc>https://oathwallet.org/tokens/usdt/celo</loc></url>
@@ -1106,7 +1106,7 @@
 <url><loc>https://oathwallet.org/tokens/usdt/polkadot</loc></url>
 <url><loc>https://oathwallet.org/tokens/usdt/solana</loc></url>
 <url><loc>https://oathwallet.org/tokens/usdt/gram</loc></url>
-<url><loc>https://oathwallet.org/tokens/usdt/tron</loc></url>
+<url><loc>https://oathwallet.org/tokens/usdt/tron</loc><lastmod>2026-11-09</lastmod></url>
 <url><loc>https://oathwallet.org/tokens/basket</loc></url>
 <url><loc>https://oathwallet.org/tokens/basket/aptos</loc></url>
 <url><loc>https://oathwallet.org/tokens/basket/arbitrum</loc></url>
@@ -1254,13 +1254,13 @@
 <url><loc>https://oathwallet.org/tokens/checkdot/polygon</loc></url>
 <url><loc>https://oathwallet.org/tokens/checkdot/solana</loc></url>
 <url><loc>https://oathwallet.org/tokens/hyperion-staked-aptos/aptos</loc></url>
-<url><loc>https://oathwallet.org/tokens/usdc</loc></url>
+<url><loc>https://oathwallet.org/tokens/usdc</loc><lastmod>2026-11-09</lastmod></url>
 <url><loc>https://oathwallet.org/tokens/usdc/aptos</loc></url>
 <url><loc>https://oathwallet.org/tokens/usdc/arbitrum</loc></url>
 <url><loc>https://oathwallet.org/tokens/usdc/avalanche</loc></url>
-<url><loc>https://oathwallet.org/tokens/usdc/base</loc></url>
+<url><loc>https://oathwallet.org/tokens/usdc/base</loc><lastmod>2026-11-09</lastmod></url>
 <url><loc>https://oathwallet.org/tokens/usdc/celo</loc></url>
-<url><loc>https://oathwallet.org/tokens/usdc/ethereum</loc></url>
+<url><loc>https://oathwallet.org/tokens/usdc/ethereum</loc><lastmod>2026-11-09</lastmod></url>
 <url><loc>https://oathwallet.org/tokens/usdc/hyperevm</loc></url>
 <url><loc>https://oathwallet.org/tokens/usdc/monad</loc></url>
 <url><loc>https://oathwallet.org/tokens/usdc/near</loc></url>
@@ -1268,7 +1268,7 @@
 <url><loc>https://oathwallet.org/tokens/usdc/polkadot</loc></url>
 <url><loc>https://oathwallet.org/tokens/usdc/polygon</loc></url>
 <url><loc>https://oathwallet.org/tokens/usdc/sei</loc></url>
-<url><loc>https://oathwallet.org/tokens/usdc/solana</loc></url>
+<url><loc>https://oathwallet.org/tokens/usdc/solana</loc><lastmod>2026-11-09</lastmod></url>
 <url><loc>https://oathwallet.org/tokens/usdc/stellar</loc></url>
 <url><loc>https://oathwallet.org/tokens/usdc/sui</loc></url>
 <url><loc>https://oathwallet.org/tokens/usdc/unichain</loc></url>

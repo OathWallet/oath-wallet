@@ -54,54 +54,110 @@
       }
     },
     "/tokens/usdt/tron": {
-      "title": "Before your next transfer",
+      "updated": "2026-11-09",
+      "version": "5.0.2",
+      "build": 104,
+      "sourceCommit": "d039b009d8c81b0497f2ac7e6abebfdf54ff8612",
+      "title": "Questions before you transfer",
+      "overview": {
+        "title": "Receive USDT on TRON, step by step.",
+        "answer": "Open the intended wallet in Oath, find Tether (USDT) on TRON and open Receive. Copy your receiving address from that screen. At the sending wallet or exchange, choose TRON (TRC-20) for USDT and compare the address before confirming.",
+        "facts": [
+          {
+            "label": "Match",
+            "text": "USDT + TRON (TRC-20). An ERC-20 withdrawal uses Ethereum instead."
+          },
+          {
+            "label": "Identify",
+            "text": "Compare the full USDT contract below with Tether’s published TRON contract."
+          },
+          {
+            "label": "Plan the fee",
+            "text": "Oath’s ordinary outgoing USDT transfer uses TRON Energy and Bandwidth; insufficient resources can require TRX."
+          }
+        ],
+        "example": {
+          "title": "Example: receiving 100 USDT",
+          "text": "If a sender offers both TRC-20 and ERC-20, choose TRC-20 only when receiving USDT on TRON. Check the sender’s withdrawal fee and minimum: a request for 100 USDT may produce a different received amount. Make a small first transfer that meets the service’s minimum."
+        }
+      },
+      "sections": [
+        {
+          "title": "USDT and TRX have different jobs",
+          "text": "USDT is the token being transferred. TRX is TRON’s native coin. A USDT balance does not guarantee that your account can fund a later send. Review the current resource and fee estimate in Oath rather than relying on a fixed TRX amount from an old guide."
+        },
+        {
+          "title": "When an exchange says “completed”",
+          "text": "Ask for its public transaction ID. Check that the transfer exists on TRON, reaches your address and uses the expected USDT contract. An exchange withdrawal record alone is not an on-chain receipt. If those details match, refresh the same TRON account in Oath."
+        }
+      ],
       "questions": [
         {
-          "q": "Can USDT pay the TRON network fee?",
-          "a": "Oath’s ordinary TRC-20 send flow uses TRON resources, with TRX charges when resources are insufficient. Holding USDT alone does not guarantee you can send it. Recipient account requirements can also affect the estimate."
+          "q": "Do I send funds to the USDT contract shown on this page?",
+          "a": "No. The contract identifies the token; it is not your deposit address. Use the address or QR code from Receive inside your own Oath wallet."
         },
         {
-          "q": "Why is my token balance available but Send cannot continue?",
-          "a": "A token balance and the network fee balance are separate. Check that TRX is available on TRON, then read Oath’s estimate and any account requirements. A balance on another network cannot pay this transaction’s fee."
+          "q": "Does receiving USDT authorize the sender to spend my balance?",
+          "a": "Sharing a public receiving address does not grant a token spending approval. A separate approval or signature request is a different action and should be reviewed independently."
         },
         {
-          "q": "The sender says it is complete. Where is my transfer?",
-          "a": "Ask for the public transaction ID and the exact network. Check the destination and token identifier in that network’s explorer. A withdrawal request is not the same as a confirmed on-chain transfer. If the explorer confirms the correct transfer, refresh the matching account in Oath."
-        },
-        {
-          "q": "What if I selected the wrong network?",
-          "a": "Stop and check the original transaction before sending again. A matching address is not proof of recovery. Contact the receiving service for its supported recovery process; never provide recovery credentials to support."
+          "q": "Why can the TRX estimate change?",
+          "a": "Available Energy and Bandwidth, contract execution and recipient account state can affect the estimate. Read Oath’s current review screen; neither this example nor its screenshot is a live fee quote."
         }
       ],
       "links": [
         {
-          "url": "/networks/fees",
-          "label": "Find the fee asset for your network"
+          "url": "/tokens/usdt",
+          "label": "Compare Oath’s USDT entries"
         },
         {
-          "url": "/networks/choose-token-network",
-          "label": "Choose a network for USDT or USDC"
+          "url": "/networks/tron",
+          "label": "TRON accounts and resources"
+        },
+        {
+          "url": "/networks/fees",
+          "label": "Check the network fee asset"
         },
         {
           "url": "https://help.oathwallet.org/articles/transaction-status",
-          "label": "Check pending, confirmed or failed activity"
-        },
-        {
-          "url": "https://help.oathwallet.org/articles/receive-crypto",
-          "label": "Follow the receiving instructions"
-        },
-        {
-          "url": "https://help.oathwallet.org/articles/use-tron",
-          "label": "TRON account and resource guidance"
+          "label": "Understand pending, confirmed and failed activity"
         }
       ],
-      "image": {
-        "path": "/help/assets/guide-chain-tron.webp",
-        "version": "Oath 4.0.3",
-        "alt": "Use TRON in Oath",
-        "caption": "Existing app capture with sample data. Appearance can differ in newer releases; this image is not a completed transfer.",
-        "sha256": "b7582af6a9f3a5ff6245673843544d923bba80fca2bab9c6600a2b9659d5cfd3"
-      }
+      "sources": [
+        {
+          "url": "https://tether.to/en/supported-protocols/",
+          "label": "Tether: supported protocols and token contracts"
+        },
+        {
+          "url": "https://developers.tron.network/docs/resource-model",
+          "label": "TRON: Energy and Bandwidth"
+        },
+        {
+          "label": "Oath 5.0.2: receiving flow",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Home/OathReceiveSheet.swift"
+        },
+        {
+          "label": "Oath 5.0.2: asset details and activity",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Assets/OathAssetDetailScreen.swift"
+        },
+        {
+          "label": "Oath 5.0.2: supported send flows",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Send/OathSendModel.swift"
+        }
+      ],
+      "capture": "usdt-tron",
+      "description": "Receive USDT on TRON with Oath for iPhone. Check TRC-20 identity, copy your receiving address and understand TRX, Energy and Bandwidth before sending.",
+      "images": [
+        {
+          "path": "/assets/guides/2026-11-09/usdt-tron.webp",
+          "sha256": "a2d69078f9c785e406ca2ad70b8e7da5bf1127f23de7b27b94d064fb48310a04",
+          "width": 1320,
+          "height": 2868,
+          "version": "Oath 5.0.2 (104) · Mac simulator",
+          "alt": "Oath USDT on TRON asset screen with mock balance and sample sent and received activity",
+          "caption": "Real app capture with mock balances, prices and transfer history. No live transfers were made. Always use your own receiving details; never send funds to an example address."
+        }
+      ]
     },
     "/networks/base": {
       "title": "When a transfer needs a closer look",
@@ -150,328 +206,870 @@
       }
     },
     "/tokens/usdc/base": {
-      "title": "Before your next transfer",
+      "updated": "2026-11-09",
+      "version": "5.0.2",
+      "build": 104,
+      "sourceCommit": "d039b009d8c81b0497f2ac7e6abebfdf54ff8612",
+      "title": "Questions before you transfer",
+      "overview": {
+        "title": "Receive USDC on Base with the right network.",
+        "answer": "Choose USD Coin (USDC) on Base in Oath and open Receive. Copy your wallet address, then select Base for the sender’s USDC withdrawal. Base and Ethereum can show the same address, but their balances and transfers are separate.",
+        "facts": [
+          {
+            "label": "Match",
+            "text": "Native USDC on Base; select Base at the sending service."
+          },
+          {
+            "label": "Identify",
+            "text": "Circle’s Base USDC contract is shown in the identity section below. A USDC symbol alone is not enough."
+          },
+          {
+            "label": "Plan the fee",
+            "text": "Keep ETH on Base for Oath’s ordinary outgoing token transfers. ETH on Ethereum cannot pay that Base fee."
+          }
+        ],
+        "example": {
+          "title": "Example: the same 0x address, two networks",
+          "text": "A sender chooses Ethereum while you expect Base. Even if the destination address matches, the transfer is on Ethereum. Check the transaction’s network before looking for the balance; switching a screen does not move or bridge the funds."
+        }
+      },
+      "sections": [
+        {
+          "title": "Native USDC and bridged versions",
+          "text": "This page identifies Circle’s native USDC contract on Base. A bridged token such as USDbC has a different contract and its own bridge dependencies. Compare the contract and the recipient’s supported asset, rather than assuming the two are interchangeable."
+        },
+        {
+          "title": "Receiving first, sending later",
+          "text": "An ordinary incoming transfer does not require you to send ETH to the sender. Your own later transfer needs the applicable fee balance. Base fees include execution and L1 data/security costs, so the review amount can vary."
+        }
+      ],
       "questions": [
         {
-          "q": "Can ETH on Ethereum pay a Base fee?",
-          "a": "No. For Oath’s ordinary Base send flow, keep ETH on Base. The same public address can exist on both networks, but their balances and transactions are separate."
+          "q": "Can I receive Base USDC from an exchange?",
+          "a": "Only if that exchange currently supports withdrawals of this exact USDC asset on Base. Check its network menu, minimum and fee before copying your Oath address."
         },
         {
-          "q": "Why is my token balance available but Send cannot continue?",
-          "a": "A token balance and the network fee balance are separate. Check that ETH is available on Base, then read Oath’s estimate and any account requirements. A balance on another network cannot pay this transaction’s fee."
+          "q": "Can USDC itself pay my Oath transfer fee?",
+          "a": "For the ordinary Base send flow covered here, plan for ETH on Base. Third-party sponsored or paymaster flows are separate; their existence does not establish support in this Oath flow."
         },
         {
-          "q": "The sender says it is complete. Where is my transfer?",
-          "a": "Ask for the public transaction ID and the exact network. Check the destination and token identifier in that network’s explorer. A withdrawal request is not the same as a confirmed on-chain transfer. If the explorer confirms the correct transfer, refresh the matching account in Oath."
-        },
-        {
-          "q": "What if I selected the wrong network?",
-          "a": "Stop and check the original transaction before sending again. A matching address is not proof of recovery. Contact the receiving service for its supported recovery process; never provide recovery credentials to support."
+          "q": "The transfer is confirmed but the balance is missing. What next?",
+          "a": "Compare the network, destination and contract in the explorer. If all three match, refresh the correct wallet in Oath. Keep the public transaction ID for support and never share recovery credentials."
         }
       ],
       "links": [
         {
+          "url": "/tokens/usdc",
+          "label": "Compare USDC network entries"
+        },
+        {
+          "url": "/tokens/usdc/ethereum",
+          "label": "USDC on Ethereum"
+        },
+        {
+          "url": "/networks/base",
+          "label": "Base network guide"
+        },
+        {
           "url": "/networks/fees",
-          "label": "Find the fee asset for your network"
-        },
-        {
-          "url": "/networks/choose-token-network",
-          "label": "Choose a network for USDT or USDC"
-        },
-        {
-          "url": "https://help.oathwallet.org/articles/transaction-status",
-          "label": "Check pending, confirmed or failed activity"
-        },
-        {
-          "url": "https://help.oathwallet.org/articles/receive-crypto",
-          "label": "Follow the receiving instructions"
+          "label": "Check the network fee asset"
         }
       ],
-      "image": {
-        "path": "/help/assets/guide-05-receive.webp",
-        "version": "Oath 4.0.3",
-        "alt": "Receive crypto with a QR code in Oath",
-        "caption": "Existing app capture with sample data. Appearance can differ in newer releases; this image is not a completed transfer.",
-        "sha256": "8e0ca56059a82ac4c010553a0fdcff1676a30be70180ae024ba62a3b864fece5"
-      }
+      "sources": [
+        {
+          "url": "https://developers.circle.com/stablecoins/usdc-contract-addresses",
+          "label": "Circle: official USDC contract and mint addresses"
+        },
+        {
+          "url": "https://docs.base.org/specifications/transactions/network-fees",
+          "label": "Base: execution and L1 security fees"
+        },
+        {
+          "label": "Oath 5.0.2: receiving flow",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Home/OathReceiveSheet.swift"
+        },
+        {
+          "label": "Oath 5.0.2: asset details and activity",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Assets/OathAssetDetailScreen.swift"
+        },
+        {
+          "label": "Oath 5.0.2: supported send flows",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Send/OathSendModel.swift"
+        }
+      ],
+      "capture": "usdc-base",
+      "description": "Receive native USDC on Base in Oath for iPhone. Match Circle’s contract, distinguish bridged tokens and keep ETH on Base for outgoing transfer fees.",
+      "images": [
+        {
+          "path": "/assets/guides/2026-11-09/usdc-base.webp",
+          "sha256": "f15e09aeae3a5a1f682d16b57e660370602561d3061dc7e89cb7cc454a766371",
+          "width": 1320,
+          "height": 2868,
+          "version": "Oath 5.0.2 (104) · Mac simulator",
+          "alt": "Oath USDC on Base asset screen with mock balance and sample sent and received activity",
+          "caption": "Real app capture with mock balances, prices and transfer history. No live transfers were made. Always use your own receiving details; never send funds to an example address."
+        }
+      ]
     },
     "/networks/solana": {
-      "title": "When a transfer needs a closer look",
+      "updated": "2026-11-09",
+      "version": "5.0.2",
+      "build": 104,
+      "sourceCommit": "d039b009d8c81b0497f2ac7e6abebfdf54ff8612",
+      "title": "Questions before you transfer",
+      "overview": {
+        "title": "Receive SOL and Solana tokens in the intended account.",
+        "answer": "Choose Solana in Oath’s Receive flow for SOL, or select the exact Solana token for a token payment. Copy the address from that account and make sure the sender uses Solana mainnet. Confirm the token mint when receiving USDC or another token.",
+        "facts": [
+          {
+            "label": "Native coin",
+            "text": "SOL pays transaction fees in the ordinary Oath transfer flow."
+          },
+          {
+            "label": "Tokens",
+            "text": "Each token has a mint; a matching name or logo does not prove it is the intended asset."
+          },
+          {
+            "label": "Account",
+            "text": "When restoring a wallet, compare the selected Solana derivation with the source wallet."
+          }
+        ],
+        "example": {
+          "title": "Example: the same phrase, a different address",
+          "text": "An imported phrase can expose a different Solana account when a different derivation path is selected. Compare the public address with your source wallet and use Oath’s supported account options before asking the sender to transfer."
+        }
+      },
+      "sections": [
+        {
+          "title": "SOL transfers and token transfers have different requirements",
+          "text": "A token payment can involve a recipient token account as well as the transaction fee. If that account needs creating, the SOL requirement can be greater than the transaction fee alone. Review Oath’s estimate for the actual recipient and asset."
+        },
+        {
+          "title": "Check mainnet before troubleshooting a balance",
+          "text": "A transfer on Devnet or Testnet will not become mainnet SOL or USDC. Confirm the explorer’s cluster, the recipient and, for tokens, the mint. A transaction signature is useful evidence only when those details match."
+        }
+      ],
       "questions": [
         {
-          "q": "Why can the first token transfer cost more?",
-          "a": "A transfer can require a recipient token account to be created as well as a transaction fee. Review the SOL requirements in Oath; there is no single fixed amount that fits every token and recipient."
+          "q": "Can I use an Ethereum address to receive SOL?",
+          "a": "No. Use the Solana receiving address shown in Oath. An EVM 0x address is not interchangeable with a Solana account."
         },
         {
-          "q": "Why is my token balance available but Send cannot continue?",
-          "a": "A token balance and the network fee balance are separate. Check that SOL is available on Solana, then read Oath’s estimate and any account requirements. A balance on another network cannot pay this transaction’s fee."
+          "q": "Does a USDC balance pay the SOL fee?",
+          "a": "Oath’s ordinary Solana send flow needs SOL for fees and any applicable token-account creation. Holding USDC alone does not guarantee the send can proceed."
         },
         {
-          "q": "The sender says it is complete. Where is my transfer?",
-          "a": "Ask for the public transaction ID and the exact network. Check the destination and token identifier in that network’s explorer. A withdrawal request is not the same as a confirmed on-chain transfer. If the explorer confirms the correct transfer, refresh the matching account in Oath."
-        },
-        {
-          "q": "What if I selected the wrong network?",
-          "a": "Stop and check the original transaction before sending again. A matching address is not proof of recovery. Contact the receiving service for its supported recovery process; never provide recovery credentials to support."
+          "q": "What should I send to support about a missing transfer?",
+          "a": "Share the public transaction signature, network/cluster and expected token mint. Those identify the transfer without sharing your private key or recovery phrase."
         }
       ],
       "links": [
         {
-          "url": "/networks/fees",
-          "label": "Find the fee asset for your network"
-        },
-        {
-          "url": "/networks/choose-token-network",
-          "label": "Choose a network for USDT or USDC"
-        },
-        {
-          "url": "https://help.oathwallet.org/articles/transaction-status",
-          "label": "Check pending, confirmed or failed activity"
-        },
-        {
-          "url": "https://help.oathwallet.org/articles/receive-crypto",
-          "label": "Follow the receiving instructions"
+          "url": "/tokens/usdc/solana",
+          "label": "Receive USDC on Solana"
         },
         {
           "url": "https://help.oathwallet.org/articles/solana-address-path",
-          "label": "Check Phantom or Trust Wallet account paths"
+          "label": "Choose the matching Solana account"
+        },
+        {
+          "url": "/networks/fees",
+          "label": "Check the network fee asset"
+        },
+        {
+          "url": "https://help.oathwallet.org/articles/transaction-status",
+          "label": "Understand pending, confirmed and failed activity"
         }
       ],
-      "image": {
-        "path": "/help/assets/guide-chain-solana.webp",
-        "version": "Oath 4.0.3",
-        "alt": "Use Solana in Oath",
-        "caption": "Existing app capture with sample data. Appearance can differ in newer releases; this image is not a completed transfer.",
-        "sha256": "95688fbd547200865a166aff017e027561521c10819e49bcfd0ef64914a9f0a9"
-      }
+      "sources": [
+        {
+          "url": "https://solana.com/docs/core/fees",
+          "label": "Solana: transaction fees"
+        },
+        {
+          "url": "https://solana.com/docs/tokens/basics/create-token-account",
+          "label": "Solana: token accounts"
+        },
+        {
+          "label": "Oath 5.0.2: receiving flow",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Home/OathReceiveSheet.swift"
+        },
+        {
+          "label": "Oath 5.0.2: asset details and activity",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Assets/OathAssetDetailScreen.swift"
+        },
+        {
+          "label": "Oath 5.0.2: supported send flows",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Send/OathSendModel.swift"
+        }
+      ],
+      "capture": "solana",
+      "description": "Receive SOL and tokens in Oath for iPhone. Match your Solana account, verify token mints and understand SOL fees and token-account creation.",
+      "images": [
+        {
+          "path": "/assets/guides/2026-11-09/solana.webp",
+          "sha256": "2e6f277d8138525df53d371deb976c392050d0e9c9cd4d2a333a5e7ae530a68d",
+          "width": 1320,
+          "height": 2868,
+          "version": "Oath 5.0.2 (104) · Mac simulator",
+          "alt": "Oath Solana asset screen with mock balance and sample sent and received activity",
+          "caption": "Real app capture with mock balances, prices and transfer history. No live transfers were made. Always use your own receiving details; never send funds to an example address."
+        }
+      ]
     },
     "/tokens/usdc/solana": {
-      "title": "Before your next transfer",
+      "updated": "2026-11-09",
+      "version": "5.0.2",
+      "build": 104,
+      "sourceCommit": "d039b009d8c81b0497f2ac7e6abebfdf54ff8612",
+      "title": "Questions before you transfer",
+      "overview": {
+        "title": "Receive USDC on Solana, with the mint checked.",
+        "answer": "In Oath, select USD Coin (USDC) on Solana and open Receive. Share the Solana receiving address shown for that wallet, then make sure the sender selects Solana and the same USDC mint. An Ethereum 0x address is not a Solana address.",
+        "facts": [
+          {
+            "label": "Match",
+            "text": "USDC on Solana mainnet, not an EVM network or a Solana test cluster."
+          },
+          {
+            "label": "Identify",
+            "text": "Compare the full mint below with Circle’s published Solana USDC mint."
+          },
+          {
+            "label": "Plan the fee",
+            "text": "Outgoing transfers use SOL. Creating a recipient token account can add a SOL requirement."
+          }
+        ],
+        "example": {
+          "title": "Example: a first USDC payment to a new recipient",
+          "text": "A recipient may have a Solana wallet address but no token account for this USDC mint yet. The transfer can need token-account creation as well as its transaction fee. Use Oath’s review to check the total SOL requirement instead of assuming every USDC send costs the same."
+        }
+      },
+      "sections": [
+        {
+          "title": "Wallet address, mint and token account",
+          "text": "The mint identifies which token you hold. A token account holds that mint for an owner. For the receiving flow described here, copy the address Oath displays in Receive; do not paste Circle’s mint into a withdrawal destination."
+        },
+        {
+          "title": "Restored wallet, different Solana address",
+          "text": "If you imported an existing wallet and expected another address, compare the account derivation option with the source wallet. An identical recovery phrase can produce different accounts under different derivation paths. Confirm the intended address before asking anyone to send."
+        }
+      ],
       "questions": [
         {
-          "q": "Why can the first token transfer cost more?",
-          "a": "A transfer can require a recipient token account to be created as well as a transaction fee. Review the SOL requirements in Oath; there is no single fixed amount that fits every token and recipient."
+          "q": "Is SOL the same as USDC on Solana?",
+          "a": "No. SOL is the native coin used for transaction fees. USDC is a separate token identified by its mint. Holding USDC alone does not guarantee that an outgoing send can be funded."
         },
         {
-          "q": "Why is my token balance available but Send cannot continue?",
-          "a": "A token balance and the network fee balance are separate. Check that SOL is available on Solana, then read Oath’s estimate and any account requirements. A balance on another network cannot pay this transaction’s fee."
+          "q": "Does a Devnet transfer arrive in my mainnet balance?",
+          "a": "No. Devnet, Testnet and mainnet are separate clusters. Check the sending service and the transaction explorer’s cluster before diagnosing a missing transfer."
         },
         {
-          "q": "The sender says it is complete. Where is my transfer?",
-          "a": "Ask for the public transaction ID and the exact network. Check the destination and token identifier in that network’s explorer. A withdrawal request is not the same as a confirmed on-chain transfer. If the explorer confirms the correct transfer, refresh the matching account in Oath."
-        },
-        {
-          "q": "What if I selected the wrong network?",
-          "a": "Stop and check the original transaction before sending again. A matching address is not proof of recovery. Contact the receiving service for its supported recovery process; never provide recovery credentials to support."
+          "q": "Why should I check the mint when the token says USDC?",
+          "a": "Anyone can create a token with a familiar symbol or logo. The network and full mint identify the asset more precisely than its displayed name."
         }
       ],
       "links": [
         {
-          "url": "/networks/fees",
-          "label": "Find the fee asset for your network"
+          "url": "/tokens/usdc",
+          "label": "Compare USDC entries"
         },
         {
-          "url": "/networks/choose-token-network",
-          "label": "Choose a network for USDT or USDC"
-        },
-        {
-          "url": "https://help.oathwallet.org/articles/transaction-status",
-          "label": "Check pending, confirmed or failed activity"
-        },
-        {
-          "url": "https://help.oathwallet.org/articles/receive-crypto",
-          "label": "Follow the receiving instructions"
+          "url": "/networks/solana",
+          "label": "Solana wallet guide"
         },
         {
           "url": "https://help.oathwallet.org/articles/solana-address-path",
-          "label": "Check Phantom or Trust Wallet account paths"
+          "label": "Match a restored Solana account"
+        },
+        {
+          "url": "/networks/fees",
+          "label": "Check the network fee asset"
         }
       ],
-      "image": {
-        "path": "/help/assets/guide-chain-solana.webp",
-        "version": "Oath 4.0.3",
-        "alt": "Use Solana in Oath",
-        "caption": "Existing app capture with sample data. Appearance can differ in newer releases; this image is not a completed transfer.",
-        "sha256": "95688fbd547200865a166aff017e027561521c10819e49bcfd0ef64914a9f0a9"
-      }
+      "sources": [
+        {
+          "url": "https://developers.circle.com/stablecoins/usdc-contract-addresses",
+          "label": "Circle: official USDC contract and mint addresses"
+        },
+        {
+          "url": "https://solana.com/docs/core/fees",
+          "label": "Solana: transaction fees"
+        },
+        {
+          "url": "https://solana.com/docs/tokens/basics/create-token-account",
+          "label": "Solana: token accounts and associated token accounts"
+        },
+        {
+          "label": "Oath 5.0.2: receiving flow",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Home/OathReceiveSheet.swift"
+        },
+        {
+          "label": "Oath 5.0.2: asset details and activity",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Assets/OathAssetDetailScreen.swift"
+        },
+        {
+          "label": "Oath 5.0.2: supported send flows",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Send/OathSendModel.swift"
+        }
+      ],
+      "capture": "usdc-solana",
+      "description": "Receive USDC on Solana with Oath for iPhone. Verify Circle’s mint, select the correct account and understand SOL fees and recipient token-account creation.",
+      "images": [
+        {
+          "path": "/assets/guides/2026-11-09/usdc-solana.webp",
+          "sha256": "bfd6bc9e33ed9f186952f28cefa0ecd52ebbe833308d65231f33be8ed429fd75",
+          "width": 1320,
+          "height": 2868,
+          "version": "Oath 5.0.2 (104) · Mac simulator",
+          "alt": "Oath USDC on Solana asset screen with mock balance and sample sent and received activity",
+          "caption": "Real app capture with mock balances, prices and transfer history. No live transfers were made. Always use your own receiving details; never send funds to an example address."
+        }
+      ]
     },
     "/networks/ethereum": {
-      "title": "When a transfer needs a closer look",
+      "updated": "2026-11-09",
+      "version": "5.0.2",
+      "build": 104,
+      "sourceCommit": "d039b009d8c81b0497f2ac7e6abebfdf54ff8612",
+      "title": "Questions before you transfer",
+      "overview": {
+        "title": "One Ethereum account, distinct assets and fees.",
+        "answer": "To receive ETH in Oath, open Receive for Ethereum and share your wallet address. For an ERC-20 token, select the exact token on Ethereum first. Ask the sender to use Ethereum mainnet even when the address also exists on another EVM network.",
+        "facts": [
+          {
+            "label": "Native coin",
+            "text": "ETH is Ethereum’s native coin and pays gas for the ordinary Oath send flow."
+          },
+          {
+            "label": "Tokens",
+            "text": "ERC-20 assets such as USDC have individual contracts and balances."
+          },
+          {
+            "label": "Network",
+            "text": "An identical 0x address on Base or another network does not merge that balance with Ethereum."
+          }
+        ],
+        "example": {
+          "title": "Example: USDC is available, but Send needs ETH",
+          "text": "A token balance and the fee balance serve different purposes. If you hold USDC on Ethereum and no ETH there, an outgoing USDC transaction may need gas funding. ETH held on Base cannot pay that Ethereum transaction."
+        }
+      },
+      "sections": [
+        {
+          "title": "Check a token’s contract before receiving",
+          "text": "Search the exact asset in Oath and compare its contract with the issuer’s information. Similar names, symbols and logos can belong to different tokens. The contract identifies the token; the address in your Receive screen is the destination."
+        },
+        {
+          "title": "Read each dApp request separately",
+          "text": "Connecting through WalletConnect shares approved public accounts. It is distinct from signing a message, granting a token allowance or sending assets. Check the website, network and requested action; disconnecting a session does not itself revoke an on-chain allowance."
+        }
+      ],
       "questions": [
         {
-          "q": "Why is my token balance available but Send cannot continue?",
-          "a": "A token balance and the network fee balance are separate. Check that ETH is available on Ethereum, then read Oath’s estimate and any account requirements. A balance on another network cannot pay this transaction’s fee."
+          "q": "Does receiving ETH require a token approval?",
+          "a": "No. A normal incoming ETH payment only needs the correct public receiving address. Treat an unexpected approval or recovery-phrase request as a different action."
         },
         {
-          "q": "The sender says it is complete. Where is my transfer?",
-          "a": "Ask for the public transaction ID and the exact network. Check the destination and token identifier in that network’s explorer. A withdrawal request is not the same as a confirmed on-chain transfer. If the explorer confirms the correct transfer, refresh the matching account in Oath."
+          "q": "Why can gas cost more for a token than for ETH?",
+          "a": "A token transfer executes contract code, while a simple ETH transfer can use a different amount of gas. The transaction and current network conditions determine the estimate."
         },
         {
-          "q": "What if I selected the wrong network?",
-          "a": "Stop and check the original transaction before sending again. A matching address is not proof of recovery. Contact the receiving service for its supported recovery process; never provide recovery credentials to support."
+          "q": "Where should I look for a transfer sent on Base?",
+          "a": "Check the transaction on Base and the corresponding Base account in Oath. The Ethereum page cannot convert that transfer into an Ethereum balance."
         }
       ],
       "links": [
         {
+          "url": "/tokens/usdc/ethereum",
+          "label": "Receive USDC on Ethereum"
+        },
+        {
+          "url": "/tokens/usdc/base",
+          "label": "Compare USDC on Base"
+        },
+        {
+          "url": "/features/revoke-token-approvals",
+          "label": "Check and revoke token approvals"
+        },
+        {
           "url": "/networks/fees",
-          "label": "Find the fee asset for your network"
-        },
-        {
-          "url": "/networks/choose-token-network",
-          "label": "Choose a network for USDT or USDC"
-        },
-        {
-          "url": "https://help.oathwallet.org/articles/transaction-status",
-          "label": "Check pending, confirmed or failed activity"
-        },
-        {
-          "url": "https://help.oathwallet.org/articles/receive-crypto",
-          "label": "Follow the receiving instructions"
+          "label": "Check the network fee asset"
         }
       ],
-      "image": {
-        "path": "/help/assets/guide-05-receive.webp",
-        "version": "Oath 4.0.3",
-        "alt": "Receive crypto with a QR code in Oath",
-        "caption": "Existing app capture with sample data. Appearance can differ in newer releases; this image is not a completed transfer.",
-        "sha256": "8e0ca56059a82ac4c010553a0fdcff1676a30be70180ae024ba62a3b864fece5"
-      }
+      "sources": [
+        {
+          "url": "https://ethereum.org/en/developers/docs/gas/",
+          "label": "Ethereum: gas and transaction fees"
+        },
+        {
+          "label": "Oath 5.0.2: WalletConnect service",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Scanner/OathWalletConnectService.swift"
+        },
+        {
+          "label": "Oath 5.0.2: receiving flow",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Home/OathReceiveSheet.swift"
+        },
+        {
+          "label": "Oath 5.0.2: asset details and activity",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Assets/OathAssetDetailScreen.swift"
+        },
+        {
+          "label": "Oath 5.0.2: supported send flows",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Send/OathSendModel.swift"
+        }
+      ],
+      "capture": "ethereum",
+      "description": "Use Ethereum in Oath for iPhone. Receive ETH or ERC-20 tokens, check contracts, understand gas and distinguish an Ethereum balance from Base.",
+      "images": [
+        {
+          "path": "/assets/guides/2026-11-09/ethereum.webp",
+          "sha256": "0af8e4a15c7cdb3c521ef47ab3f2b4ef837141df710ea2a2bf4173a7462d1b03",
+          "width": 1320,
+          "height": 2868,
+          "version": "Oath 5.0.2 (104) · Mac simulator",
+          "alt": "Oath Ethereum asset screen with mock balance and sample sent and received activity",
+          "caption": "Real app capture with mock balances, prices and transfer history. No live transfers were made. Always use your own receiving details; never send funds to an example address."
+        }
+      ]
     },
     "/tokens/usdc/ethereum": {
-      "title": "Before your next transfer",
+      "updated": "2026-11-09",
+      "version": "5.0.2",
+      "build": 104,
+      "sourceCommit": "d039b009d8c81b0497f2ac7e6abebfdf54ff8612",
+      "title": "Questions before you transfer",
+      "overview": {
+        "title": "Receive USDC on Ethereum, with ETH ready for fees.",
+        "answer": "Find USD Coin (USDC) on Ethereum in Oath and open Receive. Copy your wallet’s receiving address and ask the sender to use Ethereum (ERC-20). Compare the USDC contract as well as the network before transferring.",
+        "facts": [
+          {
+            "label": "Match",
+            "text": "Ethereum mainnet USDC, often labelled ERC-20 in withdrawal menus."
+          },
+          {
+            "label": "Identify",
+            "text": "Use the full Circle USDC contract in the identity section below."
+          },
+          {
+            "label": "Plan the fee",
+            "text": "Outgoing USDC uses ETH on Ethereum for gas. USDC and ETH are separate balances."
+          }
+        ],
+        "example": {
+          "title": "Example: you have USDC, but no ETH",
+          "text": "Receiving 100 USDC does not add ETH to your account. A later USDC send can require you to fund Ethereum gas separately. Check the estimate in Oath before confirming; a network fee and an exchange withdrawal fee are different charges."
+        }
+      },
+      "sections": [
+        {
+          "title": "The address does not choose the network",
+          "text": "A 0x address can be used on Ethereum and other EVM networks. Its shape cannot tell the sender whether you intended Ethereum, Base or another chain. Select the same network explicitly at both ends."
+        },
+        {
+          "title": "A normal send and a dApp approval",
+          "text": "A direct USDC transfer to another address differs from granting a contract permission to spend USDC. Receiving a payment does not require connecting to a dApp or approving token access. Review any unexpected signature request independently."
+        }
+      ],
       "questions": [
         {
-          "q": "Why is my token balance available but Send cannot continue?",
-          "a": "A token balance and the network fee balance are separate. Check that ETH is available on Ethereum, then read Oath’s estimate and any account requirements. A balance on another network cannot pay this transaction’s fee."
+          "q": "Can ETH on Base pay my Ethereum USDC fee?",
+          "a": "No. Oath’s ordinary Ethereum transaction uses ETH held on Ethereum. Balances on Base and Ethereum remain separate even when the public address is identical."
         },
         {
-          "q": "The sender says it is complete. Where is my transfer?",
-          "a": "Ask for the public transaction ID and the exact network. Check the destination and token identifier in that network’s explorer. A withdrawal request is not the same as a confirmed on-chain transfer. If the explorer confirms the correct transfer, refresh the matching account in Oath."
+          "q": "Is there a fixed USDC transfer fee?",
+          "a": "No fixed amount applies to every Ethereum transfer. Gas demand and the transaction’s execution affect the cost. Read the current estimate and final review in Oath."
         },
         {
-          "q": "What if I selected the wrong network?",
-          "a": "Stop and check the original transaction before sending again. A matching address is not proof of recovery. Contact the receiving service for its supported recovery process; never provide recovery credentials to support."
+          "q": "What should I check if USDC does not arrive?",
+          "a": "Use the public transaction ID to verify Ethereum, the destination, the USDC contract and transaction status. If those match, refresh that wallet. An exchange may also have its own withdrawal-processing delay."
         }
       ],
       "links": [
         {
-          "url": "/networks/fees",
-          "label": "Find the fee asset for your network"
+          "url": "/tokens/usdc/base",
+          "label": "USDC on Base"
         },
         {
-          "url": "/networks/choose-token-network",
-          "label": "Choose a network for USDT or USDC"
+          "url": "/tokens/usdc",
+          "label": "All USDC network entries"
+        },
+        {
+          "url": "/networks/ethereum",
+          "label": "Ethereum wallet guide"
+        },
+        {
+          "url": "/networks/fees",
+          "label": "Check the network fee asset"
         },
         {
           "url": "https://help.oathwallet.org/articles/transaction-status",
-          "label": "Check pending, confirmed or failed activity"
-        },
-        {
-          "url": "https://help.oathwallet.org/articles/receive-crypto",
-          "label": "Follow the receiving instructions"
+          "label": "Understand pending, confirmed and failed activity"
         }
       ],
-      "image": {
-        "path": "/help/assets/guide-05-receive.webp",
-        "version": "Oath 4.0.3",
-        "alt": "Receive crypto with a QR code in Oath",
-        "caption": "Existing app capture with sample data. Appearance can differ in newer releases; this image is not a completed transfer.",
-        "sha256": "8e0ca56059a82ac4c010553a0fdcff1676a30be70180ae024ba62a3b864fece5"
-      }
+      "sources": [
+        {
+          "url": "https://developers.circle.com/stablecoins/usdc-contract-addresses",
+          "label": "Circle: official USDC contract and mint addresses"
+        },
+        {
+          "url": "https://ethereum.org/en/developers/docs/gas/",
+          "label": "Ethereum: gas and transaction fees"
+        },
+        {
+          "label": "Oath 5.0.2: receiving flow",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Home/OathReceiveSheet.swift"
+        },
+        {
+          "label": "Oath 5.0.2: asset details and activity",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Assets/OathAssetDetailScreen.swift"
+        },
+        {
+          "label": "Oath 5.0.2: supported send flows",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Send/OathSendModel.swift"
+        }
+      ],
+      "capture": "usdc-ethereum",
+      "description": "Receive USDC on Ethereum in Oath for iPhone. Match the ERC-20 contract, understand ETH gas and check the network when a transfer does not appear.",
+      "images": [
+        {
+          "path": "/assets/guides/2026-11-09/usdc-ethereum.webp",
+          "sha256": "d49bebbf2407b3046c848277d2805073628fa5670007a478e770bef6c890b977",
+          "width": 1320,
+          "height": 2868,
+          "version": "Oath 5.0.2 (104) · Mac simulator",
+          "alt": "Oath USDC on Ethereum asset screen with mock balance and sample sent and received activity",
+          "caption": "Real app capture with mock balances, prices and transfer history. No live transfers were made. Always use your own receiving details; never send funds to an example address."
+        }
+      ]
     },
     "/networks/bitcoin": {
-      "title": "Match your Bitcoin account and address",
+      "updated": "2026-11-09",
+      "version": "5.0.2",
+      "build": 104,
+      "sourceCommit": "d039b009d8c81b0497f2ac7e6abebfdf54ff8612",
+      "title": "Questions before you transfer",
+      "overview": {
+        "title": "Receive Bitcoin on iPhone with the account checked.",
+        "answer": "Open your wallet in Oath, choose Bitcoin in Receive and copy the address shown for that account. Ask the sender to use the Bitcoin network. A Bitcoin Cash transfer, a wrapped BTC token and a Lightning payment are different transfer types.",
+        "facts": [
+          {
+            "label": "Asset",
+            "text": "BTC on the Bitcoin network."
+          },
+          {
+            "label": "Address",
+            "text": "Use the current receiving address inside Oath and an address type the sender supports."
+          },
+          {
+            "label": "Fee",
+            "text": "An outgoing on-chain transaction pays a BTC network fee from the available spendable inputs."
+          }
+        ],
+        "example": {
+          "title": "Example: an imported wallet looks empty",
+          "text": "Before treating the balance as missing, compare the source wallet’s Bitcoin account and address type with the account shown in Oath. A valid phrase can lead to different derived accounts. Use the existing import guide for the source wallet and never enter recovery credentials into a web checker."
+        }
+      },
+      "sections": [
+        {
+          "title": "What an on-chain confirmation tells you",
+          "text": "A transaction may first appear pending and later gain confirmations in mined blocks. A screenshot or a sender’s withdrawal label is not confirmation. Check the public transaction ID in a Bitcoin explorer and follow the confirmation requirement of the receiving service."
+        },
+        {
+          "title": "Why two Bitcoin sends can have different fees",
+          "text": "A Bitcoin transfer spends unspent transaction outputs. The fee depends on the transaction’s size and chosen fee rate, not simply the fiat amount being sent. Many small inputs can make a transaction larger. Read Oath’s review before signing."
+        }
+      ],
       "questions": [
         {
-          "q": "Which Bitcoin address should I use?",
-          "a": "Choose a format supported by both the sender and your imported wallet. Taproot, Native SegWit, wrapped SegWit and Legacy are Bitcoin address choices, not different coins. The choices available in Oath depend on your recovery material."
+          "q": "Can I send Bitcoin Cash to this Bitcoin address?",
+          "a": "No. BTC and BCH use separate networks. Choose the Bitcoin Cash guide when receiving BCH and the Bitcoin guide when receiving BTC."
         },
         {
-          "q": "Why does my receiving address change?",
-          "a": "A supported Bitcoin account can derive multiple receiving and change addresses. Compare an earlier address and its transaction history when checking recovery; a new receiving address alone does not establish an account mismatch."
+          "q": "Does this page describe Lightning?",
+          "a": "No. These receiving instructions cover Oath’s Bitcoin on-chain flow. A Lightning invoice is a different payment request and should not be substituted for this address."
         },
         {
-          "q": "Can I receive a Lightning payment here?",
-          "a": "This guide is for on-chain BTC. A Lightning invoice, Bitcoin Cash address or wrapped BTC token is a different destination or asset."
+          "q": "Should I reuse an address from a screenshot?",
+          "a": "No. Screenshots contain public examples and mock data. Copy the address from your own selected wallet in Oath, then compare it at the sending service."
         }
       ],
       "links": [
         {
           "url": "https://help.oathwallet.org/articles/bitcoin-address-types",
-          "label": "Choose a Bitcoin address type"
+          "label": "Understand Bitcoin address types"
         },
         {
           "url": "https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone",
-          "label": "Restore a compatible Electrum wallet"
+          "label": "Restore a compatible Electrum Bitcoin wallet"
         },
         {
-          "url": "/networks/fees",
-          "label": "Find the fee asset for your network"
+          "url": "/networks/bitcoin-cash",
+          "label": "Bitcoin Cash receiving guide"
         },
         {
           "url": "https://help.oathwallet.org/articles/transaction-status",
-          "label": "Check pending, confirmed or failed activity"
+          "label": "Understand pending, confirmed and failed activity"
         }
       ],
-      "image": {
-        "path": "/help/assets/guide-receive-bitcoin.webp",
-        "version": "Oath 4.0.3",
-        "alt": "Choose a Bitcoin address type in Oath",
-        "caption": "Existing app capture with sample data. Appearance can differ in newer releases; this image is not a completed transfer.",
-        "sha256": "25a590596593bd97a31650be6627e71c2540d2337190858b6cd72b15cc5bbf53"
-      }
-    },
-    "/tokens/usdt": {
-      "title": "Choose the route before sharing an address",
-      "questions": [
+      "sources": [
         {
-          "q": "Which network should I choose?",
-          "a": "Use a network supported by both the sender and the receiving account. Open its exact token page, compare the contract or mint, and check the fee asset for a later send. A lower advertised withdrawal fee does not establish compatibility."
+          "url": "https://developer.bitcoin.org/devguide/payment_processing.html",
+          "label": "Bitcoin developer guide: payments and confirmations"
         },
         {
-          "q": "Are all versions and bridges equivalent?",
-          "a": "No. Entries are grouped by the catalog’s asset ID. Compare the exact identity with current issuer information. A familiar symbol does not prove issuance, redemption eligibility or bridge backing."
+          "label": "Oath 5.0.2: Bitcoin send review",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Send/OathBitcoinSendModel.swift"
+        },
+        {
+          "label": "Oath 5.0.2: receiving flow",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Home/OathReceiveSheet.swift"
+        },
+        {
+          "label": "Oath 5.0.2: asset details and activity",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Assets/OathAssetDetailScreen.swift"
+        },
+        {
+          "label": "Oath 5.0.2: supported send flows",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Send/OathSendModel.swift"
+        }
+      ],
+      "capture": "bitcoin",
+      "description": "Receive Bitcoin in Oath for iPhone. Match the Bitcoin network and address type, understand BTC fees and check pending on-chain transfers.",
+      "images": [
+        {
+          "path": "/assets/guides/2026-11-09/bitcoin.webp",
+          "sha256": "0b271f5330d0f114bb90e816afdf9a2de9c045894610f2a37e125204a2789b33",
+          "width": 1320,
+          "height": 2868,
+          "version": "Oath 5.0.2 (104) · Mac simulator",
+          "alt": "Oath Bitcoin asset screen with mock balance and sample sent and received activity",
+          "caption": "Real app capture with mock balances, prices and transfer history. No live transfers were made. Always use your own receiving details; never send funds to an example address."
+        }
+      ]
+    },
+    "/tokens/usdt": {
+      "updated": "2026-11-09",
+      "version": "5.0.2",
+      "build": 104,
+      "sourceCommit": "d039b009d8c81b0497f2ac7e6abebfdf54ff8612",
+      "title": "Questions before you transfer",
+      "overview": {
+        "title": "A USDT wallet starts with the right network.",
+        "answer": "Oath’s USDT catalog connects the token’s available network entries. Choose the network supported by both sender and recipient, then open that exact USDT asset in Oath to get its receiving address. The USDT name alone does not select a blockchain.",
+        "facts": [
+          {
+            "label": "First decision",
+            "text": "Match the sending service’s withdrawal network with your selected Oath entry."
+          },
+          {
+            "label": "Second decision",
+            "text": "Compare the contract, mint or other identifier. A shared symbol or catalog group does not establish issuer backing."
+          },
+          {
+            "label": "Before sending onward",
+            "text": "Check the chosen network’s native fee asset and the current Oath estimate."
+          }
+        ],
+        "example": {
+          "title": "Example: the sender offers several USDT networks",
+          "text": "If the recipient expects TRON USDT, a cheaper-looking Ethereum or Solana option is not a substitute. Start with a network and asset supported on both sides, then compare that route’s withdrawal minimum, fee and account requirements."
+        }
+      },
+      "sections": [
+        {
+          "title": "A useful starting point: USDT on TRON",
+          "text": "For TRC-20 USDT, use the TRON entry below. The detailed guide identifies the contract, shows the real receiving flow and explains Energy, Bandwidth and possible TRX costs. Other network entries have different identities and fee rules."
+        },
+        {
+          "title": "Changing networks is a separate transfer decision",
+          "text": "Importing a wallet or choosing another network in Oath does not bridge USDT. Moving value between networks requires a supported exchange or bridge route with its own fees, risks and restrictions. This catalog is not a promise of built-in bridging."
+        }
+      ],
+      "questions": [
+        {
+          "q": "Which USDT network is best?",
+          "a": "There is no single best network for every transfer. Compatibility comes first: the sender and recipient must support the same network and token. Compare current costs only after that match is established."
+        },
+        {
+          "q": "Does every token called USDT come directly from Tether?",
+          "a": "No. Symbols can be copied, and wrapped or bridged representations can have different backing and redemption arrangements. Compare the exact identifier with Tether’s current information and the sending service."
+        },
+        {
+          "q": "Do I need to connect my wallet to this website?",
+          "a": "No. These guides are public instructions. Get your receiving address inside the Oath app; the website does not need your recovery phrase, private key or token approval."
         }
       ],
       "links": [
         {
+          "url": "/tokens/usdt/tron",
+          "label": "Follow the USDT on TRON guide"
+        },
+        {
           "url": "/networks/choose-token-network",
-          "label": "Choose a network for USDT or USDC"
+          "label": "Compare USDT and USDC networks"
         },
         {
           "url": "/networks/fees",
-          "label": "Find the fee asset for your network"
+          "label": "Check the network fee asset"
         },
         {
           "url": "https://help.oathwallet.org/articles/receive-crypto",
-          "label": "Follow the receiving instructions"
+          "label": "Receive crypto in Oath"
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://tether.to/en/supported-protocols/",
+          "label": "Tether: supported protocols and token contracts"
+        },
+        {
+          "url": "https://developers.tron.network/docs/resource-model",
+          "label": "TRON: Energy and Bandwidth"
+        },
+        {
+          "label": "Oath 5.0.2: receiving flow",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Home/OathReceiveSheet.swift"
+        },
+        {
+          "label": "Oath 5.0.2: asset details and activity",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Assets/OathAssetDetailScreen.swift"
+        },
+        {
+          "label": "Oath 5.0.2: supported send flows",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Send/OathSendModel.swift"
+        }
+      ],
+      "capture": "receive-usdt-tron",
+      "description": "Choose a USDT network in Oath for iPhone. Compare token identities, receiving steps and fee requirements, starting with the USDT on TRON guide.",
+      "images": [
+        {
+          "path": "/assets/guides/2026-11-09/receive-usdt-tron.webp",
+          "sha256": "6092b7f00e034ca8bbdf00d47b448d0b46417306284024d2f32998adfdd2c561",
+          "width": 1320,
+          "height": 2868,
+          "version": "Oath 5.0.2 (104) · Mac simulator",
+          "alt": "Oath receive screen for USDT on TRON, showing an example QR code and the network warning",
+          "caption": "Real app capture with a mock receiving address. Check the network shown in your own wallet; never send funds to an address or QR code in a screenshot."
         }
       ]
     },
     "/tokens/usdc": {
-      "title": "Choose the route before sharing an address",
-      "questions": [
+      "updated": "2026-11-09",
+      "version": "5.0.2",
+      "build": 104,
+      "sourceCommit": "d039b009d8c81b0497f2ac7e6abebfdf54ff8612",
+      "title": "Questions before you transfer",
+      "overview": {
+        "title": "Choose a USDC network before sharing an address.",
+        "answer": "To receive USDC in Oath, select the exact network entry first, then copy the receiving address from the app. This overview links USDC entries across networks; it does not combine their balances or automatically bridge between them.",
+        "facts": [
+          {
+            "label": "Base",
+            "text": "The ordinary Oath send flow uses ETH on Base for fees."
+          },
+          {
+            "label": "Ethereum",
+            "text": "The ordinary Oath send flow uses ETH on Ethereum for gas."
+          },
+          {
+            "label": "Solana",
+            "text": "The ordinary Oath send flow uses SOL; recipient token-account creation can add a requirement."
+          }
+        ],
+        "example": {
+          "title": "Example: choosing between Base and Solana",
+          "text": "Use the route supported by both parties. For Base, the receiving address has EVM format; for Solana, use the Solana address shown in Oath. Confirm the exact USDC contract or mint, then compare the sender’s current fee and minimum."
+        }
+      },
+      "sections": [
         {
-          "q": "Which network should I choose?",
-          "a": "Use a network supported by both the sender and the receiving account. Open its exact token page, compare the contract or mint, and check the fee asset for a later send. A lower advertised withdrawal fee does not establish compatibility."
+          "title": "Native USDC and assets with similar names",
+          "text": "Circle publishes the identifiers of the USDC contracts it supports. Compare your selected entry with that list. Bridged representations and independently issued assets can have similar symbols but different backing or redemption conditions."
         },
         {
-          "q": "Are all versions and bridges equivalent?",
-          "a": "No. Entries are grouped by the catalog’s asset ID. Compare the exact identity with current issuer information. A familiar symbol does not prove issuance, redemption eligibility or bridge backing."
+          "title": "Choose the guide that matches your transfer",
+          "text": "The Base, Ethereum and Solana guides below each show the applicable Oath screen and explain the fee asset. Their sample balances illustrate the interface; they do not establish a fixed price, guaranteed transfer time or a completed on-chain payment."
+        }
+      ],
+      "questions": [
+        {
+          "q": "Does the same wallet address mean the same USDC balance?",
+          "a": "No. Ethereum and Base can share an address while keeping separate balances. Solana uses a different account format. Always confirm both the network and the asset identity."
+        },
+        {
+          "q": "Can I send USDC directly from one network to another?",
+          "a": "A normal token send stays on its network. A cross-network route is a separate bridge or exchange operation. Do not assume that entering an address performs that conversion."
+        },
+        {
+          "q": "Is the catalog a safety rating?",
+          "a": "No. It records discoverable assets and their network identities. It does not certify each token’s issuer, backing, redeemability or suitability."
         }
       ],
       "links": [
         {
+          "url": "/tokens/usdc/base",
+          "label": "Receive USDC on Base"
+        },
+        {
+          "url": "/tokens/usdc/solana",
+          "label": "Receive USDC on Solana"
+        },
+        {
+          "url": "/tokens/usdc/ethereum",
+          "label": "Receive USDC on Ethereum"
+        },
+        {
           "url": "/networks/choose-token-network",
-          "label": "Choose a network for USDT or USDC"
+          "label": "Compare USDT and USDC networks"
         },
         {
           "url": "/networks/fees",
-          "label": "Find the fee asset for your network"
+          "label": "Check the network fee asset"
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://developers.circle.com/stablecoins/usdc-contract-addresses",
+          "label": "Circle: official USDC contract and mint addresses"
         },
         {
-          "url": "https://help.oathwallet.org/articles/receive-crypto",
-          "label": "Follow the receiving instructions"
+          "url": "https://docs.base.org/specifications/transactions/network-fees",
+          "label": "Base: execution and L1 security fees"
+        },
+        {
+          "url": "https://solana.com/docs/core/fees",
+          "label": "Solana: transaction fees"
+        },
+        {
+          "url": "https://ethereum.org/en/developers/docs/gas/",
+          "label": "Ethereum: gas and transaction fees"
+        },
+        {
+          "label": "Oath 5.0.2: receiving flow",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Home/OathReceiveSheet.swift"
+        },
+        {
+          "label": "Oath 5.0.2: asset details and activity",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Assets/OathAssetDetailScreen.swift"
+        },
+        {
+          "label": "Oath 5.0.2: supported send flows",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Send/OathSendModel.swift"
+        }
+      ],
+      "capture": "receive-usdc-base",
+      "description": "Compare USDC on Base, Solana and Ethereum in Oath for iPhone. Choose the correct receiving address, verify the token identity and understand network fees.",
+      "images": [
+        {
+          "path": "/assets/guides/2026-11-09/receive-usdc-base.webp",
+          "sha256": "fad5944345f2023fa923349eaee489325658ea425c5fa9364b1ccec0e74de788",
+          "width": 1320,
+          "height": 2868,
+          "version": "Oath 5.0.2 (104) · Mac simulator",
+          "alt": "Oath receive screen for USDC on Base, showing an example QR code and the network warning",
+          "caption": "Real app capture with a mock receiving address. Check the network shown in your own wallet; never send funds to an address or QR code in a screenshot."
         }
       ]
     },
@@ -565,6 +1163,116 @@
         {
           "url": "/networks/fees",
           "label": "Find the fee asset for your network"
+        }
+      ]
+    },
+    "/networks/bitcoin-cash": {
+      "updated": "2026-11-09",
+      "version": "5.0.2",
+      "build": 104,
+      "sourceCommit": "d039b009d8c81b0497f2ac7e6abebfdf54ff8612",
+      "title": "Questions before you transfer",
+      "overview": {
+        "title": "Receive Bitcoin Cash with BCH selected on both sides.",
+        "answer": "Open Oath, select your wallet and choose Bitcoin Cash in Receive. Share the receiving address or QR code from that screen. The sender must use Bitcoin Cash (BCH), not Bitcoin (BTC).",
+        "facts": [
+          {
+            "label": "Asset",
+            "text": "BCH on Bitcoin Cash. BTC is a different asset on a different network."
+          },
+          {
+            "label": "Address",
+            "text": "Keep the Bitcoin Cash address format shown by Oath, including its bitcoincash: prefix when present."
+          },
+          {
+            "label": "Fee",
+            "text": "Oath’s ordinary BCH send uses BCH for the network fee; it does not require ETH or TRX."
+          }
+        ],
+        "example": {
+          "title": "Example: a sender asks for a “Bitcoin” address",
+          "text": "Confirm whether they mean BTC or BCH before copying anything. If the intended payment is BCH, both sides must select Bitcoin Cash. Similar names and legacy address formats are not a reason to skip the network check."
+        }
+      },
+      "sections": [
+        {
+          "title": "An address format is not a bridge",
+          "text": "CashAddr helps identify a Bitcoin Cash destination. Converting a textual address format does not move funds between Bitcoin and Bitcoin Cash. If a sending service rejects the address, consult that service’s BCH requirements rather than removing characters by guesswork."
+        },
+        {
+          "title": "Check the payment before sending again",
+          "text": "Ask for the public BCH transaction ID. Compare the destination, amount and confirmation status on a Bitcoin Cash explorer. If the expected transfer is confirmed, refresh the matching Oath wallet. Repeating a payment is not a repair for a display delay."
+        }
+      ],
+      "questions": [
+        {
+          "q": "Can I receive BCH without first buying another fee token?",
+          "a": "An ordinary incoming BCH transfer does not require you to hold ETH, TRX or another network’s coin. The sender funds their transaction; your own later BCH send uses BCH for its network fee."
+        },
+        {
+          "q": "Why is the incoming amount different from the exchange request?",
+          "a": "The exchange may deduct a withdrawal fee or enforce a minimum. Check its final confirmation and the actual on-chain amount, rather than assuming the amount typed into the withdrawal form is what will arrive."
+        },
+        {
+          "q": "What if BCH was sent on the wrong network?",
+          "a": "Stop before another transfer. Identify the actual transaction and contact the receiving service about its recovery policy. Similar addresses do not guarantee recovery; never give support a recovery phrase or private key."
+        }
+      ],
+      "links": [
+        {
+          "url": "/networks/bitcoin",
+          "label": "Compare the Bitcoin receiving flow"
+        },
+        {
+          "url": "https://help.oathwallet.org/articles/receive-crypto",
+          "label": "Open Receive in Oath"
+        },
+        {
+          "url": "/networks/fees",
+          "label": "Check the network fee asset"
+        },
+        {
+          "url": "https://help.oathwallet.org/articles/transaction-status",
+          "label": "Understand pending, confirmed and failed activity"
+        }
+      ],
+      "sources": [
+        {
+          "url": "https://bitcoincash.org/",
+          "label": "Bitcoin Cash: network information"
+        },
+        {
+          "label": "Bitcoin Cash: CashAddr specification",
+          "url": "https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/cashaddr.md"
+        },
+        {
+          "label": "Oath 5.0.2: Bitcoin Cash address handling",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/Packages/OathBitcoin/Sources/OathBitcoin/CashAddress.swift"
+        },
+        {
+          "label": "Oath 5.0.2: receiving flow",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Home/OathReceiveSheet.swift"
+        },
+        {
+          "label": "Oath 5.0.2: asset details and activity",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Assets/OathAssetDetailScreen.swift"
+        },
+        {
+          "label": "Oath 5.0.2: supported send flows",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Send/OathSendModel.swift"
+        }
+      ],
+      "capture": "bitcoin-cash",
+      "description": "Receive Bitcoin Cash (BCH) on iPhone with Oath. Copy your BCH address, distinguish Bitcoin from Bitcoin Cash and check fees and transfer status.",
+      "images": [
+        {
+          "path": "/assets/guides/2026-11-09/bitcoin-cash.webp",
+          "sha256": "5e7e3b97d26d3a8a8734925317b06326d3a5932d86aaf3c288cc29a7dc0d0d2a",
+          "width": 1320,
+          "height": 2868,
+          "version": "Oath 5.0.2 (104) · Mac simulator",
+          "alt": "Oath Bitcoin Cash asset screen with mock balance and sample sent and received activity",
+          "caption": "Real app capture with mock balances, prices and transfer history. No live transfers were made. Always use your own receiving details; never send funds to an example address."
         }
       ]
     }

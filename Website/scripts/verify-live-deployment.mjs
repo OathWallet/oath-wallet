@@ -160,7 +160,7 @@ for(const feature of features.features){
 // SEO changes must be visible in the publishing commit's initial HTML.
 const {default:decisionGuides}=await import('../content/decision-guides.json',{with:{type:'json'}});
 const {default:priority}=await import('../content/priority-guidance.json',{with:{type:'json'}});
-const {priorityHTML}=await import('../src/seo-guidance.js');
+const {priorityHTML,priorityOverviewHTML}=await import('../src/seo-guidance.js');
 for(const p of decisionGuides.pages){
  const url='https://oathwallet.org'+p.path,r=await fetch(url,{signal:AbortSignal.timeout(20000)});
  assert.equal(r.status,200,url);const html=await r.text(),expected=await readFile(new URL('../public'+p.path+'.html',import.meta.url),'utf8');
@@ -169,7 +169,11 @@ for(const p of decisionGuides.pages){
 }
 const priorityPaths=Object.keys(priority.pages);
 for(let offset=0;offset<priorityPaths.length;offset+=4)await Promise.all(priorityPaths.slice(offset,offset+4).map(async path=>{
- const response=await fetch('https://oathwallet.org'+path,{signal:AbortSignal.timeout(20000)});assert.equal(response.status,200,path);assert.ok((await response.text()).includes(priorityHTML(path)),path+' is missing current practical guidance');
+ const response=await fetch('https://oathwallet.org'+path,{signal:AbortSignal.timeout(20000)});assert.equal(response.status,200,path);const html=stripCloudflareLabyrinth(await response.text(),'https://oathwallet.org');assert.ok(html.includes(priorityHTML(path)),path+' is missing current practical guidance');
+ if(priority.pages[path].overview){
+  assert.ok(html.includes(priorityOverviewHTML(path)),path+' is missing current answer/screenshots');
+  const md=await fetch('https://oathwallet.org'+path+'.md',{signal:AbortSignal.timeout(20000)});assert.equal(md.status,200,path+' Markdown');assert.ok((await md.text()).includes(priority.pages[path].overview.answer));
+ }
 }));
 for(const [url,name]of [['https://oathwallet.org/','Oath Wallet'],['https://articles.oathwallet.org/','Oath Wallet Articles'],['https://help.oathwallet.org/','Oath Wallet Help']]){
  const r=await fetch(url,{signal:AbortSignal.timeout(20000)});assert.equal(r.status,200);const html=await r.text();
@@ -180,6 +184,12 @@ for(const [url,name]of [['https://oathwallet.org/','Oath Wallet'],['https://arti
   const app=nodes.find(n=>n['@type']==='MobileApplication');assert.ok(app);assert.equal(app.aggregateRating,undefined);assert.equal(app.review,undefined);
  }
 }
+const priorityImages=new Map(Object.values(priority.pages).flatMap(p=>(p.images||[]).map(i=>[i.path,i])));
+for(const [path,image]of priorityImages){
+ const response=await fetch('https://oathwallet.org'+path,{signal:AbortSignal.timeout(20000)});assert.equal(response.status,200,path);
+ assert.equal(createHash('sha256').update(Buffer.from(await response.arrayBuffer())).digest('hex'),image.sha256,path+' differs from reviewed capture');
+}
+console.log(`Verified ${priorityImages.size} exact simulator screenshot assets with public mock-data captions.`);
 console.log(`Verified all three site identities, rating markup, ${decisionGuides.pages.length} decision guides and ${priorityPaths.length} enriched priority pages.`);
 
 const {transferURL,transferPath}=await import('../src/transfer-preparation.js');

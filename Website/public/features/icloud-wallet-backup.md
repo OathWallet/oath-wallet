@@ -75,6 +75,10 @@ No. Wait for completion for the relevant wallet. Account, storage or network pro
 
 
 
+
+
+
+
 ## Check recovery before you need it
 
 ### The file is listed, but restore does not complete. What next?
@@ -90,7 +94,7 @@ No. Check the supported scope above. Electrum and aezeed wallets are excluded in
 - [Check Electrum recovery compatibility](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone)
 - [Import a compatible Trust Wallet account](https://articles.oathwallet.org/move-from-trust-wallet-to-oath)
 
-Product guidance for Oath 5.0.2 (104); updated 2026-11-06. [How we review guides](https://oathwallet.org/about#editorial).
+Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-06. [How we review guides](https://oathwallet.org/about#editorial).
 
 
 ## Release and source details

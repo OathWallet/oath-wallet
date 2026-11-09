@@ -50,35 +50,60 @@ Features depend on the app version, network, wallet type and the service you con
 [Get Oath for iPhone and iPad](https://apps.apple.com/app/id6780187283) · [All networks](https://oathwallet.org/networks)
 
 
-## When a transfer needs a closer look
+## Receive SOL and Solana tokens in the intended account.
 
-### Why can the first token transfer cost more?
+Choose Solana in Oath’s Receive flow for SOL, or select the exact Solana token for a token payment. Copy the address from that account and make sure the sender uses Solana mainnet. Confirm the token mint when receiving USDC or another token.
 
-A transfer can require a recipient token account to be created as well as a transaction fee. Review the SOL requirements in Oath; there is no single fixed amount that fits every token and recipient.
+- **Native coin:** SOL pays transaction fees in the ordinary Oath transfer flow.
+- **Tokens:** Each token has a mint; a matching name or logo does not prove it is the intended asset.
+- **Account:** When restoring a wallet, compare the selected Solana derivation with the source wallet.
 
-### Why is my token balance available but Send cannot continue?
+### Example: the same phrase, a different address
 
-A token balance and the network fee balance are separate. Check that SOL is available on Solana, then read Oath’s estimate and any account requirements. A balance on another network cannot pay this transaction’s fee.
+An imported phrase can expose a different Solana account when a different derivation path is selected. Compare the public address with your source wallet and use Oath’s supported account options before asking the sender to transfer.
 
-### The sender says it is complete. Where is my transfer?
+![Oath Solana asset screen with mock balance and sample sent and received activity](https://oathwallet.org/assets/guides/2026-11-09/solana.webp)
 
-Ask for the public transaction ID and the exact network. Check the destination and token identifier in that network’s explorer. A withdrawal request is not the same as a confirmed on-chain transfer. If the explorer confirms the correct transfer, refresh the matching account in Oath.
+Oath 5.0.2 (104) · Mac simulator. Real app capture with mock balances, prices and transfer history. No live transfers were made. Always use your own receiving details; never send funds to an example address.
 
-### What if I selected the wrong network?
+## SOL transfers and token transfers have different requirements
 
-Stop and check the original transaction before sending again. A matching address is not proof of recovery. Contact the receiving service for its supported recovery process; never provide recovery credentials to support.
+A token payment can involve a recipient token account as well as the transaction fee. If that account needs creating, the SOL requirement can be greater than the transaction fee alone. Review Oath’s estimate for the actual recipient and asset.
 
-- [Find the fee asset for your network](https://oathwallet.org/networks/fees)
-- [Choose a network for USDT or USDC](https://oathwallet.org/networks/choose-token-network)
-- [Check pending, confirmed or failed activity](https://help.oathwallet.org/articles/transaction-status)
-- [Follow the receiving instructions](https://help.oathwallet.org/articles/receive-crypto)
-- [Check Phantom or Trust Wallet account paths](https://help.oathwallet.org/articles/solana-address-path)
+## Check mainnet before troubleshooting a balance
 
-![Use Solana in Oath](https://oathwallet.org/help/assets/guide-chain-solana.webp)
+A transfer on Devnet or Testnet will not become mainnet SOL or USDC. Confirm the explorer’s cluster, the recipient and, for tokens, the mint. A transaction signature is useful evidence only when those details match.
 
-Oath 4.0.3. Existing app capture with sample data. Appearance can differ in newer releases; this image is not a completed transfer.
+## Questions before you transfer
 
-Product guidance for Oath 5.0.2 (104); updated 2026-11-06. [How we review guides](https://oathwallet.org/about#editorial).
+### Can I use an Ethereum address to receive SOL?
+
+No. Use the Solana receiving address shown in Oath. An EVM 0x address is not interchangeable with a Solana account.
+
+### Does a USDC balance pay the SOL fee?
+
+Oath’s ordinary Solana send flow needs SOL for fees and any applicable token-account creation. Holding USDC alone does not guarantee the send can proceed.
+
+### What should I send to support about a missing transfer?
+
+Share the public transaction signature, network/cluster and expected token mint. Those identify the transfer without sharing your private key or recovery phrase.
+
+- [Receive USDC on Solana](https://oathwallet.org/tokens/usdc/solana)
+- [Choose the matching Solana account](https://help.oathwallet.org/articles/solana-address-path)
+- [Check the network fee asset](https://oathwallet.org/networks/fees)
+- [Understand pending, confirmed and failed activity](https://help.oathwallet.org/articles/transaction-status)
+
+### Sources and review
+
+App steps checked against the linked release source; token identities and network requirements checked against the sources below. Screenshots show the actual app interface with mock data, not completed live transfers.
+
+- [Solana: transaction fees](https://solana.com/docs/core/fees)
+- [Solana: token accounts](https://solana.com/docs/tokens/basics/create-token-account)
+- [Oath 5.0.2: receiving flow](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Home/OathReceiveSheet.swift)
+- [Oath 5.0.2: asset details and activity](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Assets/OathAssetDetailScreen.swift)
+- [Oath 5.0.2: supported send flows](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Send/OathSendModel.swift)
+
+Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-09. [How we review guides](https://oathwallet.org/about#editorial).
 
 <!-- token-catalog:start -->
 ## Tokens on Solana

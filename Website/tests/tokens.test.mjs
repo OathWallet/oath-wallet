@@ -81,6 +81,7 @@ test('every catalog identity and route is unique, pinned, escaped and in the sit
   assert.ok(m.title.includes(manifest.networks[a.network].name));
   for(const [,path]of m.content.matchAll(/href="(\/[^"#]*)"/g)){
    if(path.startsWith(transferPath+'?'))assert.equal(path,escapeHTML(transferURL(a).split('#')[0]),a.path);
+   else if(path.startsWith('/assets/'))assert.ok((await readFile(new URL('.'+path,root))).length>0,a.path+' screenshot link must resolve to a real asset');
    else assert.ok(all.has(path)||core.has(path),a.path+' links to '+path);
   }
   assert.ok(m.content.includes(escapeHTML(transferURL(a))),a.path+' exact transfer link');

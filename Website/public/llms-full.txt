@@ -1482,6 +1482,10 @@ Yes, supported revocations require the relevant network fee asset. Review the ac
 
 
 
+
+
+
+
 ## If a permission still appears
 
 ### What should I check after revoking?
@@ -1497,7 +1501,7 @@ Review the WalletConnect session separately. Disconnecting stops that session’
 - [Find the fee asset for your network](https://oathwallet.org/networks/fees)
 - [Check pending, confirmed or failed activity](https://help.oathwallet.org/articles/transaction-status)
 
-Product guidance for Oath 5.0.2 (104); updated 2026-11-06. [How we review guides](https://oathwallet.org/about#editorial).
+Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-06. [How we review guides](https://oathwallet.org/about#editorial).
 
 
 ## Release and source details
@@ -1602,6 +1606,10 @@ No. Wait for completion for the relevant wallet. Account, storage or network pro
 
 
 
+
+
+
+
 ## Check recovery before you need it
 
 ### The file is listed, but restore does not complete. What next?
@@ -1617,7 +1625,7 @@ No. Check the supported scope above. Electrum and aezeed wallets are excluded in
 - [Check Electrum recovery compatibility](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone)
 - [Import a compatible Trust Wallet account](https://articles.oathwallet.org/move-from-trust-wallet-to-oath)
 
-Product guidance for Oath 5.0.2 (104); updated 2026-11-06. [How we review guides](https://oathwallet.org/about#editorial).
+Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-06. [How we review guides](https://oathwallet.org/about#editorial).
 
 
 ## Release and source details
@@ -1727,6 +1735,10 @@ No. Compatibility depends on the network, wallet account and action requested by
 
 
 
+
+
+
+
 ## When a dApp will not connect
 
 ### The dApp shows only browser-extension wallets. Can Oath connect?
@@ -1742,7 +1754,7 @@ A session and a signing request have separate reviews. Read the website, account
 - [Find network-specific connection guidance](https://oathwallet.org/networks)
 - [Find the fee asset for your network](https://oathwallet.org/networks/fees)
 
-Product guidance for Oath 5.0.2 (104); updated 2026-11-06. [How we review guides](https://oathwallet.org/about#editorial).
+Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-06. [How we review guides](https://oathwallet.org/about#editorial).
 
 
 ## Release and source details
@@ -1820,30 +1832,60 @@ Features depend on the app version, network, wallet type and the service you con
 [Get Oath for iPhone and iPad](https://apps.apple.com/app/id6780187283) · [All networks](https://oathwallet.org/networks)
 
 
-## Match your Bitcoin account and address
+## Receive Bitcoin on iPhone with the account checked.
 
-### Which Bitcoin address should I use?
+Open your wallet in Oath, choose Bitcoin in Receive and copy the address shown for that account. Ask the sender to use the Bitcoin network. A Bitcoin Cash transfer, a wrapped BTC token and a Lightning payment are different transfer types.
 
-Choose a format supported by both the sender and your imported wallet. Taproot, Native SegWit, wrapped SegWit and Legacy are Bitcoin address choices, not different coins. The choices available in Oath depend on your recovery material.
+- **Asset:** BTC on the Bitcoin network.
+- **Address:** Use the current receiving address inside Oath and an address type the sender supports.
+- **Fee:** An outgoing on-chain transaction pays a BTC network fee from the available spendable inputs.
 
-### Why does my receiving address change?
+### Example: an imported wallet looks empty
 
-A supported Bitcoin account can derive multiple receiving and change addresses. Compare an earlier address and its transaction history when checking recovery; a new receiving address alone does not establish an account mismatch.
+Before treating the balance as missing, compare the source wallet’s Bitcoin account and address type with the account shown in Oath. A valid phrase can lead to different derived accounts. Use the existing import guide for the source wallet and never enter recovery credentials into a web checker.
 
-### Can I receive a Lightning payment here?
+![Oath Bitcoin asset screen with mock balance and sample sent and received activity](https://oathwallet.org/assets/guides/2026-11-09/bitcoin.webp)
 
-This guide is for on-chain BTC. A Lightning invoice, Bitcoin Cash address or wrapped BTC token is a different destination or asset.
+Oath 5.0.2 (104) · Mac simulator. Real app capture with mock balances, prices and transfer history. No live transfers were made. Always use your own receiving details; never send funds to an example address.
 
-- [Choose a Bitcoin address type](https://help.oathwallet.org/articles/bitcoin-address-types)
-- [Restore a compatible Electrum wallet](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone)
-- [Find the fee asset for your network](https://oathwallet.org/networks/fees)
-- [Check pending, confirmed or failed activity](https://help.oathwallet.org/articles/transaction-status)
+## What an on-chain confirmation tells you
 
-![Choose a Bitcoin address type in Oath](https://oathwallet.org/help/assets/guide-receive-bitcoin.webp)
+A transaction may first appear pending and later gain confirmations in mined blocks. A screenshot or a sender’s withdrawal label is not confirmation. Check the public transaction ID in a Bitcoin explorer and follow the confirmation requirement of the receiving service.
 
-Oath 4.0.3. Existing app capture with sample data. Appearance can differ in newer releases; this image is not a completed transfer.
+## Why two Bitcoin sends can have different fees
 
-Product guidance for Oath 5.0.2 (104); updated 2026-11-06. [How we review guides](https://oathwallet.org/about#editorial).
+A Bitcoin transfer spends unspent transaction outputs. The fee depends on the transaction’s size and chosen fee rate, not simply the fiat amount being sent. Many small inputs can make a transaction larger. Read Oath’s review before signing.
+
+## Questions before you transfer
+
+### Can I send Bitcoin Cash to this Bitcoin address?
+
+No. BTC and BCH use separate networks. Choose the Bitcoin Cash guide when receiving BCH and the Bitcoin guide when receiving BTC.
+
+### Does this page describe Lightning?
+
+No. These receiving instructions cover Oath’s Bitcoin on-chain flow. A Lightning invoice is a different payment request and should not be substituted for this address.
+
+### Should I reuse an address from a screenshot?
+
+No. Screenshots contain public examples and mock data. Copy the address from your own selected wallet in Oath, then compare it at the sending service.
+
+- [Understand Bitcoin address types](https://help.oathwallet.org/articles/bitcoin-address-types)
+- [Restore a compatible Electrum Bitcoin wallet](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone)
+- [Bitcoin Cash receiving guide](https://oathwallet.org/networks/bitcoin-cash)
+- [Understand pending, confirmed and failed activity](https://help.oathwallet.org/articles/transaction-status)
+
+### Sources and review
+
+App steps checked against the linked release source; token identities and network requirements checked against the sources below. Screenshots show the actual app interface with mock data, not completed live transfers.
+
+- [Bitcoin developer guide: payments and confirmations](https://developer.bitcoin.org/devguide/payment_processing.html)
+- [Oath 5.0.2: Bitcoin send review](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Send/OathBitcoinSendModel.swift)
+- [Oath 5.0.2: receiving flow](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Home/OathReceiveSheet.swift)
+- [Oath 5.0.2: asset details and activity](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Assets/OathAssetDetailScreen.swift)
+- [Oath 5.0.2: supported send flows](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Send/OathSendModel.swift)
+
+Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-09. [How we review guides](https://oathwallet.org/about#editorial).
 
 ---
 
@@ -1902,30 +1944,60 @@ Features depend on the app version, network, wallet type and the service you con
 [Get Oath for iPhone and iPad](https://apps.apple.com/app/id6780187283) · [All networks](https://oathwallet.org/networks)
 
 
-## When a transfer needs a closer look
+## One Ethereum account, distinct assets and fees.
 
-### Why is my token balance available but Send cannot continue?
+To receive ETH in Oath, open Receive for Ethereum and share your wallet address. For an ERC-20 token, select the exact token on Ethereum first. Ask the sender to use Ethereum mainnet even when the address also exists on another EVM network.
 
-A token balance and the network fee balance are separate. Check that ETH is available on Ethereum, then read Oath’s estimate and any account requirements. A balance on another network cannot pay this transaction’s fee.
+- **Native coin:** ETH is Ethereum’s native coin and pays gas for the ordinary Oath send flow.
+- **Tokens:** ERC-20 assets such as USDC have individual contracts and balances.
+- **Network:** An identical 0x address on Base or another network does not merge that balance with Ethereum.
 
-### The sender says it is complete. Where is my transfer?
+### Example: USDC is available, but Send needs ETH
 
-Ask for the public transaction ID and the exact network. Check the destination and token identifier in that network’s explorer. A withdrawal request is not the same as a confirmed on-chain transfer. If the explorer confirms the correct transfer, refresh the matching account in Oath.
+A token balance and the fee balance serve different purposes. If you hold USDC on Ethereum and no ETH there, an outgoing USDC transaction may need gas funding. ETH held on Base cannot pay that Ethereum transaction.
 
-### What if I selected the wrong network?
+![Oath Ethereum asset screen with mock balance and sample sent and received activity](https://oathwallet.org/assets/guides/2026-11-09/ethereum.webp)
 
-Stop and check the original transaction before sending again. A matching address is not proof of recovery. Contact the receiving service for its supported recovery process; never provide recovery credentials to support.
+Oath 5.0.2 (104) · Mac simulator. Real app capture with mock balances, prices and transfer history. No live transfers were made. Always use your own receiving details; never send funds to an example address.
 
-- [Find the fee asset for your network](https://oathwallet.org/networks/fees)
-- [Choose a network for USDT or USDC](https://oathwallet.org/networks/choose-token-network)
-- [Check pending, confirmed or failed activity](https://help.oathwallet.org/articles/transaction-status)
-- [Follow the receiving instructions](https://help.oathwallet.org/articles/receive-crypto)
+## Check a token’s contract before receiving
 
-![Receive crypto with a QR code in Oath](https://oathwallet.org/help/assets/guide-05-receive.webp)
+Search the exact asset in Oath and compare its contract with the issuer’s information. Similar names, symbols and logos can belong to different tokens. The contract identifies the token; the address in your Receive screen is the destination.
 
-Oath 4.0.3. Existing app capture with sample data. Appearance can differ in newer releases; this image is not a completed transfer.
+## Read each dApp request separately
 
-Product guidance for Oath 5.0.2 (104); updated 2026-11-06. [How we review guides](https://oathwallet.org/about#editorial).
+Connecting through WalletConnect shares approved public accounts. It is distinct from signing a message, granting a token allowance or sending assets. Check the website, network and requested action; disconnecting a session does not itself revoke an on-chain allowance.
+
+## Questions before you transfer
+
+### Does receiving ETH require a token approval?
+
+No. A normal incoming ETH payment only needs the correct public receiving address. Treat an unexpected approval or recovery-phrase request as a different action.
+
+### Why can gas cost more for a token than for ETH?
+
+A token transfer executes contract code, while a simple ETH transfer can use a different amount of gas. The transaction and current network conditions determine the estimate.
+
+### Where should I look for a transfer sent on Base?
+
+Check the transaction on Base and the corresponding Base account in Oath. The Ethereum page cannot convert that transfer into an Ethereum balance.
+
+- [Receive USDC on Ethereum](https://oathwallet.org/tokens/usdc/ethereum)
+- [Compare USDC on Base](https://oathwallet.org/tokens/usdc/base)
+- [Check and revoke token approvals](https://oathwallet.org/features/revoke-token-approvals)
+- [Check the network fee asset](https://oathwallet.org/networks/fees)
+
+### Sources and review
+
+App steps checked against the linked release source; token identities and network requirements checked against the sources below. Screenshots show the actual app interface with mock data, not completed live transfers.
+
+- [Ethereum: gas and transaction fees](https://ethereum.org/en/developers/docs/gas/)
+- [Oath 5.0.2: WalletConnect service](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Scanner/OathWalletConnectService.swift)
+- [Oath 5.0.2: receiving flow](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Home/OathReceiveSheet.swift)
+- [Oath 5.0.2: asset details and activity](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Assets/OathAssetDetailScreen.swift)
+- [Oath 5.0.2: supported send flows](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Send/OathSendModel.swift)
+
+Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-09. [How we review guides](https://oathwallet.org/about#editorial).
 
 <!-- token-catalog:start -->
 ## Tokens on Ethereum
@@ -2005,35 +2077,60 @@ Features depend on the app version, network, wallet type and the service you con
 [Get Oath for iPhone and iPad](https://apps.apple.com/app/id6780187283) · [All networks](https://oathwallet.org/networks)
 
 
-## When a transfer needs a closer look
+## Receive SOL and Solana tokens in the intended account.
 
-### Why can the first token transfer cost more?
+Choose Solana in Oath’s Receive flow for SOL, or select the exact Solana token for a token payment. Copy the address from that account and make sure the sender uses Solana mainnet. Confirm the token mint when receiving USDC or another token.
 
-A transfer can require a recipient token account to be created as well as a transaction fee. Review the SOL requirements in Oath; there is no single fixed amount that fits every token and recipient.
+- **Native coin:** SOL pays transaction fees in the ordinary Oath transfer flow.
+- **Tokens:** Each token has a mint; a matching name or logo does not prove it is the intended asset.
+- **Account:** When restoring a wallet, compare the selected Solana derivation with the source wallet.
 
-### Why is my token balance available but Send cannot continue?
+### Example: the same phrase, a different address
 
-A token balance and the network fee balance are separate. Check that SOL is available on Solana, then read Oath’s estimate and any account requirements. A balance on another network cannot pay this transaction’s fee.
+An imported phrase can expose a different Solana account when a different derivation path is selected. Compare the public address with your source wallet and use Oath’s supported account options before asking the sender to transfer.
 
-### The sender says it is complete. Where is my transfer?
+![Oath Solana asset screen with mock balance and sample sent and received activity](https://oathwallet.org/assets/guides/2026-11-09/solana.webp)
 
-Ask for the public transaction ID and the exact network. Check the destination and token identifier in that network’s explorer. A withdrawal request is not the same as a confirmed on-chain transfer. If the explorer confirms the correct transfer, refresh the matching account in Oath.
+Oath 5.0.2 (104) · Mac simulator. Real app capture with mock balances, prices and transfer history. No live transfers were made. Always use your own receiving details; never send funds to an example address.
 
-### What if I selected the wrong network?
+## SOL transfers and token transfers have different requirements
 
-Stop and check the original transaction before sending again. A matching address is not proof of recovery. Contact the receiving service for its supported recovery process; never provide recovery credentials to support.
+A token payment can involve a recipient token account as well as the transaction fee. If that account needs creating, the SOL requirement can be greater than the transaction fee alone. Review Oath’s estimate for the actual recipient and asset.
 
-- [Find the fee asset for your network](https://oathwallet.org/networks/fees)
-- [Choose a network for USDT or USDC](https://oathwallet.org/networks/choose-token-network)
-- [Check pending, confirmed or failed activity](https://help.oathwallet.org/articles/transaction-status)
-- [Follow the receiving instructions](https://help.oathwallet.org/articles/receive-crypto)
-- [Check Phantom or Trust Wallet account paths](https://help.oathwallet.org/articles/solana-address-path)
+## Check mainnet before troubleshooting a balance
 
-![Use Solana in Oath](https://oathwallet.org/help/assets/guide-chain-solana.webp)
+A transfer on Devnet or Testnet will not become mainnet SOL or USDC. Confirm the explorer’s cluster, the recipient and, for tokens, the mint. A transaction signature is useful evidence only when those details match.
 
-Oath 4.0.3. Existing app capture with sample data. Appearance can differ in newer releases; this image is not a completed transfer.
+## Questions before you transfer
 
-Product guidance for Oath 5.0.2 (104); updated 2026-11-06. [How we review guides](https://oathwallet.org/about#editorial).
+### Can I use an Ethereum address to receive SOL?
+
+No. Use the Solana receiving address shown in Oath. An EVM 0x address is not interchangeable with a Solana account.
+
+### Does a USDC balance pay the SOL fee?
+
+Oath’s ordinary Solana send flow needs SOL for fees and any applicable token-account creation. Holding USDC alone does not guarantee the send can proceed.
+
+### What should I send to support about a missing transfer?
+
+Share the public transaction signature, network/cluster and expected token mint. Those identify the transfer without sharing your private key or recovery phrase.
+
+- [Receive USDC on Solana](https://oathwallet.org/tokens/usdc/solana)
+- [Choose the matching Solana account](https://help.oathwallet.org/articles/solana-address-path)
+- [Check the network fee asset](https://oathwallet.org/networks/fees)
+- [Understand pending, confirmed and failed activity](https://help.oathwallet.org/articles/transaction-status)
+
+### Sources and review
+
+App steps checked against the linked release source; token identities and network requirements checked against the sources below. Screenshots show the actual app interface with mock data, not completed live transfers.
+
+- [Solana: transaction fees](https://solana.com/docs/core/fees)
+- [Solana: token accounts](https://solana.com/docs/tokens/basics/create-token-account)
+- [Oath 5.0.2: receiving flow](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Home/OathReceiveSheet.swift)
+- [Oath 5.0.2: asset details and activity](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Assets/OathAssetDetailScreen.swift)
+- [Oath 5.0.2: supported send flows](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Send/OathSendModel.swift)
+
+Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-09. [How we review guides](https://oathwallet.org/about#editorial).
 
 <!-- token-catalog:start -->
 ## Tokens on Solana
@@ -2491,6 +2588,12 @@ Features depend on the app version, network, wallet type and the service you con
 [Get Oath for iPhone and iPad](https://apps.apple.com/app/id6780187283) · [All networks](https://oathwallet.org/networks)
 
 
+![Receive crypto with a QR code in Oath](https://oathwallet.org/help/assets/guide-05-receive.webp)
+
+Oath 4.0.3. Existing app capture with sample data. Appearance can differ in newer releases; this image is not a completed transfer.
+
+
+
 ## When a transfer needs a closer look
 
 ### Can ETH on Ethereum pay a Base fee?
@@ -2514,11 +2617,7 @@ Stop and check the original transaction before sending again. A matching address
 - [Check pending, confirmed or failed activity](https://help.oathwallet.org/articles/transaction-status)
 - [Follow the receiving instructions](https://help.oathwallet.org/articles/receive-crypto)
 
-![Receive crypto with a QR code in Oath](https://oathwallet.org/help/assets/guide-05-receive.webp)
-
-Oath 4.0.3. Existing app capture with sample data. Appearance can differ in newer releases; this image is not a completed transfer.
-
-Product guidance for Oath 5.0.2 (104); updated 2026-11-06. [How we review guides](https://oathwallet.org/about#editorial).
+Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-06. [How we review guides](https://oathwallet.org/about#editorial).
 
 <!-- token-catalog:start -->
 ## Tokens on Base
@@ -2752,6 +2851,12 @@ Features depend on the app version, network, wallet type and the service you con
 [Get Oath for iPhone and iPad](https://apps.apple.com/app/id6780187283) · [All networks](https://oathwallet.org/networks)
 
 
+![Use TRON in Oath](https://oathwallet.org/help/assets/guide-chain-tron.webp)
+
+Oath 4.0.3. Existing app capture with sample data. Appearance can differ in newer releases; this image is not a completed transfer.
+
+
+
 ## When a transfer needs a closer look
 
 ### Can USDT pay the TRON network fee?
@@ -2776,11 +2881,7 @@ Stop and check the original transaction before sending again. A matching address
 - [Follow the receiving instructions](https://help.oathwallet.org/articles/receive-crypto)
 - [TRON account and resource guidance](https://help.oathwallet.org/articles/use-tron)
 
-![Use TRON in Oath](https://oathwallet.org/help/assets/guide-chain-tron.webp)
-
-Oath 4.0.3. Existing app capture with sample data. Appearance can differ in newer releases; this image is not a completed transfer.
-
-Product guidance for Oath 5.0.2 (104); updated 2026-11-06. [How we review guides](https://oathwallet.org/about#editorial).
+Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-06. [How we review guides](https://oathwallet.org/about#editorial).
 
 <!-- token-catalog:start -->
 ## Tokens on TRON
@@ -3412,6 +3513,63 @@ Features depend on the app version, network, wallet type and the service you con
 [Network catalog](https://github.com/OathWallet/oath-wallet/blob/6ff671b3e8f2ca8b8388ddebbf95f783a6ea0c7a/OathAtmosphere/Import/OathImportCatalog.swift) · Updated 2026-10-31. Source review is not confirmation of App Store availability.
 
 [Get Oath for iPhone and iPad](https://apps.apple.com/app/id6780187283) · [All networks](https://oathwallet.org/networks)
+
+
+## Receive Bitcoin Cash with BCH selected on both sides.
+
+Open Oath, select your wallet and choose Bitcoin Cash in Receive. Share the receiving address or QR code from that screen. The sender must use Bitcoin Cash (BCH), not Bitcoin (BTC).
+
+- **Asset:** BCH on Bitcoin Cash. BTC is a different asset on a different network.
+- **Address:** Keep the Bitcoin Cash address format shown by Oath, including its bitcoincash: prefix when present.
+- **Fee:** Oath’s ordinary BCH send uses BCH for the network fee; it does not require ETH or TRX.
+
+### Example: a sender asks for a “Bitcoin” address
+
+Confirm whether they mean BTC or BCH before copying anything. If the intended payment is BCH, both sides must select Bitcoin Cash. Similar names and legacy address formats are not a reason to skip the network check.
+
+![Oath Bitcoin Cash asset screen with mock balance and sample sent and received activity](https://oathwallet.org/assets/guides/2026-11-09/bitcoin-cash.webp)
+
+Oath 5.0.2 (104) · Mac simulator. Real app capture with mock balances, prices and transfer history. No live transfers were made. Always use your own receiving details; never send funds to an example address.
+
+## An address format is not a bridge
+
+CashAddr helps identify a Bitcoin Cash destination. Converting a textual address format does not move funds between Bitcoin and Bitcoin Cash. If a sending service rejects the address, consult that service’s BCH requirements rather than removing characters by guesswork.
+
+## Check the payment before sending again
+
+Ask for the public BCH transaction ID. Compare the destination, amount and confirmation status on a Bitcoin Cash explorer. If the expected transfer is confirmed, refresh the matching Oath wallet. Repeating a payment is not a repair for a display delay.
+
+## Questions before you transfer
+
+### Can I receive BCH without first buying another fee token?
+
+An ordinary incoming BCH transfer does not require you to hold ETH, TRX or another network’s coin. The sender funds their transaction; your own later BCH send uses BCH for its network fee.
+
+### Why is the incoming amount different from the exchange request?
+
+The exchange may deduct a withdrawal fee or enforce a minimum. Check its final confirmation and the actual on-chain amount, rather than assuming the amount typed into the withdrawal form is what will arrive.
+
+### What if BCH was sent on the wrong network?
+
+Stop before another transfer. Identify the actual transaction and contact the receiving service about its recovery policy. Similar addresses do not guarantee recovery; never give support a recovery phrase or private key.
+
+- [Compare the Bitcoin receiving flow](https://oathwallet.org/networks/bitcoin)
+- [Open Receive in Oath](https://help.oathwallet.org/articles/receive-crypto)
+- [Check the network fee asset](https://oathwallet.org/networks/fees)
+- [Understand pending, confirmed and failed activity](https://help.oathwallet.org/articles/transaction-status)
+
+### Sources and review
+
+App steps checked against the linked release source; token identities and network requirements checked against the sources below. Screenshots show the actual app interface with mock data, not completed live transfers.
+
+- [Bitcoin Cash: network information](https://bitcoincash.org/)
+- [Bitcoin Cash: CashAddr specification](https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/cashaddr.md)
+- [Oath 5.0.2: Bitcoin Cash address handling](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/Packages/OathBitcoin/Sources/OathBitcoin/CashAddress.swift)
+- [Oath 5.0.2: receiving flow](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Home/OathReceiveSheet.swift)
+- [Oath 5.0.2: asset details and activity](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Assets/OathAssetDetailScreen.swift)
+- [Oath 5.0.2: supported send flows](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Send/OathSendModel.swift)
+
+Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-09. [How we review guides](https://oathwallet.org/about#editorial).
 
 ---
 

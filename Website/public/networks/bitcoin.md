@@ -50,27 +50,57 @@ Features depend on the app version, network, wallet type and the service you con
 [Get Oath for iPhone and iPad](https://apps.apple.com/app/id6780187283) · [All networks](https://oathwallet.org/networks)
 
 
-## Match your Bitcoin account and address
+## Receive Bitcoin on iPhone with the account checked.
 
-### Which Bitcoin address should I use?
+Open your wallet in Oath, choose Bitcoin in Receive and copy the address shown for that account. Ask the sender to use the Bitcoin network. A Bitcoin Cash transfer, a wrapped BTC token and a Lightning payment are different transfer types.
 
-Choose a format supported by both the sender and your imported wallet. Taproot, Native SegWit, wrapped SegWit and Legacy are Bitcoin address choices, not different coins. The choices available in Oath depend on your recovery material.
+- **Asset:** BTC on the Bitcoin network.
+- **Address:** Use the current receiving address inside Oath and an address type the sender supports.
+- **Fee:** An outgoing on-chain transaction pays a BTC network fee from the available spendable inputs.
 
-### Why does my receiving address change?
+### Example: an imported wallet looks empty
 
-A supported Bitcoin account can derive multiple receiving and change addresses. Compare an earlier address and its transaction history when checking recovery; a new receiving address alone does not establish an account mismatch.
+Before treating the balance as missing, compare the source wallet’s Bitcoin account and address type with the account shown in Oath. A valid phrase can lead to different derived accounts. Use the existing import guide for the source wallet and never enter recovery credentials into a web checker.
 
-### Can I receive a Lightning payment here?
+![Oath Bitcoin asset screen with mock balance and sample sent and received activity](https://oathwallet.org/assets/guides/2026-11-09/bitcoin.webp)
 
-This guide is for on-chain BTC. A Lightning invoice, Bitcoin Cash address or wrapped BTC token is a different destination or asset.
+Oath 5.0.2 (104) · Mac simulator. Real app capture with mock balances, prices and transfer history. No live transfers were made. Always use your own receiving details; never send funds to an example address.
 
-- [Choose a Bitcoin address type](https://help.oathwallet.org/articles/bitcoin-address-types)
-- [Restore a compatible Electrum wallet](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone)
-- [Find the fee asset for your network](https://oathwallet.org/networks/fees)
-- [Check pending, confirmed or failed activity](https://help.oathwallet.org/articles/transaction-status)
+## What an on-chain confirmation tells you
 
-![Choose a Bitcoin address type in Oath](https://oathwallet.org/help/assets/guide-receive-bitcoin.webp)
+A transaction may first appear pending and later gain confirmations in mined blocks. A screenshot or a sender’s withdrawal label is not confirmation. Check the public transaction ID in a Bitcoin explorer and follow the confirmation requirement of the receiving service.
 
-Oath 4.0.3. Existing app capture with sample data. Appearance can differ in newer releases; this image is not a completed transfer.
+## Why two Bitcoin sends can have different fees
 
-Product guidance for Oath 5.0.2 (104); updated 2026-11-06. [How we review guides](https://oathwallet.org/about#editorial).
+A Bitcoin transfer spends unspent transaction outputs. The fee depends on the transaction’s size and chosen fee rate, not simply the fiat amount being sent. Many small inputs can make a transaction larger. Read Oath’s review before signing.
+
+## Questions before you transfer
+
+### Can I send Bitcoin Cash to this Bitcoin address?
+
+No. BTC and BCH use separate networks. Choose the Bitcoin Cash guide when receiving BCH and the Bitcoin guide when receiving BTC.
+
+### Does this page describe Lightning?
+
+No. These receiving instructions cover Oath’s Bitcoin on-chain flow. A Lightning invoice is a different payment request and should not be substituted for this address.
+
+### Should I reuse an address from a screenshot?
+
+No. Screenshots contain public examples and mock data. Copy the address from your own selected wallet in Oath, then compare it at the sending service.
+
+- [Understand Bitcoin address types](https://help.oathwallet.org/articles/bitcoin-address-types)
+- [Restore a compatible Electrum Bitcoin wallet](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone)
+- [Bitcoin Cash receiving guide](https://oathwallet.org/networks/bitcoin-cash)
+- [Understand pending, confirmed and failed activity](https://help.oathwallet.org/articles/transaction-status)
+
+### Sources and review
+
+App steps checked against the linked release source; token identities and network requirements checked against the sources below. Screenshots show the actual app interface with mock data, not completed live transfers.
+
+- [Bitcoin developer guide: payments and confirmations](https://developer.bitcoin.org/devguide/payment_processing.html)
+- [Oath 5.0.2: Bitcoin send review](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Send/OathBitcoinSendModel.swift)
+- [Oath 5.0.2: receiving flow](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Home/OathReceiveSheet.swift)
+- [Oath 5.0.2: asset details and activity](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Assets/OathAssetDetailScreen.swift)
+- [Oath 5.0.2: supported send flows](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Send/OathSendModel.swift)
+
+Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-09. [How we review guides](https://oathwallet.org/about#editorial).

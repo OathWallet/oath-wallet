@@ -50,30 +50,60 @@ Features depend on the app version, network, wallet type and the service you con
 [Get Oath for iPhone and iPad](https://apps.apple.com/app/id6780187283) · [All networks](https://oathwallet.org/networks)
 
 
-## When a transfer needs a closer look
+## One Ethereum account, distinct assets and fees.
 
-### Why is my token balance available but Send cannot continue?
+To receive ETH in Oath, open Receive for Ethereum and share your wallet address. For an ERC-20 token, select the exact token on Ethereum first. Ask the sender to use Ethereum mainnet even when the address also exists on another EVM network.
 
-A token balance and the network fee balance are separate. Check that ETH is available on Ethereum, then read Oath’s estimate and any account requirements. A balance on another network cannot pay this transaction’s fee.
+- **Native coin:** ETH is Ethereum’s native coin and pays gas for the ordinary Oath send flow.
+- **Tokens:** ERC-20 assets such as USDC have individual contracts and balances.
+- **Network:** An identical 0x address on Base or another network does not merge that balance with Ethereum.
 
-### The sender says it is complete. Where is my transfer?
+### Example: USDC is available, but Send needs ETH
 
-Ask for the public transaction ID and the exact network. Check the destination and token identifier in that network’s explorer. A withdrawal request is not the same as a confirmed on-chain transfer. If the explorer confirms the correct transfer, refresh the matching account in Oath.
+A token balance and the fee balance serve different purposes. If you hold USDC on Ethereum and no ETH there, an outgoing USDC transaction may need gas funding. ETH held on Base cannot pay that Ethereum transaction.
 
-### What if I selected the wrong network?
+![Oath Ethereum asset screen with mock balance and sample sent and received activity](https://oathwallet.org/assets/guides/2026-11-09/ethereum.webp)
 
-Stop and check the original transaction before sending again. A matching address is not proof of recovery. Contact the receiving service for its supported recovery process; never provide recovery credentials to support.
+Oath 5.0.2 (104) · Mac simulator. Real app capture with mock balances, prices and transfer history. No live transfers were made. Always use your own receiving details; never send funds to an example address.
 
-- [Find the fee asset for your network](https://oathwallet.org/networks/fees)
-- [Choose a network for USDT or USDC](https://oathwallet.org/networks/choose-token-network)
-- [Check pending, confirmed or failed activity](https://help.oathwallet.org/articles/transaction-status)
-- [Follow the receiving instructions](https://help.oathwallet.org/articles/receive-crypto)
+## Check a token’s contract before receiving
 
-![Receive crypto with a QR code in Oath](https://oathwallet.org/help/assets/guide-05-receive.webp)
+Search the exact asset in Oath and compare its contract with the issuer’s information. Similar names, symbols and logos can belong to different tokens. The contract identifies the token; the address in your Receive screen is the destination.
 
-Oath 4.0.3. Existing app capture with sample data. Appearance can differ in newer releases; this image is not a completed transfer.
+## Read each dApp request separately
 
-Product guidance for Oath 5.0.2 (104); updated 2026-11-06. [How we review guides](https://oathwallet.org/about#editorial).
+Connecting through WalletConnect shares approved public accounts. It is distinct from signing a message, granting a token allowance or sending assets. Check the website, network and requested action; disconnecting a session does not itself revoke an on-chain allowance.
+
+## Questions before you transfer
+
+### Does receiving ETH require a token approval?
+
+No. A normal incoming ETH payment only needs the correct public receiving address. Treat an unexpected approval or recovery-phrase request as a different action.
+
+### Why can gas cost more for a token than for ETH?
+
+A token transfer executes contract code, while a simple ETH transfer can use a different amount of gas. The transaction and current network conditions determine the estimate.
+
+### Where should I look for a transfer sent on Base?
+
+Check the transaction on Base and the corresponding Base account in Oath. The Ethereum page cannot convert that transfer into an Ethereum balance.
+
+- [Receive USDC on Ethereum](https://oathwallet.org/tokens/usdc/ethereum)
+- [Compare USDC on Base](https://oathwallet.org/tokens/usdc/base)
+- [Check and revoke token approvals](https://oathwallet.org/features/revoke-token-approvals)
+- [Check the network fee asset](https://oathwallet.org/networks/fees)
+
+### Sources and review
+
+App steps checked against the linked release source; token identities and network requirements checked against the sources below. Screenshots show the actual app interface with mock data, not completed live transfers.
+
+- [Ethereum: gas and transaction fees](https://ethereum.org/en/developers/docs/gas/)
+- [Oath 5.0.2: WalletConnect service](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Scanner/OathWalletConnectService.swift)
+- [Oath 5.0.2: receiving flow](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Home/OathReceiveSheet.swift)
+- [Oath 5.0.2: asset details and activity](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Assets/OathAssetDetailScreen.swift)
+- [Oath 5.0.2: supported send flows](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Send/OathSendModel.swift)
+
+Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-09. [How we review guides](https://oathwallet.org/about#editorial).
 
 <!-- token-catalog:start -->
 ## Tokens on Ethereum

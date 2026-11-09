@@ -1,3 +1,4 @@
+import {priorityUpdated} from '../src/seo-guidance.js';
 import {artworkSnapshot,attachArtwork} from './token-artwork.mjs';
 import {tokenArtwork} from '../src/token-artwork.js';
 import {qualifyTokenTitles,qualifyOverviewTitles} from './token-titles.mjs';
@@ -119,7 +120,7 @@ await writeFile(new URL('sitemaps/pages.xml',root),core);
 const maps=['https://oathwallet.org/sitemaps/pages.xml'];
 for(let offset=0;offset<allURLs.length;offset+=10000){
   const name=`tokens-${String(1+offset/10000).padStart(4,'0')}.xml`;
-  const xml=`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${allURLs.slice(offset,offset+10000).map(r=>`<url><loc>${xmlEscape('https://oathwallet.org'+r.path)}</loc></url>`).join('\n')}\n</urlset>\n`;
+  const xml=`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${allURLs.slice(offset,offset+10000).map(r=>`<url><loc>${xmlEscape('https://oathwallet.org'+r.path)}</loc>${priorityUpdated(r.path)?`<lastmod>${priorityUpdated(r.path)}</lastmod>`:''}</url>`).join('\n')}\n</urlset>\n`;
   await writeFile(new URL('sitemaps/'+name,root),xml);maps.push('https://oathwallet.org/sitemaps/'+name);
 }
 await writeFile(new URL('sitemap.xml',root),`<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${maps.map(url=>`<sitemap><loc>${url}</loc></sitemap>`).join('\n')}\n</sitemapindex>\n`);
