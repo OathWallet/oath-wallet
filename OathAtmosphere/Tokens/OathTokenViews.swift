@@ -200,8 +200,7 @@ struct OathTokenSearchResults: View {
                         concealsAmounts: balancesHidden,
                         titleBadgeAsset: token.network.chain.logoAsset,
                         assetNetworkName: strings.invariant(token.network.chain.name),
-                        showsAssetNetworkBadge: !token.isNativeRepresentation,
-                        emphasizesBalanceDetail: true) { size in
+                        showsAssetNetworkBadge: !token.isNativeRepresentation) { size in
                             OathBadgedAssetLogo(networkID: token.network.id, isNative: token.isNativeRepresentation,
                                 source: token.logoURL?.absoluteString, symbol: token.symbol,
                                 identity: token.artworkIdentity, size: size, showsChainBadge: false)

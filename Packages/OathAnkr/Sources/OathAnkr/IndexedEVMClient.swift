@@ -275,7 +275,7 @@ public struct IndexedEVMClient: Sendable {
             return (tokens, archive)
         }
     }
-    private func discover(owner: String) async throws -> ([IndexedEVMToken], [Data], Bool) {
+    private func discover(owner: String) async throws -> ([IndexedEVMToken], [Data], Set<String>) {
         if chain == .monad { return try await monadDiscovery(owner: owner) }
         var cursor: String?, visited: Set<String> = [], tokens: [String: IndexedEVMToken] = [:]
         var raw: [Data] = [], missing: [String] = [], seen: Set<String> = []
@@ -299,7 +299,7 @@ public struct IndexedEVMClient: Sendable {
         } while cursor != nil
         let (resolved, metadataRaw) = try await metadata(missing)
         tokens.merge(resolved, uniquingKeysWith: { first, _ in first })
-        return (tokens.values.sorted { $0.reference < $1.reference }, raw + metadataRaw, tokens.count == seen.count)
+        return (tokens.values.sorted { $0.reference < $1.reference }, raw + metadataRaw, seen)
     }
     public func inventory(owner: String, tracked: [IndexedEVMToken] = []) async throws -> IndexedEVMInventory {
         do { return try await inventoryFromRPC(owner: owner, tracked: tracked) }
@@ -421,8 +421,13 @@ public struct IndexedEVMClient: Sendable {
         let (check, checkRaw) = try await rpc([("eth_getBlockByNumber", [.string(blockNumber), .bool(false)])])
         guard try Self.result(check[0])["hash"].string == hash else { throw AnkrError.invalidResponse }
         let archive = try JSONEncoder().encode(["head": [headRaw, checkRaw] + stateIdentityRaw, "index": discovered?.1 ?? [], "state": gathered.1])
+        // A saved token can fill a discovery-metadata hole only after the
+        // pinned state reads above verify its exact decimals and balance.
+        // Every indexed reference must still be represented. Failed pagination
+        // remains nil discovery; unknown tokens cannot become a complete scan.
+        let metadataCovered = discovered.map { $0.2.isSubset(of: Set(tokens.keys)) } == true
         return .init(chain: chain, owner: owner, block: height, blockHash: hash, observedAt: .now,
-                     holdings: gathered.0, complete: discovered?.2 == true && gathered.0.allSatisfy { $0.amount != nil }, raw: archive)
+                     holdings: gathered.0, complete: metadataCovered && gathered.0.allSatisfy { $0.amount != nil }, raw: archive)
     }
     enum HistoryAvailability: DiagnosticAvailabilityError {
         case missingRPCRecord, filecoinWrappingEvidenceRequired
@@ -968,7 +973,7 @@ private extension IndexedEVMClient {
         } catch { OathDiagnostics.record(error, operation: "monad_index"); await indexPermits.release(); throw error }
     }
 
-    private func monadDiscovery(owner: String) async throws -> ([IndexedEVMToken], [Data], Bool) {
+    private func monadDiscovery(owner: String) async throws -> ([IndexedEVMToken], [Data], Set<String>) {
         var page: String?, visited: Set<String> = [], references: Set<String> = [], raw: [Data] = []
         repeat {
             var params: [SolanaJSON] = [.string(owner), .string("erc20")]
@@ -990,7 +995,7 @@ private extension IndexedEVMClient {
         // Discovery is only a contract list. Values, decimals and chain identity
         // are read independently from the selected RPC at the pinned block.
         let (tokens, metadataRaw) = try await metadata(Array(references))
-        return (tokens.values.sorted { $0.reference < $1.reference }, raw + metadataRaw, tokens.count == references.count)
+        return (tokens.values.sorted { $0.reference < $1.reference }, raw + metadataRaw, references)
     }
 
     private func monadHistory(owner: String, stream: IndexedEVMHistoryStream, cursor: String?) async throws -> Exchange {

@@ -208,15 +208,17 @@ struct OathAssetDetailScreen: View {
                     .environment(\.oathScanSession, session)
             }
         }
-        .sheet(item: $sheet, onDismiss: { scannedRecipient = nil; scanUsesCurrentAsset = true }) { selection in
+        .sheet(item: $sheet,
+               onDismiss: { scannedRecipient = nil; scanUsesCurrentAsset = true }) { selection in
             Group {
                 switch selection {
                 case .receive:
                     if let receiveAddress { OathReceiveSheet(address: receiveAddress, session: session, holding: holding) }
-                case .send: OathSendFlow(session: session, walletID: route.walletID,
-                    holdingID: scanUsesCurrentAsset ? holding.id : nil, scannedRecipient: scannedRecipient,
-                    initialHolding: scanUsesCurrentAsset ? holding : nil,
-                    startsScannedAmount: scanUsesCurrentAsset && scannedRecipient != nil)
+                case .send:
+                    OathSendFlow(session: session, walletID: route.walletID,
+                        holdingID: scanUsesCurrentAsset ? holding.id : nil, scannedRecipient: scannedRecipient,
+                        initialHolding: scanUsesCurrentAsset ? holding : nil,
+                        startsScannedAmount: scanUsesCurrentAsset && scannedRecipient != nil)
                 case .information:
                     OathAssetInformationSheet(holding: holding, networkName: networkName, currency: currency, model: model)
                 case .verification:

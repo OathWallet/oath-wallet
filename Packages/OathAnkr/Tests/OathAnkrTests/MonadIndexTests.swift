@@ -13,7 +13,7 @@ private actor HistoryRecoveryReports: DiagnosticTransport {
 }
 
 private actor MonadIndexFeed: AnkrTransport {
-    enum Fault: Sendable { case none, wrongOwner, wrongChain, wrongAmount, invalidPage, repeatedPage,
+    enum Fault: Sendable { case none, metadataUnavailable, metadataChanged, wrongOwner, wrongChain, wrongAmount, invalidPage, repeatedPage,
         missingHashIndex, missingTransactionHashIndex, missingReceiptResult, archiveWrongBlock, archiveWrongReceipt, archiveWrongPosition, archiveDuplicateReceipt,
         creation, failedCreation, missingRecipient, creationWrongRPCRecipient, creationMissingRPCRecipient,
         creationMissingReceiptRecipient, creationMissingContract, creationWrongCreator }
@@ -100,7 +100,11 @@ private actor MonadIndexFeed: AnkrTransport {
                 result = receipt
             case "eth_call":
                 let params = call["params"] as! [Any], selector = (params[0] as! [String: Any])["data"] as! String
-                result = selector == "0x313ce567" ? "0x6" : (selector.hasPrefix("0x70a08231") ? "0x2dc6c0" : "0x")
+                if selector == "0x313ce567", [.metadataUnavailable, .metadataChanged].contains(fault), params.last as? String == "latest" {
+                    result = "0x" // Temporary missing discovery metadata; never guess decimals.
+                } else {
+                    result = selector == "0x313ce567" ? (fault == .metadataChanged ? "0x12" : "0x6") : (selector.hasPrefix("0x70a08231") ? "0x2dc6c0" : "0x")
+                }
             default: result = NSNull()
             }
             if fault == .missingReceiptResult && method == "eth_getTransactionReceipt" {
@@ -156,7 +160,23 @@ private actor LargeBlockReceiptFeed: AnkrTransport {
 }
 
 final class MonadIndexTests: XCTestCase, @unchecked Sendable {
+    func testCeloArchiveRetainsOnlyRelevantReceiptEvidence() async throws {
+        let client = try IndexedEVMClient(chain: .celo, apiKey: "fixture", transport: LargeBlockReceiptFeed())
+        let page = try await client.history(owner: monOwner, stream: .transfers)
+        XCTAssertEqual(page.events.count, 1)
+        XCTAssertEqual(page.events.first?.amount, "9007199254740993")
+        XCTAssertLessThan(page.raw.count, 20_000, "Unrelated block receipts must not inflate retained history")
+    }
+    func testCeloArchiveStillBoundsRelevantReceiptEvidence() async throws {
+        let client = try IndexedEVMClient(chain: .celo, apiKey: "fixture", transport: LargeBlockReceiptFeed(enlargeMatchedReceipt: true))
+        do { _ = try await client.history(owner: monOwner, stream: .transfers); XCTFail("Relevant evidence remains bounded") }
+        catch { XCTAssertEqual(error as? AnkrError, .responseTooLarge) }
+    }
     func testUnavailableRecordIsExcludedButMissingVerificationEvidenceIsReported() async throws {
+        // Configuration is process-wide; another capture fixture may own it.
+        guard ProcessInfo.processInfo.environment["OATH_MONAD_REPORT_CAPTURE"] == "1" else {
+            throw XCTSkip("Dedicated recorder-capture process")
+        }
         let reports = HistoryRecoveryReports()
         let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
         defer { try? FileManager.default.removeItem(at: file) }
@@ -318,5 +338,43 @@ final class MonadIndexTests: XCTestCase, @unchecked Sendable {
         let result = try await client.history(owner: monOwner, stream: .transfers, cursor: cursor)
         XCTAssertFalse(result.events.isEmpty)
         XCTAssertTrue(result.events.allSatisfy { $0.block > 0 })
+    }
+}
+
+final class MonadMetadataReconciliationTests: XCTestCase, @unchecked Sendable {
+    func testSavedMetadataCannotCompleteFailedDiscovery() async throws {
+        let saved = try IndexedEVMToken(reference: monToken, name: "Saved token", symbol: "SAVED", decimals: 6)
+        for fault in [MonadIndexFeed.Fault.wrongOwner, .invalidPage, .repeatedPage] {
+            let client = try IndexedEVMClient(chain: .monad, apiKey: "fixture", alchemyAPIKey: "fixture", transport: MonadIndexFeed(fault))
+            let value = try await client.inventory(owner: monOwner, tracked: [saved])
+            XCTAssertFalse(value.complete, "Saved metadata cannot repair failed discovery")
+            XCTAssertEqual(value.holdings.first { $0.token.reference == monToken }?.amount, "3000000")
+        }
+    }
+
+    func testTrackedMetadataRecoversOnlyAfterPinnedPrecisionIsVerified() async throws {
+        let saved = try IndexedEVMToken(reference: monToken, name: "Saved token", symbol: "SAVED", decimals: 6)
+        for fault in [MonadIndexFeed.Fault.metadataUnavailable, .metadataChanged] {
+            let feed = MonadIndexFeed(fault)
+            let client = try IndexedEVMClient(chain: .monad, apiKey: "fixture", alchemyAPIKey: "fixture", transport: feed)
+            let value = try await client.inventory(owner: monOwner, tracked: [saved])
+            let token = try XCTUnwrap(value.holdings.first { $0.token.reference == monToken })
+            if fault == .metadataUnavailable {
+                XCTAssertTrue(value.complete, "Verified saved metadata must recover a discovery-only metadata failure")
+                XCTAssertEqual(token.amount, "3000000")
+                XCTAssertEqual(token.token, saved)
+            } else {
+                XCTAssertFalse(value.complete)
+                XCTAssertNil(token.amount, "Changed precision cannot overwrite a saved amount")
+            }
+        }
+    }
+
+    func testUnknownMissingMetadataStillLeavesInventoryIncomplete() async throws {
+        let client = try IndexedEVMClient(chain: .monad, apiKey: "fixture", alchemyAPIKey: "fixture", transport: MonadIndexFeed(.metadataUnavailable))
+        let value = try await client.inventory(owner: monOwner)
+        XCTAssertFalse(value.complete)
+        XCTAssertNil(value.holdings.first { $0.token.reference == monToken })
+        XCTAssertNotNil(value.holdings.first { $0.token.reference == "native" }?.amount)
     }
 }
