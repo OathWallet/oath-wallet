@@ -29,13 +29,13 @@ Kraken’s [current web instructions](https://support.kraken.com/articles/360000
 4. Review the network, destination, recipient amount and total deduction. Confirm only after they match.
 5. Complete any requested security verification. Kraken notes that funding 2FA, when enabled, can differ from sign-in 2FA.
 
-The linked Kraken walkthrough includes its own screenshots. Follow prompts for your actual interface; do not assume an old tutorial’s address-confirmation email or menu is required. Kraken directs users of this interface to track the withdrawal in recent activity.
+The linked walkthrough includes Kraken’s screenshots. Track the withdrawal in recent activity and follow the prompts shown in your interface.
 
 ## 3. Check the withdrawal fee, minimum and available balance
 
 Kraken has a [withdrawal-fee and minimum guide](https://support.kraken.com/articles/360000767986-cryptocurrency-withdrawal-fees-and-minimums), but says the confirmation screen provides the final fee and that amounts can change. Use that screen rather than a fixed number copied from an older article. If it shows separate requested and recipient amounts, distinguish them before confirming.
 
-Some funding methods cause withdrawal holds. Kraken’s [withdrawal instructions](https://support.kraken.com/articles/360000672763-how-to-withdraw-cryptocurrencies-from-your-kraken-account) describe holds after certain purchases or deposits. A trading balance is therefore not always immediately withdrawable. Read the release time in your account; Oath cannot remove an exchange hold.
+Some deposits or purchases cause [withdrawal holds](https://support.kraken.com/articles/360000672763-how-to-withdraw-cryptocurrencies-from-your-kraken-account). Check your account’s available withdrawal balance and release time. Oath cannot remove an exchange hold.
 
 For a first transfer, choose a small amount that still meets the minimum after applying the form’s fee rules. A later withdrawal can incur another fee. Sending BTC onward from Oath is also a separate transaction with its own Bitcoin network fee.
 
