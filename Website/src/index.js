@@ -1,3 +1,5 @@
+import {handleCompatibilityDownload} from './compatibility-downloads.js';
+import compatibility from '../content/compatibility/catalog.json' with {type:'json'};
 import {applyTheme} from './theme.js';
 import {applyAppBanner} from './app-banner.js';
 import {handleSecurityTxt} from './security-txt.js';
@@ -19,7 +21,7 @@ import { articleRoutes } from './article-routes.js';
 import { handleNewsletter, newsletterScheduled } from './newsletter.js';
 import { handleRetiredTradingPages } from './retired-trading-pages.js';
 
-const pageNames = new Set([...decisionGuides.pages.map(p=>p.path.slice(1)), 'features', 'articles', 'support', 'press', 'terms', 'privacy', 'security', 'bug-bounty', 'about', 'networks', ...networkCatalog.networks.map(n => 'networks/' + n.slug), ...featureCatalog.features.map(f => f.path.slice(1))]);
+const pageNames = new Set([...compatibility.pages.map(p=>p.path.slice(1)), ...decisionGuides.pages.map(p=>p.path.slice(1)), 'features', 'articles', 'support', 'press', 'terms', 'privacy', 'security', 'bug-bounty', 'about', 'networks', ...networkCatalog.networks.map(n => 'networks/' + n.slug), ...featureCatalog.features.map(f => f.path.slice(1))]);
 const hstsPolicy = 'max-age=31536000; includeSubDomains; preload';
 
 export default {
@@ -69,6 +71,8 @@ async function serveRequest(request, env, ctx) {
     return Response.redirect(url.href, 301);
   }
 
+  const compatibilityDownload = await handleCompatibilityDownload(request, env);
+  if (compatibilityDownload) return compatibilityDownload;
   const artwork = await handleArtwork(request, env, ctx);
   if (artwork) return artwork;
   const tokens = await cachedTokens(request, env, ctx);

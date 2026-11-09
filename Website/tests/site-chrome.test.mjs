@@ -1,3 +1,4 @@
+import compatibility from '../content/compatibility/catalog.json' with {type:'json'};
 import decisionGuides from '../content/decision-guides.json' with {type:'json'};
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -25,7 +26,7 @@ test('all marketing and editorial pages use the canonical header and complete ne
   assert.doesNotMatch(html,/<header class="site-header"|<footer class="site-footer"/);
   checked++;
  }
- assert.equal(checked,85+decisionGuides.pages.length+features.features.length+published.articles.filter(a=>a.github_editorial).length,`checked ${checked} current pages`);
+ assert.equal(checked,85+compatibility.pages.length+decisionGuides.pages.length+features.features.length+published.articles.filter(a=>a.github_editorial).length,`checked ${checked} current pages`);
  for(const n of catalog.networks){assert.ok(chrome.footer.includes(`href="https://oathwallet.org/networks/${n.slug}"`));assert.ok(chrome.footer.includes(`src="${n.icon.replace(/([^/]+)\.webp$/, 'responsive/$1-56.webp')}"`));}
  assert.equal((chrome.footer.match(/href="https:\/\/oathwallet.org\/networks\//g)||[]).length,42);
 });

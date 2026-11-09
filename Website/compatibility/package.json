@@ -1,0 +1,7 @@
+{
+  "name": "oath-compatibility-lab-tools",
+  "private": true,
+  "type": "module",
+  "description": "Offline public-fixture reference tools; never bundled into the website",
+  "dependencies": { "@trustwallet/wallet-core": "4.8.4" }
+}

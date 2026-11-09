@@ -1,0 +1,29 @@
+{
+  "latest": "2026-11-09",
+  "editions": [
+    "2026-11-09"
+  ],
+  "pages": [
+    {
+      "path": "/compatibility",
+      "heading": "Same keys. Different accounts?",
+      "title": "Wallet Compatibility Lab: Import & Recovery Evidence | Oath",
+      "description": "Compare Trust Wallet, MetaMask and Electrum account recovery with Oath. Explore versioned derivation results, Bitcoin address types, methods and limitations.",
+      "updated": "2026-11-09"
+    },
+    {
+      "path": "/compatibility/2026-11-09",
+      "heading": "The first edition. Every result in view.",
+      "title": "Wallet Compatibility Results \u2014 November 2026 | Oath",
+      "description": "Oath 5.0.2 compatibility evidence: 14 reference-library checks, four source assertions and 14 passing Bitcoin host tests, with exact scope and skipped tests.",
+      "updated": "2026-11-09"
+    },
+    {
+      "path": "/compatibility/methodology",
+      "heading": "A result is only as useful as its evidence.",
+      "title": "Wallet Compatibility Lab: Methods & Reproduction | Oath",
+      "description": "How Oath reviews wallet recovery: pinned versions, public fixtures, reproducible checks and clear boundaries between source, core tests and observed behavior.",
+      "updated": "2026-11-09"
+    }
+  ]
+}
