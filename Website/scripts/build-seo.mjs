@@ -73,7 +73,6 @@ const section=`<!-- oath-self-custody:start --><section id="self-custody" style=
 <h2 style="margin:0 0 24px;font:400 clamp(36px,5vw,64px)/1.08 'Instrument Serif',serif">Self-custody, explained.</h2>
 <p style="max-width:64ch;font:400 18px/1.6 'Instrument Sans',sans-serif;color:#B9B7B0">A crypto wallet is a tool for using a blockchain. Understand the tradeoffs, prepare your backup, and check the network before moving funds.</p>
 <div class="custody-question-list">${questions.map(q=>`<details class="custody-question"><summary><span>${esc(q.question)}</span><span class="custody-question-toggle" aria-hidden="true"></span></summary><div class="custody-answer"><p>${esc(q.answer)}</p><a href="${esc(q.url)}">${esc(q.label)}</a></div></details>`).join('')}</div>
-<p style="margin:40px 0 0;font:400 16px/1.6 'Instrument Sans',sans-serif">New to Oath? <a href="https://help.oathwallet.org/articles/create-wallet" style="text-decoration:underline">Create your first wallet</a>, learn to <a href="https://help.oathwallet.org/articles/receive-crypto" style="text-decoration:underline">receive crypto</a>, or browse the <a href="https://help.oathwallet.org/" style="text-decoration:underline">Help Center</a>.</p>
 </section><!-- oath-self-custody:end -->`;
 home=home.replace(/<!-- oath-self-custody:start -->[\s\S]*?<!-- oath-self-custody:end -->\s*/g,'');
 if(!home.includes('<section id="get"'))throw new Error('Homepage CTA anchor missing');
