@@ -1,4 +1,5 @@
 import {applyTheme} from './theme.js';
+import {applyAppBanner} from './app-banner.js';
 import {handleSecurityTxt} from './security-txt.js';
 import {handleSearchVerification} from './search-verification.js';
 import {handleArtwork} from './artwork-route.js';
@@ -45,6 +46,7 @@ export default {
       }
     }
     response = await applyTheme(request, response);
+    response = await applyAppBanner(request, response);
     response = addAgentDiscovery(request, response);
     // Cover assets, redirects, API responses and 404s with the same HTTPS policy.
     if (new URL(request.url).protocol !== 'https:') return response;
