@@ -127,10 +127,4 @@ Recovery depends on the backup you prepared before the loss. A recovery phrase m
 Oath is free to download from the App Store. Blockchain transfers can require network fees, account reserves or activation costs. These vary by network and conditions. Review the asset, destination, network and fee before confirming; an on-chain transfer generally cannot be reversed.
 
 [Learn about network fees](https://articles.oathwallet.org/where-crypto-network-fees-actually-go)
-
-### Does open source mean a wallet has been audited?
-
-Public code lets people inspect an implementation. It does not by itself establish an independent security audit or prove that the app installed on a phone matches that code. Oath publishes its source-review scope and limitations so you can check the evidence behind a claim.
-
-[Read about source and verifiable builds](https://articles.oathwallet.org/open-source-wallets-verifiable-builds)
 <!-- oath-questions:end -->

@@ -170,11 +170,6 @@
       "category": "Self-custody",
       "q": "Is Oath free, and why do transfers have fees?",
       "a": "Oath is free to download from the App Store. Blockchain transfers can require network fees, account reserves or activation costs. These vary by network and conditions. Review the asset, destination, network and fee before confirming; an on-chain transfer generally cannot be reversed."
-    },
-    {
-      "category": "Self-custody",
-      "q": "Does open source mean a wallet has been audited?",
-      "a": "Public code lets people inspect an implementation. It does not by itself establish an independent security audit or prove that the app installed on a phone matches that code. Oath publishes its source-review scope and limitations so you can check the evidence behind a claim."
     }
   ],
   "articles": [
