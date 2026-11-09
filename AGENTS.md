@@ -1,6 +1,6 @@
 # Oath Wallet public source
 
-Version 5.0.3, build 105 (GitHub prerelease; no App Store upload).
+Version 5.0.3, build 110 (regular GitHub source release; Apple delivery is separate).
 The Apple-approved release remains 5.0.2 (104). Use `OathAtmosphere.xcodeproj`, scheme
 `OathAtmosphere`, sources `OathApp/` and `OathAtmosphere/`.
 Do not change stored Keychain, container, backup, or migration identities.

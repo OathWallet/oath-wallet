@@ -1,0 +1,5 @@
+Sending is faster: balance preparation begins as you select an asset, and transaction review shows clearer amounts, transfer charges and network fees.
+
+Manage Tokens and improved asset filters make your assets easier to find and organize. Artwork loads more efficiently, wallet setup has a refreshed welcome experience, and Receive QR presentation is improved.
+
+This update also improves wallet switching, scanner review, history synchronization, restored-wallet compatibility, price guidance and right-to-left presentation. WalletConnect handles unsupported requests and incomplete provider responses more clearly, with stronger transaction review checks. Existing wallet and encrypted backup formats remain compatible.
