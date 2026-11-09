@@ -5104,14 +5104,6 @@ Explore send, receive and compatible dApp guidance for each network. Gram is the
 [Oath on TON App](https://ton.app/app/oath-wallet)
 <!-- oath-network-links:end -->
 
-<!-- oath-transfer-entry:start -->
-## The right token. The right network.
-
-Match the exact token, check its receiving network and find the fee asset before you send. Start with USDT or USDC, or find your token in Oath’s catalog.
-
-[Prepare a transfer](https://oathwallet.org/networks/choose-token-network#prepare-transfer) · [Find your token](https://oathwallet.org/tokens)
-<!-- oath-transfer-entry:end -->
-
 <!-- oath-questions:start -->
 ## Self-custody, explained
 
