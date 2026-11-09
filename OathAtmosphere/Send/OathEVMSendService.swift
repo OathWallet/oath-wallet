@@ -69,18 +69,18 @@ actor OathEVMSendService {
         id.hasPrefix("wc:") && id.count == 67 && id.dropFirst(3).allSatisfy { $0.isASCII && $0.isHexDigit }
     }
     func quote(network:EVMSendNetwork,walletID: String, accountID: String, assetID: String, reference: String,
-               recipient: String, amount: String, decimals: Int, maximum: Bool, vault: OathWalletVault) async throws -> OathEVMQuote {
+               recipient: String, amount: String, decimals: Int, maximum: Bool, vault: OathWalletVault, preparedSender: SendSenderSnapshot? = nil) async throws -> OathEVMQuote {
         guard OathImportChain(rawValue: network.rawValue)?.isEnabled == true else { throw EVMSendError.wrongNetwork }
         return try await EVMSendPreparation.run(network: network) {
             let database = try await vault.database()
             guard let account = try await database.accounts(walletID:walletID).first(where:{$0.id == accountID && $0.networkID == network.rawValue}) else { throw EVMSendError.wrongOwner }
             if let policy = try await vault.evmMultisigPolicy(walletID: walletID) {
                 guard try await database.evmSendReservations(network: network, sender: account.address).isEmpty else { throw EVMSendError.busy }
-                let plan = try await connection(network).quoteMultisig(policy: policy, recipient: recipient, reference: reference, decimals: decimals, amount: amount, maximum: maximum)
+                let plan = try await connection(network).quoteMultisig(policy: policy, recipient: recipient, reference: reference, decimals: decimals, amount: amount, maximum: maximum, preparedSender: preparedSender)
                 return .init(walletID: walletID, accountID: accountID, assetID: assetID, plan: plan)
             }
             let reservations=try await database.evmSendReservations(network:network,sender:account.address)
-            let plan = try await connection(network).quote(sender:account.address,recipient:recipient,reference:reference,decimals:decimals,amount:amount,maximum:maximum,reservations:reservations)
+            let plan = try await connection(network).quote(sender:account.address,recipient:recipient,reference:reference,decimals:decimals,amount:amount,maximum:maximum,reservations:reservations,preparedSender:preparedSender)
             return .init(walletID:walletID,accountID:accountID,assetID:assetID,plan:plan)
         }
     }

@@ -81,7 +81,7 @@ struct OathWCEVMReview: View {
                         NavigationLink { accessLimitDestination } label: {
                             Text(accessLimit)
                                 .underline(pattern: .dot, color: .gray.opacity(0.65))
-                                .oathFont(.largeTitle, weight: .semibold, size: 46)
+                                .oathFont(.largeTitle, weight: .medium, size: 46)
                                 .multilineTextAlignment(.center).lineLimit(3).minimumScaleFactor(0.6)
                                 .padding(.vertical, 8).frame(minHeight: 44).contentShape(Rectangle())
                         }.buttonStyle(.plain).oathNeutralControl()
@@ -89,7 +89,7 @@ struct OathWCEVMReview: View {
                             .accessibilityValue(accessLimit)
                             .accessibilityIdentifier("walletconnect.transaction.limit")
                     } else {
-                        Text(accessLimit).oathFont(.largeTitle, weight: .semibold, size: 46)
+                        Text(accessLimit).oathFont(.largeTitle, weight: .medium, size: 46)
                             .multilineTextAlignment(.center)
                     }
                     accessHeadline(amount: nil)
@@ -186,7 +186,7 @@ struct OathWCEVMReview: View {
                 }
                 if (request.value != "0" && !swap.routes.contains { $0.input.reference == "native" }) || request.call.bytes.isEmpty {
                     Text((OathSendAmount.units(request.value, decimals: 18) ?? request.value) + " " + plan.network.symbol)
-                        .oathFont(.largeTitle, weight: .semibold).minimumScaleFactor(0.6).lineLimit(2)
+                        .oathFont(.largeTitle, weight: .medium).minimumScaleFactor(0.6).lineLimit(2)
                         .environment(\.layoutDirection, .leftToRight)
                     Text(strings.text(.wcCallValue)).oathFont(.subheadline).foregroundStyle(.secondary)
                 }
@@ -398,8 +398,8 @@ struct OathWCSpenderRow: View {
                 Spacer(minLength: 12)
                 OathDAppLogo(icons: brand.map { [$0.iconURL] } ?? [], size: 28)
                 Text(verbatim: brand?.name ?? checkedIdentity?.name ?? strings.text(.permissionUnknown))
-                    .oathFont(.body, weight: .semibold).multilineTextAlignment(.trailing)
-                Image(systemName: "chevron.forward").font(.footnote.weight(.semibold)).foregroundStyle(.tertiary)
+                    .oathFont(.body, weight: .medium).multilineTextAlignment(.trailing)
+                Image(systemName: "chevron.forward").font(.footnote.weight(.medium)).foregroundStyle(.tertiary)
             }.foregroundStyle(.primary).padding(20).contentShape(Rectangle())
         }.buttonStyle(OathSettingsRowButtonStyle())
             .accessibilityIdentifier("walletconnect.transaction.spender")
@@ -438,7 +438,7 @@ struct OathWCTokenAccessSummary: View {
             if let symbol = checkedIdentity?.symbol { Text(verbatim: symbol).oathFont(.headline) }
             Text(isUnlimited ? strings.text(.permissionUnlimited)
                 : decimals.flatMap { OathSendAmount.units(amount, decimals: $0) } ?? amount)
-                .oathFont(compact ? .title3 : .largeTitle, weight: .semibold).minimumScaleFactor(0.6).lineLimit(2)
+                .oathFont(compact ? .title3 : .largeTitle, weight: .medium).minimumScaleFactor(0.6).lineLimit(2)
                 .environment(\.layoutDirection, isUnlimited ? layoutDirection : .leftToRight)
             if !compact || (decimals == nil && !isUnlimited) {
                 Text(strings.text(decimals == nil && !isUnlimited ? .wcRawAmount : .wcConfirmedLimit))
@@ -631,12 +631,12 @@ struct OathWCApprovalLimit: View {
                 OathWCReviewTokenLogo(networkID: networkID, reference: token.contract, symbol: identity?.symbol, size: 64)
                 if let symbol = identity?.symbol { Text(verbatim: symbol).oathFont(.headline) }
                 if unlimited {
-                    Text(strings.text(.permissionUnlimited)).oathFont(.title2, weight: .semibold)
+                    Text(strings.text(.permissionUnlimited)).oathFont(.title2, weight: .medium)
                 }
             }.frame(maxWidth: .infinity).padding(.top, 24)
             if !unlimited {
                 TextField(strings.text(.wcConfirmedLimit), text: $input)
-                    .keyboardType(.decimalPad).oathFont(.largeTitle, weight: .semibold)
+                    .keyboardType(.decimalPad).oathFont(.largeTitle, weight: .medium)
                     .multilineTextAlignment(.center).padding(24).disabled(working)
                     .accessibilityIdentifier("walletconnect.limit.input")
             }

@@ -14,7 +14,7 @@ actor OathThorchainSendService {
     static let shared = OathThorchainSendService()
     private var client: ThorchainSendClient?
     private var flights = Set<String>()
-    private func connection() throws -> ThorchainSendClient {
+    func connection() throws -> ThorchainSendClient {
         if let client { return client }
         let value = try ThorchainSendClient()
         client = value; return value

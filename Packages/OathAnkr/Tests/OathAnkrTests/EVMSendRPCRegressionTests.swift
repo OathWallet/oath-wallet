@@ -20,6 +20,7 @@ actor EVMSendFixtureTransport:AnkrTransport {
     init(_ mode:String="normal",network:EVMSendNetwork = .arbitrum,nativeBalance:String?=nil,gasEstimate:UInt64?=nil) { self.mode=mode;self.network=network;self.nativeBalance=nativeBalance;self.gasEstimate=gasEstimate ?? network.minimumGas }
     func configure(_ p:EVMSendPlan,_ s:EVMSignedSend) { plan=p;signed=s }
     func fund(_ amount: String) { nativeBalance = amount }
+    func changeMode(_ mode: String) { self.mode = mode }
     func pending(latest:UInt64=7,nonce:UInt64=8,native:String?=nil,token:String?=nil) {
         nonceOverride=(latest,nonce);pendingNativeBalance=native;pendingTokenBalance=token
     }

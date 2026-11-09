@@ -11,7 +11,7 @@ public actor TonSendClient {
     private var lastIndex=Date.distantPast,lastNode=Date.distantPast
     private let interval:Double
     public init(network:TonSendNetwork = .mainnet,apiKey:String?=nil,transport:any AnkrTransport=AnkrHTTPTransport(),indexInterval:Double=4.2) throws {
-        self.network=network;self.transport=transport;self.interval=indexInterval
+        self.network=network;self.transport=SendMeasuredTransport(base: transport);self.interval=indexInterval
         var urls=[URL]()
         if network == .mainnet,let apiKey,!apiKey.isEmpty {
             guard apiKey.count<=256,apiKey.utf8.allSatisfy({(48...57).contains($0)||(65...90).contains($0)||(97...122).contains($0)}) else { throw TonSendError.configuration }
@@ -129,6 +129,26 @@ public actor TonSendClient {
               let a=s[0].array,a.count==2,a[0].string=="num",let value=a[1].string else { throw TonSendError.wrongOwner }
         guard let n=TonAmount(value.hasPrefix("0x") ? String(value.dropFirst(2)):value,radix:value.hasPrefix("0x") ? 16:10) else { throw TonSendError.amount };return n
     }
+    public func prepareSender(sender: String, reference: String, publicKey: Data, decimals: Int, multisig: TonMultisigPolicy? = nil) async throws -> SendSenderSnapshot {
+        let observed = Date.now
+        let sender = try network.address(sender), reference = reference == "native" ? reference : try network.address(reference)
+        guard sender == (try multisig?.address(network: network) ?? TonSendCrypto.address(publicKey: publicKey)) else { throw TonSendError.wrongOwner }
+        let source = try await account(sender)
+        try validateWallet(source, publicKey: publicKey, multisig: multisig)
+        var asset = TonAmount(source.balance)
+        if reference == "native" { guard decimals == 9 else { throw TonSendError.metadataChanged } }
+        else {
+            async let metadata = index("jettons/" + reference)
+            let wallet = try await jettonWallet(master: reference, owner: sender)
+            asset = try await jettonBalance(master: reference, wallet: wallet, owner: sender)
+            let value = try await metadata
+            guard value?["metadata"]["decimals"].text.flatMap(Int.init) == decimals,
+                  try network.address(value?["metadata"]["address"].string ?? "") == reference else { throw TonSendError.metadataChanged }
+        }
+        return try .init(chain: "ton", sender: sender, reference: reference, decimals: decimals,
+                         assetBalance: String(asset), nativeBalance: String(source.balance), observedAt: observed)
+    }
+
     public func quote(sender:String,recipient:String,reference:String,publicKey:Data,decimals:Int,amount:String,maximum:Bool=false,memo:String="",multisig:TonMultisigPolicy? = nil) async throws -> TonSendPlan {
         let sender=try network.address(sender),recipient=try network.address(recipient),reference=reference=="native" ? reference:try network.address(reference)
         guard sender == (try multisig?.address(network:network) ?? TonSendCrypto.address(publicKey:publicKey)),(0...255).contains(decimals),memo.utf8.count<=120,let requested=TonAmount(amount),requested>0 else { throw TonSendError.amount }

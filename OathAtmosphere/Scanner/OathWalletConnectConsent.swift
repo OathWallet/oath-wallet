@@ -171,7 +171,7 @@ struct OathWCDAppHeader: View {
         HStack(spacing: 14) {
             OathDAppLogo(icons: identity.icons, size: 44)
             VStack(alignment: .leading, spacing: 4) {
-                Text(identity.displayName).oathFont(.body, weight: .semibold)
+                Text(identity.displayName).oathFont(.body, weight: .medium)
                 Text(identity.domain).oathFont(.subheadline).foregroundStyle(.secondary)
                     .environment(\.layoutDirection, .leftToRight)
             }.frame(maxWidth: .infinity, alignment: .leading)

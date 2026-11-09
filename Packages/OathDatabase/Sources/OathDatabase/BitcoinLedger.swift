@@ -1,6 +1,7 @@
 import Foundation
 import GRDB
 import OathBitcoin
+import OathAnkr
 
 public struct BitcoinAccountState: Sendable, Equatable {
     public let descriptor: BitcoinWalletDescriptor
@@ -263,6 +264,35 @@ extension OathDatabase {
     /// incoming/change outputs, regardless of the Receive type or network. A send
     /// must have fresh verified discovery before reserving these outputs. Existing global
     /// outpoint reservations prevent two wallets from spending the same coin.
+    /// Read the whole sender snapshot from one committed database version. The
+    /// scan's original timestamp and reservation-aware spendable set are retained.
+    public func bitcoinSenderSnapshot(walletID: String, sender: String, network: UTXONetwork, now: Date = .now) async throws -> SendSenderSnapshot {
+        try await pool.read { db in
+            let accounts = try Self.accounts(db, walletID: walletID).filter { $0.networkID == network.rawValue }
+            guard accounts.contains(where: { $0.address == sender }) else { throw StoreError.conflictingIdentity }
+            let rows = try Row.fetchAll(db, sql: """
+                SELECT w.* FROM walletAccounts a JOIN bitcoinWallets w ON w.accountID=a.id
+                WHERE a.walletID=? AND a.networkID=?
+                """, arguments: [walletID, network.rawValue])
+            guard rows.count == accounts.count else { throw StoreError.staleSync }
+            var gross: Int64 = 0, spendable: Int64 = 0, observed = now
+            for row in rows {
+                guard let success: Double = row["lastSuccess"], (0...30).contains(now.timeIntervalSince1970 - success),
+                      (row["failure"] as String?) == nil, (row["scanID"] as String?) == nil else { throw StoreError.staleSync }
+                let confirmed: Int64 = row["confirmed"], unconfirmed: Int64 = row["unconfirmed"]
+                let total = confirmed.addingReportingOverflow(unconfirmed)
+                guard !total.overflow, total.partialValue >= 0, gross <= Int64.max - total.partialValue else { throw StoreError.conflictingIdentity }
+                gross += total.partialValue; observed = min(observed, Date(timeIntervalSince1970: success))
+            }
+            for item in try Self.bitcoinSpendableOutputs(walletID: walletID, now: now, network: network, db: db) {
+                guard item.output.value >= 0, spendable <= Int64.max - item.output.value else { throw StoreError.conflictingIdentity }
+                spendable += item.output.value
+            }
+            return try .init(chain: network.rawValue, sender: sender, reference: "native", decimals: 8,
+                             assetBalance: String(gross), nativeBalance: String(gross), spendable: String(spendable), observedAt: observed)
+        }
+    }
+
     public func bitcoinSpendableOutputs(walletID: String, now: Date = .now, network: UTXONetwork = .bitcoin) async throws -> [BitcoinSpendableOutput] {
         try await pool.read { db in
             try Self.bitcoinSpendableOutputs(walletID: walletID, now: now, network: network, db: db)

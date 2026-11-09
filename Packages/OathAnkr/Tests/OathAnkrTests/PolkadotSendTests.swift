@@ -2,6 +2,27 @@ import XCTest
 @testable import OathAnkr
 
 final class PolkadotSendTests: XCTestCase, @unchecked Sendable {
+    func testEarlySenderPreparation() async throws {
+        let p = try plan(), signed = try PolkadotSendCrypto.sign(p,privateKey:Data(repeating:1,count:32))
+        let metadata = try Data(contentsOf:Bundle.module.url(forResource:"PolkadotMainnetMetadata",withExtension:"scale",subdirectory:"Fixtures")!)
+        let t = PolkadotSendRPCFixture(plan:p,signed:signed,metadata:metadata,events:Data(),free:"1000000000",frozen:"800000000")
+        let c = try PolkadotSendClient(transport:t)
+        let s = try await c.prepareSender(sender:p.sender,reference:"native",decimals:10)
+        XCTAssertEqual(s.assetBalance,"1000000000"); XCTAssertEqual(s.spendable,"200000000")
+        let initial = await t.methods
+        XCTAssertFalse(initial.contains("payment_queryInfo")); XCTAssertFalse(initial.contains("system_accountNextIndex"))
+        let key = try PolkadotStorage.nativeKey(p.sender)
+        let before = await t.storageKeys.filter { $0 == key }.count
+        let quote = try await c.quote(sender:p.sender,recipient:p.recipient,reference:"native",decimals:10,amount:"100000000",preparedSender:s)
+        XCTAssertEqual(quote.amount,"100000000"); XCTAssertEqual(quote.fee,"12501")
+        let warm = await t.storageKeys.filter { $0 == key }.count
+        XCTAssertEqual(warm,before,"Exact finalized block must reuse the verified sender read")
+        await t.changeHead()
+        _ = try await c.quote(sender:p.sender,recipient:p.recipient,reference:"native",decimals:10,amount:"100000000",preparedSender:s)
+        let changed = await t.storageKeys.filter { $0 == key }.count
+        XCTAssertEqual(changed,before+1,"Changed block must read sender again")
+    }
+
     func runtime(_ name: String = "Mainnet") throws -> PolkadotRuntime {
         try PolkadotRuntime(Data(contentsOf:Bundle.module.url(forResource:"Polkadot\(name)Metadata",withExtension:"scale",subdirectory:"Fixtures")!))
     }
@@ -68,12 +89,17 @@ private actor PolkadotSendRPCFixture: AnkrTransport {
     let free: String, frozen: String, recipientFree: String
     let storageOverrides: [String: String]
     var blocks: Set<UInt64> = []
+    var methods: [String] = [], storageKeys: [String] = []
+    var headChanged = false
+    func changeHead() { headChanged = true }
     init(plan: PolkadotSendPlan, signed: PolkadotSignedSend, metadata: Data, events: Data, expired: Bool = false, failedHeight: UInt64? = nil, free: String = "100000000000", frozen: String = "0", recipientFree: String = "0", storageOverrides: [String: String] = [:]) {
         self.plan=plan;self.signed=signed;self.metadata=metadata;self.events=events;self.expired=expired;self.failedHeight=failedHeight;self.free=free;self.frozen=frozen;self.recipientFree=recipientFree
         self.storageOverrides=storageOverrides
     }
     func send(_ request: URLRequest) async throws -> (Data,Int) {
         let j=try JSONDecoder().decode(SolanaJSON.self,from:request.httpBody!), method=j["method"].string!,params=j["params"].array!
+        methods.append(method)
+        if method == "state_getStorage", let key = params.first?.string { storageKeys.append(key) }
         let result: SolanaJSON
         switch method {
         case "chain_getBlockHash":
@@ -83,7 +109,7 @@ private actor PolkadotSendRPCFixture: AnkrTransport {
                 if height == failedHeight { throw URLError(.timedOut) }
                 blocks.insert(height); result = .string("0x"+String(format:"%064llx",height))
             }
-        case "chain_getFinalizedHead": result = .string(plan.blockHash)
+        case "chain_getFinalizedHead": result = .string(headChanged ? "0x"+String(repeating:"44",count:32) : plan.blockHash)
         case "chain_getHeader": result = .object(["number":.string("0x"+String(expired ? plan.expiresAtHeight : plan.blockHeight+1,radix:16))])
         case "chain_getBlock": result = .object(["block":.object(["header":.object(["number":.string("0x"+String(UInt64(params[0].string!.dropFirst(2),radix:16)!,radix:16))]),"extrinsics":.array(expired || params[0].string != "0x"+String(format:"%064llx",plan.blockHeight+1) ? []:[.string(PolkadotIdentity.hex(signed.bytes))])])])
         case "state_getRuntimeVersion": result = .object(["specVersion":.number(String(plan.specVersion)),"transactionVersion":.number(String(plan.transactionVersion))])
@@ -233,7 +259,11 @@ extension PolkadotSendTests {
             overrides["0x8c5b9c237726a63375a5d60e5cf1b0b3ea054aacc32ece6e888367287e12de1e"+accountSuffix]=values["held200"]
         }
         let fixture=PolkadotSendRPCFixture(plan:p,signed:signed,metadata:metadata,events:Data(),free:nativeFree,storageOverrides:overrides)
-        return try await PolkadotSendClient(transport:fixture).quote(sender:p.sender,recipient:p.recipient,reference:token.reference,decimals:0,amount:amount,maximum:maximum)
+        let client = try PolkadotSendClient(transport:fixture)
+        let prepared = try await client.prepareSender(sender:p.sender,reference:token.reference,decimals:0,knownToken:token)
+        let before = await fixture.methods
+        XCTAssertFalse(before.contains("payment_queryInfo"))
+        return try await client.quote(sender:p.sender,recipient:p.recipient,reference:token.reference,decimals:0,amount:amount,maximum:maximum,preparedSender:prepared)
     }
     func testTokenMaximumKeepsMinimumAndDoesNotSweepUnapprovedDust() async throws {
         let retained=try await tokenQuote()

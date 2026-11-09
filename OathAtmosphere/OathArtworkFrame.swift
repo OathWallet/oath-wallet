@@ -44,7 +44,11 @@ struct OathArtworkFrame {
             OathLayoutGeometry.isUsable($0.logo) && OathLayoutGeometry.isUsable($0.copy)
                 && OathLayoutGeometry.isUsable($0.actions) ? $0 : nil
         }
-        logo = measured?.logo ?? OathArtworkLayout(size: self.size, safeTop: safeTop).logoFrame
+        // Welcome now owns a vector Image. Suppress the old baked logo even
+        // before the first geometry measurement, including the startup poster.
+        logo = placement?.rendersLogo == false
+            ? CGRect(x: -100, y: -100, width: 1, height: 1)
+            : measured?.logo ?? OathArtworkLayout(size: self.size, safeTop: safeTop).logoFrame
         logoClip = measured?.logoClip ?? CGRect(origin: .zero, size: self.size)
         copy = measured?.copy ?? .zero
         divider = placement?.spreadDivider.flatMap { $0.isFinite ? $0 : nil }

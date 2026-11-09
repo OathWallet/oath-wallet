@@ -53,6 +53,19 @@ actor StellarTransportFixture: AnkrTransport {
     }
 }
 final class StellarSendBoundaryTests:XCTestCase {
+    func testEarlySenderPreparation() async throws {
+        let (c,t,a,_,issuer) = try fixture()
+        let s = try await c.prepareSender(sender:a,reference:"native",decimals:7)
+        XCTAssertTrue(EVMSendAmount.less(s.spendable,s.assetBalance))
+        let token = try await c.prepareSender(sender:a,reference:StellarIdentity.contract(code:"OAT",issuer:issuer,network:StellarSendNetwork.testnet.passphrase),decimals:7)
+        XCTAssertEqual(token.assetBalance,"100000000"); XCTAssertEqual(token.spendable,"90000000")
+        await t.configure(authorized:false)
+        do {
+            _ = try await c.prepareSender(sender:a,reference:token.reference,decimals:7)
+            XCTFail("Unauthorized trustline was prepared")
+        } catch { XCTAssertEqual(error as? StellarSendError,.restricted) }
+    }
+
     let key=Data(repeating:21,count:32)
     private func fixture() throws -> (StellarSendClient,StellarTransportFixture,String,String,String) {
         let sender=try StellarSendCrypto.address(privateKey:key),recipient=try StellarSendCrypto.address(privateKey:Data(repeating:22,count:32)),issuer=try StellarSendCrypto.address(privateKey:Data(repeating:23,count:32))

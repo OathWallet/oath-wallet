@@ -9,7 +9,7 @@ public actor SolanaSendClient {
     private let permits=AnkrPermits(count:4)
     private var verified=[URL:Date]()
     public init(network:SolanaSendNetwork = .mainnet,apiKey:String?=nil,transport:any AnkrTransport = AnkrHTTPTransport()) throws {
-        self.network=network;self.transport=transport
+        self.network=network;self.transport=SendMeasuredTransport(base: transport)
         if let apiKey {
             guard network != .testnet,!apiKey.isEmpty,apiKey.count<=256,apiKey.utf8.allSatisfy({(48...57).contains($0)||(65...90).contains($0)||(97...122).contains($0)}) else { throw SolanaSendError.configuration }
             let path = network == .mainnet ? "solana" : "solana_devnet"
@@ -169,6 +169,47 @@ public actor SolanaSendClient {
         }
         return i["state"].string=="initialized"
     }
+    public func prepareSender(sender: String, reference: String, decimals: Int, multisig: SolanaMultisigPolicy? = nil) async throws -> SendSenderSnapshot {
+        let observed = Date.now
+        guard SolanaIdentity.isAddress(sender), reference == "native" || SolanaIdentity.isAddress(reference), (0...255).contains(decimals) else { throw SolanaSendError.amount }
+        // A confirmed slot is a lower bound, not an immutable state anchor. Quote
+        // therefore rechecks dynamic state at its own current blockhash.
+        guard let slot = try await rpc("getSlot", [config()]).integer else { throw SolanaSendError.malformed }
+        async let nativeWork = balance(sender, slot: slot)
+        async let accountWork = account(sender, slot: slot)
+        let (native, source) = try await (nativeWork, accountWork)
+        if let multisig {
+            guard try multisig.vault == sender, try await multisigIndex(multisig, minimumSlot: slot) != nil else { throw SolanaSendError.wrongOwner }
+            _ = try await multisigPayer(multisig, slot: slot)
+        } else {
+            guard source["owner"].string == SolanaSendCrypto.system, source["executable"] == .bool(false), source["space"].integer == 0 else { throw SolanaSendError.wrongOwner }
+        }
+        var total = native, spendable = native
+        if reference == "native" { guard decimals == 9 else { throw SolanaSendError.metadataChanged } }
+        else {
+            async let mintWork = account(reference, slot: slot)
+            async let rowsWork = rpc("getTokenAccountsByOwner", [.string(sender), .object(["mint": .string(reference)]), config(slot, encoding: true)])
+            let (mint, response) = try await (mintWork, rowsWork)
+            guard let program = mint["owner"].string, [SolanaIdentity.tokenProgram, SolanaIdentity.token2022Program].contains(program),
+                  mint["data"]["parsed"]["type"].string == "mint" else { throw SolanaSendError.metadataChanged }
+            let info = mint["data"]["parsed"]["info"]
+            guard info["isInitialized"] == .bool(true), info["decimals"].integer == UInt64(decimals) else { throw SolanaSendError.metadataChanged }
+            let allowed: Set<String> = ["transferFeeConfig", "mintCloseAuthority", "metadataPointer", "tokenMetadata", "permanentDelegate", "groupPointer", "tokenGroup", "groupMemberPointer", "tokenGroupMember", "defaultAccountState"]
+            for entry in try tokenExtensions(info) {
+                guard let name = entry["extension"].string, allowed.contains(name) else { throw SolanaSendError.unsupportedToken }
+            }
+            guard let rows = try value(response, slot: slot).array, rows.count <= 2048 else { throw SolanaSendError.malformed }
+            total = 0; spendable = 0
+            for row in rows {
+                let valid = try validateTokenAccount(row["account"], owner: sender, mint: reference, program: program, decimals: decimals, memo: "", incoming: false)
+                guard let amount = row["account"]["data"]["parsed"]["info"]["tokenAmount"]["amount"].string.flatMap(UInt64.init), amount <= UInt64.max - total else { throw SolanaSendError.malformed }
+                total += amount; if valid { spendable += amount }
+            }
+        }
+        return try .init(chain: "solana", sender: sender, reference: reference, decimals: decimals,
+                         assetBalance: String(total), nativeBalance: String(native), spendable: String(spendable), observedAt: observed)
+    }
+
     public func quote(sender:String,recipient:String,reference:String,decimals:Int,amount:String,maximum:Bool=false,memo:String="",paymentReferences:[String]=[]) async throws -> SolanaSendPlan {
         guard SolanaIdentity.isAddress(sender),SolanaIdentity.isAddress(recipient),sender != recipient,reference=="native" || SolanaIdentity.isAddress(reference),
               let requested=UInt64(amount),requested>0,(0...255).contains(decimals),memo.utf8.count<=128 else { throw SolanaSendError.amount }

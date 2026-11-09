@@ -41,6 +41,15 @@ public enum ArtworkImage: Sendable {
         }
     }
 
+    /// Compare a delivery without decoding, hashing pixels, or updating SwiftUI.
+    public func isSameDelivery(as other: Self) -> Bool {
+        switch (self, other) {
+        case let (.raster(a, ac), .raster(b, bc)): return a === b && ac == bc
+        case let (.vector(a, ac), .vector(b, bc)): return a == b && ac == bc
+        default: return false
+        }
+    }
+
     public var memoryCost: Int {
         switch self {
         case .raster(let image, _): image.bytesPerRow * image.height
@@ -48,18 +57,20 @@ public enum ArtworkImage: Sendable {
         }
     }
 
-    public static func decode(_ data: Data) throws -> Self {
+    /// A nil limit preserves originals for exports. List callers specify their
+    /// actual display pixel size; ImageIO decodes directly to that rendition.
+    public static func decode(_ data: Data, maxPixelSize: Int? = nil) throws -> Self {
         guard !data.isEmpty, data.count <= ArtworkSource.byteLimit else { throw ArtworkError.oversized }
         if let source = CGImageSourceCreateWithData(data as CFData, [kCGImageSourceShouldCache: false] as CFDictionary),
            CGImageSourceGetType(source) as String? != UTType.svg.identifier,
            let info = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
            let width = info[kCGImagePropertyPixelWidth] as? Int, let height = info[kCGImagePropertyPixelHeight] as? Int {
             guard width > 0, height > 0, width <= 8192, height <= 8192, width * height <= 16_777_216 else { throw ArtworkError.oversized }
-            // Apply EXIF orientation without reducing the source's pixel count.
+            // Apply EXIF orientation while decoding directly to the requested size.
             guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, [
                 kCGImageSourceCreateThumbnailFromImageAlways: true,
                 kCGImageSourceCreateThumbnailWithTransform: true,
-                kCGImageSourceThumbnailMaxPixelSize: max(width, height),
+                kCGImageSourceThumbnailMaxPixelSize: min(max(width, height), maxPixelSize.map { max(1, $0) } ?? max(width, height)),
                 kCGImageSourceShouldCacheImmediately: true
             ] as CFDictionary) else { throw ArtworkDecodeFailure(stage: .rasterPixels) }
             let color = TokenArtworkPalette.analyze(size: CGSize(width: image.width, height: image.height)) {

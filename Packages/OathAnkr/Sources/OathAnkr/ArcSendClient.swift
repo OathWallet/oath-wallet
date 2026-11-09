@@ -7,7 +7,7 @@ public actor ArcSendClient {
     private let endpoints:[URL]
     private let permits=AnkrPermits(count:4)
     public init(network:ArcSendNetwork = .mainnet,transport:any AnkrTransport = AnkrHTTPTransport()) {
-        self.network=network;self.transport=transport;endpoints=network.endpoints
+        self.network=network;self.transport=SendMeasuredTransport(base: transport);endpoints=network.endpoints
     }
     /// Each request verifies the chain on the same provider, including fallbacks.
     /// One bounded attempt per endpoint; never turn a rejected transaction into success.
@@ -90,16 +90,47 @@ public actor ArcSendClient {
             "maxPriorityFeePerGas":Self.hex(plan.maxPriorityFeePerGas),"nonce":Self.hex(plan.nonce),"type":.string("0x2")]
         if gas { obj["gas"]=Self.hex(plan.gasLimit) };return .object(obj)
     }
-    public func quote(sender:String,recipient:String,reference:String,decimals:Int,amount:String,maximum:Bool=false) async throws -> ArcSendPlan {
+    /// Sender-only checks: no gas price, nonce, recipient or simulation request.
+    public func prepareSender(sender: String, reference: String, decimals: Int) async throws -> SendSenderSnapshot {
+        let sender = try ArcIdentity.address(sender), reference = try ArcIdentity.reference(reference)
+        let observed = Date.now
+        let head = try await block(.string("latest")), height = try Self.uint(head["number"])
+        guard let hash = head["hash"].string, AnkrQuantity.hash(hash),
+              abs(Double(try Self.uint(head["timestamp"])) - Date.now.timeIntervalSince1970) < 60 else { throw ArcSendError.expired }
+        let tag = Self.hex(height)
+        async let native = balance(owner: sender, reference: "native", tag: tag)
+        async let token: String? = reference == "native" ? nil : balance(owner: sender, reference: reference, tag: tag)
+        async let units = self.decimals(reference, tag: tag)
+        let (n, t, d) = try await (native, token, units)
+        guard d == decimals else { throw ArcSendError.metadataChanged }
+        guard try await block(Self.hex(height))["hash"].string == hash else { throw ArcSendError.changed }
+        return try .init(chain: "arc", sender: sender, reference: reference, decimals: decimals,
+                         assetBalance: t ?? n, nativeBalance: n, observedAt: observed,
+                         block: .init(height: height, hash: hash))
+    }
+
+    private func preparedBalance(_ prepared: SendSenderSnapshot?, native: Bool, sender: String, reference: String, tag: SolanaJSON) async throws -> String {
+        if let prepared { return native ? prepared.nativeBalance : prepared.assetBalance }
+        return try await balance(owner: sender, reference: native ? "native" : reference, tag: tag)
+    }
+    private func preparedDecimals(_ prepared: SendSenderSnapshot?, reference: String, tag: SolanaJSON) async throws -> Int {
+        if let prepared { return prepared.decimals }
+        return try await decimals(reference, tag: tag)
+    }
+    public func quote(sender:String,recipient:String,reference:String,decimals:Int,amount:String,maximum:Bool=false, preparedSender: SendSenderSnapshot? = nil) async throws -> ArcSendPlan {
         let sender=try ArcIdentity.address(sender),recipient=try ArcIdentity.address(recipient),reference=try ArcIdentity.reference(reference)
         let requested=try ArcSendAmount.checked(amount)
         guard requested != "0",sender != recipient,recipient != "0x"+String(repeating:"0",count:40) else { throw ArcSendError.amount }
         let head=try await block(.string("latest")),height=try Self.uint(head["number"]),base=try Self.uint(head["baseFeePerGas"])
         guard let hash=head["hash"].string,AnkrQuantity.hash(hash),abs(Double(try Self.uint(head["timestamp"]))-Date.now.timeIntervalSince1970)<60 else { throw ArcSendError.expired }
         let tag=Self.hex(height)
-        async let nativeWork=balance(owner:sender,reference:"native",tag:tag)
-        async let tokenWork:String? = reference == "native" ? nil:balance(owner:sender,reference:reference,tag:tag)
-        async let decimalsWork=self.decimals(reference,tag:tag)
+        let prepared = preparedSender.flatMap { value in
+            value.matches(chain: "arc", sender: sender, reference: reference, decimals: decimals,
+                          block: .init(height: height, hash: hash)) ? value : nil
+        }
+        async let nativeWork = preparedBalance(prepared, native: true, sender: sender, reference: reference, tag: tag)
+        async let tokenWork:String? = reference == "native" ? nil:preparedBalance(prepared, native: false, sender: sender, reference: reference, tag: tag)
+        async let decimalsWork = preparedDecimals(prepared, reference: reference, tag: tag)
         async let nonceWork=rpc("eth_getTransactionCount",[.string(sender),tag])
         async let pendingWork=rpc("eth_getTransactionCount",[.string(sender),.string("pending")])
         async let priceWork=rpc("eth_gasPrice",[])

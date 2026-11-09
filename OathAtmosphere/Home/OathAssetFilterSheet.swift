@@ -26,61 +26,37 @@ extension PortfolioFilter.Kind {
     }
 }
 
-/// Shared Settings rows with native controls. A local draft makes both the
-/// close button and swipe-to-dismiss cancel without touching portfolio results.
-/// Apply waits for durable storage. Empty matches, cancellation and invalid
-/// ranges are expected UI states; only persistence failures are diagnostics.
+/// Native controls apply immediately through a session-owned, serialized writer.
+/// Closing or navigating within the sheet never discards a valid selection.
 struct OathAssetFilterSheet: View {
-    let holdings: [Holding]
+    let session: OathWalletSession
+    let walletID: String
     let currency: String
-    let onApply: (PortfolioFilter) async throws -> Void
-    @State private var saving = false
-    @State private var saveFailed = false
-    @State private var draft: PortfolioFilter
-    @State private var initialSelection: PortfolioFilter
-    @State private var minimum: String
-    @State private var maximum: String
+    @State private var management: ManagedAssetsSnapshot?
+    private let filters: OathAssetFilterModel
     @Environment(\.dismiss) private var dismiss
     @Environment(\.oathLocalizer) private var strings
 
-    init(holdings: [Holding], currency: String, selection: PortfolioFilter,
-         onApply: @escaping (PortfolioFilter) async throws -> Void) {
-        self.holdings = holdings; self.currency = currency; self.onApply = onApply
-        let current = selection.adjusted(for: currency)
-        _draft = State(initialValue: current)
-        _initialSelection = State(initialValue: current)
-        _minimum = State(initialValue: Self.input(current.minimumValue))
-        _maximum = State(initialValue: Self.input(current.maximumValue))
+    init(session: OathWalletSession, walletID: String, currency: String, selection: PortfolioFilter) {
+        self.session = session; self.walletID = walletID; self.currency = currency
+        filters = session.assetFilterEditor(walletID: walletID, currency: currency, selection: selection)
     }
 
-    private static func input(_ value: Decimal?) -> String {
-        value.map { NSDecimalNumber(decimal: $0).stringValue
-            .replacingOccurrences(of: ".", with: Locale.autoupdatingCurrent.decimalSeparator ?? ".") } ?? ""
-    }
-
-    private var validDraft: PortfolioFilter? {
-        var result = draft
-        let low = minimum.trimmingCharacters(in: .whitespacesAndNewlines)
-        let high = maximum.trimmingCharacters(in: .whitespacesAndNewlines)
-        result.minimumValue = low.isEmpty ? nil : PortfolioFilter.value(low, locale: .autoupdatingCurrent)
-        result.maximumValue = high.isEmpty ? nil : PortfolioFilter.value(high, locale: .autoupdatingCurrent)
-        result.rangeCurrency = low.isEmpty && high.isEmpty ? nil : currency
-        guard low.isEmpty || result.minimumValue != nil,
-              high.isEmpty || result.maximumValue != nil, result.isValid else { return nil }
-        return result
+    private func binding<Value>(_ keyPath: WritableKeyPath<PortfolioFilter, Value>) -> Binding<Value> {
+        Binding(get: { filters.selection[keyPath: keyPath] }, set: { filters.set(keyPath, to: $0) })
     }
 
     private var networks: [OathImportChain] {
-        Set(holdings.compactMap { OathImportChain(rawValue: $0.networkID) })
+        Set((session.portfolio?.accounts ?? []).compactMap { OathImportChain(rawValue: $0.networkID) }).filter(\.isEnabled)
             .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }
 
     private var networkLabel: String {
-        if draft.networkIDs.isEmpty { return strings.text(.assetFilterAllNetworks) }
-        if draft.networkIDs.count == 1, let network = networks.first(where: { draft.networkIDs.contains($0.id) }) {
+        if filters.selection.networkIDs.isEmpty { return strings.text(.assetFilterAllNetworks) }
+        if filters.selection.networkIDs.count == 1, let network = networks.first(where: { filters.selection.networkIDs.contains($0.id) }) {
             return strings.invariant(network.name)
         }
-        return strings.format(.historySelectedCount, strings.number(draft.networkIDs.count))
+        return strings.format(.historySelectedCount, strings.number(filters.selection.networkIDs.count))
     }
 
     var body: some View {
@@ -88,44 +64,55 @@ struct OathAssetFilterSheet: View {
             OathAssetFilterSettingsPage {
                 NavigationLink {
                     OathAssetFilterChoices(title: .assetFilterSort,
-                        choices: PortfolioFilter.Sort.allCases, selection: $draft.sort, titleForChoice: { $0.title })
+                        choices: PortfolioFilter.Sort.allCases, selection: binding(\.sort), titleForChoice: { $0.title })
                 } label: {
                     OathSettingsRow(title: strings.text(.assetFilterSort), icon: "arrow.up.arrow.down",
-                                    value: strings.text(draft.sort.title))
+                                    value: strings.text(filters.selection.sort.title))
                 }
                 .buttonStyle(OathSettingsRowButtonStyle())
                 .accessibilityIdentifier("assets.filter.sort")
                 NavigationLink {
-                    OathAssetFilterChoices(title: .assetType,
-                        choices: PortfolioFilter.Kind.allCases, selection: $draft.kind, titleForChoice: { $0.title })
-                } label: {
-                    OathSettingsRow(title: strings.text(.assetType), icon: "square.stack.3d.up",
-                                    value: strings.text(draft.kind.title))
-                }
-                .buttonStyle(OathSettingsRowButtonStyle())
-                .accessibilityIdentifier("assets.filter.kind")
-                NavigationLink {
-                    OathAssetNetworkFilter(networks: networks, selected: $draft.networkIDs)
+                    OathAssetNetworkFilter(networks: networks, selected: binding(\.networkIDs))
                 } label: {
                     OathSettingsRow(title: strings.text(.historyNetworks), icon: "network", value: networkLabel)
                 }
                 .buttonStyle(OathSettingsRowButtonStyle())
                 .accessibilityIdentifier("assets.filter.networks")
 
+                NavigationLink {
+                    OathAssetFilterChoices(title: .assetType,
+                        choices: PortfolioFilter.Kind.allCases, selection: binding(\.kind), titleForChoice: { $0.title })
+                } label: {
+                    OathSettingsRow(title: strings.text(.assetType), icon: "square.stack.3d.up",
+                                    value: strings.text(filters.selection.kind.title))
+                }
+                .buttonStyle(OathSettingsRowButtonStyle())
+                .accessibilityIdentifier("assets.filter.kind")
+
+
                 OathSettingsSectionRule()
-                Toggle(isOn: $draft.groupsTokensByChain) {
+                NavigationLink {
+                    OathManageTokensScreen(session: session, walletID: walletID, currency: currency)
+                } label: {
+                    OathSettingsRow(title: strings.text(.manageTokens), icon: "slider.horizontal.3")
+                }
+                .buttonStyle(OathSettingsRowButtonStyle())
+                .accessibilityIdentifier("assets.filter.manageTokens")
+
+                OathSettingsSectionRule()
+                Toggle(isOn: binding(\.groupsTokensByChain)) {
                     OathSettingsRow(title: strings.text(.assetFilterGroupTokens), icon: "list.bullet.indent", accessory: .none)
                 }
                 .oathSwitchStyle()
                 .padding(.trailing, 20)
                 .accessibilityIdentifier("assets.filter.groupTokens")
-                Toggle(isOn: $draft.hidesUnverifiedTokens) {
+                Toggle(isOn: binding(\.hidesUnverifiedTokens)) {
                     OathSettingsRow(title: strings.text(.assetFilterHideUnverified), icon: "checkmark.shield", accessory: .none)
                 }
                 .oathSwitchStyle()
                 .padding(.trailing, 20)
                 .accessibilityIdentifier("assets.filter.hideUnverified")
-                Toggle(isOn: $draft.hidesZeroBalances) {
+                Toggle(isOn: binding(\.hidesZeroBalances)) {
                     OathSettingsRow(title: strings.text(.assetFilterHideZero), icon: "eye.slash", accessory: .none)
                 }
                 .oathSwitchStyle()
@@ -136,85 +123,71 @@ struct OathAssetFilterSheet: View {
                 OathSettingsSectionRule()
                 OathSettingsFooter {
                     Text(strings.format(.assetFilterValueRange, currency))
-                        .oathFont(.subheadline, weight: .semibold)
+                        .oathFont(.subheadline, weight: .medium)
                 }
                 OathInputGroup {
-                    valueField(.historyMinimum, text: $minimum, identifier: "assets.filter.minimum")
+                    valueField(.historyMinimum, text: Binding(get: { filters.minimum }, set: { filters.setMinimum($0) }), identifier: "assets.filter.minimum")
                     OathInputSeparator()
-                    valueField(.historyMaximum, text: $maximum, identifier: "assets.filter.maximum")
+                    valueField(.historyMaximum, text: Binding(get: { filters.maximum }, set: { filters.setMaximum($0) }), identifier: "assets.filter.maximum")
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 16)
                 OathSettingsFooter {
                     Text(strings.text(.assetFilterValueDetail))
-                    if validDraft == nil {
+                    if filters.hasInvalidRange {
                         Text(strings.text(.historyInvalidRange)).foregroundStyle(.red)
                             .accessibilityIdentifier("assets.filter.invalid")
                     }
                 }
-
                 OathSettingsSectionRule()
-                if saveFailed {
+                if filters.saveFailed {
                     OathSettingsFooter {
                         Text(strings.text(.assetFilterSaveFailed)).foregroundStyle(.red)
                             .accessibilityIdentifier("assets.filter.saveError")
+                        OathButton(strings.text(.tryAgain)) { filters.retry() }
+                            .accessibilityIdentifier("assets.filter.retry")
                     }
                 }
-                if let validDraft, validDraft.hidesUnverifiedTokens == initialSelection.hidesUnverifiedTokens {
+                if let management {
                     OathSettingsRow(title: strings.text(.assetFilterMatches), icon: "line.3.horizontal.decrease",
-                        value: strings.number(validDraft.applying(to: holdings, currency: currency,
-                            locale: strings.language.locale).count), accessory: .none)
+                        value: strings.number(management.matchingCount(filter: filters.selection, currency: currency,
+                            locale: strings.language.locale)), accessory: .none)
                         .accessibilityIdentifier("assets.filter.matches")
                 }
-                OathButton(feedback: .selection) {
-                    draft = .init(); minimum = ""; maximum = ""
-                } label: {
-                    OathSettingsRow(title: strings.text(.historyResetFilters), icon: "arrow.counterclockwise", accessory: .none)
-                }
-                .buttonStyle(OathSettingsRowButtonStyle())
-                .disabled(draft.activeCount == 0 && !draft.groupsTokensByChain && minimum.isEmpty && maximum.isEmpty)
-                .accessibilityIdentifier("assets.filter.reset")
+
             }
-            .disabled(saving)
+            .task(id: currency) {
+                do {
+                    let database = try await session.vault.database()
+                    for try await value in database.observeManagedAssets(walletID: walletID, currency: currency) {
+                        try Task.checkCancellation()
+                        guard session.portfolio?.wallet.id == walletID else { return }
+                        management = value
+                    }
+                } catch is CancellationError { }
+                catch { OathDiagnostics.record(error, component: "asset_filters", operation: "observe_management") }
+            }
             .scrollDismissesKeyboard(.interactively)
             .navigationTitle(strings.text(.assetFilterTitle))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    OathCloseButton { dismiss() }.disabled(saving).accessibilityIdentifier("assets.filter.close")
+                    OathCloseButton { dismiss() }.accessibilityIdentifier("assets.filter.close")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    if saving { ProgressView() }
-                    else {
-                        OathDoneButton(label: .apply) {
-                        guard let selection = validDraft, selection != initialSelection, !saving else { return }
-                        saving = true; saveFailed = false
-                        Task {
-                            defer { saving = false }
-                            do {
-                                try await OathDiagnostics.$operationID.withValue(UUID()) { try await onApply(selection) }
-                                dismiss()
-                            } catch is CancellationError { }
-                            catch {
-                                OathDiagnostics.record(error, component: "asset_filters", operation: "save")
-                                saveFailed = true
-                            }
-                        }
-                        }
-                        .disabled(validDraft == nil || validDraft == initialSelection)
-                        .accessibilityIdentifier("assets.filter.apply")
-                    }
+                    OathButton(strings.text(.assetFilterReset), feedback: .selection) { filters.reset() }
+                        .oathFont(.body, weight: .medium)
+                        .disabled(!filters.canReset)
+                        .accessibilityLabel(strings.text(.historyResetFilters))
+                        .accessibilityIdentifier("assets.filter.reset")
                 }
             }
-            .onChange(of: currency) { _, value in
-                draft = draft.adjusted(for: value)
-                initialSelection = initialSelection.adjusted(for: value)
-                minimum = ""; maximum = ""
+            .onChange(of: currency, initial: true) { _, value in
+                filters.updateCurrency(value)
             }
             .oathNativeLocalization()
         }
         .presentationDetents([.large])
-        .interactiveDismissDisabled(saving)
         .presentationDragIndicator(.visible)
         .oathLanguage(strings.language)
     }

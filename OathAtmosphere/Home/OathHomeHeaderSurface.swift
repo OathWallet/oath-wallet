@@ -27,7 +27,7 @@ struct OathNavigationToolbarSymbol: View {
     init(_ name: String) { self.name = name }
     var body: some View {
         Image(systemName: name)
-            .font(.system(.body, design: .default).weight(.semibold))
+            .font(.system(.body, design: .default).weight(.medium))
             .imageScale(.large)
     }
 }

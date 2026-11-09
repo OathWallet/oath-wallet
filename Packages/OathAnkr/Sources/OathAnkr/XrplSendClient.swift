@@ -9,7 +9,7 @@ public actor XrplSendClient {
     private var verifiedStates: [URL:(State,Date)] = [:]
     private let transport: any AnkrTransport
     public init(network: XrplSendNetwork, apiKey: String? = nil, transport: any AnkrTransport = AnkrHTTPTransport()) throws {
-        self.network = network; self.transport = transport
+        self.network = network; self.transport = SendMeasuredTransport(base: transport)
         if network == .mainnet, let apiKey, !apiKey.isEmpty {
             guard apiKey.count <= 256, apiKey.utf8.allSatisfy({(48...57).contains($0) || (65...90).contains($0) || (97...122).contains($0)}) else { throw XrplSendError.configuration }
             // Start with the provider that supplies the required network identity.
@@ -71,7 +71,7 @@ public actor XrplSendClient {
               r["account_data"]["Account"].string == owner else { throw XrplSendError.changed }
         return r["account_data"]
     }
-    private func asset(_ reference: String, sender: String, recipient: String, state: State) async throws -> (balance:String, numerator:UInt64, denominator:UInt64) {
+    private func asset(_ reference: String, sender: String, recipient: String?, state: State) async throws -> (balance:String, numerator:UInt64, denominator:UInt64) {
         if let dot = reference.lastIndex(of:".") {
             let currency = String(reference[..<dot]), issuer = String(reference[reference.index(after:dot)...])
             guard sender != issuer else { throw XrplSendError.unsupportedAccount }
@@ -110,7 +110,37 @@ public actor XrplSendClient {
         guard fee <= 50_000 else { throw XrplSendError.malformed }
         return (try XrplIdentity.uint(h["node"]["MPTAmount"] == .null ? .string("0"):h["node"]["MPTAmount"]),100_000+(recipient == issuer ? 0:fee),100_000)
     }
-    public func quote(sender: String, recipient: String, reference: String, amount: String, destinationTag: UInt32? = nil, maximum: Bool = false, multisig: XrplMultisigPolicy? = nil) async throws -> XrplSendPlan {
+    public func prepareSender(sender: String, reference: String, decimals: Int, multisig: XrplMultisigPolicy? = nil) async throws -> SendSenderSnapshot {
+        let observed = Date.now
+        _ = try XrplIdentity.address(sender); _ = try XrplIdentity.reference(reference)
+        for (index, endpoint) in endpoints.enumerated() {
+            do {
+                let s = try await state(endpoint: endpoint)
+                async let source = account(sender, state: s)
+                async let token = reference == "native" ? nil : asset(reference, sender: sender, recipient: nil, state: s)
+                let (src, holding) = try await (source, token)
+                guard let src, let balance = src["Balance"].text.flatMap(UInt64.init), let owners = src["OwnerCount"].integer,
+                      owners <= 1_000_000, let flags = src["Flags"].integer else { throw XrplSendError.malformed }
+                if let multisig {
+                    try multisig.validate()
+                    guard multisig.account == sender, try await multisigState(multisig, state: s).configured else { throw XrplSendError.unsupportedAccount }
+                } else { guard flags & 0x100000 == 0 else { throw XrplSendError.unsupportedAccount } }
+                let reserve = s.base + owners * s.increment
+                guard balance >= reserve else { throw XrplSendError.reserve }
+                return try .init(chain: "xrpl", sender: sender, reference: reference, decimals: decimals,
+                                 assetBalance: holding?.balance ?? String(balance), nativeBalance: String(balance),
+                                 spendable: holding?.balance ?? String(balance - reserve), observedAt: observed,
+                                 block: .init(height: UInt64(s.ledger), hash: s.hash), evidence: .init(xrplAccount: src))
+            } catch {
+                if error is CancellationError || Task.isCancelled { throw CancellationError() }
+                OathDiagnostics.record(error, component: "xrpl_send", operation: "sender_preparation", context: ["chain": "xrpl"])
+                if index == endpoints.count - 1 || !Self.retryable(error) { throw error }
+            }
+        }
+        throw XrplSendError.transport
+    }
+
+    public func quote(sender: String, recipient: String, reference: String, amount: String, destinationTag: UInt32? = nil, maximum: Bool = false, multisig: XrplMultisigPolicy? = nil, preparedSender: SendSenderSnapshot? = nil) async throws -> XrplSendPlan {
         try await OathDiagnostics.$chain.withValue("xrpl") {
             try await OathDiagnostics.$operationID.withValue(OathDiagnostics.operationID ?? UUID()) {
                 let sender = try XrplIdentity.address(sender), recipient = try XrplIdentity.address(recipient)
@@ -118,7 +148,7 @@ public actor XrplSendClient {
                 guard amount != "0" else { throw XrplSendError.amount }
                 guard sender != recipient else { throw XrplSendError.sameRecipient }
                 for (index,endpoint) in endpoints.enumerated() {
-                    do { return try await prepare(sender:sender,recipient:recipient,reference:reference,amount:amount,tag:destinationTag,maximum:maximum,endpoint:endpoint,multisig:multisig) }
+                    do { return try await prepare(sender:sender,recipient:recipient,reference:reference,amount:amount,tag:destinationTag,maximum:maximum,endpoint:endpoint,multisig:multisig,preparedSender:preparedSender) }
                     catch {
                         if error is CancellationError || Task.isCancelled { throw CancellationError() }
                         // These exact unsigned account requirements are returned
@@ -198,11 +228,22 @@ public actor XrplSendClient {
         guard let e = error as? XrplSendError else { return true }
         switch e { case .http,.transport,.rpc,.malformed: return true; default: return false }
     }
-    private func prepare(sender:String,recipient:String,reference:String,amount:String,tag:UInt32?,maximum:Bool,endpoint:URL,multisig:XrplMultisigPolicy?) async throws -> XrplSendPlan {
+    private func preparedAccount(_ sender: String, state: State, prepared: SendSenderSnapshot?) async throws -> XrplJSON? {
+        if let root = prepared?.evidence?.xrplAccount { return root }
+        return try await account(sender, state: state)
+    }
+
+    private func prepare(sender:String,recipient:String,reference:String,amount:String,tag:UInt32?,maximum:Bool,endpoint:URL,multisig:XrplMultisigPolicy?,preparedSender:SendSenderSnapshot? = nil) async throws -> XrplSendPlan {
         async let info = state(endpoint:endpoint)
         async let fees = rpc("fee",endpoint:endpoint)
         let s = try await info
-        async let source = account(sender,state:s)
+        // Issued units remain checked by asset() below. Only the sender root
+        // is reused, at the exact current validated ledger; policy is rechecked.
+        let prepared = preparedSender.flatMap { snapshot in
+            snapshot.matches(chain: "xrpl", sender: sender, reference: reference, decimals: snapshot.decimals,
+                             block: .init(height: UInt64(s.ledger), hash: s.hash)) ? snapshot : nil
+        }
+        async let source = preparedAccount(sender, state: s, prepared: prepared)
         async let destination = account(recipient,state:s,optional:true)
         async let token = reference == "native" ? nil : asset(reference,sender:sender,recipient:recipient,state:s)
         let (src,dst,holding,f) = try await (source,destination,token,fees)

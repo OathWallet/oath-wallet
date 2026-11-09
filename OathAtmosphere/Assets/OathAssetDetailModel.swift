@@ -136,7 +136,7 @@ actor OathMarketEnvironment {
     private func updateChart(_ asset: MarketAsset, force: Bool) async {
         do {
             let service = try await OathMarketEnvironment.shared.service()
-            let result = try await service.chart(for: asset, force: force)
+            let result = try await service.chartForPresentation(for: asset, force: force)
             guard !Task.isCancelled else { return }
             chart = result; chartFailed = false
         } catch {

@@ -2,6 +2,33 @@ import XCTest
 @testable import OathAnkr
 
 @MainActor final class TonSendTests:XCTestCase {
+    func testEarlySenderPreparation() async throws {
+        for token in [false,true] {
+            let p = try Self.plan(token:token), t = TonStatusFixture(plan:p,mode:"normal"), c = try TonSendClient(network:p.network,transport:t)
+            let s = try await c.prepareSender(sender:p.sender,reference:p.reference,publicKey:p.publicKey,decimals:p.decimals)
+            XCTAssertEqual(s.nativeBalance,"1000000000")
+            XCTAssertNotEqual(s.assetBalance,"0")
+        }
+    }
+
+    func testEarlyMultisigPreparationChecksContractAndPolicy() async throws {
+        let keys = try [Data(repeating: 1, count: 32), Data(repeating: 2, count: 32)].map(TonSendCrypto.publicKey)
+        let policy = try TonMultisigPolicy(required: 2, publicKeys: keys)
+        for token in [false, true] {
+            let base = try Self.plan(token: token)
+            var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(base)) as? [String: Any])
+            json["sender"] = try policy.address(network: .testnet)
+            json["multisig"] = try JSONSerialization.jsonObject(with: JSONEncoder().encode(policy))
+            let plan = try JSONDecoder().decode(TonSendPlan.self, from: JSONSerialization.data(withJSONObject: json))
+            let transport = TonStatusFixture(plan: plan, mode: "normal"), client = try TonSendClient(network: .testnet, transport: transport)
+            let prepared = try await client.prepareSender(sender: plan.sender, reference: plan.reference, publicKey: plan.publicKey, decimals: plan.decimals, multisig: policy)
+            XCTAssertEqual(prepared.nativeBalance, "1000000000")
+            let wrong = TonStatusFixture(plan: plan, mode: "wrongPolicy"), rejecting = try TonSendClient(network: .testnet, transport: wrong)
+            do { _ = try await rejecting.prepareSender(sender: plan.sender, reference: plan.reference, publicKey: plan.publicKey, decimals: plan.decimals, multisig: policy); XCTFail("Accepted changed wallet policy") }
+            catch { XCTAssertEqual(error as? TonSendError, .wrongOwner) }
+        }
+    }
+
     nonisolated static let key=Data(repeating:1,count:32)
     nonisolated static func plan(token:Bool=false,deploy:Bool=false,now:Date = .now,tokenAmount:TonAmount=123456,network:TonSendNetwork = .testnet) throws -> TonSendPlan {
         let pub=try TonSendCrypto.publicKey(privateKey:key),recipient=try TonSendCrypto.address(publicKey:TonSendCrypto.publicKey(privateKey:Data(repeating:2,count:32))),jw=try TonSendCrypto.address(publicKey:TonSendCrypto.publicKey(privateKey:Data(repeating:3,count:32)))
@@ -135,6 +162,9 @@ actor TonStatusFixture:AnkrTransport {
     func send(_ request:URLRequest) async throws -> (Data,Int) {
         if mode=="cancel" { throw CancellationError() }
         if request.url!.path.hasPrefix("/v2/traces/") { return (Data("{\"error\":\"entity not found\"}".utf8),404) }
+        if request.url!.path.contains("/jettons/") {
+            return (try JSONEncoder().encode(TonJSON.object(["metadata":.object(["address":.string(plan.reference),"decimals":.string(String(plan.decimals))])])),200)
+        }
         let call=try JSONDecoder().decode(TonJSON.self,from:request.httpBody!),method=call["method"].string!
         let result:TonJSON
         switch method {
@@ -143,7 +173,20 @@ actor TonStatusFixture:AnkrTransport {
         case "getAddressInformation":
             pinned=call["params"]["seqno"].integer==123
             var b=TonBuilder();try b.uint(UInt64(plan.sequence)+(mode=="consumed" ? 1:0),32);try b.uint(TonSendPlan.walletID,32);try b.bytes(plan.publicKey);try b.uint(0,1)
-            result = .object(["balance":.string("1000000000"),"state":.string("active"),"code":.string(try TonSendCrypto.code().boc().base64EncodedString()),"data":.string(try b.cell().boc().base64EncodedString())])
+            let code: TonCell, data: TonCell
+            if let policy = plan.multisig, mode != "wrongPolicy" {
+                let initial = try policy.stateInit(plan.network); code = initial.refs[0]; data = initial.refs[1]
+            } else { code = try TonSendCrypto.code(); data = try b.cell() }
+            result = .object(["balance":.string("1000000000"),"state":.string("active"),"code":.string(try code.boc().base64EncodedString()),"data":.string(try data.boc().base64EncodedString())])
+        case "runGetMethod":
+            func cell(_ address:String) throws -> TonJSON { .array([.string("slice"),.string(try TonIdentity.addressSlice(address))]) }
+            let stack: [TonJSON]
+            if call["params"]["method"].string == "get_wallet_address" {
+                stack = [try cell(plan.jettonWallet!)]
+            } else {
+                stack = [.array([.string("num"),.string(String(plan.assetBalance))]),try cell(plan.sender),try cell(plan.reference),.null]
+            }
+            result = .object(["exit_code":.number("0"),"stack":.array(stack)])
         default:throw TonSendError.malformed
         }
         let envelope:TonJSON = mode=="legacy" ? .object(["ok":.bool(true),"result":result]):.object(["jsonrpc":.string("2.0"),"id":.number(mode=="badID" ? "2":"1"),"result":result])

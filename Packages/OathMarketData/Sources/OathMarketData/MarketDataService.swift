@@ -155,6 +155,14 @@ public actor MarketDataService {
     }
 
     public func quote(for asset: MarketAsset, force: Bool = false) async throws -> CachedMarketValue<MarketQuote> {
+        try await OathDiagnostics.$chain.withValue(asset.networkID) {
+            try await OathDiagnostics.$operationID.withValue(OathDiagnostics.operationID ?? UUID()) {
+                try await quoteValue(for: asset, force: force)
+            }
+        }
+    }
+
+    private func quoteValue(for asset: MarketAsset, force: Bool) async throws -> CachedMarketValue<MarketQuote> {
         if LifiTokenMetadata.url(network: asset.networkID, reference: asset.reference) != nil {
             do {
                 let primary = try await lifiToken(for: asset, force: force)
@@ -175,7 +183,7 @@ public actor MarketDataService {
         do {
             let refreshed: CachedMarketValue<MarketQuote> = try decoded(await load(key: key("quote", asset, version: 2), source: "Market providers", lifetime: 60, force: force) {
                 try await OathDiagnostics.$chain.withValue(asset.networkID) {
-                    try await OathDiagnostics.$operationID.withValue(UUID()) {
+                    try await OathDiagnostics.$operationID.withValue(OathDiagnostics.operationID ?? UUID()) {
                         var candidates = ContractPriceRequest.requests(for: asset).map { request in
                             ParallelMarketPrice.Candidate(source: request.provider.rawValue) {
                                 let bytes = try await transport.data(from: request.url)
@@ -321,6 +329,16 @@ public actor MarketDataService {
             return try decoded(committed)
         }
     }
+    /// Display callers may record setup/cache failures, while provider failures
+    /// already owned by load carry a marker through the presentation boundary.
+    public func chartForPresentation(for asset: MarketAsset, force: Bool = false) async throws -> CachedMarketValue<MarketChart> {
+        try await OathDiagnostics.$chain.withValue(asset.networkID) {
+            try await OathDiagnostics.$operationID.withValue(OathDiagnostics.operationID ?? UUID()) {
+                try await chartValue(for: asset, force: force, propagatingReportedFailures: true)
+            }
+        }
+    }
+
     public func chart(for asset: MarketAsset, force: Bool = false) async throws -> CachedMarketValue<MarketChart> {
         try await OathDiagnostics.$chain.withValue(asset.networkID) {
             try await OathDiagnostics.$operationID.withValue(OathDiagnostics.operationID ?? UUID()) {
@@ -328,22 +346,22 @@ public actor MarketDataService {
             }
         }
     }
-    private func chartValue(for asset: MarketAsset, force: Bool) async throws -> CachedMarketValue<MarketChart> {
+    private func chartValue(for asset: MarketAsset, force: Bool, propagatingReportedFailures: Bool = false) async throws -> CachedMarketValue<MarketChart> {
         let transport = transport, now = now
         // Coinbase's price API and Exchange listings are different catalogs.
         // TRX has a spot price but no TRX-USD Exchange candles.
         if asset.isNative, asset.networkID == "thorchain", asset.decimals == 8 {
-            do { return try await geckoChart(for: asset, force: force) }
+            do { return try await geckoChart(for: asset, force: force, propagatingReportedFailures: propagatingReportedFailures) }
             catch {
                 if error is CancellationError || Task.isCancelled || (error as? URLError)?.code == .cancelled { throw CancellationError() }
                 // Preserve schema/identity failures. Only provider absence or
                 // availability failures can switch to this exact native series.
-                guard [.rateLimited, .unavailable, .notListed].contains(error as? MarketDataError) || error is URLError || error is DiagnosticDeferral else { throw error }
-                if error as? MarketDataError != .notListed {
+                guard [.rateLimited, .unavailable, .notListed].contains(ReportedMarketLoadFailure.cause(error) as? MarketDataError) || ReportedMarketLoadFailure.cause(error) is URLError || error is DiagnosticDeferral else { throw error }
+                if ReportedMarketLoadFailure.cause(error) as? MarketDataError != .notListed {
                     OathDiagnostics.record(error, component: "prices", operation: "chart_fallback",
                         context: ["chain": "thorchain", "source": "CoinGecko"])
                 }
-                let entry = try await load(key: key("midgardChart", asset), source: "THORChain Midgard", lifetime: 300, force: force) {
+                let entry = try await load(key: key("midgardChart", asset), source: "THORChain Midgard", lifetime: 300, force: force, propagatingReportedFailures: propagatingReportedFailures) {
                     try Task.checkCancellation()
                     let date = now()
                     let data = try await transport.data(from: ThorchainChart.url(at: date))
@@ -356,19 +374,19 @@ public actor MarketDataService {
             }
         }
         if asset.isNative, asset.networkID == "tron", let market = KrakenNativeChart.market(for: asset) {
-            do { return try await geckoChart(for: asset, force: force) }
+            do { return try await geckoChart(for: asset, force: force, propagatingReportedFailures: propagatingReportedFailures) }
             catch {
                 if error is CancellationError || Task.isCancelled || (error as? URLError)?.code == .cancelled { throw CancellationError() }
-                guard [.notListed, .rateLimited, .unavailable].contains(error as? MarketDataError) || error is URLError || error is DiagnosticDeferral else { throw error }
-                if error as? MarketDataError != .notListed {
+                guard [.notListed, .rateLimited, .unavailable].contains(ReportedMarketLoadFailure.cause(error) as? MarketDataError) || ReportedMarketLoadFailure.cause(error) is URLError || error is DiagnosticDeferral else { throw error }
+                if ReportedMarketLoadFailure.cause(error) as? MarketDataError != .notListed {
                     OathDiagnostics.record(error, component: "prices", operation: "kraken_chart_fallback",
                         context: ["chain": asset.networkID, "source": "CoinGecko"])
                 }
-                return try await krakenChart(for: asset, market: market, force: force)
+                return try await krakenChart(for: asset, market: market, force: force, propagatingReportedFailures: propagatingReportedFailures)
             }
         }
-        if asset.isNative, ["tron","thorchain"].contains(asset.networkID) { return try await geckoChart(for: asset, force: force) }
-        do { return try decoded(await load(key: key("chart", asset), source: "Coinbase", lifetime: 300, force: force) {
+        if asset.isNative, ["tron","thorchain"].contains(asset.networkID) { return try await geckoChart(for: asset, force: force, propagatingReportedFailures: propagatingReportedFailures) }
+        do { return try decoded(await load(key: key("chart", asset), source: "Coinbase", lifetime: 300, force: force, propagatingReportedFailures: propagatingReportedFailures) {
             let code = try await self.coinbaseCode(for: asset)
             let date = now()
             let base = "https://api.exchange.coinbase.com/products/\(code)-USD/"
@@ -388,32 +406,32 @@ public actor MarketDataService {
             // load already reports the original outage. An unavailable Exchange
             // chart can recover through the independently keyed exact-asset
             // series, just as a missing listing can. Never hide malformed data.
-            guard [.notListed, .rateLimited, .unavailable].contains(error as? MarketDataError) || error is URLError || error is DiagnosticDeferral else { throw error }
-            do { return try await geckoChart(for: asset, force: force) }
+            guard [.notListed, .rateLimited, .unavailable].contains(ReportedMarketLoadFailure.cause(error) as? MarketDataError) || ReportedMarketLoadFailure.cause(error) is URLError || error is DiagnosticDeferral else { throw error }
+            do { return try await geckoChart(for: asset, force: force, propagatingReportedFailures: propagatingReportedFailures) }
             catch {
                 if error is CancellationError || Task.isCancelled || (error as? URLError)?.code == .cancelled { throw CancellationError() }
                 if TokenPoolChart.network(for: asset) != nil,
-                   [.notListed, .rateLimited, .unavailable].contains(error as? MarketDataError) || error is URLError || error is DiagnosticDeferral {
+                   [.notListed, .rateLimited, .unavailable].contains(ReportedMarketLoadFailure.cause(error) as? MarketDataError) || ReportedMarketLoadFailure.cause(error) is URLError || error is DiagnosticDeferral {
                     // Missing listings are expected coverage gaps; preserve
                     // actual outages while trying the exact-contract pool.
-                    if error as? MarketDataError != .notListed {
+                    if ReportedMarketLoadFailure.cause(error) as? MarketDataError != .notListed {
                         OathDiagnostics.record(error, component: "prices", operation: "token_chart_fallback",
                             context: ["chain": asset.networkID, "source": "CoinGecko"])
                     }
-                    return try await tokenPoolChart(for: asset, force: force)
+                    return try await tokenPoolChart(for: asset, force: force, propagatingReportedFailures: propagatingReportedFailures)
                 }
                 guard let market = KrakenNativeChart.market(for: asset),
-                      [.notListed, .rateLimited, .unavailable].contains(error as? MarketDataError) || error is URLError || error is DiagnosticDeferral else { throw error }
+                      [.notListed, .rateLimited, .unavailable].contains(ReportedMarketLoadFailure.cause(error) as? MarketDataError) || ReportedMarketLoadFailure.cause(error) is URLError || error is DiagnosticDeferral else { throw error }
                 OathDiagnostics.record(error, component: "prices", operation: "kraken_chart_fallback",
                     context: ["chain": asset.networkID, "source": "CoinGecko"])
-                return try await krakenChart(for: asset, market: market, force: force)
+                return try await krakenChart(for: asset, market: market, force: force, propagatingReportedFailures: propagatingReportedFailures)
             }
         }
     }
 
-    private func krakenChart(for asset: MarketAsset, market: KrakenNativeChart.Market, force: Bool) async throws -> CachedMarketValue<MarketChart> {
+    private func krakenChart(for asset: MarketAsset, market: KrakenNativeChart.Market, force: Bool, propagatingReportedFailures: Bool = false) async throws -> CachedMarketValue<MarketChart> {
         let transport = transport, now = now
-        let entry = try await load(key: key("krakenChart", asset), source: "Kraken", lifetime: 300, force: force) {
+        let entry = try await load(key: key("krakenChart", asset), source: "Kraken", lifetime: 300, force: force, propagatingReportedFailures: propagatingReportedFailures) {
             try Task.checkCancellation()
             let date = now(), data = try await transport.data(from: KrakenNativeChart.url(for: market))
             return (try JSONEncoder().encode(KrakenNativeChart.decode(data, market: market, at: date)), date.timeIntervalSince1970, nil)
@@ -424,9 +442,9 @@ public actor MarketDataService {
         return try decoded(committed)
     }
 
-    private func tokenPoolChart(for asset: MarketAsset, force: Bool) async throws -> CachedMarketValue<MarketChart> {
+    private func tokenPoolChart(for asset: MarketAsset, force: Bool, propagatingReportedFailures: Bool = false) async throws -> CachedMarketValue<MarketChart> {
         let transport = transport, now = now
-        let entry = try await load(key: key("terminalChart", asset), source: "GeckoTerminal", lifetime: 300, force: force) {
+        let entry = try await load(key: key("terminalChart", asset), source: "GeckoTerminal", lifetime: 300, force: force, propagatingReportedFailures: propagatingReportedFailures) {
             try Task.checkCancellation()
             let date = now()
             let pools = try await transport.data(from: TokenPoolChart.poolsURL(for: asset))
@@ -454,11 +472,11 @@ public actor MarketDataService {
         }
     }
 
-    private func geckoChart(for asset: MarketAsset, force: Bool) async throws -> CachedMarketValue<MarketChart> {
+    private func geckoChart(for asset: MarketAsset, force: Bool, propagatingReportedFailures: Bool = false) async throws -> CachedMarketValue<MarketChart> {
         let transport = transport, now = now
         // Use a distinct request key: a missing Exchange listing must not put
         // the independent market provider into the Exchange's one-hour backoff.
-        let entry = try await load(key: key("geckoChart", asset), source: "CoinGecko", lifetime: 300, force: force) {
+        let entry = try await load(key: key("geckoChart", asset), source: "CoinGecko", lifetime: 300, force: force, propagatingReportedFailures: propagatingReportedFailures) {
             let date = now(), data = try await transport.data(from: MarketIdentity.chartURL(for: asset))
             return (try JSONEncoder().encode(MarketDecoding.geckoChart(data, now: date)), date.timeIntervalSince1970, nil)
         }
@@ -490,60 +508,73 @@ public actor MarketDataService {
         return try MarketDecoding.tokenCode(for: asset, directory: entry.payload)
     }
 
-    func load(key: String, source: String, lifetime: TimeInterval, force: Bool,
+    func load(key: String, source: String, lifetime: TimeInterval, force: Bool, propagatingReportedFailures: Bool = false,
                       fetch: @escaping @Sendable () async throws -> (Data, Double, PriceRecord?)) async throws -> MarketCacheEntry {
         try Task.checkCancellation()
         let consumer = UUID()
-        let entry = try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<MarketCacheEntry, Error>) in
-                guard !Task.isCancelled else { continuation.resume(throwing: CancellationError()); return }
-                if var flight = work[key] {
-                    flight.consumers[consumer] = continuation; work[key] = flight
-                    return
-                }
-                let database = database, date = now(), id = UUID()
-                let deadline = retryAfter[key], reason = retryReason[key] ?? .unavailable
-                let operationID = OathDiagnostics.operationID ?? UUID()
-                let task = Task {
-                    await OathDiagnostics.$operationID.withValue(operationID) {
-                        let result: Result<MarketCacheEntry, Error>
-                        do {
-                            try Task.checkCancellation()
-                            if !force, let saved = try await database.marketCache(key: key),
-                               (-300..<lifetime).contains(date.timeIntervalSince1970 - saved.fetchedAt) {
-                                result = .success(saved)
-                            } else {
-                                try Task.checkCancellation()
-                                if let deadline, deadline > .now { throw reason }
-                                let (data, fetchedAt, price) = try await fetch()
-                                try Task.checkCancellation()
-                                let value = MarketCacheEntry(key: key, source: price?.source ?? source, payload: data, fetchedAt: fetchedAt)
-                                result = .success(try await database.saveMarketCache(value, price: price))
-                            }
-                        } catch {
-                            // Last-consumer cancellation is already-observed
-                            // teardown, even if an uncooperative provider fails late.
-                            // Cached backoff is also the original failure, not
-                            // another provider attempt. Genuine failures report
-                            // here before completion sets the retry deadline.
-                            if !Task.isCancelled, !(error is CancellationError),
-                               (error as? URLError)?.code != .cancelled,
-                               deadline.map({ $0 > .now }) != true,
-                               error as? MarketDataError != .notListed {
-                                OathDiagnostics.record(error, component: "prices", operation: "market_load")
-                            }
-                            result = .failure(Task.isCancelled ? CancellationError() : error)
-                        }
-                        self.finishLoad(key: key, id: id, result: result)
+        do {
+            let entry = try await withTaskCancellationHandler {
+                try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<MarketCacheEntry, Error>) in
+                    guard !Task.isCancelled else { continuation.resume(throwing: CancellationError()); return }
+                    if var flight = work[key] {
+                        flight.consumers[consumer] = continuation; work[key] = flight
+                        return
                     }
+                    let database = database, date = now(), id = UUID()
+                    let deadline = retryAfter[key], reason = retryReason[key] ?? .unavailable
+                    let operationID = OathDiagnostics.operationID ?? UUID()
+                    let task = Task {
+                        await OathDiagnostics.$operationID.withValue(operationID) {
+                            let result: Result<MarketCacheEntry, Error>
+                            var returningBackoff = false
+                            do {
+                                try Task.checkCancellation()
+                                if !force, let saved = try await database.marketCache(key: key),
+                                   (-300..<lifetime).contains(date.timeIntervalSince1970 - saved.fetchedAt) {
+                                    result = .success(saved)
+                                } else {
+                                    try Task.checkCancellation()
+                                    if let deadline, deadline > .now {
+                                        returningBackoff = true
+                                        throw reason
+                                    }
+                                    let (data, fetchedAt, price) = try await fetch()
+                                    try Task.checkCancellation()
+                                    let value = MarketCacheEntry(key: key, source: price?.source ?? source, payload: data, fetchedAt: fetchedAt)
+                                    result = .success(try await database.saveMarketCache(value, price: price))
+                                }
+                            } catch {
+                                // Last-consumer cancellation is already-observed
+                                // teardown, even if an uncooperative provider fails late.
+                                // Cached backoff is also the original failure, not
+                                // another provider attempt. Genuine failures report
+                                // here before completion sets the retry deadline.
+                                if !Task.isCancelled, !(error is CancellationError),
+                                   (error as? URLError)?.code != .cancelled,
+                                   !returningBackoff,
+                                   error as? MarketDataError != .notListed {
+                                    OathDiagnostics.record(error, component: "prices", operation: "market_load", context: ["source": source])
+                                }
+                                result = .failure(Task.isCancelled ? CancellationError() : error)
+                            }
+                            self.finishLoad(key: key, id: id, result: result)
+                        }
+                    }
+                    work[key] = LoadFlight(id: id, task: task, consumers: [consumer: continuation])
                 }
-                work[key] = LoadFlight(id: id, task: task, consumers: [consumer: continuation])
+            } onCancel: {
+                Task { await self.cancelLoad(key: key, consumer: consumer) }
             }
-        } onCancel: {
-            Task { await self.cancelLoad(key: key, consumer: consumer) }
+            try Task.checkCancellation()
+            return entry
+        } catch {
+            // diagnostics: market-load-consumer-propagation
+            // Wrap only at the individual consumer boundary, after finishLoad
+            // classified the raw error. Coalesced non-display clients retain
+            // their original error type. Cache decoding outside load stays raw.
+            if propagatingReportedFailures { throw ReportedMarketLoadFailure.mark(error) }
+            throw error
         }
-        try Task.checkCancellation()
-        return entry
     }
 
     private func finishLoad(key: String, id: UUID, result: Result<MarketCacheEntry, Error>) {

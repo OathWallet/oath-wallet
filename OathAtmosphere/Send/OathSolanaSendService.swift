@@ -14,7 +14,7 @@ actor OathSolanaSendService {
     static let shared = OathSolanaSendService()
     private var client: SolanaSendClient?
     private var flights = Set<String>()
-    private func connection() throws -> SolanaSendClient {
+    func connection() throws -> SolanaSendClient {
         if let client { return client }
         let value = try OathTokenRPCConfiguration.bundled().makeSolanaSendClient()
         client = value; return value

@@ -58,7 +58,7 @@ struct OathWCXrplReview: View {
             }
             OathWCValue(title: strings.text(.wcMaximumFee), value: (OathSendAmount.units(String(review.fee), decimals: 6) ?? "—") + " XRP", leftToRight: true)
             Divider()
-            Text(review.transaction["TransactionType"].string ?? "").oathFont(.title2, weight: .semibold).padding(20)
+            Text(review.transaction["TransactionType"].string ?? "").oathFont(.title2, weight: .medium).padding(20)
             Text(transactionText).oathFont(.body).textSelection(.enabled)
                 .environment(\.layoutDirection, .leftToRight)
                 .frame(maxWidth: .infinity, alignment: .leading).padding(20)

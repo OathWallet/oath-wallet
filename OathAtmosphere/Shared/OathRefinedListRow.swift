@@ -57,12 +57,7 @@ struct OathRefinedListRow<Icon: View>: View {
             if typeSize.isAccessibilitySize {
                 stackedLabels
             } else if assetNetworkName != nil {
-                // Keep the full network identity readable when long names or
-                // balances need more room than the two-column arrangement.
-                ViewThatFits(in: .horizontal) {
-                    columnLabels
-                    stackedLabels
-                }
+                assetLabels
             } else if detail != nil {
                 transactionLabels
             } else {
@@ -91,6 +86,29 @@ struct OathRefinedListRow<Icon: View>: View {
         }
         .lineLimit(1)
         .truncationMode(.middle)
+        .minimumScaleFactor(0.85)
+    }
+
+    // Measure each line independently. The symbol/network badge shares space
+    // with fiat, while the full name shares space with native units. A long
+    // native balance must not constrain the badge on the line above or switch
+    // just that asset into a four-line stack. Accessibility sizes still use
+    // stackedLabels; ordinary sizes compress/truncate within these two lines.
+    private var assetLabels: some View {
+        VStack(spacing: 5) {
+            HStack(spacing: 12) {
+                titleLabel
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                valueLabel.layoutPriority(1)
+            }
+            HStack(spacing: 12) {
+                subtitleLabel
+                    .truncationMode(.tail)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                detailLabel.layoutPriority(1)
+            }
+        }
+        .lineLimit(1)
         .minimumScaleFactor(0.85)
     }
 
@@ -127,6 +145,8 @@ struct OathRefinedListRow<Icon: View>: View {
             .oathFont(.callout, weight: primaryFontWeight)
             .foregroundStyle(.primary)
             .truncationMode(.tail)
+            // Preserve the asset symbol before shortening its network name.
+            .layoutPriority(assetNetworkName == nil ? 0 : 1)
             if showsAssetNetworkBadge, let assetNetworkName {
                 HStack(spacing: 4) {
                     if let titleBadgeAsset {
@@ -229,6 +249,15 @@ struct OathRefinedListRow<Icon: View>: View {
         .monospacedDigit()
         .multilineTextAlignment(alignment == .trailing ? .trailing : .leading)
         .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var valueLabel: some View {
+        Text(verbatim: value)
+            .oathFont(.body, weight: primaryFontWeight)
+            .foregroundStyle(.primary)
+            .monospacedDigit()
+            .truncationMode(.middle)
+            .oathBalanceConcealed(concealsAmounts)
     }
 
     private var stackedLabels: some View {

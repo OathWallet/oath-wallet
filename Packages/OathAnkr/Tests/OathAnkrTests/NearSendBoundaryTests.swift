@@ -42,7 +42,7 @@ actor NearSendMock:AnkrTransport {
         var result:NearJSON
         switch m {
         case "status":result = .object(["chain_id":.string(network)])
-        case "block":result = .object(["header":.object(["hash":.string(hash),"height":.number(String(height))])])
+        case "block":result = .object(["header":.object(["hash":.string(hash),"height":.number(String(height)),"timestamp_nanosec":.string(String(UInt64(Date.now.timeIntervalSince1970*1_000_000_000)))])])
         case "EXPERIMENTAL_protocol_config":
             guard case .object(var values)=config else { throw NearSendError.malformed };values["chain_id"] = .string(network);result = .object(values)
         case "gas_price":result = .object(["gas_price":.string(price)])
@@ -78,6 +78,16 @@ actor NearSendMock:AnkrTransport {
     }
 }
 final class NearSendBoundaryTests:XCTestCase,@unchecked Sendable {
+    func testEarlySenderPreparation() async throws {
+        for reference in ["native", "wrap.testnet"] {
+            let t = NearSendMock(), c = try client(t)
+            let s = try await c.prepareSender(sender:NearSendTests.sender,reference:reference,publicKey:NearSendCrypto.publicKey(privateKey:NearSendTests.seed),decimals:24)
+            XCTAssertFalse(s.assetBalance.isEmpty)
+            if reference == "native" { XCTAssertTrue(EVMSendAmount.less(s.spendable,s.assetBalance)) }
+            let calls = await t.calls; XCTAssertFalse(calls.contains("gas_price")); XCTAssertFalse(calls.contains("broadcast_tx_async"))
+        }
+    }
+
     private func client(_ m:NearSendMock) throws -> NearSendClient { try NearSendClient(network:.testnet,endpoints:[URL(string:"https://primary.test")!,URL(string:"https://fallback.test")!],transport:m) }
     private func quote(_ c:NearSendClient,token:Bool=false,recipient:String=NearSendTests.recipient,maximum:Bool=false,amount:String="100000000000000000000000") async throws -> NearSendPlan {
         try await c.quote(sender:NearSendTests.sender,recipient:recipient,reference:token ? "wrap.testnet":"native",publicKey:NearSendCrypto.publicKey(privateKey:NearSendTests.seed),decimals:24,amount:amount,maximum:maximum)

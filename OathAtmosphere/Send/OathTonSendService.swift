@@ -14,7 +14,7 @@ actor OathTonSendService {
     static let shared = OathTonSendService()
     private var client: TonSendClient?
     private var flights = Set<String>()
-    private func connection() throws -> TonSendClient {
+    func connection() throws -> TonSendClient {
         if let client { return client }
         let value = try OathTokenRPCConfiguration.bundled().makeTonSendClient()
         client = value; return value

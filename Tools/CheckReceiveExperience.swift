@@ -19,7 +19,7 @@ import OathAnkr
             root.appendingPathComponent("Design/ReceiveAssets/manifest.json"))) as! [String: Any]
         let sources = manifest["assets"] as! [[String: Any]]
         let nativeOnly: Set<OathImportChain> = [.bitcoin, .bitcoincash, .dogecoin, .litecoin]
-        let tokenChains = Set(OathImportChain.allCases.filter(\.supportsTokens))
+        let tokenChains = Set(OathImportChain.enabledCases.filter(\.supportsTokens))
         check(Set(catalog.networks.keys) == Set(tokenChains.map(\.id)), "Every token-capable network has examples")
         let allExamples = catalog.networks.values.flatMap { $0 }
         check(Set(sources.compactMap { $0["id"] as? String }) == Set(allExamples.map(\.id)), "Manifest covers exactly the shipped examples")
@@ -28,7 +28,7 @@ import OathAnkr
             "Packages/OathAnkr/Sources/OathAnkr/Resources/TokenDiscoverySeed.json"))) as! [String: Any]
         let seedEntries = seed["entries"] as! [[String: Any]]
 
-        for chain in OathImportChain.allCases {
+        for chain in OathImportChain.enabledCases {
             let guide = OathReceiveNetworkGuide(chain: chain)
             let examples = catalog.examples(for: chain)
             check(guide.supportsTokens == !nativeOnly.contains(chain), "Receiving capability for \(chain.id)")
@@ -108,7 +108,7 @@ import OathAnkr
         let redesigned = allExamples.filter { $0.usesRedesignedArtwork == true }
         check(redesigned.count == 268, "Every exported example uses the delivered design")
         check(Set(redesigned.map(\.artwork)).count == 196, "All 196 delivered artwork entries are shared without identity guesses")
-        for chain in OathImportChain.allCases {
+        for chain in OathImportChain.enabledCases {
             check(catalog.redesignedArtwork(networkID: chain.id, reference: "native") == (chain == .telos ? "receive-asset-telos-native" : nil),
                   "Only the explicitly supplied native Telos example overrides a chain logo")
             check(catalog.redesignedArtwork(networkID: chain.id, reference: "USDC") == nil, "A ticker never grants branded token artwork")
@@ -137,7 +137,7 @@ import OathAnkr
         check(OathReceiveNetworkGuide(chain: .stellar).notice == .receiveTrustlineNotice, "Stellar trustline requirement")
         check(OathReceiveNetworkGuide(chain: .xrpl).notice == .receiveTrustlineNotice, "XRP Ledger trustline requirement")
         check(OathReceiveNetworkGuide(chain: .near).notice == .receiveRegistrationNotice, "NEAR registration requirement")
-        for chain in OathImportChain.allCases {
+        for chain in OathImportChain.enabledCases {
             let guide = OathReceiveNetworkGuide(chain: chain)
             let expected: OathStringKey = chain == .bitcoin ? .bitcoinReceiveTracking
                 : chain == .robinhood ? .receiveManualTracking

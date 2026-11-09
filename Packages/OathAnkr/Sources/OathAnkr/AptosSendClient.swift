@@ -8,11 +8,12 @@ public actor AptosSendClient {
     public nonisolated let network: AptosSendNetwork
     private let endpoints: [URL]
     private let transport: any AnkrTransport
+    private let usesHTTPTransport: Bool
     private let permits=AnkrPermits(count:4)
     private var verifiedAt=[URL:Date]()
     private var nextPublicRequest=Date.distantPast
     public init(network:AptosSendNetwork = .mainnet,apiKey:String?=nil,transport:any AnkrTransport = AnkrHTTPTransport()) throws {
-        self.network=network;self.transport=transport
+        self.network=network;self.transport=SendMeasuredTransport(base: transport);self.usesHTTPTransport = transport is AnkrHTTPTransport
         if let apiKey {
             guard network == .mainnet,!apiKey.isEmpty,apiKey.count<=256,apiKey.utf8.allSatisfy({(48...57).contains($0)||(65...90).contains($0)||(97...122).contains($0)}) else { throw AptosSendError.configuration }
             endpoints=[URL(string:"https://rpc.ankr.com/premium-http/aptos")!.appendingPathComponent(apiKey).appendingPathComponent("v1"),network.endpoint]
@@ -31,7 +32,7 @@ public actor AptosSendClient {
             // Public fallback/testnet endpoints have a shared unauthenticated
             // quota. Bound starts as well as in-flight requests; custom test
             // transports remain deterministic and do not incur wall-clock waits.
-            if base.host?.hasSuffix("aptoslabs.com") == true,transport is AnkrHTTPTransport {
+            if base.host?.hasSuffix("aptoslabs.com") == true,usesHTTPTransport {
                 let now=Date.now,start=max(now,nextPublicRequest)
                 nextPublicRequest=start.addingTimeInterval(0.5)
                 if start>now { try await Task.sleep(for:.seconds(start.timeIntervalSince(now))) }
@@ -133,7 +134,24 @@ public actor AptosSendClient {
         guard let value = UInt64(amount), String(value) == amount, value > 0 else { throw AptosSendError.amount }
         return value
     }
-    public func quote(sender:String,recipient:String,reference:String,publicKey:Data,decimals:Int,amount:String,maximum:Bool=false,multisig:AptosMultisigPolicy?=nil) async throws -> AptosSendPlan {
+    public func prepareSender(sender: String, reference: String, publicKey: Data, decimals: Int, multisig: AptosMultisigPolicy? = nil) async throws -> SendSenderSnapshot {
+        let observed = Date.now, sender = try AptosIdentity.address(sender), reference = try AptosIdentity.reference(reference)
+        if let multisig { try multisig.validate(); guard multisig.bytes == publicKey, multisig.address == sender else { throw AptosSendError.wrongOwner } }
+        else { guard try AptosSendCrypto.address(publicKey: publicKey) == sender else { throw AptosSendError.wrongOwner } }
+        let ledger = try await node("", operation: "ledger"), version = try Self.uint(ledger["ledger_version"])
+        guard abs(Double(try Self.uint(ledger["ledger_timestamp"])) / 1_000_000 - Date.now.timeIntervalSince1970) < 60 else { throw AptosSendError.expired }
+        async let state = account(sender, version: version)
+        async let native = balance(owner: sender, reference: "native", version: version)
+        async let token: UInt64? = reference == "native" ? nil : balance(owner: sender, reference: reference, version: version)
+        async let units = self.decimals(reference, version: version)
+        let (a, n, t, d) = try await (state, native, token, units)
+        guard let auth = a["authentication_key"].string, try AptosIdentity.address(auth) == sender else { throw AptosSendError.wrongOwner }
+        guard d == decimals else { throw AptosSendError.metadataChanged }
+        return try .init(chain: "aptos", sender: sender, reference: reference, decimals: decimals,
+                         assetBalance: String(t ?? n), nativeBalance: String(n), observedAt: observed, block: .init(height: version, hash: "aptos:\(network.chainID):\(version)"))
+    }
+
+    public func quote(sender:String,recipient:String,reference:String,publicKey:Data,decimals:Int,amount:String,maximum:Bool=false,multisig:AptosMultisigPolicy?=nil,preparedSender:SendSenderSnapshot?=nil) async throws -> AptosSendPlan {
         let sender=try AptosIdentity.address(sender),recipient=try AptosIdentity.address(recipient),reference=try AptosIdentity.reference(reference)
         let requested = try Self.validatedAmount(amount)
         guard sender != recipient else { throw AptosSendError.sameRecipient }
@@ -142,10 +160,12 @@ public actor AptosSendClient {
         let ledger=try await node("",operation:"ledger"),version=try Self.uint(ledger["ledger_version"])
         let time=try Self.uint(ledger["ledger_timestamp"])/1_000_000
         guard abs(Double(time)-Date.now.timeIntervalSince1970)<60 else { throw AptosSendError.expired }
+        let reusable = preparedSender.flatMap { $0.matches(chain: "aptos", sender: sender, reference: reference, decimals: decimals,
+            block: .init(height: version, hash: "aptos:\(network.chainID):\(version)")) ? $0 : nil }
         async let stateWork=account(sender,version:version)
-        async let nativeWork=balance(owner:sender,reference:"native",version:version)
-        async let tokenWork:UInt64? = reference == "native" ? nil:balance(owner:sender,reference:reference,version:version)
-        async let decimalsWork=self.decimals(reference,version:version)
+        async let nativeWork: UInt64 = preparedBalance(reusable?.nativeBalance, owner:sender,reference:"native",version:version)
+        async let tokenWork:UInt64? = reference == "native" ? nil:preparedBalance(reusable?.assetBalance,owner:sender,reference:reference,version:version)
+        async let decimalsWork: Int = reusable != nil ? decimals : self.decimals(reference,version:version)
         async let priceWork=node("estimate_gas_price",operation:"gas_price")
         let (state,native,token,actualDecimals,price)=try await (stateWork,nativeWork,tokenWork,decimalsWork,priceWork)
         let asset=token ?? native
@@ -177,6 +197,10 @@ public actor AptosSendClient {
         plan=try make(gas);try plan.validate()
         _ = try await simulate(plan)
         return plan
+    }
+    private func preparedBalance(_ value: String?, owner: String, reference: String, version: UInt64) async throws -> UInt64 {
+        if let value, let amount = UInt64(value) { return amount }
+        return try await balance(owner: owner, reference: reference, version: version)
     }
     private func simulate(_ plan:AptosSendPlan) async throws -> UInt64 {
         let bytes=try AptosSendCrypto.raw(plan)+AptosSendCrypto.simulationAuthenticator(plan)

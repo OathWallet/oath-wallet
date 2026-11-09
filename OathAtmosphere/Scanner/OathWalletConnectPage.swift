@@ -102,7 +102,7 @@ struct OathWalletConnectRow: View {
                 }
             }.frame(maxWidth: .infinity, alignment: .leading)
         } accessory: {
-            Image(systemName: "chevron.forward").font(.system(size: 14, weight: .semibold)).foregroundStyle(.secondary)
+            Image(systemName: "chevron.forward").font(.system(size: 14, weight: .medium)).foregroundStyle(.secondary)
         }
     }
 }
@@ -143,7 +143,7 @@ private struct OathWalletConnectDetail: View {
             VStack(spacing: 0) {
                 VStack(spacing: 12) {
                     OathDAppLogo(icons: item.peer.icons, size: 72)
-                    Text(OathWalletConnectPolicy.displayName(item.peer.name)).oathFont(.title2, weight: .semibold)
+                    Text(OathWalletConnectPolicy.displayName(item.peer.name)).oathFont(.title2, weight: .medium)
                     Text(OathWalletConnectPolicy.safeHost(item.peer.url) ?? "—")
                         .oathFont(.subheadline).foregroundStyle(.secondary).environment(\.layoutDirection, .leftToRight)
                     if !item.peer.description.isEmpty {

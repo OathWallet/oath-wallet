@@ -194,9 +194,9 @@ struct OathWCNetworkBadge: View {
         HStack(spacing: 8) {
             if let chain = network.flatMap({ OathImportChain(rawValue: $0.rawValue) }) {
                 OathNetworkLogo(asset: chain.logoAsset, size: 20)
-                Text(verbatim: chain.name).oathFont(.subheadline, weight: .semibold)
+                Text(verbatim: chain.name).oathFont(.subheadline, weight: .medium)
             } else {
-                Text(verbatim: network?.rawValue ?? "eip155:\(chainID)").oathFont(.subheadline, weight: .semibold)
+                Text(verbatim: network?.rawValue ?? "eip155:\(chainID)").oathFont(.subheadline, weight: .medium)
             }
         }.foregroundStyle(.secondary)
             .accessibilityIdentifier("walletconnect.swap.network")
@@ -263,10 +263,10 @@ struct OathWCSwapSummary: View {
             Text(verbatim: symbol ?? identity?.name ?? strings.text(.permissionUnknown))
                 .oathFont(.headline).lineLimit(2)
             if asset.bound == .routerBalance {
-                Text(strings.text(.wcRouterBalance)).oathFont(.subheadline, weight: .semibold)
+                Text(strings.text(.wcRouterBalance)).oathFont(.subheadline, weight: .medium)
             } else {
                 Text(verbatim: amount ?? asset.amount)
-                    .oathFont(.title3, weight: .semibold).textSelection(.enabled)
+                    .oathFont(.title3, weight: .medium).textSelection(.enabled)
                     .environment(\.layoutDirection, .leftToRight)
                     .fixedSize(horizontal: false, vertical: true)
                 if asset.bound != .exact {

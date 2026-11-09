@@ -14,7 +14,7 @@ actor OathSuiSendService {
     static let shared = OathSuiSendService()
     private var client: SuiSendClient?
     private var flights = Set<String>()
-    private func connection() throws -> SuiSendClient {
+    func connection() throws -> SuiSendClient {
         if let client { return client }
         let value = try OathTokenRPCConfiguration.bundled().makeSuiSendClient()
         client = value; return value

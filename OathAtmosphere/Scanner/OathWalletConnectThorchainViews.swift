@@ -22,7 +22,7 @@ struct OathWCThorchainReview: View {
                 ForEach(request.coins, id: \.reference) { coin in
                     Text((OathSendAmount.units(coin.amount, decimals: review.decimals[coin.reference] ?? 0) ?? coin.amount)
                         + " " + ThorchainToken.fallback(coin.reference).symbol)
-                        .oathFont(.largeTitle, weight: .semibold).minimumScaleFactor(0.6).lineLimit(2)
+                        .oathFont(.largeTitle, weight: .medium).minimumScaleFactor(0.6).lineLimit(2)
                         .environment(\.layoutDirection, .leftToRight)
                     if coin.reference != "native" {
                         Text(coin.reference).oathFont(.caption).foregroundStyle(.secondary).textSelection(.enabled)
@@ -36,7 +36,7 @@ struct OathWCThorchainReview: View {
                 VStack(spacing: 8) {
                     Text(strings.text(.wcEstimatedReceive)).oathFont(.subheadline).foregroundStyle(.secondary)
                     Text((OathSendAmount.units(swap.expectedOutput, decimals: 8) ?? swap.expectedOutput) + " " + swap.memo.symbol)
-                        .oathFont(.largeTitle, weight: .semibold).minimumScaleFactor(0.6).lineLimit(2)
+                        .oathFont(.largeTitle, weight: .medium).minimumScaleFactor(0.6).lineLimit(2)
                         .environment(\.layoutDirection, .leftToRight)
                 }.frame(maxWidth: .infinity).padding(.bottom, 24)
                 OathWCValue(title: strings.text(.wcMinimumOut), value: units(swap.memo.minimum, swap.memo.symbol), leftToRight: true)

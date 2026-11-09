@@ -98,12 +98,11 @@ public actor ArtworkLoader {
     private let fallbackCatalog: ArtworkFallbackCatalog
     private let freshFor: TimeInterval
     private let retryAfter: TimeInterval
-    private let diskLimit: Int
     private let now: @Sendable () -> Date
-    private var inflight: [String: Task<ArtworkImage?, Never>] = [:]
+    private let work = ArtworkWorkPool<String, ArtworkImage>(concurrency: 12)
+    private let downloads = ArtworkWorkPool<String, Result<Data, Error>>(concurrency: 6)
+    private let diskIndex: ArtworkDiskIndex
     private var failures: [String: Date] = [:]
-    private var activeDownloads = 0
-    private var waiting: [CheckedContinuation<Void, Never>] = []
 
     public init(directory: URL? = nil, transport: any ArtworkTransport = ArtworkURLTransport(),
                 freshFor: TimeInterval = 7 * 24 * 3600, retryAfter: TimeInterval = 30,
@@ -112,20 +111,21 @@ public actor ArtworkLoader {
                 now: @escaping @Sendable () -> Date = { .now }) {
         self.directory = directory ?? FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("OathTokenArtwork-v1", isDirectory: true)
+        self.diskIndex = ArtworkDiskIndex(directory: self.directory, extensions: ["artwork", "missing"],
+            byteLimit: diskLimit, countLimits: ["missing": 256])
         self.transport = transport
         self.fallbackCatalog = fallbackCatalog
         self.freshFor = freshFor
         self.retryAfter = retryAfter
-        self.diskLimit = diskLimit
         self.now = now
         memory.totalCostLimit = 48 * 1024 * 1024
         memory.countLimit = 128
     }
 
     /// Show saved artwork immediately, including offline/expired originals.
-    public func cached(for sources: [String]) -> ArtworkImage? {
+    public func cached(for sources: [String], maxPixelSize: Int? = nil) -> ArtworkImage? {
         for source in ArtworkSource.candidates(sources) {
-            if let entry = stored(source) { return entry.image }
+            if let entry = stored(source, maxPixelSize: maxPixelSize) { return entry.image }
         }
         return nil
     }
@@ -152,7 +152,7 @@ public actor ArtworkLoader {
         await fallbackCatalog.sources(for: token) ?? []
     }
 
-    public func image(for sources: [String]) async -> ArtworkImage? {
+    public func image(for sources: [String], maxPixelSize: Int? = nil) async -> ArtworkImage? {
         let candidates = ArtworkSource.candidates(sources)
         // Blank optional metadata has no source to resolve. For a rejected
         // candidate, retain its category without copying the URI or image data.
@@ -163,47 +163,64 @@ public actor ArtworkLoader {
                                    severity: "warning", context: ["stage": "source_validation", "reason": reason])
         }
         for source in candidates {
+            guard !Task.isCancelled else { return nil }
             let key = ArtworkSource.key(source)
-            if let entry = stored(source), now().timeIntervalSince(entry.fetched) < freshFor { return entry.image }
-            if let task = inflight[key] {
-                if let image = await task.value { return image }
-                continue
-            }
+            if let entry = stored(source, maxPixelSize: maxPixelSize), now().timeIntervalSince(entry.fetched) < freshFor { return entry.image }
             if let failed = failures[key], now().timeIntervalSince(failed) < retryAfter { continue }
-            let task = Task {
-                await OathDiagnostics.$operationID.withValue(UUID()) { await self.download(source) }
+            let image = await work.value(for: renditionKey(source, maxPixelSize)) {
+                await OathDiagnostics.$operationID.withValue(UUID()) {
+                    await self.download(source, maxPixelSize: maxPixelSize)
+                }
             }
-            inflight[key] = task
-            let image = await task.value
-            inflight[key] = nil
+            guard !Task.isCancelled else { return nil }
             if let image { return image }
         }
-        return cached(for: candidates)
+        return cached(for: candidates, maxPixelSize: maxPixelSize)
     }
 
-    private func download(_ source: String) async -> ArtworkImage? {
-        await acquireSlot()
-        defer { releaseSlot() }
+    private func renditionKey(_ source: String, _ maxPixelSize: Int?) -> String {
+        ArtworkSource.key(source) + ":" + (maxPixelSize.map { String(max(1, $0)) } ?? "original")
+    }
+
+    private func download(_ source: String, maxPixelSize: Int?) async -> ArtworkImage? {
+        guard !Task.isCancelled else { return nil }
+        // A queued request may have been filled by another resolution path.
+        if let entry = stored(source, maxPixelSize: maxPixelSize), now().timeIntervalSince(entry.fetched) < freshFor { return entry.image }
         var candidates = [source]
         var index = 0
         while index < candidates.count {
             let candidate = candidates[index]
             do {
+                try Task.checkCancellation()
                 if knownAbsent(candidate) { throw OptionalArtworkAbsent() }
                 let data: Data
                 if let inline = ArtworkSource.inlineData(candidate) { data = inline }
-                else if let url = URL(string: candidate) { data = try await transport.data(from: url) }
+                else if let url = URL(string: candidate) {
+                    let transport = self.transport
+                    guard let result = await downloads.value(for: candidate, operation: {
+                        do { return .success(try await transport.data(from: url)) }
+                        catch {
+                            // diagnostics: artwork-flight-propagation. Preserve
+                            // the original error for download_decode below,
+                            // where optional absence/cancellation are excluded.
+                            return .failure(error)
+                        }
+                    }) else { return nil }
+                    data = try result.get()
+                }
                 else { throw ArtworkError.invalidSource }
-                let image = try ArtworkImage.decode(data)
+                try Task.checkCancellation()
+                let image = try ArtworkImage.decode(data, maxPixelSize: maxPixelSize)
                 let fetched = now()
                 let key = ArtworkSource.key(source)
-                memory.setObject(Box(Entry(image: image, fetched: fetched)), forKey: key as NSString, cost: image.memoryCost)
+                memory.setObject(Box(Entry(image: image, fetched: fetched)), forKey: renditionKey(source, maxPixelSize) as NSString, cost: image.memoryCost)
                 failures[key] = nil
                 // Cache the successful, identity-matched image under the requested
                 // source too, so relaunches don't repeat the known missing URL.
                 save(DiskEntry(data: data, fetched: fetched), source: source)
                 return image
             } catch {
+                guard !Task.isCancelled, !OathDiagnostics.isExpectedCancellation(error) else { return nil }
                 let absent = error is OptionalArtworkAbsent && ArtworkFallbackCatalog.identity(candidate) != nil
                 if absent {
                     rememberAbsence(candidate)
@@ -220,6 +237,7 @@ public actor ArtworkLoader {
             }
             index += 1
         }
+        guard !Task.isCancelled else { return nil }
         // Bounded cooldown, never persist a failed download/placeholder.
         failures = failures.filter { now().timeIntervalSince($0.value) < retryAfter }
         if failures.count >= 256, let oldest = failures.min(by: { $0.value < $1.value })?.key { failures[oldest] = nil }
@@ -251,14 +269,15 @@ public actor ArtworkLoader {
         guard !knownAbsent(source) else { return }
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-            try PropertyListEncoder().encode(Absence(checked: now())).write(to: absencePath(source), options: .atomic)
-            prune()
+            let data = try PropertyListEncoder().encode(Absence(checked: now()))
+            try data.write(to: absencePath(source), options: .atomic)
+            diskIndex.wrote(absencePath(source), bytes: data.count)
         } catch { OathDiagnostics.record(error, component: "artwork", operation: "availability_cache_write") }
     }
 
-    private func stored(_ source: String) -> Entry? {
+    private func stored(_ source: String, maxPixelSize: Int?) -> Entry? {
         let key = ArtworkSource.key(source)
-        if let box = memory.object(forKey: key as NSString) { return box.entry }
+        if let box = memory.object(forKey: renditionKey(source, maxPixelSize) as NSString) { return box.entry }
         let file = path(source)
         guard FileManager.default.fileExists(atPath: file.path) else { return nil }
         let saved: DiskEntry, image: ArtworkImage
@@ -268,7 +287,7 @@ public actor ArtworkLoader {
             guard size <= ArtworkSource.byteLimit * 2 else { throw ArtworkError.oversized }
             saved = try PropertyListDecoder().decode(DiskEntry.self, from: Data(contentsOf: file))
             stage = "cache_image"
-            image = try ArtworkImage.decode(saved.data)
+            image = try ArtworkImage.decode(saved.data, maxPixelSize: maxPixelSize)
         } catch {
             OathDiagnostics.record(error, component: "artwork", operation: "cache_read",
                 context: ["source": String(key.prefix(12)), "stage": stage])
@@ -276,7 +295,8 @@ public actor ArtworkLoader {
             return nil
         }
         let entry = Entry(image: image, fetched: saved.fetched)
-        memory.setObject(Box(entry), forKey: key as NSString, cost: image.memoryCost)
+        memory.setObject(Box(entry), forKey: renditionKey(source, maxPixelSize) as NSString, cost: image.memoryCost)
+        diskIndex.touched(file)
         // Touch the file for disk LRU; freshness lives inside the envelope.
         _ = maintainCache("touch_artwork_cache") { try FileManager.default.setAttributes([.modificationDate: Date()], ofItemAtPath: file.path) }
         return entry
@@ -286,8 +306,9 @@ public actor ArtworkLoader {
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             let encoder = PropertyListEncoder(); encoder.outputFormat = .binary
-            try encoder.encode(entry).write(to: path(source), options: .atomic)
-            prune()
+            let data = try encoder.encode(entry)
+            try data.write(to: path(source), options: .atomic)
+            diskIndex.wrote(path(source), bytes: data.count)
         } catch { OathDiagnostics.record(error); /* The in-memory original still works if disk is unavailable. */ }
     }
     private func maintainCache<T>(_ operation: String, body: () throws -> T) -> T? {
@@ -295,34 +316,5 @@ public actor ArtworkLoader {
         catch CocoaError.fileReadNoSuchFile { return nil } // iOS may purge cache files between inspection and maintenance.
         catch CocoaError.fileNoSuchFile { return nil } // Already absent is a cache miss, not an app failure.
         catch { OathDiagnostics.record(error, component: "artwork", operation: operation); return nil }
-    }
-    private func prune() {
-        let files = (maintainCache("list_artwork_cache", body: { try FileManager.default.contentsOfDirectory(at: directory,
-            includingPropertiesForKeys: [.fileSizeKey, .contentModificationDateKey], options: [.skipsHiddenFiles]) })) ?? []
-        let entries = files.filter { ["artwork", "missing"].contains($0.pathExtension) }.compactMap { url -> (URL, Int, Date)? in
-            guard let values = maintainCache("inspect_artwork_cache", body: { try url.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey]) }) else { return nil }
-            return (url, values.fileSize ?? 0, values.contentModificationDate ?? .distantPast)
-        }.sorted { $0.2 < $1.2 }
-        // Optional absence markers contain only hashes/dates, with a count cap
-        // in addition to the existing byte budget. Never store a placeholder.
-        let missing = entries.filter { $0.0.pathExtension == "missing" }
-        var removed = Set<URL>()
-        for (url, _, _) in missing.prefix(max(0, missing.count - 256)) {
-            if maintainCache("prune_artwork_availability", body: { try FileManager.default.removeItem(at: url) }) != nil {
-                removed.insert(url)
-            }
-        }
-        var total = entries.filter { !removed.contains($0.0) }.reduce(0) { $0 + $1.1 }
-        for (url, bytes, _) in entries where total > diskLimit && !removed.contains(url) {
-            if maintainCache("prune_artwork_cache", body: { try FileManager.default.removeItem(at: url) }) != nil { total -= bytes }
-        }
-    }
-    private func acquireSlot() async {
-        if activeDownloads < 6 { activeDownloads += 1; return }
-        await withCheckedContinuation { waiting.append($0) }
-    }
-    private func releaseSlot() {
-        if waiting.isEmpty { activeDownloads -= 1 }
-        else { waiting.removeFirst().resume() }
     }
 }

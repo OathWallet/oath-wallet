@@ -38,11 +38,12 @@ struct OathBottomAction: View {
 /// The native toolbar owns the glass treatment and the hit target.
 struct OathCloseButton: View {
     @Environment(\.oathLocalizer) private var strings
+    var systemImage = "xmark"
     let action: @MainActor () -> Void
 
     var body: some View {
         OathButton(feedback: .dismiss, action: action) {
-            Label(strings.text(.close), systemImage: "xmark")
+            Label(strings.text(.close), systemImage: systemImage)
         }
         .labelStyle(.iconOnly)
         .oathNeutralControl()
@@ -142,7 +143,7 @@ private struct OathToolbarButton: View {
                 } else {
                     if let icon { Image(systemName: icon).accessibilityHidden(true) }
                     Text(strings.text(title))
-                        .oathFont(.body, weight: .semibold)
+                        .oathFont(.body, weight: .medium)
                 }
             }
         }
@@ -233,12 +234,17 @@ private struct OathActionStyle: ViewModifier {
     let appearance: OathActionAppearance
     let accent: Color?
     let foreground: Color?
+    @Environment(\.colorScheme) private var colorScheme
+
+    // A raised charcoal surface in Dark Mode, including the system's elevated
+    // and increased-contrast variants. Keep neutral actions independent of tint.
+    private var secondarySurface: Color { Color(uiColor: .tertiarySystemBackground) }
 
     func body(content: Content) -> some View {
         nativeButton(content)
             .controlSize(.extraLarge)
             .buttonBorderShape(.capsule)
-            .oathFont(.body, weight: .semibold)
+            .oathFont(.body, weight: .medium)
     }
 
     @ViewBuilder private func nativeButton(_ content: Content) -> some View {
@@ -263,10 +269,13 @@ private struct OathActionStyle: ViewModifier {
             }
         case .secondary:
             if #available(iOS 26, *) {
-                // The default glass button uses the frosted regular material,
-                // which washes out the animated wallet colors. Secondary
-                // actions share one untinted native clear-glass surface.
-                content.buttonStyle(.glass(.clear)).buttonSizing(.flexible)
+                // Clear glass can read as a black cutout on dark canvases.
+                // Regular glass supplies the native depth and edge treatment.
+                content.buttonStyle(.glass(colorScheme == .dark ? .regular.tint(secondarySurface) : .clear))
+                    .buttonSizing(.flexible)
+                    .foregroundStyle(foreground ?? .primary)
+            } else if colorScheme == .dark {
+                content.buttonStyle(.borderedProminent).tint(secondarySurface)
                     .foregroundStyle(foreground ?? .primary)
             } else {
                 content.buttonStyle(.bordered).tint(accent ?? .primary)

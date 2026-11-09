@@ -386,7 +386,7 @@ struct OathAssetDetailScreen: View {
                     Text(strings.format(.assetPrice, strings.invariant(holding.symbol)))
                         .oathFont(.subheadline).foregroundStyle(.secondary)
                     if let price = selectedChartPoint.map({ Decimal($0.close) }) ?? displayQuote?.value {
-                        Text(priceText(price)).oathFont(.title2, weight: .semibold).monospacedDigit()
+                        Text(priceText(price)).oathFont(.title2, weight: .medium).monospacedDigit()
                             .lineLimit(1).minimumScaleFactor(0.7)
                             .accessibilityIdentifier("asset.price")
                     } else if model.quoteLoading && !route.holding.isCatalogPreview {

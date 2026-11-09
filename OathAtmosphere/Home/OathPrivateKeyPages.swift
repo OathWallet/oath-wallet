@@ -223,7 +223,7 @@ struct OathPrivateKeyWarningPage: View {
         HStack(alignment: .top, spacing: 16) {
             OathSettingsIcon(symbol: icon)
             VStack(alignment: .leading, spacing: 6) {
-                Text(strings.text(title)).oathFont(.body, weight: .semibold)
+                Text(strings.text(title)).oathFont(.body, weight: .medium)
                 Text(strings.text(detail)).oathFont(.subheadline).foregroundStyle(.secondary)
             }.frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -244,13 +244,13 @@ struct OathPrivateKeyValuePage: View {
                 if let account = model.selected {
                     HStack(spacing: 12) {
                         OathNetworkLogo(asset: account.chain.logoAsset, size: 38)
-                        Text(strings.invariant(account.displayName)).oathFont(.title2, weight: .semibold)
+                        Text(strings.invariant(account.displayName)).oathFont(.title2, weight: .medium)
                     }
                     Text(strings.format(.privateKeyViewDetail, strings.invariant(account.displayName)))
                         .oathFont(.body).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                     Label(privateKeySafetyWarning(strings: strings, isEVM: account.chain.isEVM), systemImage: "exclamationmark.shield")
-                        .oathFont(.subheadline, weight: .semibold).foregroundStyle(.orange)
+                        .oathFont(.subheadline, weight: .medium).foregroundStyle(.orange)
                         .fixedSize(horizontal: false, vertical: true)
                     if let key = model.key {
                         VStack(alignment: .leading, spacing: 12) {

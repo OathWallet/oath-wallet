@@ -26,7 +26,7 @@ struct CheckOnboardingLayout {
             }
             check(result.introduction.intersection(result.actions).isEmpty, "Content groups must not overlap")
             check(result.logoSize.width <= result.introduction.width, "Logo must fit its content region")
-            check(abs(result.logoSize.height / result.logoSize.width - 0.75) < 0.0001, "Preserve logo proportions")
+            check(abs(result.logoSize.height / result.logoSize.width - 528.0 / 768.0) < 0.0001, "Preserve supplied vector proportions")
         }
 
         let closed = CGSize(width: 466, height: 638)

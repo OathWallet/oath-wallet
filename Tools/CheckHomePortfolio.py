@@ -22,11 +22,12 @@ with tempfile.TemporaryDirectory(prefix="oath-home-portfolio-") as temporary:
     work = Path(temporary)
     source = work / "Sources/HomeChecks"
     source.mkdir(parents=True)
-    for file in ["Home/OathHomePortfolioModel.swift", "Home/OathAssetAmountFormat.swift",
+    for file in ["Home/OathHomePortfolioModel.swift", "Home/OathAssetFilterModel.swift", "Tokens/OathAssetSearchScope.swift", "Home/OathAssetAmountFormat.swift",
                  "Import/OathImportCatalog.swift", "Localization/OathLocalization.swift",
                  "Localization/OathLanguageCatalog.swift", "Localization/OathStringKey.swift"]:
         shutil.copyfile(root / "OathAtmosphere" / file, source / Path(file).name)
     shutil.copyfile(root / "Tools/CheckHomePortfolio.swift", source / "CheckHomePortfolio.swift")
+    shutil.copyfile(root / "Tools/CheckLiveAssetFilters.swift", source / "CheckLiveAssetFilters.swift")
     (work / "Package.swift").write_text('''// swift-tools-version: 6.1
 import PackageDescription
 let package = Package(name: "HomeChecks", platforms: [.macOS("15.5")],

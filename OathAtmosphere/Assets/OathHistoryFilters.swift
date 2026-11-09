@@ -203,7 +203,7 @@ struct OathHistoryFilterSheet: View {
                     OathButton(strings.text(.historyResetFilters)) {
                         draft = .init(); minimum = ""; maximum = ""
                     }
-                    .oathFont(.body, weight: .semibold)
+                    .oathFont(.body, weight: .medium)
                     .oathNeutralControl()
                     .frame(maxWidth: .infinity, minHeight: 48).padding(.bottom, 20)
                     .accessibilityIdentifier("history.filter.reset")
@@ -275,7 +275,7 @@ struct OathHistoryFilterSheet: View {
                         Text(title(value)).multilineTextAlignment(.leading)
                         Spacer(minLength: 0)
                     }
-                    .oathFont(.subheadline, weight: selected ? .semibold : .regular)
+                    .oathFont(.subheadline, weight: selected ? .medium : .regular)
                     .padding(14).frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
                     .foregroundStyle(Color(uiColor: .label))
                     .background(selected ? OathOnboardingColors.blue.opacity(0.10) : Color(uiColor: OathSurfaceColors.field), in: .rect(cornerRadius: 18))

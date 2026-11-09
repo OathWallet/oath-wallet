@@ -20,7 +20,7 @@ public actor SuiSendClient {
     private var verifiedEndpoints:[URL:Date] = [:]
     private let transport: any AnkrTransport
     public init(network: SuiSendNetwork, apiKey: String? = nil, transport: any AnkrTransport = AnkrHTTPTransport()) throws {
-        self.network = network; self.transport = transport
+        self.network = network; self.transport = SendMeasuredTransport(base: transport)
         if let apiKey, !apiKey.isEmpty, network == .mainnet {
             guard apiKey.count <= 256, apiKey.utf8.allSatisfy({ (48...57).contains($0) || (65...90).contains($0) || (97...122).contains($0) }) else { throw SuiError.configuration }
             endpoints = [URL(string:"https://rpc.ankr.com/premium-http/sui_graphql")!.appendingPathComponent(apiKey), network.endpoint]
@@ -103,6 +103,23 @@ public actor SuiSendClient {
         } while after != nil
         return .init(coins:coins,addressBalance:addressBalance ?? 0)
     }
+    public func prepareSender(sender: String, reference: String, decimals: Int, multisig: SuiMultisigPolicy? = nil) async throws -> SendSenderSnapshot {
+        let observed = Date.now, sender = try SuiIdentity.address(sender), reference = try SuiIdentity.reference(reference)
+        if let multisig { try multisig.validate(); guard multisig.address == sender else { throw SuiSendError.wrongOwner } }
+        if reference == "native" {
+            guard decimals == 9 else { throw SuiSendError.changed }
+        } else {
+            let metadata = try await query("query($type:String!){chainIdentifier coinMetadata(coinType:$type){decimals}}",
+                                           ["type": .string(try SuiIdentity.coinType(reference))], stage: "metadata")
+            guard try number(metadata["coinMetadata"]["decimals"]) == decimals else { throw SuiSendError.changed }
+        }
+        async let native = funds(owner: sender, reference: "native")
+        async let token: SuiSendFunds? = reference == "native" ? nil : funds(owner: sender, reference: reference)
+        let (n, t) = try await (native, token)
+        return try .init(chain: "sui", sender: sender, reference: reference, decimals: decimals,
+                         assetBalance: String((t ?? n).total), nativeBalance: String(n.total), observedAt: observed)
+    }
+
     public func quote(sender: String, recipient: String, reference: String, amount: UInt64, multisig: SuiMultisigPolicy? = nil) async throws -> SuiSendPlan {
         try await OathDiagnostics.$chain.withValue("sui") {
             try await OathDiagnostics.$operationID.withValue(UUID()) {

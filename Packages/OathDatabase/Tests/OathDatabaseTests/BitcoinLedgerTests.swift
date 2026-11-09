@@ -632,4 +632,51 @@ extension BitcoinLedgerTests {
             try await publication.expect(amount: "0", network: network.rawValue)
         }
     }
+    func testEveryUTXOChainPreparesVerifiedSenderWithoutRenewingScan() async throws {
+        for network in UTXONetwork.allCases {
+            let (db, url, descriptor) = try await fixture(network: network)
+            defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+            let sender = try BitcoinKeys.addresses(branch: descriptor.branches[0], range: 0..<1)[0].address
+            do { _ = try await db.bitcoinSenderSnapshot(walletID: "w1", sender: sender, network: network); XCTFail("Unscanned wallet became spendable") } catch {}
+            let (scan, transactions) = try await funding(descriptor)
+            try await commit(db, scan: scan, transactions: transactions)
+            let first = try await db.bitcoinSenderSnapshot(walletID: "w1", sender: sender, network: network)
+            XCTAssertEqual(first.assetBalance, String(scan.total)); XCTAssertEqual(first.spendable, String(scan.total))
+            let again = try await db.bitcoinSenderSnapshot(walletID: "w1", sender: sender, network: network, now: first.observedAt.addingTimeInterval(20))
+            XCTAssertEqual(first, again, "Revisiting Review must not renew the scan timestamp")
+            do { _ = try await db.bitcoinSenderSnapshot(walletID: "w1", sender: sender, network: network, now: first.observedAt.addingTimeInterval(31)); XCTFail("Expired early preparation") } catch {}
+            let empty = try await BitcoinDiscovery(query: LedgerQuery(replies: [:])).scan(descriptor)
+            try await commit(db, scan: empty, transactions: [:], tip: 800201)
+            let latest = try await db.bitcoinSenderSnapshot(walletID: "w1", sender: sender, network: network)
+            XCTAssertEqual(latest.spendable, "0"); XCTAssertGreaterThanOrEqual(latest.observedAt, first.observedAt)
+        }
+    }
+
+    func testEveryUTXOMultisigSenderUsesVerifiedFundingAndOriginalScanTime() async throws {
+        for network in UTXONetwork.allCases {
+            // Synthetic public-only policies; no funded wallet or live signing.
+            let policy = try BitcoinMultisig.wallet(required: 2, keys: [
+                .seed(Data(0..<32)), .seed(Data(32..<64)), .seed(Data(64..<96))
+            ], network: network)
+            let (db, url, descriptor) = try await fixture(network: network, descriptor: policy)
+            defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+            let sender = try BitcoinKeys.addresses(branch: descriptor.branches[0], range: 0..<1)[0].address
+            let (scan, transactions) = try await funding(descriptor)
+            try await commit(db, scan: scan, transactions: transactions)
+            let prepared = try await db.bitcoinSenderSnapshot(walletID: "w1", sender: sender, network: network)
+            let outputs = try await db.bitcoinSpendableOutputs(walletID: "w1", network: network)
+            XCTAssertFalse(outputs.isEmpty)
+            XCTAssertTrue(outputs.allSatisfy { $0.derivation.multisigInputWeight != nil })
+            XCTAssertEqual(prepared.spendable, String(outputs.reduce(0) { $0 + $1.output.value }))
+            let reused = try await db.bitcoinSenderSnapshot(walletID: "w1", sender: sender, network: network,
+                                                           now: prepared.observedAt.addingTimeInterval(20))
+            XCTAssertEqual(reused, prepared)
+            do {
+                _ = try await db.bitcoinSenderSnapshot(walletID: "w1", sender: sender, network: network,
+                                                       now: prepared.observedAt.addingTimeInterval(31))
+                XCTFail("Multisig preparation cannot extend the original scan window")
+            } catch { XCTAssertEqual(error as? StoreError, .staleSync) }
+        }
+    }
+
 }

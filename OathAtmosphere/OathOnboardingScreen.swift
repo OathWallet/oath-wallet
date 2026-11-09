@@ -42,7 +42,8 @@ public struct OathOnboardingScreen: View {
                 logoClip: layout.introduction,
                 copy: artworkPlacement.copy,
                 actions: artworkPlacement.actions,
-                spreadDivider: layout.spreadDivider
+                spreadDivider: layout.spreadDivider,
+                rendersLogo: false
             ).offsetBy(dx: layoutDirection == .rightToLeft ? safeArea.trailing : safeArea.leading, dy: safeArea.top)
 
             // Both panes and the renderer keep their identity when the display
@@ -92,61 +93,79 @@ public struct OathOnboardingScreen: View {
     }
 
     private func introductionPane(_ layout: OathOnboardingLayout) -> some View {
-        ScrollView(.vertical) {
-            VStack(spacing: 12) {
-                // Its measured frame places the actual 4K logo in Metal.
-                Color.clear
-                    .frame(width: layout.logoSize.width, height: layout.logoSize.height)
-                    .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("oathOnboarding")) } action: {
-                        guard OathLayoutGeometry.isUsable($0) else { return }
-                        artworkPlacement.logo = $0
-                    }
+        GeometryReader { viewport in
+            let viewportHeight = OathLayoutGeometry.finiteSize(viewport.size).height
+            ScrollView(.vertical) {
+                VStack(spacing: 0) {
+                    // The welcome artwork is always blue, in either appearance.
+                    // Render the supplied white vector directly, without glass shading.
+                    Image("OathWelcomeMarkWhite")
+                        .renderingMode(.original)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: layout.logoSize.width, height: layout.logoSize.height)
+                        .accessibilityHidden(true)
+                        .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("oathOnboarding")) } action: {
+                            guard OathLayoutGeometry.isUsable($0) else { return }
+                            artworkPlacement.logo = $0
+                        }
+                        .padding(.bottom)
 
-                introduction(expanded: layout.arrangement == .spread && layout.introduction.width >= 360)
-                    .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("oathOnboarding")) } action: {
-                        guard OathLayoutGeometry.isUsable($0) else { return }
-                        introductionHeight = $0.height
-                        artworkPlacement.copy = $0
-                    }
+                    introduction(expanded: layout.arrangement == .spread && layout.introduction.width >= 360)
+                        .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("oathOnboarding")) } action: {
+                            guard OathLayoutGeometry.isUsable($0) else { return }
+                            introductionHeight = $0.height
+                            artworkPlacement.copy = $0
+                        }
+                        .padding(.top)
+                }
+                .frame(maxWidth: .infinity)
+                // Center the entire introduction; larger text can still scroll.
+                .frame(minHeight: viewportHeight, alignment: .center)
             }
-            .padding(.top, layout.introductionTopPadding)
-            .frame(maxWidth: .infinity)
-            .frame(minHeight: layout.introduction.height,
-                   alignment: layout.arrangement == .stacked ? .top : .center)
+            .scrollIndicators(.hidden)
+            .scrollBounceBehavior(.basedOnSize)
+            .scrollClipDisabled()
         }
-        .scrollIndicators(.hidden)
-        .scrollBounceBehavior(.basedOnSize)
+        .padding()
+        .clipShape(Rectangle())
         .accessibilityIdentifier("onboarding.introductionPane")
     }
 
     private func actionsPane(_ layout: OathOnboardingLayout) -> some View {
-        ScrollView(.vertical) {
-            VStack(spacing: 16) {
-                walletActions
+        GeometryReader { viewport in
+            let viewportHeight = OathLayoutGeometry.finiteSize(viewport.size).height
+            ScrollView(.vertical) {
+                VStack(spacing: 16) {
+                    walletActions
 
-                Text(consentText)
-                    .oathFont(.caption)
-                    .tint(linkBlue)
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(3)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: 340)
-                    .accessibilityIdentifier("onboarding.consent")
+                    Text(consentText)
+                        .oathFont(.caption)
+                        .tint(linkBlue)
+                        .multilineTextAlignment(.center)
+                        .lineSpacing(3)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: 340)
+                        .accessibilityIdentifier("onboarding.consent")
+                }
+                .frame(maxWidth: OathActionMetrics.maximumWidth)
+                .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("oathOnboarding")) } action: {
+                    guard OathLayoutGeometry.isUsable($0) else { return }
+                    // Include the system padding in the pane's requested height.
+                    let systemPadding = max(0, layout.actions.height - viewportHeight)
+                    actionHeight = $0.height + systemPadding
+                    artworkPlacement.actions = $0
+                }
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: viewportHeight, alignment: .bottom)
             }
-            .frame(maxWidth: OathActionMetrics.maximumWidth)
-            // Room for native glass highlights at the scroll view's edges.
-            .padding(.horizontal, OathActionMetrics.glassClearance)
-            .padding(.vertical, OathActionMetrics.glassClearance)
-            .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("oathOnboarding")) } action: {
-                guard OathLayoutGeometry.isUsable($0) else { return }
-                actionHeight = $0.height
-                artworkPlacement.actions = $0
-            }
-            .frame(maxWidth: .infinity)
-            .frame(minHeight: layout.actions.height, alignment: .bottom)
+            .scrollIndicators(.hidden)
+            .scrollBounceBehavior(.basedOnSize)
+            // Glass can expand into system padding without escaping the pane.
+            .scrollClipDisabled()
         }
-        .scrollIndicators(.hidden)
-        .scrollBounceBehavior(.basedOnSize)
+        .padding()
+        .clipShape(Rectangle())
         .accessibilityIdentifier("onboarding.actionsPane")
     }
 
@@ -159,7 +178,7 @@ public struct OathOnboardingScreen: View {
                 .tracking(strings.language == .arabic ? 0 : 1.4)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 18)
+                .padding(.top)
                 .accessibilityIdentifier("onboarding.brandLine")
 
             Text(strings.text(.headline))
@@ -167,7 +186,7 @@ public struct OathOnboardingScreen: View {
                 .tracking(strings.language == .arabic ? 0 : -0.7)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 12)
+                .padding(.top)
                 .accessibilityAddTraits(.isHeader)
                 .accessibilityIdentifier("onboarding.headline")
         }
@@ -201,9 +220,10 @@ public struct OathOnboardingScreen: View {
             }
             .accessibilityIdentifier("onboarding.createWallet")
 
-            // Clear glass disappears against the white footer. Use the native
-            // filled treatment with adaptive neutral surface and label colors.
+            // Keep the filled Light appearance against the white footer; Dark
+            // uses the same raised charcoal treatment as other secondary actions.
             OathActionButton(title: strings.text(.importWallet),
+                             appearance: colorScheme == .dark ? .secondary : .primary,
                              accent: Color(uiColor: OathSurfaceColors.field), foreground: .primary) {
                 onImportWallet()
             }

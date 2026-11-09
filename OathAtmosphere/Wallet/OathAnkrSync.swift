@@ -51,11 +51,11 @@ actor OathAnkrSync {
         guard ticket == epoch, !Task.isCancelled else { throw CancellationError() }
         try AnkrSyncOutcome.requireCompleteBalances(results)
     }
-    func refreshBalances(walletID: String) async throws {
+    func refreshBalances(walletID: String, networkIDs: Set<String>? = nil) async throws {
         let ticket = epoch
         let service = try await synchronizer()
         guard ticket == epoch, !Task.isCancelled else { throw CancellationError() }
-        let results = try await service.refreshBalances(walletID: walletID)
+        let results = try await service.refreshBalances(walletID: walletID, networkIDs: networkIDs)
         guard ticket == epoch, !Task.isCancelled else { throw CancellationError() }
         try AnkrSyncOutcome.requireCompleteBalances(results)
     }

@@ -88,14 +88,14 @@ struct OathWalletConnectTypedReview: View {
                 HStack {
                     Text(strings.text(.wcAllSignedFields)).oathFont(.body)
                     Spacer()
-                    Image(systemName: "chevron.forward").font(.system(size: 13, weight: .semibold)).foregroundStyle(.secondary)
+                    Image(systemName: "chevron.forward").font(.system(size: 13, weight: .medium)).foregroundStyle(.secondary)
                 }.padding(.vertical, 12).contentShape(Rectangle())
             }.buttonStyle(.plain).accessibilityIdentifier("walletconnect.typed.fields")
             NavigationLink { OathWCSignatureHelp(close: close) } label: {
                 HStack {
                     Text(strings.text(.wcAboutSignature)).oathFont(.body)
                     Spacer()
-                    Image(systemName: "chevron.forward").font(.system(size: 13, weight: .semibold)).foregroundStyle(.secondary)
+                    Image(systemName: "chevron.forward").font(.system(size: 13, weight: .medium)).foregroundStyle(.secondary)
                 }.padding(.vertical, 12).contentShape(Rectangle())
             }.buttonStyle(.plain).accessibilityIdentifier("walletconnect.signature.help")
         }
@@ -148,7 +148,7 @@ struct OathWalletConnectSignedFields: View {
                 Text(strings.text(.wcSignedFieldsDetail)).oathFont(.subheadline).foregroundStyle(.secondary)
                 ForEach(Array(data.fields.enumerated()), id: \.offset) { _, field in
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(field.path).oathFont(.subheadline, weight: .semibold)
+                        Text(field.path).oathFont(.subheadline, weight: .medium)
                         Text(field.type).oathFont(.caption).foregroundStyle(.secondary)
                         Text(field.value).oathFont(.body).textSelection(.enabled)
                     }.frame(maxWidth: .infinity, alignment: .leading)

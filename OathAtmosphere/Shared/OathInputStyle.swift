@@ -134,7 +134,7 @@ struct OathPasteInput<Content: View>: View {
                               feedback: OathHapticEvent?, action: @escaping () -> Void) -> some View {
         OathButton(feedback: feedback, action: action) {
             Text(strings.text(title))
-                .oathFont(.subheadline, weight: .semibold)
+                .oathFont(.subheadline, weight: .medium)
                 .foregroundStyle(Color(uiColor: onScan == nil ? .label : .secondaryLabel))
                 .fixedSize(horizontal: true, vertical: true)
                 .padding(.horizontal, OathInputMetrics.actionHorizontalPadding)

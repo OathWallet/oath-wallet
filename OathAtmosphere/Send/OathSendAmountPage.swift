@@ -209,7 +209,7 @@ struct OathSendAmountPage: View {
         VStack(spacing: 10) {
             if let holding = model.holding {
                 Text(styledAmount(symbol: holding.symbol, decimals: holding.decimals))
-                    .oathFont(.largeTitle, weight: .semibold, size: 54)
+                    .oathFont(.largeTitle, weight: .medium, size: 54)
                     .lineLimit(1).minimumScaleFactor(0.25)
                     .frame(maxWidth: .infinity, minHeight: 76)
                     .environment(\.layoutDirection, .leftToRight)
@@ -264,7 +264,7 @@ struct OathSendAmountPage: View {
             OathButton(feedback: .selection) { useMaximum() } label: {
                 Text(strings.text(.sendMax))
                     .opacity(checkingClosure ? 0 : 1)
-                    .oathFont(.subheadline, weight: .semibold)
+                    .oathFont(.subheadline, weight: .medium)
                     .foregroundStyle(Color(uiColor: .secondaryLabel))
                     .fixedSize(horizontal: true, vertical: true)
                     .padding(.horizontal, 14).padding(.vertical, 8)

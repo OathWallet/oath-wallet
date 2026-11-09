@@ -7,7 +7,7 @@ public actor TronSendClient {
     private let transport:any AnkrTransport
     private var verified=Set<URL>()
     public init(network:TronSendNetwork,apiKey:String? = nil,transport:any AnkrTransport = AnkrHTTPTransport()) throws {
-        self.network=network;self.transport=transport
+        self.network=network;self.transport=SendMeasuredTransport(base: transport)
         if network == .mainnet,let apiKey,!apiKey.isEmpty {
             guard apiKey.count<=256,apiKey.utf8.allSatisfy({(48...57).contains($0)||(65...90).contains($0)||(97...122).contains($0)}) else { throw TronSendError.configuration }
             endpoints=[URL(string:"https://rpc.ankr.com/premium-http/tron")!.appendingPathComponent(apiKey),network.endpoint]
@@ -103,6 +103,42 @@ public actor TronSendClient {
                 };throw TronSendError.transport
             }
         }
+    }
+
+    public func prepareSender(sender: String, reference: String, decimals: Int, multisig: TronMultisigPolicy? = nil) async throws -> SendSenderSnapshot {
+        let observed = Date.now
+        guard TronIdentity.isAddress(sender), reference == "native" || TronIdentity.isToken(reference), (0...255).contains(decimals) else { throw TronSendError.amount }
+        for (index, base) in endpoints.enumerated() {
+            do {
+                try await verifyNetwork(base)
+                async let accountWork = account(base, sender)
+                async let resourcesWork = post(base, "wallet/getaccountresource", ["address": .string(sender), "visible": .bool(true)])
+                let (owner, resources) = try await (accountWork, resourcesWork)
+                if owner.fields?.isEmpty == true { throw TronSendError.senderInactive }
+                if let multisig { guard try multisig.matches(owner) else { throw TronSendError.unsupportedAccount } }
+                else { try Self.validateOwner(owner, sender: sender) }
+                for field in ["NetLimit", "NetUsed", "freeNetLimit", "freeNetUsed", "EnergyLimit", "EnergyUsed"] { _ = try Self.n(resources[field], zero: true) }
+                let native = String(try Self.n(owner["balance"], zero: true))
+                let asset: String
+                if reference == "native" { guard decimals == 6 else { throw TronSendError.changed }; asset = native }
+                else if TronIdentity.isTRC10(reference) {
+                    let info = try await post(base, "wallet/getassetissuebyid", ["value": .string(reference)])
+                    guard info["id"].string == reference, try Self.n(info["precision"], zero: true) == UInt64(decimals) else { throw TronSendError.changed }
+                    asset = try TronIdentity.quantity(owner["assetV2"].array?.first(where: { $0["key"].string == reference })?["value"] ?? .number("0"))
+                } else {
+                    async let units = contractNumber(base, sender: sender, contract: reference, selector: "decimals()")
+                    async let value = contractNumber(base, sender: sender, contract: reference, selector: "balanceOf(address)", parameter: String(repeating: "0", count: 24) + TronSendCrypto.hex(TronIdentity.bytes(sender).dropFirst()))
+                    let (d, a) = try await (units, value)
+                    guard Int(d) == decimals else { throw TronSendError.changed }; asset = a
+                }
+                return try .init(chain: "tron", sender: sender, reference: reference, decimals: decimals, assetBalance: asset, nativeBalance: native, observedAt: observed)
+            } catch {
+                if error is CancellationError || Task.isCancelled { throw CancellationError() }
+                OathDiagnostics.record(error, component: "tron_send", operation: "sender_preparation", context: ["chain": "tron"])
+                if index == endpoints.count - 1 || !Self.retryable(error) { throw error }
+            }
+        }
+        throw TronSendError.transport
     }
 
     public func quote(sender:String,recipient:String,reference:String,decimals:Int,amount:String,maximum:Bool=false,removal:TronPermissionRemoval?=nil,multisig:TronMultisigPolicy?=nil,multisigSetup:TronMultisigPolicy?=nil) async throws -> TronSendPlan {

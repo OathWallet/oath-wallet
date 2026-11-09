@@ -54,14 +54,19 @@ struct OathTokenLogo: View {
     private static let loader = OathArtworkPipeline.loader
     private static let resolver = TokenArtworkResolver(loader: loader, metadata: OathTokenArtworkMetadata())
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.displayScale) private var displayScale
     @State private var artwork: ArtworkImage?
     @State private var loadedRequest: Request?
     private struct Request: Hashable {
         let sources: [String]
         let identity: TokenArtworkIdentity?
+        let maxPixelSize: Int?
     }
     private var request: Request {
-        .init(sources: [source, fallbackSource].compactMap { $0 }, identity: identity)
+        .init(sources: [source, fallbackSource].compactMap { $0 }, identity: identity,
+              // Export consumers retain the original. Display-only rows decode
+              // at Retina resolution, bucketed to avoid tiny resize reloads.
+              maxPixelSize: onResolved == nil ? Int(ceil(max(1, size * displayScale) / 32)) * 32 : nil)
     }
     private struct LoadID: Hashable { let request: Request; let active: Bool }
     private var currentArtwork: ArtworkImage? { loadedRequest == request ? artwork : nil }
@@ -70,35 +75,36 @@ struct OathTokenLogo: View {
         return OathReceiveExampleCatalog.bundled.redesignedArtwork(networkID: identity.networkID, reference: identity.reference) != nil
     }
 
+
     var body: some View {
         OathTokenLogoArtwork(artwork: currentArtwork, symbol: symbol, size: size, identity: identity)
         .task(id: LoadID(request: request, active: scenePhase == .active)) {
             guard scenePhase == .active, !usesBundledArtwork else { return }
             let requested = request
             if let token = requested.identity {
-                if let cached = await Self.resolver.cached(for: token, sources: requested.sources), !Task.isCancelled {
+                if let cached = await Self.resolver.cached(for: token, sources: requested.sources, maxPixelSize: requested.maxPixelSize), !Task.isCancelled {
                     accept(cached, for: requested)
                 }
-                let image = await Self.resolver.image(for: token, sources: requested.sources)
+                let image = await Self.resolver.image(for: token, sources: requested.sources, maxPixelSize: requested.maxPixelSize)
                 guard !Task.isCancelled else { return }
                 if image != nil || currentArtwork == nil { accept(image, for: requested) }
                 if image == nil {
                     do { try await Task.sleep(for: .seconds(35)) } catch { return }
-                    let retried = await Self.resolver.image(for: token, sources: requested.sources)
+                    let retried = await Self.resolver.image(for: token, sources: requested.sources, maxPixelSize: requested.maxPixelSize)
                     guard !Task.isCancelled else { return }
                     if retried != nil || currentArtwork == nil { accept(retried, for: requested) }
                 }
             } else {
                 guard !requested.sources.isEmpty else { return }
-                if let cached = await Self.loader.cached(for: requested.sources), !Task.isCancelled {
+                if let cached = await Self.loader.cached(for: requested.sources, maxPixelSize: requested.maxPixelSize), !Task.isCancelled {
                     accept(cached, for: requested)
                 }
-                let image = await Self.loader.image(for: requested.sources)
+                let image = await Self.loader.image(for: requested.sources, maxPixelSize: requested.maxPixelSize)
                 guard !Task.isCancelled else { return }
                 if image != nil || currentArtwork == nil { accept(image, for: requested) }
                 if image == nil {
                     do { try await Task.sleep(for: .seconds(35)) } catch { return }
-                    let retried = await Self.loader.image(for: requested.sources)
+                    let retried = await Self.loader.image(for: requested.sources, maxPixelSize: requested.maxPixelSize)
                     guard !Task.isCancelled else { return }
                     if retried != nil || currentArtwork == nil { accept(retried, for: requested) }
                 }
@@ -110,7 +116,7 @@ struct OathTokenLogo: View {
             // Observe independently of network/retry work: a result from another
             // screen must update this row immediately, even during its cooldown.
             // Registration also replays the cached image if resolution won the race.
-            let updates = await Self.resolver.updates(for: token, observerID: observerID)
+            let updates = await Self.resolver.updates(for: token, observerID: observerID, maxPixelSize: requested.maxPixelSize)
             defer { Task { await Self.resolver.stopUpdates(for: token, observerID: observerID) } }
             for await image in updates {
                 guard !Task.isCancelled else { return }
@@ -121,6 +127,10 @@ struct OathTokenLogo: View {
 
     private func accept(_ image: ArtworkImage?, for requested: Request) {
         guard !Task.isCancelled, requested == request else { return }
+        if loadedRequest == requested {
+            if let image, artwork?.isSameDelivery(as: image) == true { return }
+            if image == nil, artwork == nil { return }
+        }
         loadedRequest = requested
         artwork = image
         // Receipts receive the same unmodified artwork displayed on screen.
@@ -184,32 +194,21 @@ struct OathTokenSearchResults: View {
     }
 
     var body: some View {
-        let format = OathAssetAmountFormat(locale: strings.language.locale,
-            selectedCurrencyCode: session.portfolio?.currency ?? "USD")
+        // Observe the published display currency, not every balance/history
+        // snapshot. Discovery rows have no wallet balance to redraw.
+        let currency = session.homePortfolio.currency
+        // A selected-chain directory can contain thousands of entries. Filter
+        // once per render, not again for every lazy row's separator/accessibility.
+        let results = results
+        let firstID = results.first?.id
         LazyVStack(alignment: .leading, spacing: 0) {
             ForEach(results) { token in
                 OathButton(feedback: nil) { select(token) } label: {
-                    // Match Home's display fallback, without creating a zero
-                    // balance or guessing decimals in the database.
-                    OathRefinedListRow(title: strings.invariant(token.symbol),
-                        subtitle: strings.invariant(token.name),
-                        value: String(format.fiat(.unavailable).characters),
-                        primaryFontWeight: .medium,
-                        detail: strings.invariant(format.nativeSummary(nil, ticker: token.symbol)),
-                        showsSeparator: hasSavedMatches || token.id != results.first?.id,
-                        concealsAmounts: balancesHidden,
-                        titleBadgeAsset: token.network.chain.logoAsset,
-                        assetNetworkName: strings.invariant(token.network.chain.name),
-                        showsAssetNetworkBadge: !token.isNativeRepresentation) { size in
-                            OathBadgedAssetLogo(networkID: token.network.id, isNative: token.isNativeRepresentation,
-                                source: token.logoURL?.absoluteString, symbol: token.symbol,
-                                identity: token.artworkIdentity, size: size, showsChainBadge: false)
-                        }
+                    OathTokenSearchRow(token: token, currency: currency,
+                        balancesHidden: balancesHidden, showsSeparator: hasSavedMatches || token.id != firstID)
+                        .equatable()
                 }
                 .buttonStyle(OathSettingsRowButtonStyle())
-                .accessibilityLabel([token.symbol, token.name, token.network.chain.name,
-                    balancesHidden ? strings.text(.balanceHidden) : String(format.fiat(.unavailable).characters),
-                    balancesHidden ? "" : format.nativeSummary(nil, ticker: token.symbol)].joined(separator: ", "))
                 .accessibilityIdentifier("token.result.\(token.id)")
             }
             if model.isSearching || (!model.isCatalogQuery && active) {
@@ -252,6 +251,41 @@ struct OathTokenSearchResults: View {
 
     private func message(_ key: OathStringKey, icon: String) -> some View {
         OathEmptyState(strings.text(key), systemImage: icon).padding(20)
+    }
+}
+
+/// Keep row formatting/layout stable when the containing picker receives a
+/// newer wallet snapshot. Actions stay in the parent and use current state.
+private struct OathTokenSearchRow: View, Equatable {
+    let token: OathTokenDefinition
+    let currency: String
+    let balancesHidden: Bool
+    let showsSeparator: Bool
+    @Environment(\.oathLocalizer) private var strings
+
+    nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.token == rhs.token && lhs.currency == rhs.currency &&
+        lhs.balancesHidden == rhs.balancesHidden && lhs.showsSeparator == rhs.showsSeparator
+    }
+
+    var body: some View {
+        let format = OathAssetAmountFormat(locale: strings.language.locale, selectedCurrencyCode: currency)
+        let fiat = String(format.fiat(.unavailable).characters)
+        let native = format.nativeSummary(nil, ticker: token.symbol)
+        // No zero balance or guessed decimals are persisted for catalog rows.
+        OathRefinedListRow(title: strings.invariant(token.symbol),
+            subtitle: strings.invariant(token.name), value: fiat, primaryFontWeight: .medium,
+            detail: strings.invariant(native), showsSeparator: showsSeparator,
+            concealsAmounts: balancesHidden, titleBadgeAsset: token.network.chain.logoAsset,
+            assetNetworkName: strings.invariant(token.network.chain.name),
+            showsAssetNetworkBadge: !token.isNativeRepresentation) { size in
+                OathBadgedAssetLogo(networkID: token.network.id, isNative: token.isNativeRepresentation,
+                    source: token.logoURL?.absoluteString, symbol: token.symbol,
+                    identity: token.artworkIdentity, size: size, showsChainBadge: false)
+            }
+            .accessibilityLabel([token.symbol, token.name, token.network.chain.name,
+                balancesHidden ? strings.text(.balanceHidden) : fiat,
+                balancesHidden ? "" : native].joined(separator: ", "))
     }
 }
 
@@ -306,7 +340,7 @@ struct OathTokenDetailsSheet: View {
             VStack(spacing: 20) {
                 VStack(spacing: 10) {
                     OathTokenLogo(source: token.logoURL?.absoluteString, symbol: token.symbol, size: 68, identity: token.artworkIdentity)
-                    Text(strings.invariant(token.name)).oathFont(.title2, weight: .semibold)
+                    Text(strings.invariant(token.name)).oathFont(.title2, weight: .medium)
                         .multilineTextAlignment(.center).accessibilityIdentifier("token.details.name")
                     Text(strings.invariant(token.symbol)).oathFont(.subheadline).foregroundStyle(.secondary)
                         .accessibilityIdentifier("token.details.symbol")

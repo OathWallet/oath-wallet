@@ -14,7 +14,7 @@ actor OathStellarSendService {
     static let shared = OathStellarSendService()
     private var client: StellarSendClient?
     private var flights = Set<String>()
-    private func connection() throws -> StellarSendClient {
+    func connection() throws -> StellarSendClient {
         if let client { return client }
         let value = try OathTokenRPCConfiguration.bundled().makeStellarSendClient()
         client = value; return value

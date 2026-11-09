@@ -32,7 +32,7 @@ extension Holding {
         symbol == other.symbol && decimals == other.decimals && logo == other.logo &&
         amountAtomic == other.amountAtomic && usdPrice == other.usdPrice &&
         exchangeRate == other.exchangeRate && transactionCount == other.transactionCount &&
-        pendingTransactionCount == other.pendingTransactionCount
+        pendingTransactionCount == other.pendingTransactionCount && homeVerified == other.homeVerified
     }
 }
 
@@ -130,7 +130,7 @@ actor OathHomePortfolioBuilder {
                 formatted += 1
             }
         }
-        let visibleHoldings = input.holdings.filter { !input.hiddenAssetIDs.contains($0.assetID) }
+        let visibleHoldings = input.holdings.filter { !input.hiddenAssetIDs.contains($0.assetID) && (!input.filter.hidesUnverifiedTokens || $0.isVerifiedForHome) }
         let rows = input.filter.applying(to: visibleHoldings, currency: input.currency,
             locale: Locale(identifier: input.sortingLocale), preservingRecommendedOrder: true)
         let query = input.query.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -255,5 +255,17 @@ final class OathHomePortfolioModel {
 
     func cancel() {
         epoch = UUID(); work?.cancel(); work = nil; requested = nil; pending = nil
+    }
+}
+
+// Display equality is deliberately independent of balance timestamps, provider
+// source, history and signing state. The parent retains the latest Holding for
+// selection/authorization; only the expensive row subtree skips redundant work.
+extension Holding {
+    func hasSameAssetSelectionContent(as other: Self) -> Bool {
+        id == other.id && networkID == other.networkID && reference == other.reference &&
+        name == other.name && symbol == other.symbol && decimals == other.decimals && logo == other.logo &&
+        amountAtomic == other.amountAtomic && usdPrice == other.usdPrice && exchangeRate == other.exchangeRate &&
+        isCatalogPreview == other.isCatalogPreview
     }
 }

@@ -26,14 +26,20 @@ import OathDiagnostics
             .flatMap { Decimal(string:$0,locale:Locale(identifier:"en_US_POSIX")) }
         let token = generation, walletID = model.walletID, recipient = model.address
         let tag = UInt32(model.memo), maximum = model.maximumAmount != nil, closure = model.xrplAccountClosure
+        let sessionGeneration = session.sendSessionGeneration
         work = Task(priority:.userInitiated) {
             do {
+                let prepared = try await model.preparedSender(session: session, retryFailure: true)
                 let value = try await XrplSendPreparation.run {
                     try await OathXrplSendService.shared.quote(walletID:walletID,accountID:holding.accountID,assetID:holding.assetID,
-                        reference:holding.reference,recipient:recipient,amount:amount,destinationTag:tag,maximum:maximum,closure:closure,vault:session.vault)
+                        reference:holding.reference,recipient:recipient,amount:amount,destinationTag:tag,maximum:maximum,closure:closure,vault:session.vault,preparedSender:prepared)
                 }
-                guard generation == token, !Task.isCancelled, session.isUnlocked else { return }
-                quote = value; busy = false
+                guard generation == token, !Task.isCancelled, session.isUnlocked, !session.resetting, !session.changingWallet, session.sendSessionGeneration == sessionGeneration else { return }
+                guard SendReviewAmounts.isWithinRequestedAmount(String(describing: value.plan.amount), requested: String(describing: amount)) else {
+                    busy = false; needsRefresh = true; needsAmountChange = true
+                    return // Changed Max intent is form validation, not an app error.
+                }
+                SendPerformance.publish { quote = value; busy = false }
             } catch {
                 // diagnostics: xrpl-preparation-feedback. XrplSendPreparation
                 // reports original unexpected errors; preserve this recovery UI.

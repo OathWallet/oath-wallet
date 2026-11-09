@@ -8,6 +8,37 @@ private actor XrplPreparationReports: DiagnosticTransport {
 }
 
 @MainActor final class XrplSendPreparationTests: XCTestCase {
+    func testEarlySenderPreparation() async throws {
+        let sender = try XrplSendCrypto.address(privateKey:Data(repeating:7,count:32))
+        let t = XrplRPCFixture(sender:sender,recipient:"rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh"), c = try XrplSendClient(network:.testnet,transport:t)
+        await t.configure(balance:10_000_000)
+        let s = try await c.prepareSender(sender:sender,reference:"native",decimals:6)
+        XCTAssertEqual(s.assetBalance,"10000000"); XCTAssertEqual(s.spendable,"8600000")
+        let token = try await c.prepareSender(sender:sender,reference:"USD.r9cZA1mLK5R5Am25ArfXFmqgNwjZgnfk59",decimals:96)
+        XCTAssertNotEqual(token.assetBalance,"0")
+    }
+
+    func testValidatedLedgerReuseKeepsFeeSimulationAndChangedLedgerChecks() async throws {
+        let sender = try XrplSendCrypto.address(privateKey:Data(repeating:7,count:32)), recipient = "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh"
+        let t = XrplRPCFixture(sender:sender,recipient:recipient), c = try XrplSendClient(network:.testnet,transport:t)
+        let prepared = try await c.prepareSender(sender:sender,reference:"native",decimals:6)
+        let early = await t.methods
+        XCTAssertFalse(early.contains("fee")); XCTAssertFalse(early.contains("simulate"))
+        let before = early.filter { $0 == "account_info" }.count
+        let quote = try await c.quote(sender:sender,recipient:recipient,reference:"native",amount:"100",preparedSender:prepared)
+        XCTAssertEqual(quote.fee,12); XCTAssertEqual(quote.amount,"100")
+        let warm = await t.methods
+        XCTAssertEqual(warm.filter { $0 == "account_info" }.count,before+1,"Only recipient account is fetched at the matching ledger")
+        XCTAssertTrue(warm.contains("fee")); XCTAssertTrue(warm.contains("simulate"))
+        await t.configure(height:101)
+        _ = try await c.quote(sender:sender,recipient:recipient,reference:"native",amount:"100",preparedSender:prepared)
+        let fresh = await t.methods
+        XCTAssertEqual(fresh.filter { $0 == "account_info" }.count,before+3)
+        await t.configure(balance:1_400_001,height:102)
+        do { _ = try await c.quote(sender:sender,recipient:recipient,reference:"native",amount:"100",preparedSender:prepared); XCTFail("Stale balance accepted") }
+        catch { XCTAssertTrue(error is SendFeeFundingError) }
+    }
+
     func testAccountRequirementsKeepQuotesBlockedWithoutHidingRealFailures() async throws {
         guard ProcessInfo.processInfo.environment["OATH_XRPL_PREPARATION_DIAGNOSTICS_TEST"] == "1" else {
             throw XCTSkip("Run in a fresh process to isolate the process-wide diagnostics reporter")

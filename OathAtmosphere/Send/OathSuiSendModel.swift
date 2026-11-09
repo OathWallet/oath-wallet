@@ -23,12 +23,18 @@ import OathDiagnostics
         gasPrice = model.snapshot?.holdings.first { $0.networkID == "sui" && $0.reference == "native" }?.price
             .flatMap { Decimal(string:$0,locale:Locale(identifier:"en_US_POSIX")) }
         let token = generation, walletID = model.walletID, recipient = model.address
+        let sessionGeneration = session.sendSessionGeneration
         work = Task(priority:.userInitiated) {
             do {
+                _ = try await model.preparedSender(session: session, retryFailure: true)
                 let value = try await OathSuiSendService.shared.quote(walletID:walletID,accountID:holding.accountID,assetID:holding.assetID,
                     reference:holding.reference,recipient:recipient,amount:amount,vault:session.vault)
-                guard generation == token, !Task.isCancelled, session.isUnlocked else { return }
-                quote = value; busy = false
+                guard generation == token, !Task.isCancelled, session.isUnlocked, !session.resetting, !session.changingWallet, session.sendSessionGeneration == sessionGeneration else { return }
+                guard SendReviewAmounts.isWithinRequestedAmount(String(describing: value.plan.amount), requested: String(describing: amount)) else {
+                    busy = false; needsRefresh = true; needsAmountChange = true
+                    return // Changed Max intent is form validation, not an app error.
+                }
+                SendPerformance.publish { quote = value; busy = false }
             } catch {
                 OathDiagnostics.record(error,component:"sui_send",operation:"prepare",context:["chain":"sui","stage":"quote"])
                 guard generation == token, !Task.isCancelled else { return }

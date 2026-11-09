@@ -4,8 +4,8 @@ import Foundation
 /// Provider precision never replaces chain-validated signing metadata. Contract identity is always scoped to the documented chain ID.
 /// https://docs.li.fi/api-reference/fetch-all-known-tokens
 enum LifiTokenDiscovery {
-    // Explicit zero removes the default minimum-price filter so low-priced
-    // tokens remain discoverable.
+    // No wallet, search terms, or API key are sent. Explicit zero removes the
+    // provider's default minimum-price filter; cheap tokens stay discoverable.
     static let endpoint = "https://li.quest/v1/tokens?chainTypes=EVM,SVM,MVM,TVM&minPriceUSD=0"
     private static let networks = LifiTokenMetadata.networks
     private struct Envelope: Decodable { let tokens: [String: [LifiTokenMetadata.Response]] }
@@ -20,7 +20,7 @@ enum LifiTokenDiscovery {
         var ambiguous: Set<String> = []
         for (key, tokens) in envelope.tokens {
             guard let chainID = UInt64(key), let network = networks[chainID] else { continue }
-            for token in tokens {
+            for (position, token) in tokens.enumerated() {
                 guard token.chainId == chainID, (0...255).contains(token.decimals) else { throw TokenDiscoveryError.malformed }
                 // diagnostics: discovery-optional-listing. A public directory can
                 // include native placeholders and unsupported/non-token identities.
@@ -35,7 +35,7 @@ enum LifiTokenDiscovery {
                 let entry = TokenDiscoveryEntry(network: network, reference: reference, coinID: nil,
                     name: name, symbol: symbol.uppercased(), decimals: nil, logo: metadata.logo, source: .lifi,
                     lifiPriceUSD: metadata.priceUSD, lifiVerificationStatus: metadata.verificationStatus,
-                    lifiDecimals: token.decimals, lifiFetchedAt: observedAt)
+                    lifiDecimals: token.decimals, lifiFetchedAt: observedAt, lifiOrder: position)
                 if let previous = entries[entry.id] {
                     if previous.name != entry.name || previous.symbol != entry.symbol || precisions[entry.id] != token.decimals {
                         ambiguous.insert(entry.id)
