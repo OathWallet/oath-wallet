@@ -13,9 +13,9 @@ test('Help Center chrome is generated from the current main-site components',asy
   assert.equal(await readFile(new URL('../public/help/site-chrome.css',import.meta.url),'utf8'),generated.css);
   assert.match(siteHeader,/\/assets\/brand\/oath-logo.svg/);
   assert.match(siteFooter,/\/assets\/brand\/oath-logo.svg/);
-  assert.match(generated.css,/background:#0A0A0B;color:#F2F0EA/);
-  assert.match(generated.css,/background:rgba\(20,20,22,\.72\)/);
-  assert.match(generated.css,/background:rgba\(10,10,11,\.94\)/);
+  assert.match(generated.css,/background:var\(--oath-c-0a0a0b\);color:var\(--oath-c-f2f0ea\)/);
+  assert.match(generated.css,/background:rgba\(var\(--oath-rgb-141416\),\.72\)/);
+  assert.match(generated.css,/background:rgba\(var\(--oath-rgb-0a0a0b\),\.94\)/);
   assert.doesNotMatch(siteHeader+siteFooter,/style=|onClick=|{{|sc-for|dc-import/);
   assert.match(siteHeader,/aria-controls="oath-site-menu"/);
   assert.match(siteHeader,/inert aria-hidden="true"/);

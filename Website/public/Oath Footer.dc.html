@@ -12,38 +12,42 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Instrument+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
 <script src="oath-icons.js"></script>
 </helmet>
-<footer style="border-top:1px solid rgba(242,240,234,.12);background:#0A0A0B;color:#F2F0EA">
+<footer style="border-top:1px solid rgba(var(--oath-rgb-f2f0ea),.12);background:var(--oath-c-0a0a0b);color:var(--oath-c-f2f0ea)">
   <div style="max-width:1320px;margin:0 auto;padding:56px clamp(20px,5vw,32px) 36px;display:flex;flex-direction:column;gap:clamp(40px,7vw,64px)">
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:36px 32px">
       <div style="display:flex;flex-direction:column;gap:14px;grid-column:{{ span }}">
         <div style="display:flex;align-items:center;gap:10px"><img src="{{ mark }}" alt="" style="display:block;width:30px;height:30px;border-radius:22%;overflow:hidden" role="presentation"><span style="font:600 20px/1 'Instrument Sans',sans-serif;letter-spacing:-.03em">Oath</span></div>
-        <span style="font:400 italic 22px/1.2 'Instrument Serif',serif;color:#8E8C86">Made for your independence.</span>
+        <span style="font:400 italic 22px/1.2 'Instrument Serif',serif;color:var(--oath-c-8e8c86)">Made for your independence.</span>
       </div>
       <div style="display:flex;flex-direction:column;gap:2px">
-        <span style="margin-bottom:8px;font:400 12px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:#8E8C86">Product</span>
-        <sc-for list="{{ productLinks }}" as="l"><a href="{{ l.href }}" style="display:flex;align-items:center;min-height:40px;font:400 15px/1 'Instrument Sans',sans-serif;color:#D6D4CD;text-decoration:none" style-hover="color:#FFFFFF">{{ l.t }}</a></sc-for>
-        <button type="button" popovertarget="oath-network-menu" style="display:flex;align-items:center;gap:8px;min-height:40px;padding:0;border:0;background:transparent;text-align:left;font:400 15px/1.4 'Instrument Sans',sans-serif;color:#D6D4CD;cursor:pointer" style-hover="color:#FFFFFF">Supported Networks<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m8 10 4 4 4-4"></path></svg></button>
-        <div id="oath-network-menu" popover="auto" aria-labelledby="oath-network-menu-title" style="width:min(480px,calc(100vw - 32px));max-height:min(640px,calc(100dvh - 48px));padding:0;margin:auto;border:1px solid rgba(242,240,234,.12);border-radius:28px;background:#0A0A0B;color:#F2F0EA;box-shadow:0 24px 96px #00000066;overflow:auto;overscroll-behavior:contain">
-          <div style="position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 20px 14px;background:#0A0A0B;border-bottom:1px solid rgba(242,240,234,.12)">
+        <span style="margin-bottom:8px;font:400 12px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--oath-c-8e8c86)">Product</span>
+        <sc-for list="{{ productLinks }}" as="l"><a href="{{ l.href }}" style="display:flex;align-items:center;min-height:40px;font:400 15px/1 'Instrument Sans',sans-serif;color:var(--oath-c-d6d4cd);text-decoration:none" style-hover="color:var(--oath-c-ffffff)">{{ l.t }}</a></sc-for>
+        <button type="button" popovertarget="oath-network-menu" style="display:flex;align-items:center;gap:8px;min-height:40px;padding:0;border:0;background:transparent;text-align:left;font:400 15px/1.4 'Instrument Sans',sans-serif;color:var(--oath-c-d6d4cd);cursor:pointer" style-hover="color:var(--oath-c-ffffff)">Supported Networks<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m8 10 4 4 4-4"></path></svg></button>
+        <div id="oath-network-menu" popover="auto" aria-labelledby="oath-network-menu-title" style="width:min(480px,calc(100vw - 32px));max-height:min(640px,calc(100dvh - 48px));padding:0;margin:auto;border:1px solid rgba(var(--oath-rgb-f2f0ea),.12);border-radius:28px;background:var(--oath-c-0a0a0b);color:var(--oath-c-f2f0ea);box-shadow:0 24px 96px #00000066;overflow:auto;overscroll-behavior:contain">
+          <div style="position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 20px 14px;background:var(--oath-c-0a0a0b);border-bottom:1px solid rgba(var(--oath-rgb-f2f0ea),.12)">
             <h2 id="oath-network-menu-title" style="margin:0;font:400 28px/1.2 'Instrument Serif',serif;letter-spacing:-.02em">Supported Networks</h2>
-            <button type="button" popovertarget="oath-network-menu" popovertargetaction="hide" aria-label="Close supported networks" style="width:40px;height:40px;flex:none;display:grid;place-items:center;border:1px solid rgba(242,240,234,.12);border-radius:50%;background:transparent;color:#F2F0EA;cursor:pointer"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m6 6 12 12M18 6 6 18"></path></svg></button>
+            <button type="button" popovertarget="oath-network-menu" popovertargetaction="hide" aria-label="Close supported networks" style="width:40px;height:40px;flex:none;display:grid;place-items:center;border:1px solid rgba(var(--oath-rgb-f2f0ea),.12);border-radius:50%;background:transparent;color:var(--oath-c-f2f0ea);cursor:pointer"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m6 6 12 12M18 6 6 18"></path></svg></button>
           </div>
           <nav aria-label="Supported networks" style="display:grid;grid-template-columns:1fr;padding:8px">
-            <sc-for list="{{ networks }}" as="network"><a href="{{ network.href }}" style="min-height:52px;display:flex;align-items:center;gap:12px;padding:8px 14px;border-radius:14px;font:400 15px/1.4 'Instrument Sans',sans-serif;color:#D6D4CD;text-decoration:none" style-hover="color:#FFFFFF;background:rgba(242,240,234,.08)"><img src="{{ network.icon }}" srcset="{{ network.iconSet }}" sizes="28px" alt="" width="28" height="28" loading="lazy" style="width:28px;height:28px;object-fit:contain;border-radius:8px;flex:none"><span>{{ network.name }}</span></a></sc-for>
+            <sc-for list="{{ networks }}" as="network"><a href="{{ network.href }}" style="min-height:52px;display:flex;align-items:center;gap:12px;padding:8px 14px;border-radius:14px;font:400 15px/1.4 'Instrument Sans',sans-serif;color:var(--oath-c-d6d4cd);text-decoration:none" style-hover="color:var(--oath-c-ffffff);background:rgba(var(--oath-rgb-f2f0ea),.08)"><img src="{{ network.icon }}" srcset="{{ network.iconSet }}" sizes="28px" alt="" width="28" height="28" loading="lazy" style="width:28px;height:28px;object-fit:contain;border-radius:8px;flex:none"><span>{{ network.name }}</span></a></sc-for>
           </nav>
         </div>
       </div>
       <sc-for list="{{ cols }}" as="col" hint-placeholder-count="3">
         <div style="display:flex;flex-direction:column;gap:2px">
-          <span style="margin-bottom:8px;font:400 12px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:#8E8C86">{{ col.h }}</span>
-          <sc-for list="{{ col.links }}" as="l" hint-placeholder-count="4"><a href="{{ l.href }}" style="display:flex;align-items:center;min-height:40px;font:400 15px/1 'Instrument Sans',sans-serif;color:#D6D4CD;text-decoration:none" style-hover="color:#FFFFFF">{{ l.t }}</a></sc-for>
+          <span style="margin-bottom:8px;font:400 12px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--oath-c-8e8c86)">{{ col.h }}</span>
+          <sc-for list="{{ col.links }}" as="l" hint-placeholder-count="4"><a href="{{ l.href }}" style="display:flex;align-items:center;min-height:40px;font:400 15px/1 'Instrument Sans',sans-serif;color:var(--oath-c-d6d4cd);text-decoration:none" style-hover="color:var(--oath-c-ffffff)">{{ l.t }}</a></sc-for>
         </div>
       </sc-for>
     </div>
-    <div aria-hidden="true" style="font:400 clamp(80px,19vw,300px)/.8 'Instrument Serif',serif;letter-spacing:-.04em;color:#6E6C67;user-select:none">Oath</div>
-    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;padding-top:24px;border-top:1px solid rgba(242,240,234,.12);font:400 13px/1.4 'Instrument Sans',sans-serif;color:#8E8C86">
+    <div class="oath-theme-switch" role="group" aria-label="Website appearance">
+      <button type="button" data-oath-theme-choice="light" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"></path></svg>Light</button>
+      <button type="button" data-oath-theme-choice="dark" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"></path></svg>Dark</button>
+    </div>
+    <div aria-hidden="true" style="font:400 clamp(80px,19vw,300px)/.8 'Instrument Serif',serif;letter-spacing:-.04em;color:var(--oath-c-6e6c67);user-select:none">Oath</div>
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;padding-top:24px;border-top:1px solid rgba(var(--oath-rgb-f2f0ea),.12);font:400 13px/1.4 'Instrument Sans',sans-serif;color:var(--oath-c-8e8c86)">
       <span>© 2026 Oath. A self-custody wallet — Oath never holds or controls your funds.</span>
-      <div style="display:flex;gap:22px"><a href="https://x.com/OathWallet" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;min-height:44px;color:#8E8C86;text-decoration:none" style-hover="color:#FFFFFF"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:block"><path d="M18.9 2H22l-6.8 7.8L23 22h-6.1l-4.8-6.3L6.6 22H3.5l7.3-8.3L1 2h6.2l4.4 5.8Zm-1.1 18.2h1.7L6.3 3.7H4.5Z"></path></svg>@OathWallet</a></div>
+      <div style="display:flex;gap:22px"><a href="https://x.com/OathWallet" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;min-height:44px;color:var(--oath-c-8e8c86);text-decoration:none" style-hover="color:var(--oath-c-ffffff)"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:block"><path d="M18.9 2H22l-6.8 7.8L23 22h-6.1l-4.8-6.3L6.6 22H3.5l7.3-8.3L1 2h6.2l4.4 5.8Zm-1.1 18.2h1.7L6.3 3.7H4.5Z"></path></svg>@OathWallet</a></div>
     </div>
   </div>
 </footer>

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+<head><script data-oath-theme-bootstrap src="/theme.js?v=20261109"></script><link rel="stylesheet" href="/theme.css?v=20261109">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Oath Wallet Security | Key Storage, Backups &amp; Source Code</title>
@@ -29,7 +29,7 @@
 <meta name="twitter:description" content="Oath’s open-source code, App Store source-correspondence statement, and security model. Understand maintainer confirmation and independent build verification.">
 <meta name="twitter:image" content="https://oathwallet.org/og/security.png?v=daebc54046ed">
 <meta name="twitter:image:alt" content="Oath Security — how your keys are protected">
-<meta name="theme-color" content="#0A0A0B">
+
 <link rel="canonical" href="https://oathwallet.org/security">
 <link rel="alternate" type="text/markdown" href="security.md" title="Security — Oath (Markdown)">
 <link rel="alternate" type="text/plain" href="llms.txt" title="Guide for AI agents">
@@ -40,7 +40,7 @@
 <script src="./support.js" defer></script>
 <link rel="stylesheet" href="/site-chrome.css"><!-- oath-runtime-preloads:start --><link rel="preload" as="script" href="/assets/vendor/react-18.3.1.min.js" crossorigin="anonymous" integrity="sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z"><link rel="preload" as="script" href="/assets/vendor/react-dom-18.3.1.min.js" crossorigin="anonymous" integrity="sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1"><!-- oath-runtime-preloads:end --></head>
 <body>
-<!-- oath-server-content:start --><style id="oath-readable-style">#oath-server-content{box-sizing:border-box;min-height:100vh;margin:0;background:#0A0A0B;color:#F2F0EA;font:17px/1.65 system-ui,sans-serif;padding:0}#oath-server-content main a{color:inherit;text-decoration:underline;text-underline-offset:4px}#oath-server-content > nav{display:flex;gap:22px;flex-wrap:wrap;padding:8px 0 40px;border-bottom:1px solid #333}#oath-server-content > nav a{text-decoration:none}#oath-server-content main{max-width:984px;margin:0 auto;padding:128px 32px 64px}#oath-server-content main h1{font:400 clamp(42px,7vw,86px)/1.05 Georgia,serif;letter-spacing:-.03em}#oath-server-content main h2{font:400 clamp(28px,4vw,40px)/1.2 Georgia,serif;margin-top:48px}#oath-server-content main h3{font-size:21px;margin-top:32px}#oath-server-content main p,#oath-server-content main li{max-width:78ch}#oath-server-content > footer{max-width:920px;margin:auto;border-top:1px solid #333;padding-top:24px}#oath-server-content .oath-readable-table{overflow-x:auto}#oath-server-content th,#oath-server-content td{border-bottom:1px solid #333;padding:12px;text-align:left}#oath-server-content main code{overflow-wrap:anywhere}</style><div id="oath-server-content"><div class="oath-site-header"><div id="oath-site-menu" inert aria-hidden="true" class="oath-header-0">
+<!-- oath-server-content:start --><style id="oath-readable-style">#oath-server-content{box-sizing:border-box;min-height:100vh;margin:0;background:var(--oath-c-0a0a0b);color:var(--oath-c-f2f0ea);font:17px/1.65 system-ui,sans-serif;padding:0}#oath-server-content main a{color:inherit;text-decoration:underline;text-underline-offset:4px}#oath-server-content > nav{display:flex;gap:22px;flex-wrap:wrap;padding:8px 0 40px;border-bottom:1px solid var(--oath-c-333333)}#oath-server-content > nav a{text-decoration:none}#oath-server-content main{max-width:984px;margin:0 auto;padding:128px 32px 64px}#oath-server-content main h1{font:400 clamp(42px,7vw,86px)/1.05 Georgia,serif;letter-spacing:-.03em}#oath-server-content main h2{font:400 clamp(28px,4vw,40px)/1.2 Georgia,serif;margin-top:48px}#oath-server-content main h3{font-size:21px;margin-top:32px}#oath-server-content main p,#oath-server-content main li{max-width:78ch}#oath-server-content > footer{max-width:920px;margin:auto;border-top:1px solid var(--oath-c-333333);padding-top:24px}#oath-server-content .oath-readable-table{overflow-x:auto}#oath-server-content th,#oath-server-content td{border-bottom:1px solid var(--oath-c-333333);padding:12px;text-align:left}#oath-server-content main code{overflow-wrap:anywhere}</style><div id="oath-server-content"><div class="oath-site-header"><div id="oath-site-menu" inert aria-hidden="true" class="oath-header-0">
   <div class="oath-header-1">
     <nav aria-label="Mobile navigation" class="oath-header-2">
         <a href="https://oathwallet.org/" data-oath-close class="oath-header-3">
@@ -162,6 +162,10 @@
           <a href="https://oathwallet.org/terms" class="oath-footer-116">Terms of Service</a><a href="https://oathwallet.org/privacy" class="oath-footer-117">Privacy Policy</a>
         </div>
     </div>
+    <div class="oath-theme-switch" role="group" aria-label="Website appearance">
+      <button type="button" data-oath-theme-choice="light" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"></path></svg>Light</button>
+      <button type="button" data-oath-theme-choice="dark" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"></path></svg>Dark</button>
+    </div>
     <div aria-hidden="true" class="oath-footer-118">Oath</div>
     <div class="oath-footer-119">
       <span>© 2026 Oath. A self-custody wallet — Oath never holds or controls your funds.</span>
@@ -177,30 +181,30 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Instrument+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
 <script src="oath-icons.js"></script>
-<style>html,body{margin:0;background:#0A0A0B;color:#F2F0EA;font-family:'Instrument Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}*{box-sizing:border-box}a{color:#F2F0EA;text-decoration:none}a:hover{color:#FFFFFF}button{font-family:inherit}::selection{background:#F2F0EA;color:#0A0A0B}</style>
+<style>html,body{margin:0;background:var(--oath-c-0a0a0b);color:var(--oath-c-f2f0ea);font-family:'Instrument Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}*{box-sizing:border-box}a{color:var(--oath-c-f2f0ea);text-decoration:none}a:hover{color:var(--oath-c-ffffff)}button{font-family:inherit}::selection{background:var(--oath-c-f2f0ea);color:var(--oath-c-0a0a0b)}</style>
 </helmet>
-<div data-screen-label="Security" style="position:relative;background:#0A0A0B;color:#F2F0EA;overflow-x:clip">
+<div data-screen-label="Security" style="position:relative;background:var(--oath-c-0a0a0b);color:var(--oath-c-f2f0ea);overflow-x:clip">
   <dc-import name="Oath Header" hint-size="100%,0px"></dc-import>
   <main id="main-content">
 
   <section data-screen-label="01 Hero" style="max-width:1320px;margin:0 auto;padding:clamp(128px,18vw,200px) clamp(20px,5vw,32px) 0;display:flex;flex-direction:column;gap:clamp(28px,4vw,40px)">
-    <span style="font:400 12.5px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:#8E8C86">Security</span>
-    <div data-oath-page-title style="margin:0;font:400 clamp(56px,10vw,168px)/.9 'Instrument Serif',serif;letter-spacing:-.03em;opacity:{{ heroO }};transform:{{ heroT }};transition:opacity 1s ease, transform 1.2s cubic-bezier(.16,1,.3,1)">Your keys. Your device.<br><em style="color:#8E8C86">Read the evidence.</em></div>
+    <span style="font:400 12.5px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--oath-c-8e8c86)">Security</span>
+    <div data-oath-page-title style="margin:0;font:400 clamp(56px,10vw,168px)/.9 'Instrument Serif',serif;letter-spacing:-.03em;opacity:{{ heroO }};transform:{{ heroT }};transition:opacity 1s ease, transform 1.2s cubic-bezier(.16,1,.3,1)">Your keys. Your device.<br><em style="color:var(--oath-c-8e8c86)">Read the evidence.</em></div>
     <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:28px">
-      <p style="margin:0;max-width:560px;font:400 clamp(17px,1.6vw,20px)/1.55 'Instrument Sans',sans-serif;color:#B9B7B0;text-wrap:pretty">Oath is open source. Our release record connects a specific public source commit to the build uploaded to App Store Connect. Explore the evidence, what independent build verification adds, and the source behind our security model.</p>
+      <p style="margin:0;max-width:560px;font:400 clamp(17px,1.6vw,20px)/1.55 'Instrument Sans',sans-serif;color:var(--oath-c-b9b7b0);text-wrap:pretty">Oath is open source. Our release record connects a specific public source commit to the build uploaded to App Store Connect. Explore the evidence, what independent build verification adds, and the source behind our security model.</p>
       <div style="display:flex;flex-wrap:wrap;gap:10px">
-        <a href="https://github.com/OathWallet/oath-wallet" target="_blank" rel="noopener" style="height:52px;padding:0 22px;border-radius:999px;background:#F2F0EA;color:#0A0A0B;display:flex;align-items:center;gap:10px;font:600 15px/1 'Instrument Sans',sans-serif" style-hover="background:#FFFFFF;color:#0A0A0B">
+        <a href="https://github.com/OathWallet/oath-wallet" target="_blank" rel="noopener" style="height:52px;padding:0 22px;border-radius:999px;background:var(--oath-c-f2f0ea);color:var(--oath-c-0a0a0b);display:flex;align-items:center;gap:10px;font:600 15px/1 'Instrument Sans',sans-serif" style-hover="background:var(--oath-c-ffffff);color:var(--oath-c-0a0a0b)">
           <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
           Read the code on GitHub
         </a>
-        <a href="#demo" style="height:52px;padding:0 22px;border-radius:999px;box-shadow:inset 0 0 0 1px rgba(242,240,234,.2);display:flex;align-items:center;font:500 15px/1 'Instrument Sans',sans-serif" style-hover="background:#141416">Try it live ↓</a>
+        <a href="#demo" style="height:52px;padding:0 22px;border-radius:999px;box-shadow:inset 0 0 0 1px rgba(var(--oath-rgb-f2f0ea),.2);display:flex;align-items:center;font:500 15px/1 'Instrument Sans',sans-serif" style-hover="background:var(--oath-c-141416)">Try it live ↓</a>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));border-top:1px solid rgba(242,240,234,.12);margin-top:clamp(16px,3vw,40px)">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));border-top:1px solid rgba(var(--oath-rgb-f2f0ea),.12);margin-top:clamp(16px,3vw,40px)">
       <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
         <div style="padding:26px 24px 0 0;display:flex;flex-direction:column;gap:10px">
           <span style="font:400 clamp(40px,4.4vw,60px)/1 'Instrument Serif',serif;letter-spacing:-.02em">{{ s.v }}</span>
-          <span style="font:400 14px/1.45 'Instrument Sans',sans-serif;color:#8E8C86;max-width:240px">{{ s.k }}</span>
+          <span style="font:400 14px/1.45 'Instrument Sans',sans-serif;color:var(--oath-c-8e8c86);max-width:240px">{{ s.k }}</span>
         </div>
       </sc-for>
     </div>
@@ -208,12 +212,12 @@
 
   <section id="source-correspondence" data-screen-label="Open source and builds" aria-labelledby="source-correspondence-title" style="max-width:1320px;margin:0 auto;padding:clamp(48px,7vw,96px) clamp(20px,5vw,32px) 0;scroll-margin-top:100px">
     <div style="max-width:920px;display:flex;flex-direction:column;gap:22px">
-      <span style="font:400 12.5px/1.4 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:#8E8C86">Release verification · November 5, 2026</span>
+      <span style="font:400 12.5px/1.4 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--oath-c-8e8c86)">Release verification · November 5, 2026</span>
       <h2 id="source-correspondence-title" style="margin:0;font:400 clamp(36px,5vw,68px)/1.05 'Instrument Serif',serif;letter-spacing:-.02em">Open source and<br>App Store builds.</h2>
-      <p style="margin:0;font:400 clamp(17px,1.6vw,20px)/1.6 'Instrument Sans',sans-serif;color:#B9B7B0">Oath Wallet 5.0.2 (104) is built from public source tag v5.0.2-build104. The GitHub release records the source checks, host tests and unsigned iOS build. Provider configuration and Apple signing are supplied through encrypted deployment secrets and excluded from Git.</p>
-      <p style="margin:0;font:400 16px/1.6 'Instrument Sans',sans-serif;color:#B9B7B0">Open source lets people inspect the code. Maintainer confirmation states how the publisher connects that code to its release. Independent reproducible-build verification adds a separate rebuild-and-compare result for a precisely identified artifact.</p>
-      <p style="margin:0;font:400 16px/1.6 'Instrument Sans',sans-serif;color:#B9B7B0">These are maintainer-directed release checks. This page does not supply a new binary comparison, independent reproducibility report, or security audit. A successful build, Apple approval, or GitHub’s Verified signature badge is not by itself proof of source-to-store equivalence.</p>
-      <p style="margin:0;font:400 16px/1.6 'Instrument Sans',sans-serif;color:#B9B7B0">For independent verification, look for the exact app version and build, source commit, toolchain, compared artifacts, method, exclusions, and result.</p>
+      <p style="margin:0;font:400 clamp(17px,1.6vw,20px)/1.6 'Instrument Sans',sans-serif;color:var(--oath-c-b9b7b0)">Oath Wallet 5.0.2 (104) is built from public source tag v5.0.2-build104. The GitHub release records the source checks, host tests and unsigned iOS build. Provider configuration and Apple signing are supplied through encrypted deployment secrets and excluded from Git.</p>
+      <p style="margin:0;font:400 16px/1.6 'Instrument Sans',sans-serif;color:var(--oath-c-b9b7b0)">Open source lets people inspect the code. Maintainer confirmation states how the publisher connects that code to its release. Independent reproducible-build verification adds a separate rebuild-and-compare result for a precisely identified artifact.</p>
+      <p style="margin:0;font:400 16px/1.6 'Instrument Sans',sans-serif;color:var(--oath-c-b9b7b0)">These are maintainer-directed release checks. This page does not supply a new binary comparison, independent reproducibility report, or security audit. A successful build, Apple approval, or GitHub’s Verified signature badge is not by itself proof of source-to-store equivalence.</p>
+      <p style="margin:0;font:400 16px/1.6 'Instrument Sans',sans-serif;color:var(--oath-c-b9b7b0)">For independent verification, look for the exact app version and build, source commit, toolchain, compared artifacts, method, exclusions, and result.</p>
       <div style="display:flex;flex-wrap:wrap;gap:16px 24px;font:500 15px/1.6 'Instrument Sans',sans-serif">
         <a href="https://github.com/OathWallet/oath-wallet/releases/tag/v5.0.2-build104" style="text-decoration:underline;text-underline-offset:4px">Read the 5.0.2 verification record</a>
         <a href="https://articles.oathwallet.org/open-source-wallets-verifiable-builds" style="text-decoration:underline;text-underline-offset:4px">Read our guide to verifiable builds</a>
@@ -222,84 +226,84 @@
     </div>
   </section>
 
-  <p style="max-width:900px;margin:32px auto;padding:0 24px;font:400 16px/1.6 system-ui;color:#B9B7B0">Technical descriptions and source excerpts checked 5 November 2026 against 5.0.2 (104), tag v5.0.2-build104. <a href="https://github.com/OathWallet/oath-wallet/security/policy" style="text-decoration:underline">Security reporting policy</a> · <a href="https://github.com/OathWallet/oath-wallet/blob/main/Documentation/SecurityModel.md" style="text-decoration:underline">Security model and limitations</a>. Optional backups and deliberate exports are separate authorization boundaries. Silent Payments receiving and discovery are not supported in 5.0.2. Electrum and aezeed wallets require manual recovery backups.</p>
+  <p style="max-width:900px;margin:32px auto;padding:0 24px;font:400 16px/1.6 system-ui;color:var(--oath-c-b9b7b0)">Technical descriptions and source excerpts checked 5 November 2026 against 5.0.2 (104), tag v5.0.2-build104. <a href="https://github.com/OathWallet/oath-wallet/security/policy" style="text-decoration:underline">Security reporting policy</a> · <a href="https://github.com/OathWallet/oath-wallet/blob/main/Documentation/SecurityModel.md" style="text-decoration:underline">Security model and limitations</a>. Optional backups and deliberate exports are separate authorization boundaries. Silent Payments receiving and discovery are not supported in 5.0.2. Electrum and aezeed wallets require manual recovery backups.</p>
   <section id="demo" data-reveal="demo" data-screen-label="02 Live mnemonic" style="max-width:1320px;margin:0 auto;padding:clamp(112px,14vw,180px) clamp(20px,5vw,32px) 0;scroll-margin-top:80px">
     <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:clamp(28px,4vw,44px)">
       <div style="display:flex;flex-direction:column;gap:18px">
-        <span style="font:400 12.5px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:#8E8C86">01 · How a recovery phrase is born</span>
-        <h2 style="margin:0;font:400 clamp(40px,6vw,92px)/.95 'Instrument Serif',serif;letter-spacing:-.02em">Randomness in.<br><em style="color:#8E8C86">Twelve words out.</em></h2>
+        <span style="font:400 12.5px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--oath-c-8e8c86)">01 · How a recovery phrase is born</span>
+        <h2 style="margin:0;font:400 clamp(40px,6vw,92px)/.95 'Instrument Serif',serif;letter-spacing:-.02em">Randomness in.<br><em style="color:var(--oath-c-8e8c86)">Twelve words out.</em></h2>
       </div>
-      <p style="margin:0;max-width:400px;font:400 16px/1.55 'Instrument Sans',sans-serif;color:#B9B7B0;text-wrap:pretty">This educational browser demo illustrates BIP-39. Oath validates BIP39 phrases in <a href="https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Import/OathMnemonicValidator.swift" target="_blank" rel="noopener" style="text-decoration:underline;text-underline-offset:3px">OathMnemonicValidator.swift</a>. This is a demonstration, not the app runtime. Never fund a phrase generated here.</p>
+      <p style="margin:0;max-width:400px;font:400 16px/1.55 'Instrument Sans',sans-serif;color:var(--oath-c-b9b7b0);text-wrap:pretty">This educational browser demo illustrates BIP-39. Oath validates BIP39 phrases in <a href="https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Import/OathMnemonicValidator.swift" target="_blank" rel="noopener" style="text-decoration:underline;text-underline-offset:3px">OathMnemonicValidator.swift</a>. This is a demonstration, not the app runtime. Never fund a phrase generated here.</p>
     </div>
 
-    <div style="border-radius:clamp(24px,3vw,36px);background:#111113;box-shadow:inset 0 0 0 1px rgba(242,240,234,.1);padding:clamp(20px,3vw,36px);display:flex;flex-direction:column;gap:28px">
+    <div style="border-radius:clamp(24px,3vw,36px);background:var(--oath-c-111113);box-shadow:inset 0 0 0 1px rgba(var(--oath-rgb-f2f0ea),.1);padding:clamp(20px,3vw,36px);display:flex;flex-direction:column;gap:28px">
       <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:14px">
-        <div style="display:flex;gap:4px;padding:4px;border-radius:999px;background:#0A0A0B;box-shadow:inset 0 0 0 1px rgba(242,240,234,.1)">
+        <div style="display:flex;gap:4px;padding:4px;border-radius:999px;background:var(--oath-c-0a0a0b);box-shadow:inset 0 0 0 1px rgba(var(--oath-rgb-f2f0ea),.1)">
           <sc-for list="{{ lens }}" as="ln" hint-placeholder-count="2">
             <button onClick="{{ ln.go }}" style="height:38px;padding:0 16px;border:0;border-radius:999px;cursor:pointer;background:{{ ln.bg }};color:{{ ln.fg }};font:500 13.5px/1 'Instrument Sans',sans-serif">{{ ln.l }}</button>
           </sc-for>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:8px">
-          <button onClick="{{ vector }}" style="height:44px;padding:0 18px;border:0;border-radius:999px;cursor:pointer;background:transparent;box-shadow:inset 0 0 0 1px rgba(242,240,234,.2);color:#F2F0EA;font:500 14px/1 'Instrument Sans',sans-serif" style-hover="background:#1B1B1E">Spec test vector</button>
-          <button onClick="{{ generate }}" style="height:44px;padding:0 20px;border:0;border-radius:999px;cursor:pointer;background:#F2F0EA;color:#0A0A0B;font:600 14px/1 'Instrument Sans',sans-serif;display:flex;align-items:center;gap:8px" style-hover="background:#FFFFFF">↻ Generate</button>
+          <button onClick="{{ vector }}" style="height:44px;padding:0 18px;border:0;border-radius:999px;cursor:pointer;background:transparent;box-shadow:inset 0 0 0 1px rgba(var(--oath-rgb-f2f0ea),.2);color:var(--oath-c-f2f0ea);font:500 14px/1 'Instrument Sans',sans-serif" style-hover="background:var(--oath-c-1b1b1e)">Spec test vector</button>
+          <button onClick="{{ generate }}" style="height:44px;padding:0 20px;border:0;border-radius:999px;cursor:pointer;background:var(--oath-c-f2f0ea);color:var(--oath-c-0a0a0b);font:600 14px/1 'Instrument Sans',sans-serif;display:flex;align-items:center;gap:8px" style-hover="background:var(--oath-c-ffffff)">↻ Generate</button>
         </div>
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px">
-        <div style="border-radius:20px;background:#0A0A0B;padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:inset 0 0 0 1px {{ s1ring }};transition:box-shadow .4s ease">
-          <div style="display:flex;justify-content:space-between;gap:10px;font:400 11.5px/1 'IBM Plex Mono',monospace;letter-spacing:.05em;text-transform:uppercase"><span style="color:#F2F0EA">① Entropy</span><span style="color:#8E8C86">{{ entLabel }}</span></div>
+        <div style="border-radius:20px;background:var(--oath-c-0a0a0b);padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:inset 0 0 0 1px {{ s1ring }};transition:box-shadow .4s ease">
+          <div style="display:flex;justify-content:space-between;gap:10px;font:400 11.5px/1 'IBM Plex Mono',monospace;letter-spacing:.05em;text-transform:uppercase"><span style="color:var(--oath-c-f2f0ea)">① Entropy</span><span style="color:var(--oath-c-8e8c86)">{{ entLabel }}</span></div>
           <div style="display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:5px">
             <sc-for list="{{ bytes }}" as="b" hint-placeholder-count="16">
-              <span style="height:30px;border-radius:7px;background:#1B1B1E;display:flex;align-items:center;justify-content:center;font:500 12.5px/1 'IBM Plex Mono',monospace;color:#F2F0EA;opacity:{{ b.o }};transform:{{ b.t }};transition:{{ b.tr }}">{{ b.h }}</span>
+              <span style="height:30px;border-radius:7px;background:var(--oath-c-1b1b1e);display:flex;align-items:center;justify-content:center;font:500 12.5px/1 'IBM Plex Mono',monospace;color:var(--oath-c-f2f0ea);opacity:{{ b.o }};transform:{{ b.t }};transition:{{ b.tr }}">{{ b.h }}</span>
             </sc-for>
           </div>
-          <span style="font:400 12.5px/1.5 'Instrument Sans',sans-serif;color:#8E8C86">This educational browser example uses <span style="font-family:'IBM Plex Mono',monospace;color:#B9B7B0">crypto.getRandomValues</span>.</span>
+          <span style="font:400 12.5px/1.5 'Instrument Sans',sans-serif;color:var(--oath-c-8e8c86)">This educational browser example uses <span style="font-family:'IBM Plex Mono',monospace;color:var(--oath-c-b9b7b0)">crypto.getRandomValues</span>.</span>
         </div>
-        <div style="border-radius:20px;background:#0A0A0B;padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:inset 0 0 0 1px {{ s2ring }};transition:box-shadow .4s ease">
-          <div style="display:flex;justify-content:space-between;gap:10px;font:400 11.5px/1 'IBM Plex Mono',monospace;letter-spacing:.05em;text-transform:uppercase"><span style="color:#F2F0EA">② Checksum</span><span style="color:#8E8C86">SHA-256</span></div>
-          <div style="font:400 12.5px/1.6 'IBM Plex Mono',monospace;color:#6E6C67;word-break:break-all;opacity:{{ s2o }};transition:opacity .5s ease"><span style="color:#F0B25A">{{ hashHead }}</span>{{ hashTail }}</div>
+        <div style="border-radius:20px;background:var(--oath-c-0a0a0b);padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:inset 0 0 0 1px {{ s2ring }};transition:box-shadow .4s ease">
+          <div style="display:flex;justify-content:space-between;gap:10px;font:400 11.5px/1 'IBM Plex Mono',monospace;letter-spacing:.05em;text-transform:uppercase"><span style="color:var(--oath-c-f2f0ea)">② Checksum</span><span style="color:var(--oath-c-8e8c86)">SHA-256</span></div>
+          <div style="font:400 12.5px/1.6 'IBM Plex Mono',monospace;color:var(--oath-c-6e6c67);word-break:break-all;opacity:{{ s2o }};transition:opacity .5s ease"><span style="color:#F0B25A">{{ hashHead }}</span>{{ hashTail }}</div>
           <div style="display:flex;align-items:center;gap:10px;opacity:{{ s2o }};transform:{{ s2t }};transition:opacity .5s ease .15s, transform .7s cubic-bezier(.16,1,.3,1) .15s">
             <div style="display:flex;gap:3px">
               <sc-for list="{{ csBits }}" as="c" hint-placeholder-count="4">
                 <span style="width:14px;height:20px;border-radius:4px;background:{{ c.bg }};box-shadow:inset 0 0 0 1.5px #F0B25A"></span>
               </sc-for>
             </div>
-            <span style="font:400 12.5px/1.4 'Instrument Sans',sans-serif;color:#8E8C86">{{ csLabel }}</span>
+            <span style="font:400 12.5px/1.4 'Instrument Sans',sans-serif;color:var(--oath-c-8e8c86)">{{ csLabel }}</span>
           </div>
         </div>
       </div>
 
       <div style="display:flex;flex-direction:column;gap:12px">
-        <div style="display:flex;justify-content:space-between;gap:10px;font:400 11.5px/1 'IBM Plex Mono',monospace;letter-spacing:.05em;text-transform:uppercase"><span style="color:#F2F0EA">③ Split into 11-bit numbers → words</span><span style="color:#8E8C86">{{ totalLabel }}</span></div>
+        <div style="display:flex;justify-content:space-between;gap:10px;font:400 11.5px/1 'IBM Plex Mono',monospace;letter-spacing:.05em;text-transform:uppercase"><span style="color:var(--oath-c-f2f0ea)">③ Split into 11-bit numbers → words</span><span style="color:var(--oath-c-8e8c86)">{{ totalLabel }}</span></div>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:8px">
           <sc-for list="{{ groups }}" as="g" hint-placeholder-count="12">
-            <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:14px;background:#0A0A0B;box-shadow:inset 0 0 0 1px rgba(242,240,234,.07);opacity:{{ g.o }};transform:{{ g.t }};transition:{{ g.tr }}">
-              <span style="flex:none;width:20px;font:400 11.5px/1 'IBM Plex Mono',monospace;color:#6E6C67">{{ g.n }}</span>
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:14px;background:var(--oath-c-0a0a0b);box-shadow:inset 0 0 0 1px rgba(var(--oath-rgb-f2f0ea),.07);opacity:{{ g.o }};transform:{{ g.t }};transition:{{ g.tr }}">
+              <span style="flex:none;width:20px;font:400 11.5px/1 'IBM Plex Mono',monospace;color:var(--oath-c-6e6c67)">{{ g.n }}</span>
               <div style="flex:none;display:flex;gap:2px">
                 <sc-for list="{{ g.bits }}" as="bt" hint-placeholder-count="11">
                   <span style="width:7px;height:16px;border-radius:2px;background:{{ bt.bg }};box-shadow:inset 0 0 0 1px {{ bt.ring }}"></span>
                 </sc-for>
               </div>
-              <span style="flex:none;width:40px;text-align:right;font:400 12px/1 'IBM Plex Mono',monospace;color:#8E8C86">{{ g.idx }}</span>
-              <span style="flex:1;min-width:0;font:400 22px/1 'Instrument Serif',serif;color:#F2F0EA;overflow:hidden;text-overflow:ellipsis">{{ g.word }}</span>
+              <span style="flex:none;width:40px;text-align:right;font:400 12px/1 'IBM Plex Mono',monospace;color:var(--oath-c-8e8c86)">{{ g.idx }}</span>
+              <span style="flex:1;min-width:0;font:400 22px/1 'Instrument Serif',serif;color:var(--oath-c-f2f0ea);overflow:hidden;text-overflow:ellipsis">{{ g.word }}</span>
             </div>
           </sc-for>
         </div>
       </div>
-      <p style="margin:0;padding-top:18px;border-top:1px solid rgba(242,240,234,.08);font:400 13px/1.55 'Instrument Sans',sans-serif;color:#8E8C86;text-wrap:pretty">{{ demoNote }}</p>
+      <p style="margin:0;padding-top:18px;border-top:1px solid rgba(var(--oath-rgb-f2f0ea),.08);font:400 13px/1.55 'Instrument Sans',sans-serif;color:var(--oath-c-8e8c86);text-wrap:pretty">{{ demoNote }}</p>
     </div>
   </section>
 
   <section data-reveal="vault" data-screen-label="03 Key storage" style="max-width:1320px;margin:0 auto;padding:clamp(112px,14vw,180px) clamp(20px,5vw,32px) 0">
     <div style="display:flex;flex-direction:column;gap:18px;margin-bottom:clamp(32px,5vw,52px)">
-      <span style="font:400 12.5px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:#8E8C86">02 · Where your keys live</span>
-      <h2 style="margin:0;font:400 clamp(40px,6vw,92px)/.95 'Instrument Serif',serif;letter-spacing:-.02em">Locked on the phone.<br><em style="color:#8E8C86">Protected by Keychain.</em></h2>
+      <span style="font:400 12.5px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--oath-c-8e8c86)">02 · Where your keys live</span>
+      <h2 style="margin:0;font:400 clamp(40px,6vw,92px)/.95 'Instrument Serif',serif;letter-spacing:-.02em">Locked on the phone.<br><em style="color:var(--oath-c-8e8c86)">Protected by Keychain.</em></h2>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:14px">
-      <div style="border-radius:clamp(24px,3vw,36px);background:#F2F0EA;color:#0A0A0B;padding:clamp(22px,3vw,34px);display:flex;flex-direction:column;gap:14px">
+      <div style="border-radius:clamp(24px,3vw,36px);background:var(--oath-c-f2f0ea);color:var(--oath-c-0a0a0b);padding:clamp(22px,3vw,34px);display:flex;flex-direction:column;gap:14px">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
           <span style="font:400 12px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:#5E5C57">On your iPhone</span>
-          <span style="display:flex;align-items:center;gap:8px;font:500 12.5px/1 'Instrument Sans',sans-serif;color:#0A0A0B"><span style="width:8px;height:8px;border-radius:50%;background:#12A88E;box-shadow:0 0 0 4px rgba(18,168,142,.18)"></span>Stays here</span>
+          <span style="display:flex;align-items:center;gap:8px;font:500 12.5px/1 'Instrument Sans',sans-serif;color:var(--oath-c-0a0a0b)"><span style="width:8px;height:8px;border-radius:50%;background:#12A88E;box-shadow:0 0 0 4px rgba(18,168,142,.18)"></span>Stays here</span>
         </div>
         <sc-for list="{{ layers }}" as="ly" hint-placeholder-count="4">
           <div style="border-radius:20px;padding:18px 20px;background:{{ ly.bg }};color:{{ ly.fg }};display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 16px;align-items:start;opacity:{{ ly.o }};transform:{{ ly.t }};transition:{{ ly.tr }}">
@@ -310,21 +314,21 @@
         </sc-for>
       </div>
       <div style="display:flex;flex-direction:column;gap:14px">
-        <div style="flex:1;border-radius:clamp(24px,3vw,36px);background:#111113;box-shadow:inset 0 0 0 1px rgba(242,240,234,.1);padding:clamp(22px,3vw,34px);display:flex;flex-direction:column;gap:18px">
-          <span style="font:400 12px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:#8E8C86">Custody boundaries</span>
+        <div style="flex:1;border-radius:clamp(24px,3vw,36px);background:var(--oath-c-111113);box-shadow:inset 0 0 0 1px rgba(var(--oath-rgb-f2f0ea),.1);padding:clamp(22px,3vw,34px);display:flex;flex-direction:column;gap:18px">
+          <span style="font:400 12px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--oath-c-8e8c86)">Custody boundaries</span>
           <div style="display:flex;flex-wrap:wrap;gap:8px">
             <sc-for list="{{ never }}" as="nv" hint-placeholder-count="4">
-              <span style="height:40px;padding:0 16px;border-radius:999px;background:#1B1B1E;display:flex;align-items:center;gap:8px;font:500 14px/1 'Instrument Sans',sans-serif"><span style="color:#E3124F">✕</span>{{ nv }}</span>
+              <span style="height:40px;padding:0 16px;border-radius:999px;background:var(--oath-c-1b1b1e);display:flex;align-items:center;gap:8px;font:500 14px/1 'Instrument Sans',sans-serif"><span style="color:#E3124F">✕</span>{{ nv }}</span>
             </sc-for>
           </div>
-          <p style="margin:0;font:400 14.5px/1.55 'Instrument Sans',sans-serif;color:#8E8C86;text-wrap:pretty">The operator does not hold a recovery credential. User-authorized encrypted backups, transfers and exports are separate boundaries.</p>
+          <p style="margin:0;font:400 14.5px/1.55 'Instrument Sans',sans-serif;color:var(--oath-c-8e8c86);text-wrap:pretty">The operator does not hold a recovery credential. User-authorized encrypted backups, transfers and exports are separate boundaries.</p>
         </div>
-        <div style="flex:1;border-radius:clamp(24px,3vw,36px);background:#111113;box-shadow:inset 0 0 0 1px rgba(242,240,234,.1);padding:clamp(22px,3vw,34px);display:flex;flex-direction:column;gap:14px">
-          <span style="font:400 12px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:#8E8C86">What does leave</span>
+        <div style="flex:1;border-radius:clamp(24px,3vw,36px);background:var(--oath-c-111113);box-shadow:inset 0 0 0 1px rgba(var(--oath-rgb-f2f0ea),.1);padding:clamp(22px,3vw,34px);display:flex;flex-direction:column;gap:14px">
+          <span style="font:400 12px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--oath-c-8e8c86)">What does leave</span>
           <sc-for list="{{ leaves }}" as="lv" hint-placeholder-count="3">
-            <div style="display:flex;gap:14px;align-items:flex-start;padding-top:14px;border-top:1px solid rgba(242,240,234,.08)">
+            <div style="display:flex;gap:14px;align-items:flex-start;padding-top:14px;border-top:1px solid rgba(var(--oath-rgb-f2f0ea),.08)">
 
-              <div style="display:flex;flex-direction:column;gap:4px"><span style="font:600 15.5px/1.3 'Instrument Sans',sans-serif">{{ lv.h }}</span><span style="font:400 14px/1.5 'Instrument Sans',sans-serif;color:#8E8C86;text-wrap:pretty">{{ lv.d }}</span></div>
+              <div style="display:flex;flex-direction:column;gap:4px"><span style="font:600 15.5px/1.3 'Instrument Sans',sans-serif">{{ lv.h }}</span><span style="font:400 14px/1.5 'Instrument Sans',sans-serif;color:var(--oath-c-8e8c86);text-wrap:pretty">{{ lv.d }}</span></div>
             </div>
           </sc-for>
         </div>
@@ -335,10 +339,10 @@
   <section data-reveal="send" data-screen-label="04 Send pipeline" style="max-width:1320px;margin:0 auto;padding:clamp(112px,14vw,180px) clamp(20px,5vw,32px) 0">
     <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:clamp(32px,5vw,52px)">
       <div style="display:flex;flex-direction:column;gap:18px">
-        <span style="font:400 12.5px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:#8E8C86">03 · What happens when you slide to confirm</span>
-        <h2 style="margin:0;font:400 clamp(40px,6vw,92px)/.95 'Instrument Serif',serif;letter-spacing:-.02em">Signed on the phone.<br><em style="color:#8E8C86">Broadcast after review.</em></h2>
+        <span style="font:400 12.5px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--oath-c-8e8c86)">03 · What happens when you slide to confirm</span>
+        <h2 style="margin:0;font:400 clamp(40px,6vw,92px)/.95 'Instrument Serif',serif;letter-spacing:-.02em">Signed on the phone.<br><em style="color:var(--oath-c-8e8c86)">Broadcast after review.</em></h2>
       </div>
-      <p style="margin:0;max-width:400px;font:400 16px/1.55 'Instrument Sans',sans-serif;color:#B9B7B0;text-wrap:pretty">A simplified signing journey; review <a href="https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Send/OathEVMSendService.swift" target="_blank" rel="noopener" style="text-decoration:underline;text-underline-offset:3px">OathEVMSendService.swift</a>. Broadcast acceptance is different from network confirmation.</p>
+      <p style="margin:0;max-width:400px;font:400 16px/1.55 'Instrument Sans',sans-serif;color:var(--oath-c-b9b7b0);text-wrap:pretty">A simplified signing journey; review <a href="https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Send/OathEVMSendService.swift" target="_blank" rel="noopener" style="text-decoration:underline;text-underline-offset:3px">OathEVMSendService.swift</a>. Broadcast acceptance is different from network confirmation.</p>
     </div>
     <div style="position:relative;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:10px">
       <sc-for list="{{ pipe }}" as="p" hint-placeholder-count="5">
@@ -353,12 +357,12 @@
         </div>
       </sc-for>
     </div>
-    <div style="margin-top:14px;height:2px;border-radius:1px;background:rgba(242,240,234,.1);overflow:hidden"><div style="height:100%;width:{{ pipeBar }};background:#F2F0EA;transition:width 1s cubic-bezier(.65,0,.35,1)"></div></div>
+    <div style="margin-top:14px;height:2px;border-radius:1px;background:rgba(var(--oath-rgb-f2f0ea),.1);overflow:hidden"><div style="height:100%;width:{{ pipeBar }};background:var(--oath-c-f2f0ea);transition:width 1s cubic-bezier(.65,0,.35,1)"></div></div>
   </section>
 
   <section data-reveal="code" data-screen-label="05 Real code" style="max-width:1320px;margin:0 auto;padding:clamp(112px,14vw,180px) clamp(20px,5vw,32px) 0">
     <div style="display:flex;flex-direction:column;gap:18px;margin-bottom:clamp(28px,4vw,44px)">
-      <span style="font:400 12.5px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:#8E8C86">04 · The real code</span>
+      <span style="font:400 12.5px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--oath-c-8e8c86)">04 · The real code</span>
       <h2 style="margin:0;font:400 clamp(40px,6vw,92px)/.95 'Instrument Serif',serif;letter-spacing:-.02em">Read it line by line.</h2>
     </div>
     <div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 calc(-1 * clamp(20px,5vw,32px)) 14px;padding:0 clamp(20px,5vw,32px)">
@@ -366,24 +370,24 @@
         <button onClick="{{ tb.go }}" style="flex:none;height:44px;padding:0 18px;border:0;border-radius:999px;cursor:pointer;background:{{ tb.bg }};color:{{ tb.fg }};box-shadow:{{ tb.ring }};font:500 14px/1 'Instrument Sans',sans-serif;white-space:nowrap">{{ tb.l }}</button>
       </sc-for>
     </div>
-    <div style="border-radius:clamp(22px,3vw,32px);background:#0E0E10;box-shadow:inset 0 0 0 1px rgba(242,240,234,.1);overflow:hidden">
-      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;padding:14px clamp(16px,2.4vw,24px);border-bottom:1px solid rgba(242,240,234,.08);background:#121214">
+    <div style="border-radius:clamp(22px,3vw,32px);background:#0E0E10;box-shadow:inset 0 0 0 1px rgba(var(--oath-rgb-f2f0ea),.1);overflow:hidden">
+      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;padding:14px clamp(16px,2.4vw,24px);border-bottom:1px solid rgba(var(--oath-rgb-f2f0ea),.08);background:#121214">
         <div style="display:flex;align-items:center;gap:12px;min-width:0">
           <div style="display:flex;gap:6px"><span style="width:11px;height:11px;border-radius:50%;background:#3A3A3E"></span><span style="width:11px;height:11px;border-radius:50%;background:#3A3A3E"></span><span style="width:11px;height:11px;border-radius:50%;background:#3A3A3E"></span></div>
-          <span style="font:400 12.5px/1.3 'IBM Plex Mono',monospace;color:#B9B7B0;overflow:hidden;text-overflow:ellipsis">{{ file.path }}</span>
+          <span style="font:400 12.5px/1.3 'IBM Plex Mono',monospace;color:var(--oath-c-b9b7b0);overflow:hidden;text-overflow:ellipsis">{{ file.path }}</span>
         </div>
         <div style="display:flex;gap:6px">
-          <button onClick="{{ copyCode }}" style="height:36px;padding:0 14px;border:0;border-radius:999px;cursor:pointer;background:#1B1B1E;color:#F2F0EA;font:500 12.5px/1 'Instrument Sans',sans-serif" style-hover="background:#26262A">{{ copyLabel }}</button>
-          <a href="{{ file.url }}" target="_blank" rel="noopener" style="height:36px;padding:0 14px;border-radius:999px;background:#F2F0EA;color:#0A0A0B;display:flex;align-items:center;font:600 12.5px/1 'Instrument Sans',sans-serif" style-hover="color:#0A0A0B;background:#FFFFFF">View on GitHub</a>
+          <button onClick="{{ copyCode }}" style="height:36px;padding:0 14px;border:0;border-radius:999px;cursor:pointer;background:var(--oath-c-1b1b1e);color:var(--oath-c-f2f0ea);font:500 12.5px/1 'Instrument Sans',sans-serif" style-hover="background:#26262A">{{ copyLabel }}</button>
+          <a href="{{ file.url }}" target="_blank" rel="noopener" style="height:36px;padding:0 14px;border-radius:999px;background:var(--oath-c-f2f0ea);color:var(--oath-c-0a0a0b);display:flex;align-items:center;font:600 12.5px/1 'Instrument Sans',sans-serif" style-hover="color:var(--oath-c-0a0a0b);background:var(--oath-c-ffffff)">View on GitHub</a>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))">
-        <div style="padding:clamp(20px,2.6vw,28px);border-right:1px solid rgba(242,240,234,.06);display:flex;flex-direction:column;gap:14px;max-width:420px">
+        <div style="padding:clamp(20px,2.6vw,28px);border-right:1px solid rgba(var(--oath-rgb-f2f0ea),.06);display:flex;flex-direction:column;gap:14px;max-width:420px">
           <span style="font:400 clamp(26px,2.6vw,34px)/1.05 'Instrument Serif',serif">{{ file.title }}</span>
-          <span style="font:400 14.5px/1.6 'Instrument Sans',sans-serif;color:#B9B7B0;text-wrap:pretty">{{ file.what }}</span>
+          <span style="font:400 14.5px/1.6 'Instrument Sans',sans-serif;color:var(--oath-c-b9b7b0);text-wrap:pretty">{{ file.what }}</span>
           <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
             <sc-for list="{{ file.notes }}" as="nt" hint-placeholder-count="3">
-              <span style="display:flex;gap:10px;font:400 13.5px/1.5 'Instrument Sans',sans-serif;color:#8E8C86"><span style="color:#12A88E">✓</span>{{ nt }}</span>
+              <span style="display:flex;gap:10px;font:400 13.5px/1.5 'Instrument Sans',sans-serif;color:var(--oath-c-8e8c86)"><span style="color:#12A88E">✓</span>{{ nt }}</span>
             </sc-for>
           </div>
         </div>
@@ -391,26 +395,26 @@
           <sc-for list="{{ lines }}" as="ln" hint-placeholder-count="18">
             <div style="display:flex;min-width:max-content;padding:0 22px 0 0">
               <span style="flex:none;width:52px;padding-right:18px;text-align:right;font:400 12.5px/1.75 'IBM Plex Mono',monospace;color:#3E3E42;user-select:none">{{ ln.n }}</span>
-              <span style="white-space:pre;font:400 13px/1.75 'IBM Plex Mono',monospace;color:#D6D4CD"><sc-for list="{{ ln.tk }}" as="tk" hint-placeholder-count="1"><span style="color:{{ tk.c }};font-style:{{ tk.fs }}">{{ tk.t }}</span></sc-for></span>
+              <span style="white-space:pre;font:400 13px/1.75 'IBM Plex Mono',monospace;color:var(--oath-c-d6d4cd)"><sc-for list="{{ ln.tk }}" as="tk" hint-placeholder-count="1"><span style="color:{{ tk.c }};font-style:{{ tk.fs }}">{{ tk.t }}</span></sc-for></span>
             </div>
           </sc-for>
         </div>
       </div>
     </div>
-    <p style="margin:14px 0 0;font:400 12px/1.5 'IBM Plex Mono',monospace;color:#6E6C67">Exact excerpts from public source release 5.0.2 (104), tag v5.0.2-build104. Open each pinned file for full context and dependencies.</p>
+    <p style="margin:14px 0 0;font:400 12px/1.5 'IBM Plex Mono',monospace;color:var(--oath-c-6e6c67)">Exact excerpts from public source release 5.0.2 (104), tag v5.0.2-build104. Open each pinned file for full context and dependencies.</p>
   </section>
 
   <section data-reveal="rules" data-screen-label="06 Principles" style="max-width:1320px;margin:0 auto;padding:clamp(112px,14vw,180px) clamp(20px,5vw,32px) 0">
     <div style="display:flex;flex-direction:column;gap:18px;margin-bottom:clamp(32px,5vw,52px)">
-      <span style="font:400 12.5px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:#8E8C86">05 · Rules the code follows</span>
+      <span style="font:400 12.5px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--oath-c-8e8c86)">05 · Rules the code follows</span>
       <h2 style="margin:0;font:400 clamp(40px,6vw,92px)/.95 'Instrument Serif',serif;letter-spacing:-.02em">Boring on purpose.</h2>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));border-top:1px solid rgba(242,240,234,.12)">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));border-top:1px solid rgba(var(--oath-rgb-f2f0ea),.12)">
       <sc-for list="{{ rules }}" as="ru" hint-placeholder-count="8">
-        <div style="padding:26px 26px 30px 0;border-bottom:1px solid rgba(242,240,234,.12);display:flex;flex-direction:column;gap:12px;opacity:{{ ru.o }};transform:{{ ru.t }};transition:{{ ru.tr }}">
-          <span style="font:400 12px/1 'IBM Plex Mono',monospace;color:#8E8C86">{{ ru.n }}</span>
+        <div style="padding:26px 26px 30px 0;border-bottom:1px solid rgba(var(--oath-rgb-f2f0ea),.12);display:flex;flex-direction:column;gap:12px;opacity:{{ ru.o }};transform:{{ ru.t }};transition:{{ ru.tr }}">
+          <span style="font:400 12px/1 'IBM Plex Mono',monospace;color:var(--oath-c-8e8c86)">{{ ru.n }}</span>
           <span style="font:400 clamp(24px,2.2vw,30px)/1.1 'Instrument Serif',serif">{{ ru.h }}</span>
-          <span style="font:400 14.5px/1.55 'Instrument Sans',sans-serif;color:#8E8C86;text-wrap:pretty">{{ ru.d }}</span>
+          <span style="font:400 14.5px/1.55 'Instrument Sans',sans-serif;color:var(--oath-c-8e8c86);text-wrap:pretty">{{ ru.d }}</span>
         </div>
       </sc-for>
     </div>
@@ -419,23 +423,23 @@
   <section data-reveal="verify" data-screen-label="07 Verify" style="max-width:1320px;margin:0 auto;padding:clamp(112px,14vw,180px) clamp(20px,5vw,32px) clamp(96px,12vw,160px)">
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:clamp(28px,5vw,64px);align-items:start">
       <div style="display:flex;flex-direction:column;gap:22px">
-        <span style="font:400 12.5px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:#8E8C86">06 · Verify it yourself</span>
-        <h2 style="margin:0;font:400 clamp(40px,6vw,92px)/.95 'Instrument Serif',serif;letter-spacing:-.02em">Trust,<br><em style="color:#8E8C86">then verify.</em></h2>
-        <p style="margin:0;max-width:460px;font:400 16px/1.6 'Instrument Sans',sans-serif;color:#B9B7B0;text-wrap:pretty">Start with the <a href="https://github.com/OathWallet/oath-wallet/releases/tag/v5.0.2-build104" style="text-decoration:underline;text-underline-offset:4px">current README and maintainer statement</a>, then inspect the 5.0.2 source files below. An independent source-to-store comparison needs its own documented method and result; building or inspecting source alone does not establish that result.</p>
-        <div style="display:flex;flex-direction:column;border-top:1px solid rgba(242,240,234,.12)">
+        <span style="font:400 12.5px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--oath-c-8e8c86)">06 · Verify it yourself</span>
+        <h2 style="margin:0;font:400 clamp(40px,6vw,92px)/.95 'Instrument Serif',serif;letter-spacing:-.02em">Trust,<br><em style="color:var(--oath-c-8e8c86)">then verify.</em></h2>
+        <p style="margin:0;max-width:460px;font:400 16px/1.6 'Instrument Sans',sans-serif;color:var(--oath-c-b9b7b0);text-wrap:pretty">Start with the <a href="https://github.com/OathWallet/oath-wallet/releases/tag/v5.0.2-build104" style="text-decoration:underline;text-underline-offset:4px">current README and maintainer statement</a>, then inspect the 5.0.2 source files below. An independent source-to-store comparison needs its own documented method and result; building or inspecting source alone does not establish that result.</p>
+        <div style="display:flex;flex-direction:column;border-top:1px solid rgba(var(--oath-rgb-f2f0ea),.12)">
           <sc-for list="{{ files }}" as="fl" hint-placeholder-count="7">
-            <a href="{{ fl.url }}" target="_blank" rel="noopener" style="display:flex;justify-content:space-between;align-items:center;gap:14px;min-height:56px;border-bottom:1px solid rgba(242,240,234,.12)" style-hover="color:#FFFFFF;padding-left:6px">
-              <div style="display:flex;flex-direction:column;gap:4px;min-width:0"><span style="font:500 15px/1.2 'IBM Plex Mono',monospace">{{ fl.name }}</span><span style="font:400 13px/1.3 'Instrument Sans',sans-serif;color:#8E8C86">{{ fl.d }}</span></div>
+            <a href="{{ fl.url }}" target="_blank" rel="noopener" style="display:flex;justify-content:space-between;align-items:center;gap:14px;min-height:56px;border-bottom:1px solid rgba(var(--oath-rgb-f2f0ea),.12)" style-hover="color:var(--oath-c-ffffff);padding-left:6px">
+              <div style="display:flex;flex-direction:column;gap:4px;min-width:0"><span style="font:500 15px/1.2 'IBM Plex Mono',monospace">{{ fl.name }}</span><span style="font:400 13px/1.3 'Instrument Sans',sans-serif;color:var(--oath-c-8e8c86)">{{ fl.d }}</span></div>
 
             </a>
           </sc-for>
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:14px">
-        <div style="border-radius:28px;background:#0E0E10;box-shadow:inset 0 0 0 1px rgba(242,240,234,.1);overflow:hidden">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 18px;background:#121214;border-bottom:1px solid rgba(242,240,234,.08)">
-            <span style="font:400 12px/1 'IBM Plex Mono',monospace;color:#8E8C86">Terminal</span>
-            <button onClick="{{ copyTerm }}" style="height:34px;padding:0 14px;border:0;border-radius:999px;cursor:pointer;background:#1B1B1E;color:#F2F0EA;font:500 12.5px/1 'Instrument Sans',sans-serif" style-hover="background:#26262A">{{ termLabel }}</button>
+        <div style="border-radius:28px;background:#0E0E10;box-shadow:inset 0 0 0 1px rgba(var(--oath-rgb-f2f0ea),.1);overflow:hidden">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 18px;background:#121214;border-bottom:1px solid rgba(var(--oath-rgb-f2f0ea),.08)">
+            <span style="font:400 12px/1 'IBM Plex Mono',monospace;color:var(--oath-c-8e8c86)">Terminal</span>
+            <button onClick="{{ copyTerm }}" style="height:34px;padding:0 14px;border:0;border-radius:999px;cursor:pointer;background:var(--oath-c-1b1b1e);color:var(--oath-c-f2f0ea);font:500 12.5px/1 'Instrument Sans',sans-serif" style-hover="background:#26262A">{{ termLabel }}</button>
           </div>
           <div style="padding:20px 22px;overflow-x:auto;display:flex;flex-direction:column;gap:4px">
             <sc-for list="{{ term }}" as="tl" hint-placeholder-count="8">
@@ -443,13 +447,13 @@
             </sc-for>
           </div>
         </div>
-        <div style="border-radius:28px;background:#F2F0EA;color:#0A0A0B;padding:clamp(22px,3vw,30px);display:flex;flex-direction:column;gap:14px">
+        <div style="border-radius:28px;background:var(--oath-c-f2f0ea);color:var(--oath-c-0a0a0b);padding:clamp(22px,3vw,30px);display:flex;flex-direction:column;gap:14px">
           <span style="font:400 12px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:#5E5C57">Found a problem?</span>
           <span style="font:400 clamp(26px,2.6vw,34px)/1.1 'Instrument Serif',serif">Tell us privately first. Follow the current reporting policy.</span>
           <div style="display:flex;flex-wrap:wrap;gap:8px">
-            <a href="https://github.com/OathWallet/oath-wallet/security/advisories/new" style="height:48px;padding:0 20px;border-radius:999px;background:#0A0A0B;color:#F2F0EA;display:flex;align-items:center;font:600 14.5px/1 'Instrument Sans',sans-serif" style-hover="color:#FFFFFF">Report privately on GitHub</a>
+            <a href="https://github.com/OathWallet/oath-wallet/security/advisories/new" style="height:48px;padding:0 20px;border-radius:999px;background:var(--oath-c-0a0a0b);color:var(--oath-c-f2f0ea);display:flex;align-items:center;font:600 14.5px/1 'Instrument Sans',sans-serif" style-hover="color:var(--oath-c-ffffff)">Report privately on GitHub</a>
             <a href="/bug-bounty" style="display:flex;align-items:center;min-height:44px;font:500 15px/1.5 'Instrument Sans',sans-serif;text-decoration:underline;text-underline-offset:4px">Explore the bug bounty program</a>
-            <a href="https://github.com/OathWallet/oath-wallet/security/policy" target="_blank" rel="noopener" style="height:48px;padding:0 20px;border-radius:999px;box-shadow:inset 0 0 0 1px rgba(10,10,11,.2);color:#0A0A0B;display:flex;align-items:center;font:500 14.5px/1 'Instrument Sans',sans-serif" style-hover="color:#0A0A0B;background:#E3E3E4">Security reporting policy</a>
+            <a href="https://github.com/OathWallet/oath-wallet/security/policy" target="_blank" rel="noopener" style="height:48px;padding:0 20px;border-radius:999px;box-shadow:inset 0 0 0 1px rgba(var(--oath-rgb-0a0a0b),.2);color:var(--oath-c-0a0a0b);display:flex;align-items:center;font:500 14.5px/1 'Instrument Sans',sans-serif" style-hover="color:var(--oath-c-0a0a0b);background:#E3E3E4">Security reporting policy</a>
           </div>
           <span style="font:400 13px/1.5 'Instrument Sans',sans-serif;color:#5E5C57">Oath will never ask for your recovery phrase, private key or passkey.</span>
         </div>
@@ -459,7 +463,7 @@
 
   </main>
   <dc-import name="Oath Footer" hint-size="100%,520px"></dc-import>
-  <div style="position:fixed;left:50%;bottom:24px;z-index:60;transform:{{ toastT }};opacity:{{ toastO }};transition:opacity .3s ease, transform .4s cubic-bezier(.16,1,.3,1);pointer-events:none;padding:12px 18px;border-radius:999px;background:#F2F0EA;color:#0A0A0B;font:500 14px/1 'Instrument Sans',sans-serif">{{ toast }}</div>
+  <div style="position:fixed;left:50%;bottom:24px;z-index:60;transform:{{ toastT }};opacity:{{ toastO }};transition:opacity .3s ease, transform .4s cubic-bezier(.16,1,.3,1);pointer-events:none;padding:12px 18px;border-radius:999px;background:var(--oath-c-f2f0ea);color:var(--oath-c-0a0a0b);font:500 14px/1 'Instrument Sans',sans-serif">{{ toast }}</div>
 </div>
 </x-dc>
 </template>
@@ -533,15 +537,15 @@ class Component extends DCLogic {
     return src.split('\n').map((line, i) => {
       const tk = []; let m; re.lastIndex = 0;
       while ((m = re.exec(line))) {
-        let c = '#D6D4CD', fs = 'normal', t = m[0];
-        if (m[1]) { c = '#6E6C67'; fs = 'italic'; }
+        let c = 'var(--oath-c-d6d4cd)', fs = 'normal', t = m[0];
+        if (m[1]) { c = 'var(--oath-c-6e6c67)'; fs = 'italic'; }
         else if (m[2]) c = '#7FD1B9';
-        else if (m[3]) c = KW.test(t) ? '#FF8FB1' : /^[A-Z]/.test(t) ? '#9DB9FF' : '#D6D4CD';
+        else if (m[3]) c = KW.test(t) ? '#FF8FB1' : /^[A-Z]/.test(t) ? 'var(--oath-c-9db9ff)' : 'var(--oath-c-d6d4cd)';
         else if (m[4]) c = '#F0B25A';
         const last = tk[tk.length - 1];
         if (last && last.c === c && last.fs === fs) last.t += t; else tk.push({ t, c, fs });
       }
-      return { n: i + 1, tk: tk.length ? tk : [{ t: ' ', c: '#D6D4CD', fs: 'normal' }] };
+      return { n: i + 1, tk: tk.length ? tk : [{ t: ' ', c: 'var(--oath-c-d6d4cd)', fs: 'normal' }] };
     });
   }
 
@@ -565,7 +569,7 @@ class Component extends DCLogic {
       const idx = gb.reduce((v, b) => (v << 1) | b, 0);
       groups.push({
         n: String(g + 1).padStart(2, '0'), idx: String(idx), word: wl ? wl[idx] : '…',
-        bits: gb.map((b, k) => { const isCs = g * 11 + k >= bits.length; const col = isCs ? '#F0B25A' : '#F2F0EA'; return { bg: b ? col : 'transparent', ring: isCs ? '#F0B25A' : 'rgba(242,240,234,.35)' }; }),
+        bits: gb.map((b, k) => { const isCs = g * 11 + k >= bits.length; const col = isCs ? '#F0B25A' : 'var(--oath-c-f2f0ea)'; return { bg: b ? col : 'transparent', ring: isCs ? '#F0B25A' : 'rgba(var(--oath-rgb-f2f0ea),.35)' }; }),
         o: step >= 3 ? 1 : 0, t: step >= 3 ? 'none' : 'translateY(14px)', tr: `opacity .45s ease ${step >= 3 ? g * 70 : 0}ms, transform .7s ${ease} ${step >= 3 ? g * 70 : 0}ms`,
       });
     }
@@ -577,19 +581,19 @@ class Component extends DCLogic {
     const F = FILES[tab];
 
     const P = [["Authorize", "Authenticate when the wallet requires approval.", "OathWalletVault.swift"], ["Prepare", "Resolve current transaction inputs and network fees.", "Network-specific send providers"], ["Sign", "Use wallet credentials locally to produce a signed transaction.", "Wallet signing services"], ["Broadcast", "Submit the signed transaction to a network provider.", "OathEVMSendService.swift"], ["Track", "Track pending state and network confirmation separately.", "Network-specific status tracking"]];
-    const TERM = [["$ git clone https://github.com/OathWallet/oath-wallet", "#F2F0EA"], ["$ cd oath-wallet", "#F2F0EA"], ["$ git checkout v5.0.2-build104", "#F2F0EA"], ["$ open README.md SECURITY.md Documentation/PublicBuild.md", "#F2F0EA"], ["  # inspect this published release and its limitations", "#8E8C86"]];
+    const TERM = [["$ git clone https://github.com/OathWallet/oath-wallet", "var(--oath-c-f2f0ea)"], ["$ cd oath-wallet", "var(--oath-c-f2f0ea)"], ["$ git checkout v5.0.2-build104", "var(--oath-c-f2f0ea)"], ["$ open README.md SECURITY.md Documentation/PublicBuild.md", "var(--oath-c-f2f0ea)"], ["  # inspect this published release and its limitations", "var(--oath-c-8e8c86)"]];
     const reveal = (k, i, d) => ({ o: seen[k] ? 1 : 0, t: seen[k] ? 'none' : 'translateY(28px)', tr: `opacity .7s ease ${i * (d || 80)}ms, transform .9s ${ease} ${i * (d || 80)}ms` });
 
     return {
       heroO: mounted ? 1 : 0, heroT: mounted ? 'none' : 'translateY(40px)',
       stats: [{"v": "On-device", "k": "wallet credential storage and local signing"}, {"v": "Keychain", "k": "encrypted, device-only local vault"}, {"v": "Password", "k": "protects each eligible iCloud backup"}, {"v": "Open source", "k": "public code and documented release scope"}],
-      lens: [12, 24].map(k => ({ l: k + ' words', bg: n === k ? '#F2F0EA' : 'transparent', fg: n === k ? '#0A0A0B' : '#B9B7B0', go: () => this.run(false, k) })),
+      lens: [12, 24].map(k => ({ l: k + ' words', bg: n === k ? 'var(--oath-c-f2f0ea)' : 'transparent', fg: n === k ? 'var(--oath-c-0a0a0b)' : 'var(--oath-c-b9b7b0)', go: () => this.run(false, k) })),
       generate: () => this.run(false),
       vector: () => this.run(true),
       entLabel: (n === 24 ? 256 : 128) + ' bits · ' + (n === 24 ? 32 : 16) + ' bytes',
       bytes: bytes.map((b, i) => ({ h: hex(b), o: step >= 1 ? 1 : 0, t: step >= 1 ? 'none' : 'scale(.6)', tr: `opacity .3s ease ${step >= 1 ? i * 22 : 0}ms, transform .5s ${ease} ${step >= 1 ? i * 22 : 0}ms` })),
-      s1ring: step === 1 ? 'rgba(242,240,234,.5)' : 'rgba(242,240,234,.08)',
-      s2ring: step === 2 ? 'rgba(240,178,90,.6)' : 'rgba(242,240,234,.08)',
+      s1ring: step === 1 ? 'rgba(var(--oath-rgb-f2f0ea),.5)' : 'rgba(var(--oath-rgb-f2f0ea),.08)',
+      s2ring: step === 2 ? 'rgba(240,178,90,.6)' : 'rgba(var(--oath-rgb-f2f0ea),.08)',
       s2o: step >= 2 ? 1 : 0.15, s2t: step >= 2 ? 'none' : 'translateX(-10px)',
       hashHead: hashHex.slice(0, hc), hashTail: hashHex.slice(hc, 40) + '…',
       csBits: cs.map(b => ({ bg: b ? '#F0B25A' : 'transparent' })),
@@ -600,7 +604,7 @@ class Component extends DCLogic {
         ? 'All-zero entropy — the official BIP-39 test vector. This phrase is public test data and unsafe for funds.'
         : 'Runs only in this browser tab with crypto.getRandomValues and SubtleCrypto — nothing is sent anywhere. It’s for learning: never put real funds on a phrase shown on a web page. Create your real phrase inside Oath.',
 
-      layers: [["App lock", "When enabled, biometrics or the app passcode protect access."], ["Keychain", "Authenticated vault ciphertext uses device-only Keychain storage and an installation key."], ["Database", "Public wallet metadata, balances and history are stored separately from credentials."], ["Backup boundary", "Eligible iCloud backups encrypt locally with a separate backup password."]      ].map(([h, d], i) => Object.assign({ n: String(i + 1).padStart(2, '0'), h, d, bg: i === 0 ? '#0A0A0B' : i === 1 ? '#E3E3E4' : i === 2 ? '#D6D6D4' : '#CACAC7', fg: i === 0 ? '#F2F0EA' : '#0A0A0B', sub: i === 0 ? '#B9B7B0' : '#48484E', ib: i === 0 ? '#F2F0EA' : '#0A0A0B', ic: i === 0 ? '#0A0A0B' : '#F2F0EA' }, reveal('vault', i, 120))),
+      layers: [["App lock", "When enabled, biometrics or the app passcode protect access."], ["Keychain", "Authenticated vault ciphertext uses device-only Keychain storage and an installation key."], ["Database", "Public wallet metadata, balances and history are stored separately from credentials."], ["Backup boundary", "Eligible iCloud backups encrypt locally with a separate backup password."]      ].map(([h, d], i) => Object.assign({ n: String(i + 1).padStart(2, '0'), h, d, bg: i === 0 ? 'var(--oath-c-0a0a0b)' : i === 1 ? '#E3E3E4' : i === 2 ? '#D6D6D4' : '#CACAC7', fg: i === 0 ? 'var(--oath-c-f2f0ea)' : 'var(--oath-c-0a0a0b)', sub: i === 0 ? 'var(--oath-c-b9b7b0)' : '#48484E', ib: i === 0 ? 'var(--oath-c-f2f0ea)' : 'var(--oath-c-0a0a0b)', ic: i === 0 ? 'var(--oath-c-0a0a0b)' : 'var(--oath-c-f2f0ea)' }, reveal('vault', i, 120))),
       never: ['No operator-held recovery phrase', 'No signing key sent for broadcast', 'No support access to your backup password'],
       leaves: [
         { h: 'Signed transactions', d: 'Authorized signed payloads are broadcast to the selected network.' },
@@ -611,13 +615,13 @@ class Component extends DCLogic {
       pipe: P.map(([h, d, f], i) => {
         const on = pipe === i, done = pipe > i || pipe === 5;
         return { n: String(i + 1).padStart(2, '0'), h, d, f,
-          bg: on ? '#F2F0EA' : '#111113', fg: on ? '#0A0A0B' : '#F2F0EA', sub: on ? '#48484E' : '#8E8C86',
+          bg: on ? 'var(--oath-c-f2f0ea)' : 'var(--oath-c-111113)', fg: on ? 'var(--oath-c-0a0a0b)' : 'var(--oath-c-f2f0ea)', sub: on ? '#48484E' : 'var(--oath-c-8e8c86)',
           ring: on ? 'none' : 'inset 0 0 0 1px rgba(242,240,234,.1)', t: on ? 'translateY(-6px)' : 'none',
-          dot: on ? '#12A88E' : done ? '#F2F0EA' : '#3A3A3E', halo: on ? 'rgba(18,168,142,.2)' : 'transparent' };
+          dot: on ? '#12A88E' : done ? 'var(--oath-c-f2f0ea)' : '#3A3A3E', halo: on ? 'rgba(18,168,142,.2)' : 'transparent' };
       }),
       pipeBar: pipe < 0 ? '0%' : Math.min(100, ((pipe + 1) / 5) * 100) + '%',
 
-      tabs: FILES.map((f, i) => ({ l: f.l, bg: tab === i ? '#F2F0EA' : 'transparent', fg: tab === i ? '#0A0A0B' : '#B9B7B0', ring: tab === i ? 'none' : 'inset 0 0 0 1px rgba(242,240,234,.14)',
+      tabs: FILES.map((f, i) => ({ l: f.l, bg: tab === i ? 'var(--oath-c-f2f0ea)' : 'transparent', fg: tab === i ? 'var(--oath-c-0a0a0b)' : 'var(--oath-c-b9b7b0)', ring: tab === i ? 'none' : 'inset 0 0 0 1px rgba(242,240,234,.14)',
         go: () => { if (i === tab) return; this.setState({ codeO: 0 }); setTimeout(() => this.setState({ tab: i, codeO: 1 }), 180); } })),
       file: { path: F.path, url: GH + F.path, title: F.title, what: F.what, notes: F.notes },
       lines: this.hl(F.code),
