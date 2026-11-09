@@ -6,7 +6,7 @@ export const palette = {
  '0d0d0f':'f0f0f0','131315':'f0f0f0','1b1b1f':'f0f0f0','2b2b2e':'d5d5d5','444448':'d5d5d5','83838e':'636363','88888f':'636363','888890':'636363','888892':'636363','8f8f99':'636363','92929c':'636363','97979f':'636363','9999a1':'636363','9db9ff':'494949','a2a2aa':'636363','a9a9ae':'636363','a9a9b1':'636363','aaa9ae':'636363','aaaab4':'636363','b5b5bc':'494949','bcce98':'494949','bdbdc2':'494949','c3d2f4':'494949','c4c1b8':'494949','c8c7c2':'494949',
  '0a0a0b':'ffffff','0b0b0d':'ffffff','000000':'ffffff','111111':'f0f0f0',
  '111112':'f0f0f0','111113':'f0f0f0','101011':'f0f0f0','141416':'f0f0f0',
- '151516':'f0f0f0','151517':'f0f0f0','181819':'f0f0f0','1a1a1d':'ebebeb',
+ '151516':'f0f0f0','151517':'f0f0f0','171719':'f0f0f0','181819':'f0f0f0','19191a':'f0f0f0','1a1a1d':'ebebeb',
  '1b1b1c':'e8e8e8','1b1b1e':'e8e8e8','202023':'e5e5e5','242425':'e2e2e2',
  '242426':'e2e2e2','242427':'e2e2e2','282829':'d9d9d9','303034':'d2d2d2',
  '333333':'d5d5d5','333337':'d5d5d5','393938':'c4c4c4','39393d':'c4c4c4',
@@ -41,12 +41,16 @@ export function themeCSS(css,day=false) {
   return alpha===undefined?`var(--${prefix}-c-${hex})`:`rgba(var(--${prefix}-rgb-${hex}),${alpha})`;
  }).replace(/((?:^|[;{])\s*(?:color|background(?:-color)?|border-color)\s*:\s*)(white|black)(?=\s*(?:[;}]|$))/gi,(_,prefix,color)=>prefix+`var(--${day?'oath-day':'oath'}-c-${color.toLowerCase()==='white'?'ffffff':'111111'})`);
 }
+export const themeVersion='20261109-forms';
 export function themeDocument(html,{bootstrap=true}={}) {
  html=html.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,block=>themeCSS(block))
  .replace(/\sstyle(?:-hover)?=(['"])([\s\S]*?)\1/gi,(attribute,quote,value)=>attribute.replace(value,themeCSS(value)))
  .replace(/<script\b[^>]*data-dc-script[^>]*>[\s\S]*?<\/script>/gi,block=>block.replace(/(['"])(#[\da-f]{3,8}|rgba?\([\d., ]+\))\1/gi,(_,q,color)=>q+themeCSS(color)+q));
  if(!bootstrap||!/<head\b/i.test(html)||!/<body\b/i.test(html))return html;
- if(!html.includes('data-oath-theme-bootstrap'))html=html.replace(/<head([^>]*)>(\s*<meta\s+charset=[^>]+>)?/i,`<head$1>$2<script data-oath-theme-bootstrap src="/theme.js?v=20261109"></script><link rel="stylesheet" href="/theme.css?v=20261109">`);
+ if(!html.includes('data-oath-theme-bootstrap'))html=html.replace(/<head([^>]*)>(\s*<meta\s+charset=[^>]+>)?/i,`<head$1>$2<script data-oath-theme-bootstrap src="/theme.js?v=${themeVersion}"></script><link rel="stylesheet" href="/theme.css?v=${themeVersion}">`);
+ // Generated documents may already contain the bootstrap from an earlier build.
+ // Refresh both URLs so returning visitors receive the same shared control styles.
+ html=html.replace(/((?:src|href)=["'])\/theme\.(js|css)\?v=[^"']+(?=["'])/g,`$1/theme.$2?v=${themeVersion}`);
  // Theme color follows the selected appearance; the pre-paint bootstrap adds it.
  return html.replace(/<meta\s+name=['"]theme-color['"][^>]*>/gi,'');
 }
@@ -62,6 +66,18 @@ export function paletteCSS() {
  const dayValues=light=>Object.entries(dayPalette).map(([day,dark])=>{const color=light?(lightUtilityPalette[day]||day):dark;return `--oath-day-c-${day}:#${color};--oath-day-rgb-${day}:${rgb(color)};`;}).join('');
  const values = light=>Object.entries(palette).map(([dark,day])=>`--oath-c-${dark}:#${light?day:dark};--oath-rgb-${dark}:${rgb(light?day:dark)};`).join('');
  return `:root{--oath-color-scheme:light;color-scheme:light;${values(true)}${dayValues(true)}}\n:root[data-oath-theme="dark"]{--oath-color-scheme:dark;color-scheme:dark;${values(false)}${dayValues(false)}}\n/* Product screenshots and press-kit specimens retain their exact brand colors. */\n:is([data-preview-device],.press-art,.press-swatch,.press-cover,.press-demonstrations,.press-donts){${values(false)}}\n`;
+}
+export function formControlCSS() {
+ const arrow=color=>`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%23${color}' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`;
+ // Keep real select controls and native menus. Reserve room for the chevron
+ // independently of browser-native arrow positioning and page padding rules.
+ const select=':root select:not([multiple]):not([size]),:root select:not([multiple])[size="1"]';
+ return `:root{--oath-select-arrow:${arrow('636363')}}
+:root[data-oath-theme="dark"]{--oath-select-arrow:${arrow('b9b7b0')}}
+${select}{-webkit-appearance:none;appearance:none;padding-inline-end:44px;background-image:var(--oath-select-arrow);background-repeat:no-repeat;background-position:right 14px center;background-size:16px 16px}
+:is(${select}):dir(rtl){background-position:left 14px center}
+@media(forced-colors:active){${select}{-webkit-appearance:auto;appearance:auto;background-image:none;padding-inline-end:12px}}
+`;
 }
 export async function applyTheme(request,response) {
  const pathname=new URL(request.url).pathname;

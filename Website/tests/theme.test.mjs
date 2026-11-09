@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {runInNewContext} from 'node:vm';
-import {themeCSS,themeDocument,paletteCSS,applyTheme,palette} from '../src/theme.js';
+import {themeCSS,themeDocument,paletteCSS,applyTheme,palette,themeVersion} from '../src/theme.js';
 const script=await readFile(new URL('../public/theme.js',import.meta.url),'utf8');
 function client({cookie='',stored=null,blocked=false,host='oathwallet.org'}={}){
  const events={},attributes={},buttons=['light','dark'].map(theme=>({dataset:{oathThemeChoice:theme},setAttribute(n,v){this[n]=v;},getAttribute(n){return this[n];}}));
@@ -52,4 +52,26 @@ test('light surfaces match native app neutrals while dark mode and brand colors 
  assert.match(dark,/--oath-day-c-fafbf7:#0a0a0b;/);
  assert.equal(themeCSS('.brand{color:#244de0}'),'.brand{color:#244de0}');
  assert.match(script,/'#ffffff'/);
+});
+
+test('token and transfer field surfaces follow the theme instead of retaining dark literals',()=>{
+ const input='.token-search input{background:#171719;color:#F2F0EA}.decision-controls select{background:#19191a}';
+ const themed=themeCSS(input);
+ assert.match(themed,/background:var\(--oath-c-171719\)/);
+ assert.match(themed,/background:var\(--oath-c-19191a\)/);
+ assert.equal(themeCSS(themed),themed);
+ const [light,dark]=paletteCSS().split('\n');
+ for(const color of ['171719','19191a']){
+  assert.ok(light.includes(`--oath-c-${color}:#f0f0f0;`));
+  assert.ok(dark.includes(`--oath-c-${color}:#${color};`));
+ }
+});
+
+test('already generated pages refresh cached theme assets without duplicating the bootstrap',()=>{
+ const old='<html><head><script data-oath-theme-bootstrap src="/theme.js?v=20261109"></script><link rel="stylesheet" href="/theme.css?v=20261109"></head><body>Theme</body></html>';
+ const updated=themeDocument(old);
+ assert.ok(updated.includes(`/theme.js?v=${themeVersion}`));
+ assert.ok(updated.includes(`/theme.css?v=${themeVersion}`));
+ assert.equal(updated.match(/data-oath-theme-bootstrap/g).length,1);
+ assert.equal(themeDocument(updated),updated);
 });
