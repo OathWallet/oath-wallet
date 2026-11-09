@@ -47,6 +47,16 @@ struct OathSendFlow: View {
     }
 
     private var allowed: Bool { session.isUnlocked && !session.resetting && session.wallets.contains { $0.id == model.walletID } }
+    // A swipe must not tear down signing/submission work or bypass the lock.
+    private var isSubmitting: Bool {
+        (bitcoin.busy && bitcoin.quote != nil) || (sui.busy && sui.quote != nil) ||
+        (xrpl.busy && xrpl.quote != nil) || (stellar.busy && stellar.quote != nil) ||
+        (ton.busy && ton.quote != nil) || (solana.busy && solana.quote != nil) ||
+        (evm.busy && evm.quote != nil) || (arc.busy && arc.quote != nil) ||
+        (aptos.busy && aptos.quote != nil) || (thorchain.busy && thorchain.quote != nil) ||
+        (polkadot.busy && polkadot.quote != nil) || (near.busy && near.quote != nil) ||
+        (tron.busy && tron.quote != nil)
+    }
     private var observationID: String { "\(allowed)-\(model.walletID)-\(session.portfolio?.currency ?? "USD")-\(retry)" }
     private var permittedNetworks: Set<OathImportChain>? {
         let scannedNetworks = scannedRecipient.map { Set($0.networks) }
@@ -66,7 +76,8 @@ struct OathSendFlow: View {
                 .navigationTitle(strings.text(.sendChooseAsset))
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar { ToolbarItem(placement: .topBarLeading) {
-                    OathCloseButton { dismiss() }.accessibilityIdentifier("send.close")
+                    OathCloseButton { dismiss() }
+                        .accessibilityIdentifier("send.close")
                 } }
                 .navigationDestination(for: OathSendModel.Step.self) { step in
                     Group {
@@ -115,6 +126,7 @@ struct OathSendFlow: View {
         .oathInteractionBlocked(!allowed)
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
+        .interactiveDismissDisabled(!allowed || isSubmitting)
         .task(id: observationID) {
             guard allowed else { return }
             await model.observe(currency: session.portfolio?.currency ?? "USD")

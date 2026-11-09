@@ -108,7 +108,7 @@ extension EnvironmentValues {
                     let subtitle = AnyView(OathAssetUnitPrice(price: price == "Price Untracked" ? nil : price))
                     let row = OathRefinedListRow(title: "THORChain", subtitle: price, value: "$84.11",
                         primaryFontWeight: .medium, detail: "136.18908816 RUNE",
-                        emphasizesBalanceSubtitle: true, customSubtitle: subtitle, emphasizesBalanceDetail: true
+                        customSubtitle: subtitle
                     ) { size in Color.blue.frame(width: size, height: size) }
                     .frame(width: width).background(.white)
                     .environment(\.colorScheme, .light)
@@ -130,8 +130,8 @@ extension EnvironmentValues {
                 // A surrounding control can select icon-only labels. The price
                 // warning must explicitly keep its localized title in that context.
                 let row = OathRefinedListRow(title: "Telos", subtitle: "Price Untracked", value: "$0.00",
-                    primaryFontWeight: .medium, detail: "0 TLOS", emphasizesBalanceSubtitle: true,
-                    customSubtitle: AnyView(OathAssetUnitPrice(price: nil)), emphasizesBalanceDetail: true
+                    primaryFontWeight: .medium, detail: "0 TLOS",
+                    customSubtitle: AnyView(OathAssetUnitPrice(price: nil))
                 ) { size in Color.blue.frame(width: size, height: size) }
                 let content = Button {} label: { row }
                     .buttonStyle(.plain)

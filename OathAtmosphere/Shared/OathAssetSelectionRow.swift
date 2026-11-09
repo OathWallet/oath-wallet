@@ -21,8 +21,7 @@ struct OathAssetSelectionRow: View {
             showsSeparator: showsSeparator,
             titleBadgeAsset: chain?.logoAsset,
             assetNetworkName: strings.invariant(chain?.name ?? holding.networkID),
-            showsAssetNetworkBadge: holding.reference != "native",
-            emphasizesBalanceDetail: true) { size in
+            showsAssetNetworkBadge: holding.reference != "native") { size in
                 OathSendLogo(holding: holding, size: size, showsChainBadge: false)
             }
             .accessibilityLabel([holding.symbol, holding.name, chain?.name,

@@ -192,8 +192,13 @@ struct OathAssetSearchBar: UIViewRepresentable {
                             operation: "load_chain_logo", context: ["chain": chain.id])
                     }
                 } else {
-                    config.image = UIImage(systemName: "square.grid.2x2",
-                                           withConfiguration: UIImage.SymbolConfiguration(pointSize: 20))
+                    config.image = UIImage(systemName: "square.grid.2x2")
+                    // Match the body-sized native search magnifier. Set this
+                    // on the button configuration so glass styling cannot
+                    // substitute its larger default symbol scale.
+                    config.preferredSymbolConfigurationForImage = UIImage.SymbolConfiguration(
+                        pointSize: UIFont.preferredFont(forTextStyle: .body).pointSize,
+                        weight: .regular, scale: .medium)
                 }
                 chainButton.configuration = config
                 chainButton.accessibilityLabel = label

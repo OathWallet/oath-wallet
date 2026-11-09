@@ -29,13 +29,11 @@ struct OathHomeAssetRow: View, Equatable {
             detail: strings.invariant(presentation.nativeSummary),
             showsSeparator: showsSeparator,
             concealsAmounts: balancesHidden,
-            emphasizesBalanceSubtitle: !isSearchResult,
             titleBadgeAsset: isSearchResult || presentation.holding.reference != "native" ? chain.logoAsset : nil,
             assetNetworkName: isSearchResult ? strings.invariant(chain.name) : nil,
             showsAssetNetworkBadge: presentation.holding.reference != "native",
             customSubtitle: isSearchResult ? nil : AnyView(OathAssetUnitPrice(
-                price: presentation.unitPrice)),
-            emphasizesBalanceDetail: true
+                price: presentation.unitPrice))
         ) { size in
             OathSendLogo(holding: presentation.holding, size: size, showsChainBadge: false)
                 .overlay(alignment: .topTrailing) {

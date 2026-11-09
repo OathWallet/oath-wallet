@@ -348,21 +348,7 @@ struct OathHomeScreen: View {
             query = ""; searchScope = .all; historyQuery = ""; historyFilters = .init(); tokenSearch.reset()
             if sheet?.id == "assetFilters" { sheet = nil }
         }
-        .sheet(item: $sheet, onDismiss: {
-            // One slot for both warnings. Acknowledging either must not allow
-            // the other to race the outgoing sheet's native animation.
-            securityNotices.didDismiss()
-            scanError = pendingScanError
-            pendingScanError = nil
-            scannedRecipient = nil
-            if paymentLinkActive {
-                paymentLinkActive = false
-                OathWalletLinkInbox.shared.didDismiss()
-            }
-            // Present the next native flow only after the switcher has finished
-            // dismissing. Presenting a cover from inside the sheet races UIKit.
-            finishWalletSwitcherDismissal()
-        }) { selection in
+        .sheet(item: $sheet, onDismiss: finishSheetDismissal) { selection in
             Group {
                 switch selection {
                 case .backup(let id, let offer):
@@ -480,6 +466,22 @@ struct OathHomeScreen: View {
         .onReceive(NotificationCenter.default.publisher(for: NSLocale.currentLocaleDidChangeNotification)) { _ in
             Task { await OathDiagnostics.attempt("refresh_portfolio") { try await session.refresh() } }
         }
+    }
+
+    private func finishSheetDismissal() {
+        // One slot for both warnings. Acknowledging either must not allow
+        // the other to race the outgoing sheet's native animation.
+        securityNotices.didDismiss()
+        scanError = pendingScanError
+        pendingScanError = nil
+        scannedRecipient = nil
+        if paymentLinkActive {
+            paymentLinkActive = false
+            OathWalletLinkInbox.shared.didDismiss()
+        }
+        // Present the next native flow only after the switcher has finished
+        // dismissing. Presenting a cover from inside the sheet races UIKit.
+        finishWalletSwitcherDismissal()
     }
 
     private var tabs: some View {

@@ -24,12 +24,11 @@ struct OathRefinedListRow<Icon: View>: View {
     let title: String
     let subtitle: String
     let value: String
-    var primaryFontWeight: Font.Weight = .semibold
+    var primaryFontWeight: Font.Weight = .medium
     var detail: String? = nil
     var showsSeparator = false
     var concealsAmounts = false
     var concealsSubtitle = false
-    var emphasizesBalanceSubtitle = false
     var titleBadgeAsset: String? = nil
     // Asset pickers/search show symbol + network above the full asset name,
     // with both balances in the trailing column. History keeps its own layout.
@@ -39,14 +38,15 @@ struct OathRefinedListRow<Icon: View>: View {
     // Rich transaction titles reuse the same row metrics and amount column.
     var customTitle: AnyView? = nil
     var customSubtitle: AnyView? = nil
-    var emphasizesBalanceDetail = false
     @ViewBuilder let icon: (CGFloat) -> Icon
 
     @Environment(\.dynamicTypeSize) private var typeSize
     @ScaledMetric(relativeTo: .body) private var iconSize = 40.0
     // Includes the chain badge's right-edge overhang at every Dynamic Type size.
     @ScaledMetric(relativeTo: .body) private var iconColumnWidth = 52.0
-    @ScaledMetric(relativeTo: .subheadline) private var balanceSubtitleSize = 14.5
+    // One secondary type size for prices, full asset names, times and native
+    // amounts in Home, pickers, search and every activity-list layout.
+    @ScaledMetric(relativeTo: .subheadline) private var secondaryTextSize = 14.5
     @ScaledMetric(relativeTo: .callout) private var titleBadgeSize = 18.0
 
     var body: some View {
@@ -108,8 +108,7 @@ struct OathRefinedListRow<Icon: View>: View {
             if let customSubtitle { customSubtitle }
             else { Text(verbatim: subtitle) }
         }
-        .oathFont(.caption, weight: emphasizesBalanceSubtitle ? .medium : .regular,
-                  size: emphasizesBalanceSubtitle ? balanceSubtitleSize : nil)
+        .oathFont(.subheadline, weight: .regular, size: secondaryTextSize)
         .foregroundStyle(.secondary)
         .oathBalanceConcealed(concealsSubtitle)
     }
@@ -207,8 +206,7 @@ struct OathRefinedListRow<Icon: View>: View {
     @ViewBuilder private var detailLabel: some View {
         if let detail {
             Text(verbatim: detail)
-                .oathFont(.caption, weight: emphasizesBalanceDetail ? .medium : .regular,
-                          size: emphasizesBalanceDetail ? balanceSubtitleSize : nil)
+                .oathFont(.subheadline, weight: .regular, size: secondaryTextSize)
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
                 .truncationMode(.middle)
@@ -223,8 +221,7 @@ struct OathRefinedListRow<Icon: View>: View {
                 .foregroundStyle(.primary)
             if let detail {
                 Text(verbatim: detail)
-                    .oathFont(.caption, weight: emphasizesBalanceDetail ? .medium : .regular,
-                              size: emphasizesBalanceDetail ? balanceSubtitleSize : nil)
+                    .oathFont(.subheadline, weight: .regular, size: secondaryTextSize)
                     .foregroundStyle(.secondary)
             }
         }
