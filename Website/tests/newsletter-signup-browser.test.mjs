@@ -1,65 +1,73 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
-import { chromium } from 'playwright';
+import {createServer} from 'node:http';
+import {readFile} from 'node:fs/promises';
+import {chromium} from 'playwright';
 
-test('newsletter opens only on request and signup works on desktop and mobile', async () => {
- const server=createServer(async(req,res)=>{
-  try{
-   const path=new URL(req.url,'http://localhost').pathname;
-   if(path.includes('..')){res.writeHead(404);res.end();return;}
-   if(path==='/manual-open-check'){res.writeHead(200,{'Content-Type':'text/html'});res.end('<!doctype html><html><body><button data-newsletter-open>Open newsletter</button><script src="/newsletter.js"></script></body></html>');return;}
-   const body=await readFile(new URL('../public'+path,import.meta.url));
-   const type=path.endsWith('.js')?'application/javascript':path.endsWith('.css')?'text/css':path.endsWith('.svg')?'image/svg+xml':'text/html';
-   res.writeHead(200,{'Content-Type':type});res.end(body);
-  }catch{res.writeHead(404);res.end();}
- });
- await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
- const browser=await chromium.launch({channel:'chrome',headless:true});
- try{
-  for(const viewport of [{width:1280,height:900},{width:390,height:844}]){
-   const context=await browser.newContext({viewport});
-   try{
-    const page=await context.newPage();const sent=[];
-    await page.route('**/_newsletter/signup',async route=>{
-     sent.push(route.request().postDataJSON());
-     await route.fulfill({json:{ok:true,subscribed:true,message:'You’re subscribed to Oath Notes. No email confirmation is needed — you’re all set.'}});
-    });
-    await page.clock.install();
-    await page.goto(`http://127.0.0.1:${server.address().port}/manual-open-check`);
-    await page.locator('.on-launcher').waitFor();
-    await page.clock.runFor(10000);
-    await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
-    assert.equal(await page.locator('dialog').evaluate(el=>el.open),false,'Fresh visitors must not see an automatic popup');
-    await page.locator('.on-launcher').click();
-    assert.equal(await page.locator('dialog').evaluate(el=>el.open),true);
-    await page.locator('.on-close').click();
-    await page.clock.runFor(10000);
-    assert.equal(await page.locator('dialog').evaluate(el=>el.open),false,'Dismissed dialog must stay closed');
-    await page.reload();
-    await page.clock.runFor(10000);
-    assert.equal(await page.locator('dialog').evaluate(el=>el.open),false,'Returning visitors must not see an automatic popup');
-    await page.goto(`http://127.0.0.1:${server.address().port}/news/index.html`);
-    await page.locator('[data-newsletter-open]').click();
-    assert.equal(await page.locator('input[name=consent]').count(),0);
-    assert.match(await page.locator('.on-consent').innerText(),/By selecting Join Oath Notes/);
-    await page.locator('#on-email').fill('new-subscriber@example.invalid');
-    await page.locator('.on-form button[type=submit]').click();
-    await page.locator('.on-success').waitFor();
-    assert.equal(sent.length,1);
-    assert.equal(sent[0].consent,true);
-    assert.deepEqual(sent[0].topics,['oath','markets','security','guides']);
-    assert.match(await page.locator('.on-success-message').innerText(),/No email confirmation is needed/);
-    assert.equal(await page.locator('dialog input').count(),0);
-    assert.equal(await page.locator('dialog').evaluate(el=>el.scrollWidth<=el.clientWidth+1),true);
-    await page.locator('.on-success button').click();
-    assert.equal(await page.locator('dialog').evaluate(el=>el.open),false);
-    assert.equal(await page.evaluate(()=>localStorage.getItem('oath_newsletter_seen_v1')),'1');
-   }finally{await context.close();}
-  }
- }finally{
-  await browser.close();
-  await new Promise(resolve=>server.close(resolve));
- }
+test('the standalone newsletter supports themes, topic selection, retries and accessible success', async () => {
+  const server = createServer(async (req, res) => {
+    const path = new URL(req.url, 'http://localhost').pathname;
+    if (path === '/entry') {
+      res.writeHead(200, {'Content-Type':'text/html'});
+      res.end('<html><body><script src="/newsletter.js" defer></script></body></html>');
+      return;
+    }
+    try {
+      const body = await readFile(new URL('../public' + (path === '/' ? '/news/index.html' : path), import.meta.url));
+      const types = {js:'application/javascript',css:'text/css',svg:'image/svg+xml',woff2:'font/woff2'};
+      res.writeHead(200, {'Content-Type':types[path.split('.').at(-1)] || 'text/html'});
+      res.end(body);
+    } catch { res.writeHead(404); res.end(); }
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const base = 'http://127.0.0.1:' + server.address().port;
+  const browser = await chromium.launch({channel:'chrome'});
+  try {
+    for (const width of [320, 390, 1280]) {
+      const context = await browser.newContext({viewport:{width, height:844}});
+      try {
+        const page = await context.newPage(), sent = [];
+        await page.route('**/_newsletter/signup', async route => {
+          sent.push(route.request().postDataJSON());
+          if (sent.length === 1) return route.fulfill({status:429, json:{error:'Try again in a minute.'}});
+          return route.fulfill({json:{ok:true, subscribed:true, message:'You’re subscribed to Oath Notes. No email confirmation is needed — you’re all set.'}});
+        });
+        await page.goto(base+'/entry');
+        assert.equal(await page.locator('.on-launcher').getAttribute('href'),'https://news.oathwallet.org/');
+        assert.equal(await page.locator('dialog').count(),0);
+        await page.goto(base);
+        assert.equal(await page.locator('#notes-email').isVisible(), true);
+        assert.equal(await page.getByRole('button',{name:'Join Oath Notes'}).isEnabled(), true);
+        assert.equal(await page.locator('.on-launcher,dialog').count(),0);
+        assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth),true);
+        await page.getByRole('button',{name:'Dark mode'}).click();
+        assert.equal(await page.getByRole('button',{name:'Dark mode'}).getAttribute('aria-pressed'),'true');
+        await page.reload();
+        assert.equal(await page.locator('html').getAttribute('data-oath-theme'),'dark');
+        await page.getByRole('button',{name:'Light mode'}).click();
+        await page.locator('#notes-email').fill('bad');
+        await page.locator('.notes-submit').click();
+        assert.equal(await page.locator('#notes-email').evaluate(el=>el.validity.typeMismatch),true);
+        await page.locator('#notes-email').fill('subscriber@example.invalid');
+        await page.locator('summary').focus();
+        await page.keyboard.press('Enter');
+        for (const checkbox of await page.getByRole('checkbox').all()) await checkbox.uncheck();
+        await page.locator('.notes-submit').click();
+        assert.equal(await page.getByRole('status').textContent(),'Choose at least one topic.');
+        assert.equal(sent.length,0);
+        await page.getByLabel('Security brief').check();
+        await page.getByLabel('Wallet guides').check();
+        assert.equal(await page.locator('#notes-count').textContent(),'2 selected');
+        await page.locator('.notes-submit').click();
+        await page.getByText('Try again in a minute.').waitFor();
+        assert.equal(await page.locator('#notes-email').inputValue(),'subscriber@example.invalid');
+        await page.locator('.notes-submit').click();
+        await page.getByRole('heading',{name:'You’re subscribed.'}).waitFor();
+        assert.equal(await page.locator('#notes-success-title').evaluate(el=>el===document.activeElement),true);
+        assert.equal(await page.locator('#notes-signup').isVisible(),false);
+        assert.equal(await page.getByRole('link',{name:'Back to Oath'}).getAttribute('href'),'https://oathwallet.org/');
+        assert.deepEqual(sent,[0,1].map(()=>({email:'subscriber@example.invalid',topics:['security','guides'],consent:true,website:'',source:'/newsletter'})));
+      } finally { await context.close(); }
+    }
+  } finally { await browser.close(); await new Promise(resolve=>server.close(resolve)); }
 });

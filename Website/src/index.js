@@ -71,6 +71,11 @@ async function serveRequest(request, env, ctx) {
     return Response.redirect(url.href, 301);
   }
 
+  if (isProductionHost && /^\/(?:newsletter(?:\.html)?\/?|news\/(?:index\.html)?)$/.test(url.pathname)) {
+    if (!['GET', 'HEAD'].includes(request.method)) return new Response(null, {status:405, headers:{Allow:'GET, HEAD'}});
+    return Response.redirect('https://news.oathwallet.org/' + url.search, 308);
+  }
+
   const compatibilityDownload = await handleCompatibilityDownload(request, env);
   if (compatibilityDownload) return compatibilityDownload;
   const artwork = await handleArtwork(request, env, ctx);

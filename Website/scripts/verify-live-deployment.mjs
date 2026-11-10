@@ -122,6 +122,23 @@ console.log(`Verified ${titleSamples.length} live title checks across every toke
 // Compare the deployed text with the Markdown generated from this checkout.
 const {documents,documentText} = await import('../src/agent-content.js');
 const {readFile} = await import('node:fs/promises');
+
+const notesURL = 'https://news.oathwallet.org/';
+const notesAlias = await fetch('https://oathwallet.org/newsletter', {redirect:'manual', signal:AbortSignal.timeout(20000)});
+assert.equal(notesAlias.status,308);
+assert.equal(notesAlias.headers.get('Location'),notesURL);
+const notesPage = await fetch(notesURL,{signal:AbortSignal.timeout(20000)});
+assert.equal(notesPage.status,200);
+const notesHTML = await notesPage.text();
+assert.ok(notesHTML.includes('<form id="notes-signup"') && notesHTML.includes('href="'+notesURL+'"'), 'Newsletter signup and canonical');
+assert.doesNotMatch(notesHTML,/data-newsletter-open|oath-shared-header:start/);
+for(const file of ['signup.css','signup.js']){
+  const asset=await fetch(notesURL+'news/'+file,{signal:AbortSignal.timeout(20000)});
+  assert.equal(asset.status,200);
+  assert.equal(await asset.text(),await readFile(new URL('../public/news/'+file,import.meta.url),'utf8'),file);
+}
+console.log('Verified the standalone Oath Notes screen and its published signup assets.');
+
 const {default:catalog} = await import('../public/oath-data.json',{with:{type:'json'}});
 for (const article of catalog.articles.filter(a=>a.github_editorial)) {
   const doc = documents.find(d=>d.url===article.url);
