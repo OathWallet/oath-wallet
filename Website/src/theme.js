@@ -41,7 +41,7 @@ export function themeCSS(css,day=false) {
   return alpha===undefined?`var(--${prefix}-c-${hex})`:`rgba(var(--${prefix}-rgb-${hex}),${alpha})`;
  }).replace(/((?:^|[;{])\s*(?:color|background(?:-color)?|border-color)\s*:\s*)(white|black)(?=\s*(?:[;}]|$))/gi,(_,prefix,color)=>prefix+`var(--${day?'oath-day':'oath'}-c-${color.toLowerCase()==='white'?'ffffff':'111111'})`);
 }
-export const themeVersion='20261110-controls';
+export const themeVersion='20261110-header-shadow';
 export function themeDocument(html,{bootstrap=true}={}) {
  html=html.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,block=>themeCSS(block))
  .replace(/\sstyle(?:-hover)?=(['"])([\s\S]*?)\1/gi,(attribute,quote,value)=>attribute.replace(value,themeCSS(value)))
@@ -65,7 +65,7 @@ const lightUtilityPalette = {
 export function paletteCSS() {
  const dayValues=light=>Object.entries(dayPalette).map(([day,dark])=>{const color=light?(lightUtilityPalette[day]||day):dark;return `--oath-day-c-${day}:#${color};--oath-day-rgb-${day}:${rgb(color)};`;}).join('');
  const values = light=>Object.entries(palette).map(([dark,day])=>`--oath-c-${dark}:#${light?day:dark};--oath-rgb-${dark}:${rgb(light?day:dark)};`).join('');
- return `:root{--oath-color-scheme:light;color-scheme:light;--oath-surface:#${softGray};--oath-surface-hover:#${hoverGray};--oath-card:var(--oath-surface);--oath-card-hover:var(--oath-surface-hover);--oath-card-ink:#202227;--oath-card-muted:#555a62;${values(true)}${dayValues(true)}}\n:root[data-oath-theme="dark"]{--oath-color-scheme:dark;color-scheme:dark;--oath-surface:#1b1c1e;--oath-surface-hover:#242629;--oath-card:var(--oath-surface);--oath-card-hover:var(--oath-surface-hover);--oath-card-ink:#f3f4f6;--oath-card-muted:#b2b6be;${values(false)}${dayValues(false)}}\n/* Product screenshots and press-kit specimens retain their exact brand colors. */\n:is([data-preview-device],.press-art,.press-swatch,.press-cover,.press-demonstrations,.press-donts){${values(false)}}\n`;
+ return `:root{--oath-color-scheme:light;color-scheme:light;--oath-surface:#${softGray};--oath-surface-hover:#${hoverGray};--oath-card:var(--oath-surface);--oath-card-hover:var(--oath-surface-hover);--oath-card-ink:#202227;--oath-card-muted:#555a62;--oath-header-shadow:0 2px 5px -2px rgb(18 25 38 / .10),0 6px 16px -6px rgb(18 25 38 / .14);${values(true)}${dayValues(true)}}\n:root[data-oath-theme="dark"]{--oath-color-scheme:dark;color-scheme:dark;--oath-surface:#1b1c1e;--oath-surface-hover:#242629;--oath-card:var(--oath-surface);--oath-card-hover:var(--oath-surface-hover);--oath-card-ink:#f3f4f6;--oath-card-muted:#b2b6be;--oath-header-shadow:0 2px 5px -2px rgb(0 0 0 / .32),0 6px 16px -6px rgb(0 0 0 / .46);${values(false)}${dayValues(false)}}\n/* Product screenshots and press-kit specimens retain their exact brand colors. */\n:is([data-preview-device],.press-art,.press-swatch,.press-cover,.press-demonstrations,.press-donts){${values(false)}}\n`;
 }
 export function formControlCSS() {
  const arrow=color=>`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%23${color}' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`;

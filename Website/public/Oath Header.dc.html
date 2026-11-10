@@ -40,7 +40,7 @@
   </div>
 </div>
 <header style="position:fixed;top:clamp(10px,2vw,16px);left:0;right:0;z-index:50;display:flex;justify-content:center;padding:0 clamp(10px,3vw,16px);pointer-events:none">
-  <div style="pointer-events:auto;width:100%;max-width:1120px;height:clamp(54px,8vw,60px);display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 8px 0 clamp(14px,3vw,20px);border-radius:999px;background:var(--oath-surface)">
+  <div style="pointer-events:auto;width:100%;max-width:1120px;height:clamp(54px,8vw,60px);display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 8px 0 clamp(14px,3vw,20px);border-radius:999px;background:var(--oath-surface);box-shadow:var(--oath-header-shadow)">
     <a href="{{ home }}" onClick="{{ close }}" style="display:flex;align-items:center;gap:10px;min-height:44px;color:var(--oath-c-f2f0ea);text-decoration:none"><img src="{{ mark }}" alt="" style="display:block;width:30px;height:30px;border-radius:22%;overflow:hidden" role="presentation"><span style="font:600 19px/1 'Instrument Sans',sans-serif;letter-spacing:-.03em">Oath</span></a>
     <nav style="display:{{ navD }};gap:28px;font:500 14px/1 'Instrument Sans',sans-serif">
       <sc-for list="{{ links }}" as="l" hint-placeholder-count="4">
