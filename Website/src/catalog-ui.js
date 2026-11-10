@@ -4,8 +4,8 @@ export const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, char 
   '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
 })[char]);
 
-export function chainMark(network, size = 40) {
-  return `<img class="chain-mark" src="${escapeHTML(network.icon)}" width="${size}" height="${size}" alt="">`;
+export function chainMark(network, size = 40, {lazy = false} = {}) {
+  return `<img class="chain-mark"${lazy ? ' loading="lazy"' : ''} src="${escapeHTML(network.icon)}" width="${size}" height="${size}" alt="">`;
 }
 
 export function pairedMark(asset, network) {
