@@ -236,7 +236,7 @@
       <p style="margin:0;max-width:400px;font:400 16px/1.55 'Instrument Sans',sans-serif;color:var(--oath-c-b9b7b0);text-wrap:pretty">This educational browser demo illustrates BIP-39. Oath validates BIP39 phrases in <a href="https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Import/OathMnemonicValidator.swift" target="_blank" rel="noopener" style="text-decoration:underline;text-underline-offset:3px">OathMnemonicValidator.swift</a>. This is a demonstration, not the app runtime. Never fund a phrase generated here.</p>
     </div>
 
-    <div style="border-radius:clamp(24px,3vw,36px);background:var(--oath-c-111113);box-shadow:inset 0 0 0 1px rgba(var(--oath-rgb-f2f0ea),.1);padding:clamp(20px,3vw,36px);display:flex;flex-direction:column;gap:28px">
+    <div class="oath-card" style="border-radius:clamp(24px,3vw,36px);padding:clamp(20px,3vw,36px);display:flex;flex-direction:column;gap:28px">
       <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:14px">
         <div style="display:flex;gap:4px;padding:4px;border-radius:999px;background:var(--oath-c-0a0a0b);box-shadow:inset 0 0 0 1px rgba(var(--oath-rgb-f2f0ea),.1)">
           <sc-for list="{{ lens }}" as="ln" hint-placeholder-count="2">
@@ -250,7 +250,7 @@
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px">
-        <div style="border-radius:20px;background:var(--oath-c-0a0a0b);padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:inset 0 0 0 1px {{ s1ring }};transition:box-shadow .4s ease">
+        <div style="border-radius:20px;background:{{ s1surface }};padding:20px;display:flex;flex-direction:column;gap:14px;transition:background .4s ease">
           <div style="display:flex;justify-content:space-between;gap:10px;font:400 11.5px/1 'IBM Plex Mono',monospace;letter-spacing:.05em;text-transform:uppercase"><span style="color:var(--oath-c-f2f0ea)">① Entropy</span><span style="color:var(--oath-c-8e8c86)">{{ entLabel }}</span></div>
           <div style="display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:5px">
             <sc-for list="{{ bytes }}" as="b" hint-placeholder-count="16">
@@ -259,7 +259,7 @@
           </div>
           <span style="font:400 12.5px/1.5 'Instrument Sans',sans-serif;color:var(--oath-c-8e8c86)">This educational browser example uses <span style="font-family:'IBM Plex Mono',monospace;color:var(--oath-c-b9b7b0)">crypto.getRandomValues</span>.</span>
         </div>
-        <div style="border-radius:20px;background:var(--oath-c-0a0a0b);padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:inset 0 0 0 1px {{ s2ring }};transition:box-shadow .4s ease">
+        <div style="border-radius:20px;background:{{ s2surface }};padding:20px;display:flex;flex-direction:column;gap:14px;transition:background .4s ease">
           <div style="display:flex;justify-content:space-between;gap:10px;font:400 11.5px/1 'IBM Plex Mono',monospace;letter-spacing:.05em;text-transform:uppercase"><span style="color:var(--oath-c-f2f0ea)">② Checksum</span><span style="color:var(--oath-c-8e8c86)">SHA-256</span></div>
           <div style="font:400 12.5px/1.6 'IBM Plex Mono',monospace;color:var(--oath-c-6e6c67);word-break:break-all;opacity:{{ s2o }};transition:opacity .5s ease"><span style="color:#F0B25A">{{ hashHead }}</span>{{ hashTail }}</div>
           <div style="display:flex;align-items:center;gap:10px;opacity:{{ s2o }};transform:{{ s2t }};transition:opacity .5s ease .15s, transform .7s cubic-bezier(.16,1,.3,1) .15s">
@@ -277,7 +277,7 @@
         <div style="display:flex;justify-content:space-between;gap:10px;font:400 11.5px/1 'IBM Plex Mono',monospace;letter-spacing:.05em;text-transform:uppercase"><span style="color:var(--oath-c-f2f0ea)">③ Split into 11-bit numbers → words</span><span style="color:var(--oath-c-8e8c86)">{{ totalLabel }}</span></div>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:8px">
           <sc-for list="{{ groups }}" as="g" hint-placeholder-count="12">
-            <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:14px;background:var(--oath-c-0a0a0b);box-shadow:inset 0 0 0 1px rgba(var(--oath-rgb-f2f0ea),.07);opacity:{{ g.o }};transform:{{ g.t }};transition:{{ g.tr }}">
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:14px;background:var(--oath-card-hover);opacity:{{ g.o }};transform:{{ g.t }};transition:{{ g.tr }}">
               <span style="flex:none;width:20px;font:400 11.5px/1 'IBM Plex Mono',monospace;color:var(--oath-c-6e6c67)">{{ g.n }}</span>
               <div style="flex:none;display:flex;gap:2px">
                 <sc-for list="{{ g.bits }}" as="bt" hint-placeholder-count="11">
@@ -300,21 +300,21 @@
       <h2 style="margin:0;font:400 clamp(40px,6vw,92px)/.95 'Instrument Serif',serif;letter-spacing:-.02em">Locked on the phone.<br><em style="color:var(--oath-c-8e8c86)">Protected by Keychain.</em></h2>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:14px">
-      <div style="border-radius:clamp(24px,3vw,36px);background:var(--oath-c-f2f0ea);color:var(--oath-c-0a0a0b);padding:clamp(22px,3vw,34px);display:flex;flex-direction:column;gap:14px">
+      <div class="oath-card" style="border-radius:clamp(24px,3vw,36px);padding:clamp(22px,3vw,34px);display:flex;flex-direction:column;gap:14px">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
-          <span style="font:400 12px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:#5E5C57">On your iPhone</span>
-          <span style="display:flex;align-items:center;gap:8px;font:500 12.5px/1 'Instrument Sans',sans-serif;color:var(--oath-c-0a0a0b)"><span style="width:8px;height:8px;border-radius:50%;background:#12A88E;box-shadow:0 0 0 4px rgba(18,168,142,.18)"></span>Stays here</span>
+          <span style="font:400 12px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--oath-card-muted)">On your iPhone</span>
+          <span style="display:flex;align-items:center;gap:8px;font:500 12.5px/1 'Instrument Sans',sans-serif;color:var(--oath-card-ink)"><span style="width:8px;height:8px;border-radius:50%;background:#12A88E;box-shadow:0 0 0 4px rgba(18,168,142,.18)"></span>Stays here</span>
         </div>
         <sc-for list="{{ layers }}" as="ly" hint-placeholder-count="4">
-          <div style="border-radius:20px;padding:18px 20px;background:{{ ly.bg }};color:{{ ly.fg }};display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 16px;align-items:start;opacity:{{ ly.o }};transform:{{ ly.t }};transition:{{ ly.tr }}">
+          <div class="oath-card" style="border-radius:20px;padding:18px 20px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 16px;align-items:start;opacity:{{ ly.o }};transform:{{ ly.t }};transition:{{ ly.tr }}">
             <span style="grid-row:span 2;width:36px;height:36px;border-radius:50%;background:{{ ly.ib }};color:{{ ly.ic }};display:flex;align-items:center;justify-content:center;font:500 13px/1 'IBM Plex Mono',monospace">{{ ly.n }}</span>
             <span style="font:600 16.5px/1.25 'Instrument Sans',sans-serif">{{ ly.h }}</span>
-            <span style="font:400 14px/1.5 'Instrument Sans',sans-serif;color:{{ ly.sub }};text-wrap:pretty">{{ ly.d }}</span>
+            <span style="font:400 14px/1.5 'Instrument Sans',sans-serif;color:var(--oath-card-muted);text-wrap:pretty">{{ ly.d }}</span>
           </div>
         </sc-for>
       </div>
       <div style="display:flex;flex-direction:column;gap:14px">
-        <div style="flex:1;border-radius:clamp(24px,3vw,36px);background:var(--oath-c-111113);box-shadow:inset 0 0 0 1px rgba(var(--oath-rgb-f2f0ea),.1);padding:clamp(22px,3vw,34px);display:flex;flex-direction:column;gap:18px">
+        <div class="oath-card" style="flex:1;border-radius:clamp(24px,3vw,36px);padding:clamp(22px,3vw,34px);display:flex;flex-direction:column;gap:18px">
           <span style="font:400 12px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--oath-c-8e8c86)">Custody boundaries</span>
           <div style="display:flex;flex-wrap:wrap;gap:8px">
             <sc-for list="{{ never }}" as="nv" hint-placeholder-count="4">
@@ -323,7 +323,7 @@
           </div>
           <p style="margin:0;font:400 14.5px/1.55 'Instrument Sans',sans-serif;color:var(--oath-c-8e8c86);text-wrap:pretty">The operator does not hold a recovery credential. User-authorized encrypted backups, transfers and exports are separate boundaries.</p>
         </div>
-        <div style="flex:1;border-radius:clamp(24px,3vw,36px);background:var(--oath-c-111113);box-shadow:inset 0 0 0 1px rgba(var(--oath-rgb-f2f0ea),.1);padding:clamp(22px,3vw,34px);display:flex;flex-direction:column;gap:14px">
+        <div class="oath-card" style="flex:1;border-radius:clamp(24px,3vw,36px);padding:clamp(22px,3vw,34px);display:flex;flex-direction:column;gap:14px">
           <span style="font:400 12px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--oath-c-8e8c86)">What does leave</span>
           <sc-for list="{{ leaves }}" as="lv" hint-placeholder-count="3">
             <div style="display:flex;gap:14px;align-items:flex-start;padding-top:14px;border-top:1px solid rgba(var(--oath-rgb-f2f0ea),.08)">
@@ -346,14 +346,14 @@
     </div>
     <div style="position:relative;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:10px">
       <sc-for list="{{ pipe }}" as="p" hint-placeholder-count="5">
-        <div style="position:relative;border-radius:24px;padding:22px;min-height:230px;display:flex;flex-direction:column;gap:14px;background:{{ p.bg }};color:{{ p.fg }};box-shadow:{{ p.ring }};transform:{{ p.t }};transition:background .5s ease, color .5s ease, box-shadow .5s ease, transform .6s cubic-bezier(.16,1,.3,1)">
+        <div style="position:relative;border-radius:24px;padding:22px;min-height:230px;display:flex;flex-direction:column;gap:14px;background:{{ p.bg }};color:var(--oath-card-ink);transform:{{ p.t }};transition:background .5s ease, color .5s ease, box-shadow .5s ease, transform .6s cubic-bezier(.16,1,.3,1)">
           <div style="display:flex;justify-content:space-between;align-items:center">
-            <span style="font:400 12px/1 'IBM Plex Mono',monospace;color:{{ p.sub }}">{{ p.n }}</span>
+            <span style="font:400 12px/1 'IBM Plex Mono',monospace;color:var(--oath-card-muted)">{{ p.n }}</span>
             <span style="width:10px;height:10px;border-radius:50%;background:{{ p.dot }};box-shadow:0 0 0 5px {{ p.halo }};transition:background .4s ease, box-shadow .4s ease"></span>
           </div>
           <span style="font:400 30px/1.02 'Instrument Serif',serif;letter-spacing:-.01em">{{ p.h }}</span>
-          <span style="font:400 14px/1.5 'Instrument Sans',sans-serif;color:{{ p.sub }};text-wrap:pretty">{{ p.d }}</span>
-          <span style="margin-top:auto;font:400 11.5px/1.3 'IBM Plex Mono',monospace;color:{{ p.sub }}">{{ p.f }}</span>
+          <span style="font:400 14px/1.5 'Instrument Sans',sans-serif;color:var(--oath-card-muted);text-wrap:pretty">{{ p.d }}</span>
+          <span style="margin-top:auto;font:400 11.5px/1.3 'IBM Plex Mono',monospace;color:var(--oath-card-muted)">{{ p.f }}</span>
         </div>
       </sc-for>
     </div>
@@ -370,7 +370,7 @@
         <button onClick="{{ tb.go }}" style="flex:none;height:44px;padding:0 18px;border:0;border-radius:999px;cursor:pointer;background:{{ tb.bg }};color:{{ tb.fg }};box-shadow:{{ tb.ring }};font:500 14px/1 'Instrument Sans',sans-serif;white-space:nowrap">{{ tb.l }}</button>
       </sc-for>
     </div>
-    <div style="border-radius:clamp(22px,3vw,32px);background:#0E0E10;box-shadow:inset 0 0 0 1px rgba(var(--oath-rgb-f2f0ea),.1);overflow:hidden">
+    <div style="border-radius:clamp(22px,3vw,32px);background:#0E0E10;overflow:hidden">
       <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;padding:14px clamp(16px,2.4vw,24px);border-bottom:1px solid rgba(var(--oath-rgb-f2f0ea),.08);background:#121214">
         <div style="display:flex;align-items:center;gap:12px;min-width:0">
           <div style="display:flex;gap:6px"><span style="width:11px;height:11px;border-radius:50%;background:#3A3A3E"></span><span style="width:11px;height:11px;border-radius:50%;background:#3A3A3E"></span><span style="width:11px;height:11px;border-radius:50%;background:#3A3A3E"></span></div>
@@ -436,7 +436,7 @@
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:14px">
-        <div style="border-radius:28px;background:#0E0E10;box-shadow:inset 0 0 0 1px rgba(var(--oath-rgb-f2f0ea),.1);overflow:hidden">
+        <div style="border-radius:28px;background:#0E0E10;overflow:hidden">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 18px;background:#121214;border-bottom:1px solid rgba(var(--oath-rgb-f2f0ea),.08)">
             <span style="font:400 12px/1 'IBM Plex Mono',monospace;color:var(--oath-c-8e8c86)">Terminal</span>
             <button onClick="{{ copyTerm }}" style="height:34px;padding:0 14px;border:0;border-radius:999px;cursor:pointer;background:var(--oath-c-1b1b1e);color:var(--oath-c-f2f0ea);font:500 12.5px/1 'Instrument Sans',sans-serif" style-hover="background:#26262A">{{ termLabel }}</button>
@@ -447,15 +447,15 @@
             </sc-for>
           </div>
         </div>
-        <div style="border-radius:28px;background:var(--oath-c-f2f0ea);color:var(--oath-c-0a0a0b);padding:clamp(22px,3vw,30px);display:flex;flex-direction:column;gap:14px">
-          <span style="font:400 12px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:#5E5C57">Found a problem?</span>
+        <div class="oath-card" style="border-radius:28px;padding:clamp(22px,3vw,30px);display:flex;flex-direction:column;gap:14px">
+          <span style="font:400 12px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--oath-card-muted)">Found a problem?</span>
           <span style="font:400 clamp(26px,2.6vw,34px)/1.1 'Instrument Serif',serif">Tell us privately first. Follow the current reporting policy.</span>
           <div style="display:flex;flex-wrap:wrap;gap:8px">
             <a href="https://github.com/OathWallet/oath-wallet/security/advisories/new" style="height:48px;padding:0 20px;border-radius:999px;background:var(--oath-c-0a0a0b);color:var(--oath-c-f2f0ea);display:flex;align-items:center;font:600 14.5px/1 'Instrument Sans',sans-serif" style-hover="color:var(--oath-c-ffffff)">Report privately on GitHub</a>
             <a href="/bug-bounty" style="display:flex;align-items:center;min-height:44px;font:500 15px/1.5 'Instrument Sans',sans-serif;text-decoration:underline;text-underline-offset:4px">Explore the bug bounty program</a>
-            <a href="https://github.com/OathWallet/oath-wallet/security/policy" target="_blank" rel="noopener" style="height:48px;padding:0 20px;border-radius:999px;box-shadow:inset 0 0 0 1px rgba(var(--oath-rgb-0a0a0b),.2);color:var(--oath-c-0a0a0b);display:flex;align-items:center;font:500 14.5px/1 'Instrument Sans',sans-serif" style-hover="color:var(--oath-c-0a0a0b);background:#E3E3E4">Security reporting policy</a>
+            <a href="https://github.com/OathWallet/oath-wallet/security/policy" target="_blank" rel="noopener" style="height:48px;padding:0 20px;border-radius:999px;box-shadow:inset 0 0 0 1px rgba(var(--oath-rgb-0a0a0b),.2);color:var(--oath-card-ink);display:flex;align-items:center;font:500 14.5px/1 'Instrument Sans',sans-serif" style-hover="color:var(--oath-card-ink);background:#E3E3E4">Security reporting policy</a>
           </div>
-          <span style="font:400 13px/1.5 'Instrument Sans',sans-serif;color:#5E5C57">Oath will never ask for your recovery phrase, private key or passkey.</span>
+          <span style="font:400 13px/1.5 'Instrument Sans',sans-serif;color:var(--oath-card-muted)">Oath will never ask for your recovery phrase, private key or passkey.</span>
         </div>
       </div>
     </div>
@@ -592,8 +592,8 @@ class Component extends DCLogic {
       vector: () => this.run(true),
       entLabel: (n === 24 ? 256 : 128) + ' bits · ' + (n === 24 ? 32 : 16) + ' bytes',
       bytes: bytes.map((b, i) => ({ h: hex(b), o: step >= 1 ? 1 : 0, t: step >= 1 ? 'none' : 'scale(.6)', tr: `opacity .3s ease ${step >= 1 ? i * 22 : 0}ms, transform .5s ${ease} ${step >= 1 ? i * 22 : 0}ms` })),
-      s1ring: step === 1 ? 'rgba(var(--oath-rgb-f2f0ea),.5)' : 'rgba(var(--oath-rgb-f2f0ea),.08)',
-      s2ring: step === 2 ? 'rgba(240,178,90,.6)' : 'rgba(var(--oath-rgb-f2f0ea),.08)',
+      s1surface: step === 1 ? 'var(--oath-card-hover)' : 'var(--oath-c-0a0a0b)',
+      s2surface: step === 2 ? 'var(--oath-card-hover)' : 'var(--oath-c-0a0a0b)',
       s2o: step >= 2 ? 1 : 0.15, s2t: step >= 2 ? 'none' : 'translateX(-10px)',
       hashHead: hashHex.slice(0, hc), hashTail: hashHex.slice(hc, 40) + '…',
       csBits: cs.map(b => ({ bg: b ? '#F0B25A' : 'transparent' })),
@@ -604,7 +604,7 @@ class Component extends DCLogic {
         ? 'All-zero entropy — the official BIP-39 test vector. This phrase is public test data and unsafe for funds.'
         : 'Runs only in this browser tab with crypto.getRandomValues and SubtleCrypto — nothing is sent anywhere. It’s for learning: never put real funds on a phrase shown on a web page. Create your real phrase inside Oath.',
 
-      layers: [["App lock", "When enabled, biometrics or the app passcode protect access."], ["Keychain", "Authenticated vault ciphertext uses device-only Keychain storage and an installation key."], ["Database", "Public wallet metadata, balances and history are stored separately from credentials."], ["Backup boundary", "Eligible iCloud backups encrypt locally with a separate backup password."]      ].map(([h, d], i) => Object.assign({ n: String(i + 1).padStart(2, '0'), h, d, bg: i === 0 ? 'var(--oath-c-0a0a0b)' : i === 1 ? '#E3E3E4' : i === 2 ? '#D6D6D4' : '#CACAC7', fg: i === 0 ? 'var(--oath-c-f2f0ea)' : 'var(--oath-c-0a0a0b)', sub: i === 0 ? 'var(--oath-c-b9b7b0)' : '#48484E', ib: i === 0 ? 'var(--oath-c-f2f0ea)' : 'var(--oath-c-0a0a0b)', ic: i === 0 ? 'var(--oath-c-0a0a0b)' : 'var(--oath-c-f2f0ea)' }, reveal('vault', i, 120))),
+      layers: [["App lock", "When enabled, biometrics or the app passcode protect access."], ["Keychain", "Authenticated vault ciphertext uses device-only Keychain storage and an installation key."], ["Database", "Public wallet metadata, balances and history are stored separately from credentials."], ["Backup boundary", "Eligible iCloud backups encrypt locally with a separate backup password."]      ].map(([h, d], i) => Object.assign({ n: String(i + 1).padStart(2, '0'), h, d, ib: 'var(--oath-card-hover)', ic: 'var(--oath-card-ink)' }, reveal('vault', i, 120))),
       never: ['No operator-held recovery phrase', 'No signing key sent for broadcast', 'No support access to your backup password'],
       leaves: [
         { h: 'Signed transactions', d: 'Authorized signed payloads are broadcast to the selected network.' },
@@ -615,8 +615,7 @@ class Component extends DCLogic {
       pipe: P.map(([h, d, f], i) => {
         const on = pipe === i, done = pipe > i || pipe === 5;
         return { n: String(i + 1).padStart(2, '0'), h, d, f,
-          bg: on ? 'var(--oath-c-f2f0ea)' : 'var(--oath-c-111113)', fg: on ? 'var(--oath-c-0a0a0b)' : 'var(--oath-c-f2f0ea)', sub: on ? '#48484E' : 'var(--oath-c-8e8c86)',
-          ring: on ? 'none' : 'inset 0 0 0 1px rgba(242,240,234,.1)', t: on ? 'translateY(-6px)' : 'none',
+          bg: on ? 'var(--oath-card-hover)' : 'var(--oath-card)', t: on ? 'translateY(-6px)' : 'none',
           dot: on ? '#12A88E' : done ? 'var(--oath-c-f2f0ea)' : '#3A3A3E', halo: on ? 'rgba(18,168,142,.2)' : 'transparent' };
       }),
       pipeBar: pipe < 0 ? '0%' : Math.min(100, ((pipe + 1) / 5) * 100) + '%',

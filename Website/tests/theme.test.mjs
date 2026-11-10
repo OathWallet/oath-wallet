@@ -75,3 +75,20 @@ test('already generated pages refresh cached theme assets without duplicating th
  assert.equal(updated.match(/data-oath-theme-bootstrap/g).length,1);
  assert.equal(themeDocument(updated),updated);
 });
+
+test('network cards use one borderless surface in both themes and retain a keyboard focus indicator',async()=>{
+ const css=await readFile(new URL('../public/network-guides.css',import.meta.url),'utf8');
+ const base=css.match(/\.network-card\{([^}]+)\}/)?.[1];
+ assert.ok(base);
+ assert.match(base,/background:var\(--oath-card\)/);
+ assert.match(base,/border:0(?:;|$)/);
+ assert.doesNotMatch(base,/inset/);
+ assert.doesNotMatch(css,/\.network-card:nth-child/);
+ assert.match(css,/focus-visible[^}]+outline:/);
+ const [light,dark]=paletteCSS().split('\n');
+ for(const token of ['--oath-card','--oath-card-hover','--oath-card-ink','--oath-card-muted']){
+  const value=new RegExp(token+':(#[a-f0-9]{6});');
+  assert.ok(value.test(light)&&value.test(dark),token);
+  assert.notEqual(light.match(value)[1],dark.match(value)[1],token);
+ }
+});

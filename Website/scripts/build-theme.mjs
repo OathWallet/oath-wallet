@@ -15,6 +15,11 @@ await writeFile(new URL('theme.css',root),paletteCSS()+formControlCSS()+`\n.oath
 .oath-theme-switch button[aria-pressed=true]{background:var(--oath-c-f2f0ea);color:var(--oath-c-0a0a0b)}
 .oath-theme-switch button:focus-visible{outline:2px solid var(--oath-c-f2f0ea);outline-offset:3px}
 .oath-theme-switch svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6}
+/* Card surfaces are independent of the canvas, input fields and product artwork. */
+.oath-card{background:var(--oath-card);color:var(--oath-card-ink);border:0;box-shadow:none}
+:is(a,button).oath-card:hover,.oath-card[aria-pressed=true]{background:var(--oath-card-hover)}
+.oath-card[aria-pressed=true]{color:var(--oath-c-6da7ff)}
+:is(a,button).oath-card:focus-visible{outline:2px solid currentColor;outline-offset:4px}
 /* Brand actions keep white labels on Oath blue or dark green. */
 .on-submit,.on-success a,.button.primary{--oath-day-c-ffffff:#ffffff;--oath-day-c-25432f:#25432f;--oath-day-c-345a3f:#345a3f;--oath-day-c-406547:#406547;--green:#2c4d35}
 .on-launcher{--oath-day-c-edece5:#edece5;--oath-day-c-314635:#314635;--oath-day-c-3c443c:#3c443c}

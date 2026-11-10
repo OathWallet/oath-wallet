@@ -1,6 +1,6 @@
 /* Public wallet directories share the same reading and browsing surfaces. */
 :root {
-  --catalog-bg: hsl(225 22% 97%);
+  --catalog-bg: hsl(0 0% 100%);
   --catalog-surface: hsl(0 0% 100%);
   --catalog-text: hsl(225 24% 12%);
   --catalog-muted: hsl(220 10% 37%);
@@ -71,11 +71,11 @@ main.wallet-catalog {box-sizing:border-box;width:min(100%,1192px);max-width:none
 .wallet-catalog .wallet-results h2 small,.results-heading>span {font:500 13px/1.5 'Instrument Sans',sans-serif;letter-spacing:0;color:var(--catalog-muted)}
 .results-heading {flex-wrap:wrap;justify-content:space-between;margin:29px 0 12px}
 .wallet-catalog .results-heading h2 {margin:0}
-.wallet-catalog .token-list,.network-directory-list {list-style:none;padding:0;margin:0;background:var(--catalog-surface);border:1px solid var(--catalog-line);border-radius:19px;overflow:clip}
+.wallet-catalog .token-list,.network-directory-list {list-style:none;padding:0;margin:0;background:var(--oath-card);border:0;border-radius:19px;overflow:clip}
 .wallet-catalog .token-list>li {margin:0;padding:0;border:0}
 .wallet-catalog .token-list>li+li {border-top:1px solid var(--catalog-line)}
 .wallet-catalog :is(.token-row,.network-directory-row,.native-asset-row) {position:relative;display:flex;align-items:center;gap:13px;min-height:66px;min-width:0;padding:11px 20px;border-radius:0;color:var(--catalog-text);text-decoration:none}
-.wallet-catalog :is(.token-row,.network-directory-row,.native-asset-row,.network-tile):hover {background-color:var(--catalog-tint)}
+.wallet-catalog :is(.token-row,.network-directory-row,.native-asset-row,.network-tile):hover {background-color:var(--oath-card-hover)}
 .wallet-catalog :is(.token-row,.network-directory-row):focus-visible {outline-offset:-3px}
 .wallet-catalog .token-row-name {display:grid;flex:1;gap:2px;min-width:0;line-height:1.3}
 .wallet-catalog .token-row-name strong {font-weight:600;font-size:16px;letter-spacing:-.02em;overflow-wrap:anywhere}
@@ -95,8 +95,8 @@ main.wallet-catalog {box-sizing:border-box;width:min(100%,1192px);max-width:none
 .wallet-catalog .directory-filters button {min-height:44px;min-width:44px;padding:0 16px;border-radius:12px;border:1px solid var(--catalog-line);background:var(--catalog-surface);color:var(--catalog-muted);font:550 14px 'Instrument Sans',sans-serif;cursor:pointer}
 .wallet-catalog .directory-filters [aria-pressed="true"] {background:var(--catalog-tint);border-color:var(--catalog-blue);color:var(--catalog-blue)}
 .featured-networks {display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
-.wallet-catalog .network-tile {position:relative;isolation:isolate;overflow:hidden;display:flex;align-items:flex-start;flex-direction:column;justify-content:flex-end;min-height:138px;padding:16px;border:1px solid var(--catalog-line);border-radius:19px;background:var(--catalog-surface);color:var(--catalog-text);text-decoration:none}
-.network-tile::before {content:'';position:absolute;z-index:-1;width:165px;height:165px;right:-72px;top:-97px;border-radius:50%;border:15px solid var(--tile-ink);box-shadow:0 0 0 12px var(--catalog-surface),0 0 0 23px var(--tile-ink);opacity:.11}
+.wallet-catalog .network-tile {position:relative;isolation:isolate;overflow:hidden;display:flex;align-items:flex-start;flex-direction:column;justify-content:flex-end;min-height:138px;padding:16px;border:0;border-radius:19px;background:var(--oath-card);color:var(--catalog-text);text-decoration:none}
+.network-tile::before {content:'';position:absolute;z-index:-1;width:165px;height:165px;right:-72px;top:-97px;border-radius:50%;border:15px solid var(--tile-ink);box-shadow:0 0 0 12px var(--oath-card),0 0 0 23px var(--tile-ink);opacity:.11}
 .network-tile {--tile-ink:#ef9a37}
 .network-tile:nth-child(2) {--tile-ink:#768bea}
 .network-tile:nth-child(3) {--tile-ink:#14b89e}
@@ -107,11 +107,11 @@ main.wallet-catalog {box-sizing:border-box;width:min(100%,1192px);max-width:none
 .network-tile strong {max-width:100%;overflow-wrap:anywhere;font-size:16px;line-height:1.2;letter-spacing:-.025em}
 .network-tile span {font-size:12px;color:var(--catalog-muted)}
 .network-directory-list {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--catalog-line)}
-.wallet-catalog .network-directory-row {background:var(--catalog-surface)}
+.wallet-catalog .network-directory-row {background:var(--oath-card)}
 .wallet-catalog .wallet-split {display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,.43fr);align-items:start;gap:26px}
 .wallet-split>* {min-width:0}
 .wallet-catalog .wallet-split section:first-child {margin-top:0}
-.wallet-catalog .wallet-panel,.wallet-catalog .token-identity,.wallet-catalog .wallet-steps,.wallet-catalog .wallet-reading>section,.wallet-catalog .catalog-empty {background:var(--catalog-surface);border:1px solid var(--catalog-line);border-radius:20px;padding:clamp(18px,2.4vw,30px)}
+.wallet-catalog .wallet-panel,.wallet-catalog .token-identity,.wallet-catalog .wallet-steps,.wallet-catalog .wallet-reading>section,.wallet-catalog .catalog-empty {background:var(--oath-card);border:0;border-radius:20px;padding:clamp(18px,2.4vw,30px)}
 .wallet-catalog .wallet-panel-link {margin:8px 0 0}
 .wallet-catalog .wallet-panel-link a {display:inline-flex;align-items:center;min-height:44px}
 .wallet-catalog .wallet-panel h2,.wallet-catalog .token-identity h2 {font-size:22px}
@@ -131,7 +131,7 @@ main.wallet-catalog {box-sizing:border-box;width:min(100%,1192px);max-width:none
 .wallet-split .guidance-gallery figure {max-width:230px;margin:0}
 .wallet-catalog .wallet-anchors {margin:22px 0}
 .wallet-catalog .network-token-section {padding:0;max-width:none}
-.wallet-catalog .native-asset-row {border:1px solid var(--catalog-line);border-radius:16px;background:var(--catalog-surface);margin:12px 0}
+.wallet-catalog .native-asset-row {border:0;border-radius:16px;background:var(--oath-card);margin:12px 0}
 .wallet-catalog .network-token-section>p>a {display:inline-flex;align-items:center;min-height:44px}
 .wallet-catalog :is(.network-source,.token-source,.token-notice) {font-size:13px;color:var(--catalog-muted)}
 @media(max-width:780px) {
