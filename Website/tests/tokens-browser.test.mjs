@@ -25,6 +25,7 @@ test('catalog works at mobile and desktop sizes, with keyboard and without JavaS
    await page.keyboard.press('Enter');assert.equal(await page.locator(':focus').getAttribute('id'),'main');
    await page.getByLabel('Find a token').fill('USDC');await page.getByLabel('Network',{exact:true}).selectOption('base');
    await page.getByRole('button',{name:'Search',exact:true}).click();
+   await page.locator('.token-row').first().waitFor();
    assert.ok(page.url().includes('q=USDC'));
    assert.equal(new URL(page.url()).pathname,'/networks/base/tokens');
    assert.ok(await page.locator('.token-row').count()>0);
@@ -36,7 +37,7 @@ test('catalog works at mobile and desktop sizes, with keyboard and without JavaS
   await page.goto(base+'/tokens');assert.equal(await page.locator('.token-row').count(),50);
   await page.getByLabel('Find a token').fill('USDT');await page.getByLabel('Network',{exact:true}).selectOption('tron');await page.getByRole('button',{name:'Search',exact:true}).click();
   assert.equal(new URL(page.url()).pathname,'/networks/tron/tokens');
-  await page.locator('.token-row').filter({hasText:'Tether'}).first().click();assert.ok(page.url().endsWith('/tokens/usdt/tron'));assert.ok((await page.locator('.token-identity').textContent()).includes('not your receiving address'));
+  await page.locator('.token-row').filter({hasText:'Tether'}).first().click();await page.locator('.token-identity').waitFor();assert.ok(page.url().endsWith('/tokens/usdt/tron'));assert.ok((await page.locator('.token-identity').textContent()).includes('not your receiving address'));
   await context.close();
  }finally{await browser.close();}
 });

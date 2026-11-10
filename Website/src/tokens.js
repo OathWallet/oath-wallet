@@ -1,3 +1,5 @@
+import {assetHeading, chainMark, directoryHeading, escapeHTML, pairedMark, rowContents} from './catalog-ui.js';
+export {escapeHTML} from './catalog-ui.js';
 import {sharePreviewVersion} from './brand.js';
 import {tokenPageTitle} from './token-titles.js';
 import {tokenArtwork,stripTokenArtwork} from './token-artwork.js';
@@ -9,7 +11,6 @@ import {wantsMarkdown} from './agent-content.js';
 
 const origin='https://oathwallet.org';
 const download='https://apps.apple.com/us/app/oath-bitcoin-crypto-wallet/id6780187283';
-export const escapeHTML=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const h=escapeHTML, count=n=>n.toLocaleString('en-US');
 const networks=Object.values(manifest.networks);
 const link=(url,label,cls='')=>`<a${cls?` class="${cls}"`:''} href="${h(url)}">${h(label)}</a>`;
@@ -47,7 +48,56 @@ export async function coin(env,slug){
 }
 const sourceNote=()=>`<p class="token-source">Catalog snapshot ${h(manifest.source.date)} · Oath ${h(manifest.source.version)} (${manifest.source.build}). ${link(`https://github.com/OathWallet/oath-wallet/blob/${manifest.source.revision}/Packages/OathAnkr/Sources/OathAnkr/Resources/TokenDiscoverySeed.json`,'View the released catalog')}.</p>`;
 const listingNote='<p class="token-notice">A catalog listing means an asset appears in Oath’s discovery source. It does not mean issuer verification, safety approval or individually tested sending. Availability depends on your account, app version and the token’s rules.</p>';
-export function tokenRows(rows, guide){return `<ul class="token-list">${rows.map(a=>`<li><a class="token-row" href="${h(a.path)}">${tokenArtwork(a)}<span class="token-row-name"><strong>${h(a.name)}</strong><span>${h(a.symbol)}${guide ? (checkedIdentity(guide,a) ? " · Issuer identifier matched" : " · Catalog record only") : ""}</span></span><span class="token-networks">${(a.networks||[a.network]).slice(0,3).map(badge).join('')}${a.networks?.length>3?`<span class="token-badge">+${a.networks.length-3} networks</span>`:''}</span></a></li>`).join('')}</ul>`;}
+export function tokenRows(rows) {
+  return `<ul class="token-list">${rows.map(a => {
+    const ids = [...new Set(a.networks || [a.network])];
+    const badges = ids.slice(0, 2).map(badge).join('') +
+      (ids.length > 2 ? `<span class="token-badge">+${ids.length - 2}<span class="catalog-sr"> more networks</span></span>` : '');
+    return `<li><a class="token-row" href="${h(a.path)}">${rowContents(tokenArtwork(a), a.name, [a.symbol,a.titleQualifier].filter(Boolean).join(' · '), '<span class="token-networks">'+badges+'</span>')}</a></li>`;
+  }).join('')}</ul>`;
+}
+
+function networkChoices(c, reviewed) {
+  const first = c.slug === 'usdt' ? 'tron' : c.slug === 'usdc' ? 'base' : '';
+  const ordered = [...c.assets].sort((a, b) => Number(b.network === first) - Number(a.network === first));
+  return `<section class="asset-choices"><h2>Choose a network</h2><p>Match the network selected by the sender.</p><ul class="token-list">${ordered.map(a => {
+    const n = manifest.networks[a.network];
+    const evidence = reviewed ? (checkedIdentity(reviewed,a) ? ' · Issuer identifier matched' : ' · Catalog record only') : '';
+    return `<li><a class="token-row" href="${h(a.path)}">${rowContents(chainMark(n), n.name, [a.name,a.symbol,a.titleQualifier].filter(Boolean).join(' · ')+evidence)}</a></li>`;
+  }).join('')}</ul></section>`;
+}
+
+function searchResults(index, q, filter) {
+  const query = q.toLocaleLowerCase('en');
+  const words = query.split(/\s+/);
+  const matches = new Map();
+  for (const [name,symbol,path,network,reference,coinID,artwork,detailQualifier] of index) {
+    if (filter && network !== filter) continue;
+    const fields = [name,symbol,reference,coinID].map(v => v.toLocaleLowerCase('en'));
+    if (!words.every(w => fields.some(v => v.includes(w)))) continue;
+    const key = filter ? path : coinID;
+    const exact = fields.includes(query);
+    if (matches.has(key)) matches.get(key).exact ||= exact;
+    else matches.set(key,{name,symbol,path,artwork,titleQualifier:detailQualifier,networks:filter?[network]:[],exact});
+  }
+  // An identifier can match just one deployment of a multi-network asset.
+  // Expand only the matching assets to their canonical overview and full network list.
+  if (!filter && matches.size) {
+    for (const [name,symbol,path,network,,coinID,artwork,detailQualifier,overviewQualifier] of index) {
+      const asset = matches.get(coinID);
+      if (!asset) continue;
+      if (!asset.networks.length) Object.assign(asset,{name,symbol,path,titleQualifier:detailQualifier});
+      else {
+        asset.path = path.slice(0,path.lastIndexOf('/'));
+        asset.titleQualifier = overviewQualifier;
+      }
+      asset.artwork ||= artwork;
+      if (!asset.networks.includes(network)) asset.networks.push(network);
+    }
+  }
+  return [...matches.values()].sort((a,b) =>
+    Number(b.exact)-Number(a.exact) || a.name.localeCompare(b.name,'en') || a.path.localeCompare(b.path,'en'));
+}
 function pager(path,page,total,query=''){
   const href=p=>path+((p>1||query)?'?'+[query,p>1?'page='+p:''].filter(Boolean).join('&'):'');
   return `<nav class="token-pagination" aria-label="Pagination">${page>2?link(href(1),'First'):''}${page>1?link(href(page-1),'Previous','token-button'):''}<span>Page ${page} of ${total}</span>${page<total?link(href(page+1),'Next','token-button'):''}${page<total-1?link(href(total),'Last'):''}</nav>`;
@@ -57,7 +107,7 @@ function directoryIndex(path,pages){
   return `<details class="token-page-index"><summary>Browse all ${count(pages.length)} catalog pages</summary><p>Entries are sorted by name. Choose a page using its first and last token names.</p><nav aria-label="All catalog pages"><ol>${pages.map(p=>`<li><a href="${h(path+(p.page>1?'?page='+p.page:''))}"><strong>Page ${p.page}</strong><span>${h(p.first)} – ${h(p.last)}</span></a></li>`).join('')}</ol></nav></details>`;
 }
 function form(q='',network=''){
-  return `<form class="token-search" action="/tokens" method="get" role="search"><div><label for="token-query">Find a token</label><input id="token-query" name="q" type="search" maxlength="160" value="${h(q)}" placeholder="Name, symbol or full token identifier"></div><div><label for="token-network">Network</label><select id="token-network" name="network"><option value="">All networks</option>${networks.map(n=>`<option value="${h(n.id)}"${network===n.id?' selected':''}>${h(n.name)} (${count(n.count)})</option>`).join('')}</select></div><button class="token-button" type="submit">Search</button>${q?link('/tokens','Clear search'):''}</form>`;
+  return `<form class="token-search" action="/tokens" method="get" role="search"><div><label for="token-query">Find a token</label><input id="token-query" name="q" type="search" maxlength="160" value="${h(q)}" placeholder="Name, symbol or full token identifier"></div><div><label for="token-network">Network</label><select id="token-network" name="network"><option value="">All networks</option>${networks.map(n=>`<option value="${h(n.id)}"${network===n.id?' selected':''}>${h(n.name)} (${count(n.count)})</option>`).join('')}</select></div><button class="token-button" type="submit">Search</button>${q?link(network?'/networks/'+manifest.networks[network].slug+'/tokens':'/tokens','Clear search'):''}</form>`;
 }
 function priorityText(c,a,n){
   if(!['tether','usd-coin'].includes(c.coinID))return '';
@@ -71,18 +121,22 @@ export function detailContent(c,a){
   const title=`${a.name} (${a.symbol}) on ${n.name}`;
   const fee=n.symbol;
   const related=c.assets.filter(x=>x.path!==a.path);
-  const content=`<header class="token-hero"><p class="token-eyebrow">${badge(n.id)} · Token guide</p>${tokenArtwork(a,64,true)}<h1>${h(title)}</h1><p>Find this exact ${h(a.symbol)} asset in Oath’s catalog, check its network and prepare to receive it on iPhone or iPad.</p>${link(download,'Get Oath for iPhone','token-button')}</header>
-  ${productIdentity(c,a,h)}
-  ${priorityOverviewHTML(a.path)}
-  <section class="token-identity"><h2>Check the identity</h2><dl><div><dt>Asset</dt><dd>${h(a.name)} (${h(a.symbol)})</dd></div><div><dt>Network</dt><dd>${link('/networks/'+n.slug,n.name)}${n.chainId?' · Chain ID '+n.chainId:''}</dd></div><div><dt>${identifierLabel(a.network)}</dt><dd><code dir="ltr">${h(a.reference)}</code></dd></div>${a.decimals!=null&&a.network!=='xrpl'?`<div><dt>Catalog decimals</dt><dd>${a.decimals}</dd></div>`:''}<div><dt>Catalog asset ID</dt><dd><code>${h(c.coinID)}</code></dd></div></dl><p><strong>This token identifier is not your receiving address.</strong> Copy your personal address from Receive in Oath. Never send funds to the contract, mint or issuer shown here.</p></section>
+  const reviewed = reviewedAssets[c.coinID];
+  const identity = productIdentity(c,a,h);
+  const needsReview = reviewed && !checkedIdentity(reviewed,a);
+  const content=`${assetHeading(pairedMark(a,n),a.symbol+' on '+n.name,a.name+' · Fee asset: '+fee)}
+  ${needsReview ? identity : ''}
+  <div class="wallet-split">
+<div class="wallet-reading">${priorityOverviewHTML(a.path)}<section><h2>Receive ${h(a.symbol)} on ${h(n.name)}</h2><ol><li>Open Oath, select your wallet and open Receive.</li><li>Choose ${h(n.name)} and find ${h(a.name)} (${h(a.symbol)}). Match the full identifier on this page; symbols can be shared by unrelated assets.</li><li>Use the receiving address or QR code shown in the app. Confirm the exact network with the sender and include any required memo or tag.</li><li>Check that the sender and your account support this token before transferring. For a first transfer, start with a small amount.</li></ol><p>${h(n.receive)}</p></section>
+  <section><h2>Sending and fees</h2><p>${h(n.send)}</p><p>The network’s fee asset is ${h(fee)}. Receiving an ordinary transfer does not mean you can send it without a fee balance. Account activation, reserves, storage or token-account creation can add requirements.</p><p>Select the exact asset in Oath, choose Send if available, and review the destination, amount and final fee. Token-specific restrictions, missing metadata or unsupported token extensions can prevent a transfer; catalog presence alone is not a sending test.</p></section></div>
+<aside><section class="token-identity"><h2>Check the identity</h2><dl><div><dt>Asset</dt><dd>${h(a.name)} (${h(a.symbol)})</dd></div><div><dt>Network</dt><dd>${link('/networks/'+n.slug,n.name)}${n.chainId?' · Chain ID '+n.chainId:''}</dd></div><div><dt>${identifierLabel(a.network)}</dt><dd><code dir="ltr">${h(a.reference)}</code></dd></div>${a.decimals!=null&&a.network!=='xrpl'?`<div><dt>Catalog decimals</dt><dd>${a.decimals}</dd></div>`:''}<div><dt>Catalog asset ID</dt><dd><code>${h(c.coinID)}</code></dd></div></dl><p><strong>This token identifier is not your receiving address.</strong> Copy your personal address from Receive in Oath. Never send funds to the contract, mint or issuer shown here.</p></section></aside></div>
+  ${needsReview ? '' : identity}
   <section class="token-preparation"><h2>Before you transfer</h2><p>Open the transfer checklist with this exact token and network selected. Check its identifier, receiving steps and fee requirements before using the sending service.</p><a class="token-button" rel="nofollow" href="${h(transferURL(a))}">Prepare a transfer</a></section>
   ${priorityText(c,a,n)}
-  <div class="token-columns"><section><h2>Receive ${h(a.symbol)} on ${h(n.name)}</h2><ol><li>Open Oath, select your wallet and open Receive.</li><li>Choose ${h(n.name)} and find ${h(a.name)} (${h(a.symbol)}). Match the full identifier above; symbols can be shared by unrelated assets.</li><li>Use the receiving address or QR code shown in the app. Confirm the exact network with the sender and include any required memo or tag.</li><li>Check that the sender and your account support this token before transferring. For a first transfer, start with a small amount.</li></ol><p>${h(n.receive)}</p></section>
-  <section><h2>Sending and fees</h2><p>${h(n.send)}</p><p>The network’s fee asset is ${h(fee)}. Receiving an ordinary transfer does not mean you can send it without a fee balance. Account activation, reserves, storage or token-account creation can add requirements.</p><p>Select the exact asset in Oath, choose Send if available, and review the destination, amount and final fee. Token-specific restrictions, missing metadata or unsupported token extensions can prevent a transfer; catalog presence alone is not a sending test.</p></section></div>
   <section><h2>What this listing covers</h2><p>This entry is discoverable on ${h(n.name)} in the released catalog. Oath provides the network’s receive and supported-asset transfer flows. WalletConnect ${n.walletConnect?'is available for compatible '+h(n.name)+' requests; it does not guarantee a dApp supports this token.':'is not listed as available for this network in this guide.'}</p><p>Check issuer restrictions before using an asset. A token can be paused, frozen, transfer-restricted or subject to eligibility requirements. Bridged and wrapped tokens remain separate assets; a familiar name or symbol does not establish backing or redemption rights.</p>${listingNote}</section>
   ${priorityHTML(a.path)}
   ${related.length?`<section><h2>Other networks in this asset group</h2><p>Grouped by the catalog asset ID, not by symbol. Compare each network’s exact identifier.</p>${tokenRows(related)}</section>`:''}
-  <section><h2>Continue exploring</h2><p>${link('/networks/'+n.slug+'/tokens','All '+n.name+' tokens')} · ${link('/networks/'+n.slug,n.name+' network guide')} · ${link('https://www.coingecko.com/en/coins/'+encodeURIComponent(c.coinID),'Catalog provider asset record')}</p><h3>More on ${h(n.name)}</h3>${tokenRows(n.featured.filter(x=>x.path!==a.path).slice(0,4))}</section>${sourceNote()}`;
+  <section><h2>Continue exploring</h2><p>${link('/networks/'+n.slug+'/tokens','All '+n.name+' tokens')} · ${link('/networks/'+n.slug,n.name+' network guide')} · ${link('https://www.coingecko.com/en/coins/'+encodeURIComponent(c.coinID),'Catalog provider asset record')}</p><h3>More on ${h(n.name)}</h3>${tokenRows(n.featured.filter(x=>x.path!==a.path).slice(0,4))}</section>${link(download,'Get Oath for iPhone','token-button')}${sourceNote()}`;
   return {title:tokenPageTitle(a,n),description:`${a.name} (${a.symbol}) on ${n.name}: exact token identity, Oath receiving steps, ${fee} fee requirements and transfer limitations. Compare networks before sending.`,heading:title,content,about:{'@type':'Thing','@id':origin+a.path+'#asset',name:title,identifier:{'@type':'PropertyValue',propertyID:n.id,value:a.reference}}};
 }
 function markdown(html){return stripTokenArtwork(html).replace(/<img\b[^>]*src="([^"]*)"[^>]*alt="([^"]*)"[^>]*>/g,(_,u,a)=>a?`![${a}](${u.startsWith('/')?origin:''}${u})`:'').replace(/<a\b[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/g,(_,u,t)=>`[${t.replace(/<[^>]*>/g,'')}](${u.startsWith('/')?origin:''}${u})`).replace(/<h([1-6])[^>]*>([\s\S]*?)<\/h\1>/g,(_,n,t)=>'\n\n'+'#'.repeat(+n)+' '+t+'\n\n').replace(/<li>/g,'\n- ').replace(/<\/(?:p|section|div|dl|dd|header|form|nav)>/g,'\n\n').replace(/<dt>/g,'\n').replace(/<\/dt>/g,': ').replace(/<[^>]+>/g,'').replace(/&(?:amp|lt|gt|quot|#39);/g,s=>({'&amp;':'&','&lt;':'<','&gt;':'>','&quot;':'"','&#39;':"'"}[s])).replace(/\n{3,}/g,'\n\n').trim();}
@@ -97,7 +151,7 @@ async function pageResponse(request,env,model,path,{status=200,privateCache=fals
   const schema={'@context':'https://schema.org','@graph':[{'@type':model.items?'CollectionPage':'WebPage','@id':canonical,url:canonical,name:model.title,description:model.description,inLanguage:'en',...(priorityUpdated(path)?{dateModified:priorityUpdated(path)}:{}),isPartOf:{'@id':origin+'/#site'},...(model.about?{about:model.about}:{}),...(model.items?{mainEntity:{'@type':'ItemList',numberOfItems:model.total,itemListElement:model.items.map((a,i)=>({'@type':'ListItem',position:(model.offset||0)+i+1,name:a.name+' ('+a.symbol+')',url:origin+a.path}))}}:{})},{'@type':'BreadcrumbList',itemListElement:trail.map(([p,name],i)=>({'@type':'ListItem',position:i+1,name,item:origin+p}))}]};
   const mdpath=path.split('?')[0]+'.md'+(path.includes('?')?'?'+path.split('?')[1]:'');
   headers.Link+=`, <${origin+mdpath}>; rel="alternate"; type="text/markdown"`;
-  const html=`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${h(model.title)}</title><meta name="description" content="${h(model.description)}"><meta name="robots" content="index,follow"><link rel="canonical" href="${h(canonical)}"><meta property="og:title" content="${h(model.title)}"><meta property="og:description" content="${h(model.description)}"><meta property="og:url" content="${h(canonical)}"><meta property="og:type" content="website"><meta property="og:site_name" content="Oath Wallet"><meta property="og:image" content="${origin}${guidePreview(path)||'/og/home.png'}?v=${sharePreviewVersion}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${h(model.title)}"><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="/site-chrome.css"><link rel="stylesheet" href="/tokens.css"><link rel="stylesheet" href="/token-artwork.css"><script src="/token-artwork.js" defer></script><link rel="stylesheet" href="/seo-guidance.css"><script src="/site-chrome.js" defer></script><script type="application/ld+json">${JSON.stringify(schema).replace(/</g,'\\u003c')}</script></head><body><a class="token-skip" href="#main">Skip to content</a>${chrome.header}<main id="main" class="token-main" tabindex="-1"><nav class="token-breadcrumbs" aria-label="Breadcrumb">${trail.map(([p,t])=>link(p,t)).join('<span aria-hidden="true">/</span>')}</nav>${model.content}</main>${chrome.footer}</body></html>`;
+  const html=`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${h(model.title)}</title><meta name="description" content="${h(model.description)}"><meta name="robots" content="index,follow"><link rel="canonical" href="${h(canonical)}"><meta property="og:title" content="${h(model.title)}"><meta property="og:description" content="${h(model.description)}"><meta property="og:url" content="${h(canonical)}"><meta property="og:type" content="website"><meta property="og:site_name" content="Oath Wallet"><meta property="og:image" content="${origin}${guidePreview(path)||'/og/home.png'}?v=${sharePreviewVersion}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${h(model.title)}"><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="/site-chrome.css"><link rel="stylesheet" href="/tokens.css"><link rel="stylesheet" href="/token-artwork.css"><script src="/token-artwork.js" defer></script><link rel="stylesheet" href="/seo-guidance.css"><link rel="stylesheet" href="/wallet-catalog.css"><script src="/site-chrome.js" defer></script><script type="application/ld+json">${JSON.stringify(schema).replace(/</g,'\\u003c')}</script></head><body><a class="token-skip" href="#main">Skip to content</a>${chrome.header}<main id="main" class="token-main wallet-catalog" tabindex="-1"><nav class="token-breadcrumbs" aria-label="Breadcrumb">${trail.map(([p,t])=>link(p,t)).join('<span aria-hidden="true">/</span>')}</nav>${model.content}</main>${chrome.footer}</body></html>`;
   return new Response(request.method==='HEAD'?null:html,{status,headers});
 }
 export async function handleTokens(request,env){
@@ -140,19 +194,29 @@ export async function handleTokens(request,env){
       if(path!==target||params.toString()!==u.searchParams.toString())return redirect(address(target,params));
       let rows,total,pages;
       if(q){
-        const words=q.toLocaleLowerCase('en').split(/\s+/);
-        const matches=(await data(env,'search.json')).filter(a=>(!filter||a[3]===filter)&&words.every(w=>[a[0],a[1],a[4],a[5]].some(x=>x.toLocaleLowerCase('en').includes(w))));
+        const matches=searchResults(await data(env,'search.json'),q,filter);
         total=matches.length;pages=Math.max(1,Math.ceil(total/50));
-        rows=matches.slice((page-1)*50,page*50).map(a=>({name:a[0],symbol:a[1],path:a[2],network:a[3],artwork:a[6]}));
+        rows=matches.slice((page-1)*50,page*50);
       }else{total=network?.count||manifest.coinCount;pages=network?.pages||manifest.pages;if(page<=pages)rows=await data(env,network?`networks/${network.slug}/${page}.json`:`directory/${page}.json`);}
       if(page>pages)return failure(404);
       const query=q?new URLSearchParams({q}).toString():'';
       const canonical=path+(page>1?'?page='+page:'');
-      const title=q?'Search the token catalog':network?`${network.name} tokens`:'Find your token. Choose its network.';
+      const title=network?`${network.name} tokens`:'Tokens';
       const summary=network?`Browse ${count(total)} ${network.name} token entries from Oath’s released catalog, with exact identifiers and network fee guidance.`:`Explore ${count(manifest.coinCount)} assets and ${count(manifest.count)} token/network entries across ${networks.length} networks in Oath’s released catalog.`;
       const description=summary+(pages>1?` Page ${page} of ${pages}: entries ${count((page-1)*50+1)}–${count(Math.min(page*50,total))}.`:'');
       const browse=!q&&page===1&&pages>1?directoryIndex(path,await data(env,network?`networks/${network.slug}/index.json`:'directory/index.json')):'';
-      const content=`<header class="token-hero"><p class="token-eyebrow">${network?badge(network.id):'Oath token catalog'}</p><h1>${h(title)}</h1><p>${h(description)}</p>${network?`<p>${link('/networks/'+network.slug,network.symbol+' native coin and network guide')}</p>`:''}</header>${form(q,filter)}${!network&&!q&&page===1?'<nav class="token-priority" aria-label="Popular token guides">'+link('/tokens/usdt','USDT wallet')+link('/tokens/usdc','USDC wallet')+link('/tokens/usdt/tron','USDT on TRON')+link('/tokens/usdc/base','USDC on Base')+link('/tokens/usdc/solana','USDC on Solana')+'</nav>':''}${browse}<section aria-labelledby="results"><h2 id="results">${count(total)} ${q?'matching token entries':network?'token entries':'assets'}${page>1?' · Page '+page:''}</h2>${total?tokenRows(rows):'<p>No entries match this search. Try another name or the full token identifier.</p>'}${pager(path,page,pages,query)}</section>${listingNote}${sourceNote()}`;
+      let shortcuts='';
+      if (!network && !q && page===1) {
+        shortcuts='<nav class="token-priority" aria-label="Popular token guides">'+manifest.shortcuts.map(c=>
+          `<a href="${h(c.path)}">${tokenArtwork(c,26,true)}<strong>${h(c.symbol)}</strong></a>`).join('')+'</nav>';
+      }
+      const subtitle=network?`Native coin: ${network.symbol} · ${count(network.count)} token entries`:
+        `${count(manifest.coinCount)} assets across ${networks.length} networks`;
+      const content=directoryHeading(title,subtitle,'Tokens',network?chainMark(network,54):'')+
+        form(q,filter)+shortcuts+
+        `<section class="wallet-results" aria-labelledby="results"><h2 id="results">${q?'Results for “'+h(q)+'”':network?'Tokens on '+h(network.name):'All tokens'} <small>${count(total)}</small></h2>${network?link('/networks/'+network.slug,network.symbol+' native coin and network guide'):''}
+        ${total?tokenRows(rows):'<p class="catalog-empty">No entries match this search. Try a different name, symbol or full identifier.</p>'}
+        ${pager(path,page,pages,query)}</section>${browse}${listingNote}${sourceNote()}`;
       return pageResponse(request,env,{title:`${q?'Token search':network?network.name+' token catalog':'Crypto token catalog'}${page>1?' · Page '+page:''} | Oath`,description,content,items:q?undefined:rows,total,offset:(page-1)*50},canonical,{md,privateCache:!!q,crumbs:network?[[path,network.name+' tokens']]:[]});
     }
     const parts=/^\/tokens\/([a-z0-9-]+)(?:\/([a-z0-9-]+))?$/.exec(path);
@@ -167,6 +231,8 @@ export async function handleTokens(request,env){
     if(a)return pageResponse(request,env,detailContent(c,a),path,{md,crumbs:[['/tokens/'+c.slug,c.name],[path,manifest.networks[a.network].name]]});
     const reviewed = reviewedAssets[c.coinID];
     const description=reviewed ? `Identify ${reviewed.symbol}, the ${reviewed.name} tracker certificate. Compare its issuer, underlying ticker ${reviewed.underlying} and exact token identifiers across ${c.assets.length} networks.` : `Compare ${c.name} (${c.symbol}) on ${c.assets.length} networks in Oath. Choose the exact network to check its token identifier, receiving steps and fee requirements.`;
-    return pageResponse(request,env,{title:tokenPageTitle(c),description,content:`<header class="token-hero"><p class="token-eyebrow">${c.assets.length} networks · One catalog asset group</p>${tokenArtwork(c,64,true)}<h1>${h(c.name)} (${h(c.symbol)}) wallet for iPhone</h1><p>${h(description)}</p>${link(download,'Get Oath for iPhone','token-button')}</header>${productIdentity(c,null,h)}${priorityOverviewHTML(path)}<section><h2>Choose your network</h2><p>The sender and recipient must use the same network. These entries share the catalog’s asset ID; each has its own token identity. Bridged versions and separate issuer records are kept distinct.</p>${tokenRows(c.assets,reviewed)}</section>${priorityHTML(path)}${listingNote}${sourceNote()}`},path,{md,crumbs:[[path,c.name]]});
+    return pageResponse(request,env,{title:tokenPageTitle(c),description,content:`${assetHeading(tokenArtwork(c,64,true),c.name,c.symbol+' · '+new Set(c.assets.map(a=>a.network)).size+' networks')}
+      <div class="wallet-split"><div>${networkChoices(c,reviewed)}</div><aside class="wallet-panel"><h2>Asset information</h2><dl><dt>Symbol</dt><dd>${h(c.symbol)}</dd><dt>Catalog asset ID</dt><dd><code>${h(c.coinID)}</code></dd></dl>${link(download,'Get Oath for iPhone','token-button')}</aside></div>
+      ${productIdentity(c,null,h)}${priorityOverviewHTML(path)}${priorityHTML(path)}${listingNote}${sourceNote()}`},path,{md,crumbs:[[path,c.name]]});
   }catch{return new Response(request.method==='HEAD'?null:'The catalog is temporarily unavailable. Please try again shortly.',{status:503,headers:{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store','Retry-After':'60'}});}
 }

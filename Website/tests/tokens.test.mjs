@@ -31,6 +31,23 @@ test('priority stablecoin guidance keeps the selected token on each network',asy
  }
 });
 
+test('asset-first search and chain-first search use the right canonical destinations',async()=>{
+ const reference='TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
+ const results=async path=>[...(await(await get(path)).text()).matchAll(/<a class="token-row" href="([^"]+)"/g)].map(m=>m[1]);
+ assert.deepEqual(await results('/tokens?q='+reference),['/tokens/usdt']);
+ assert.deepEqual(await results('/networks/tron/tokens?q='+reference),['/tokens/usdt/tron']);
+ const hubs=await results('/tokens?q=USDT');
+ assert.ok(hubs.includes('/tokens/usdt'));
+ assert.ok(hubs.every(p=>!p.startsWith('/tokens/usdt/')));
+ const html=await(await get('/tokens')).text();
+ assert.ok(html.indexOf('aria-label="All catalog pages"')>html.indexOf('aria-label="Pagination"'));
+ assert.equal(manifest.shortcuts.length,2);
+ assert.ok(manifest.shortcuts.every(s=>s.artwork&&html.includes(s.artwork)));
+ const networkHTML=await read('/networks.html');
+ assert.equal((networkHTML.match(/class="network-tile"/g)||[]).length,6);
+ assert.equal((networkHTML.match(/class="network-directory-row"/g)||[]).length,42);
+});
+
 test('edge cache keeps search and Markdown separate and survives asset read failures',async()=>{
  const previous=globalThis.caches,stored=new Map(),pending=[];
  globalThis.caches={default:{async match(key){return stored.get(key.url)?.clone();},async put(key,response){stored.set(key.url,response.clone());}}};
@@ -38,7 +55,7 @@ test('edge cache keeps search and Markdown separate and survives asset read fail
  try{
   const first=await cachedTokens(new Request(main+'/tokens'),env,ctx);assert.equal(first.status,200);await Promise.all(pending);assert.equal(stored.size,1);
   const unavailable={ASSETS:{fetch:async()=>new Response(null,{status:503})}};
-  const hit=await cachedTokens(new Request(main+'/tokens'),unavailable,ctx);assert.equal(hit.status,200);assert.match(await hit.text(),/Find your token/);
+  const hit=await cachedTokens(new Request(main+'/tokens'),unavailable,ctx);assert.equal(hit.status,200);assert.match(await hit.text(),/<h1>Tokens<\/h1>/);
   const search=await cachedTokens(new Request(main+'/tokens?q=USDC'),env,ctx);assert.equal(search.headers.get('X-Robots-Tag'),null);
   const md=await cachedTokens(new Request(main+'/tokens',{headers:{Accept:'text/markdown'}}),env,ctx);assert.match(md.headers.get('Content-Type'),/text\/markdown/);assert.equal(stored.size,1);
   assert.equal((await cachedTokens(new Request(main+'/tokens?q=USDC'),unavailable,ctx)).status,503);

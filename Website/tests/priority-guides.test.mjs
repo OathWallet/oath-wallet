@@ -25,8 +25,14 @@ test('ten reviewed guides have visible unique answers, examples, sources and com
   assert.equal((html.match(/id="priority-overview"/g)||[]).length,1,path);
   assert.ok(html.includes(`rel="canonical" href="${origin+path}"`),path);
   assert.ok(html.includes(`content="${escape(page.description)}"`),path+' description');
-  const detailAnchor=path.startsWith('/networks/')?'id="receive"':path.split('/').length===4?'class="token-identity"':'<h2>Choose your network</h2>';
-  assert.ok(html.indexOf('id="priority-overview"')<html.indexOf(detailAnchor),path+' useful answer precedes generic detail');
+  const overviewAt=html.indexOf('id="priority-overview"');
+  if(path.startsWith('/tokens/') && path.split('/').length===3){
+   const pickerAt=html.indexOf('Choose a network</h2>');
+   assert.ok(pickerAt>=0 && pickerAt<overviewAt,path+' network choice precedes asset guidance');
+  }else{
+   const detailAnchor=path.startsWith('/networks/')?'id="receive"':'class="token-identity"';
+   assert.ok(overviewAt<html.indexOf(detailAnchor),path+' answer precedes additional detail');
+  }
   const texts=[page.overview.title,page.overview.answer,page.overview.example.title,page.overview.example.text,...page.overview.facts.flatMap(f=>[f.label,f.text]),...page.sections.flatMap(s=>[s.title,s.text])];
   for(const text of texts){assert.ok(html.includes(escape(text)),path+' HTML: '+text);assert.ok(md.includes(text),path+' Markdown: '+text);}
   assert.ok(page.sources.length>=4);
