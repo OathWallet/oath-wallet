@@ -201,11 +201,11 @@
       <span style="display:block;overflow:hidden;padding-bottom:.08em"><span style="display:block;transform:{{ hl2 }};transition:transform 1.3s cubic-bezier(.16,1,.3,1) .22s"><em style="color:var(--oath-c-8e8c86)">help you?</em></span></span>
     </div>
 
-    <div style="margin-top:clamp(32px,5vw,48px);max-width:760px;height:68px;border-radius:999px;background:var(--oath-c-141416);box-shadow:inset 0 0 0 1px {{ searchRing }};display:flex;align-items:center;gap:14px;padding:0 10px 0 24px;transition:box-shadow .3s;opacity:{{ inO }};transform:{{ inY }};transition:opacity 1s ease .5s,transform 1.2s cubic-bezier(.16,1,.3,1) .5s,box-shadow .3s">
+    <div style="margin-top:clamp(32px,5vw,48px);max-width:760px;height:68px;border-radius:999px;background:var(--oath-surface);box-shadow:inset 0 0 0 1px {{ searchRing }};display:flex;align-items:center;gap:14px;padding:0 10px 0 24px;transition:box-shadow .3s;opacity:{{ inO }};transform:{{ inY }};transition:opacity 1s ease .5s,transform 1.2s cubic-bezier(.16,1,.3,1) .5s,box-shadow .3s">
       <svg width="20" height="20" viewBox="0 0 20 20" style="display:block;flex:none"><circle cx="8.5" cy="8.5" r="6.5" fill="none" stroke="#8E8C86" stroke-width="1.8"></circle><path d="m13.5 13.5 5 5" stroke="#8E8C86" stroke-width="1.8" stroke-linecap="round"></path></svg>
       <input value="{{ q }}" onChange="{{ onQ }}" onFocus="{{ onFocus }}" onBlur="{{ onBlur }}" placeholder="Search — recovery phrase, backup, fees…" style="flex:1;min-width:0;height:100%;border:0;outline:none;background:transparent;color:var(--oath-c-f2f0ea);font:400 18px/1 'Instrument Sans',sans-serif">
       <sc-if value="{{ hasQ }}" hint-placeholder-val="{{ false }}">
-        <button onClick="{{ clearQ }}" style="height:44px;padding:0 16px;border:0;border-radius:999px;background:#1E1E21;color:var(--oath-c-d6d4cd);cursor:pointer;font:500 13px/1 'Instrument Sans',sans-serif">Clear</button>
+        <button onClick="{{ clearQ }}" style="height:44px;padding:0 16px;border:0;border-radius:999px;background:var(--oath-surface);color:var(--oath-c-d6d4cd);cursor:pointer;font:500 13px/1 'Instrument Sans',sans-serif">Clear</button>
       </sc-if>
     </div>
   </section>
@@ -240,7 +240,7 @@
       <span style="font:400 12.5px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--oath-c-8e8c86)">{{ faqKicker }}</span>
       <h2 style="margin:0;font:400 clamp(36px,4.6vw,68px)/.95 'Instrument Serif',serif;letter-spacing:-.02em">Answers.</h2>
       <sc-if value="{{ filtered }}" hint-placeholder-val="{{ false }}">
-        <button onClick="{{ showAll }}" style="align-self:flex-start;height:40px;padding:0 16px;border:0;border-radius:999px;background:#1E1E21;color:var(--oath-c-f2f0ea);cursor:pointer;font:500 13px/1 'Instrument Sans',sans-serif">Show all questions</button>
+        <button onClick="{{ showAll }}" style="align-self:flex-start;height:40px;padding:0 16px;border:0;border-radius:999px;background:var(--oath-surface);color:var(--oath-c-f2f0ea);cursor:pointer;font:500 13px/1 'Instrument Sans',sans-serif">Show all questions</button>
       </sc-if>
     </div>
     <div style="display:flex;flex-direction:column;border-top:1px solid rgba(var(--oath-rgb-f2f0ea),.14)">
@@ -276,7 +276,7 @@
           <a href="mailto:care@oathwallet.org" style="font:400 clamp(30px,4vw,54px)/1.05 'Instrument Serif',serif;letter-spacing:-.015em;word-break:break-all" style-hover="color:var(--oath-c-ffffff);text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:1px">care@oathwallet.org</a>
           <div style="display:flex;flex-wrap:wrap;gap:8px">
             <a href="mailto:care@oathwallet.org" style="height:48px;padding:0 22px;border-radius:999px;background:var(--oath-c-f2f0ea);color:var(--oath-c-0a0a0b);display:flex;align-items:center;font:600 15px/1 'Instrument Sans',sans-serif">Email us</a>
-            <button onClick="{{ copy }}" style="height:48px;padding:0 20px;border:0;border-radius:999px;background:#1E1E21;color:var(--oath-c-f2f0ea);cursor:pointer;font:500 15px/1 'Instrument Sans',sans-serif;transition:background .3s">{{ copyLabel }}</button>
+            <button onClick="{{ copy }}" style="height:48px;padding:0 20px;border:0;border-radius:999px;background:var(--oath-surface);color:var(--oath-c-f2f0ea);cursor:pointer;font:500 15px/1 'Instrument Sans',sans-serif;transition:background .3s">{{ copyLabel }}</button>
           </div>
         </div>
       </div>
@@ -381,7 +381,7 @@ class Component extends DCLogic {
       empty: list.length === 0,
       copyLabel: copied ? 'Copied ✓' : 'Copy address',
       copy: () => { try { navigator.clipboard.writeText('care@oathwallet.org'); } catch (e) {} this.setState({ copied: true }); clearTimeout(this._c); this._c = setTimeout(() => this.setState({ copied: false }), 1800); },
-      formTopics: FT.map(t => ({ t, go: () => this.setState({ formTopic: t }), bg: formTopic === t ? 'var(--oath-c-f2f0ea)' : '#1E1E21', fg: formTopic === t ? 'var(--oath-c-0a0a0b)' : 'var(--oath-c-d6d4cd)' })),
+      formTopics: FT.map(t => ({ t, go: () => this.setState({ formTopic: t }), bg: formTopic === t ? 'var(--oath-c-f2f0ea)' : 'var(--oath-surface)', fg: formTopic === t ? 'var(--oath-c-0a0a0b)' : 'var(--oath-c-d6d4cd)' })),
       from, msg,
       onFrom: e => this.setState({ from: e.target.value }),
       onMsg: e => this.setState({ msg: e.target.value }),

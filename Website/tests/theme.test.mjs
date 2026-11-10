@@ -112,3 +112,11 @@ test('the network and review carousels share a borderless control in both themes
   assert.ok(scheme.includes('--oath-card-hover:var(--oath-surface-hover);'));
  }
 });
+
+test('the Articles language selector leaves chevron and end spacing to the shared select rules',async()=>{
+ const html=await readFile(new URL('../public/articles.html',import.meta.url),'utf8');
+ const select=html.match(/<select\b[^>]*aria-label="Article language"[^>]*>/)?.[0];
+ assert.ok(select,'The language selector must exist');
+ const styles=select.match(/\bstyle="([^"]+)"/)?.[1]||'';
+ assert.doesNotMatch(styles,/(?:^|;)\s*(?:background|background-image|padding|padding-inline-end)\s*:/i);
+});
