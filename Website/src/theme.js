@@ -1,13 +1,13 @@
 // The legacy site uses several template renderers. This shared palette adapter
 // gives their CSS the same semantic appearance without changing image pixels.
-// Match OathNeutralColors in OathAtmosphere/OathColorway.swift: white canvas,
-// #F0F0F0 fields. Neutral labels approximate native light appearance.
+const softGray = 'f6f7f8';
+const hoverGray = 'eceef0';
 export const palette = {
- '0d0d0f':'f0f0f0','131315':'f0f0f0','1b1b1f':'f0f0f0','2b2b2e':'d5d5d5','444448':'d5d5d5','83838e':'636363','88888f':'636363','888890':'636363','888892':'636363','8f8f99':'636363','92929c':'636363','97979f':'636363','9999a1':'636363','9db9ff':'494949','a2a2aa':'636363','a9a9ae':'636363','a9a9b1':'636363','aaa9ae':'636363','aaaab4':'636363','b5b5bc':'494949','bcce98':'494949','bdbdc2':'494949','c3d2f4':'494949','c4c1b8':'494949','c8c7c2':'494949',
- '0a0a0b':'ffffff','0b0b0d':'ffffff','000000':'ffffff','111111':'f0f0f0',
- '111112':'f0f0f0','111113':'f0f0f0','101011':'f0f0f0','141416':'f0f0f0',
- '151516':'f0f0f0','151517':'f0f0f0','171719':'f0f0f0','181819':'f0f0f0','19191a':'f0f0f0','1a1a1d':'ebebeb',
- '1b1b1c':'e8e8e8','1b1b1e':'e8e8e8','202023':'e5e5e5','242425':'e2e2e2',
+ '0d0d0f':softGray,'131315':softGray,'1b1b1f':softGray,'2b2b2e':'d5d5d5','444448':'d5d5d5','83838e':'636363','88888f':'636363','888890':'636363','888892':'636363','8f8f99':'636363','92929c':'636363','97979f':'636363','9999a1':'636363','9db9ff':'494949','a2a2aa':'636363','a9a9ae':'636363','a9a9b1':'636363','aaa9ae':'636363','aaaab4':'636363','b5b5bc':'494949','bcce98':'494949','bdbdc2':'494949','c3d2f4':'494949','c4c1b8':'494949','c8c7c2':'494949',
+ '0a0a0b':'ffffff','0b0b0d':'ffffff','000000':'ffffff','111111':softGray,
+ '111112':softGray,'111113':softGray,'101011':softGray,'141416':softGray,
+ '151516':softGray,'151517':softGray,'171719':softGray,'181819':softGray,'19191a':softGray,'1a1a1d':hoverGray,
+ '1b1b1c':hoverGray,'1b1b1e':hoverGray,'202023':'e5e5e5','242425':'e2e2e2',
  '242426':'e2e2e2','242427':'e2e2e2','282829':'d9d9d9','303034':'d2d2d2',
  '333333':'d5d5d5','333337':'d5d5d5','393938':'c4c4c4','39393d':'c4c4c4',
  '434340':'b7b7b7','f2f0ea':'000000','ffffff':'000000','eeece6':'252525',
@@ -41,7 +41,7 @@ export function themeCSS(css,day=false) {
   return alpha===undefined?`var(--${prefix}-c-${hex})`:`rgba(var(--${prefix}-rgb-${hex}),${alpha})`;
  }).replace(/((?:^|[;{])\s*(?:color|background(?:-color)?|border-color)\s*:\s*)(white|black)(?=\s*(?:[;}]|$))/gi,(_,prefix,color)=>prefix+`var(--${day?'oath-day':'oath'}-c-${color.toLowerCase()==='white'?'ffffff':'111111'})`);
 }
-export const themeVersion='20261110-cards';
+export const themeVersion='20261110-controls';
 export function themeDocument(html,{bootstrap=true}={}) {
  html=html.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,block=>themeCSS(block))
  .replace(/\sstyle(?:-hover)?=(['"])([\s\S]*?)\1/gi,(attribute,quote,value)=>attribute.replace(value,themeCSS(value)))
@@ -56,8 +56,8 @@ export function themeDocument(html,{bootstrap=true}={}) {
 }
 // Already-light utility pages share the same neutral surfaces and labels.
 const lightUtilityPalette = {
- 'fafbf7':'ffffff','f6f7f3':'f0f0f0','edf2e7':'f0f0f0','e8eee3':'f0f0f0',
- 'e7ebe3':'ebebeb','edf0e8':'f0f0f0','f0f3e9':'f0f0f0','f2f2f7':'f0f0f0','e5e5ea':'e5e5e5',
+ 'fafbf7':'ffffff','f6f7f3':softGray,'edf2e7':softGray,'e8eee3':softGray,
+ 'e7ebe3':hoverGray,'edf0e8':softGray,'f0f3e9':softGray,'f2f2f7':softGray,'e5e5ea':'e5e5e5',
  '25312a':'000000','1d2921':'000000','1b3023':'000000','475640':'494949',
  '57655b':'636363','61705f':'636363','6e7b66':'636363','788077':'737373',
  '7c847c':'737373','d5dbd2':'d5d5d5','e1e6dc':'e5e5e5'
@@ -65,7 +65,7 @@ const lightUtilityPalette = {
 export function paletteCSS() {
  const dayValues=light=>Object.entries(dayPalette).map(([day,dark])=>{const color=light?(lightUtilityPalette[day]||day):dark;return `--oath-day-c-${day}:#${color};--oath-day-rgb-${day}:${rgb(color)};`;}).join('');
  const values = light=>Object.entries(palette).map(([dark,day])=>`--oath-c-${dark}:#${light?day:dark};--oath-rgb-${dark}:${rgb(light?day:dark)};`).join('');
- return `:root{--oath-color-scheme:light;color-scheme:light;--oath-card:#f6f7f8;--oath-card-hover:#eceef0;--oath-card-ink:#202227;--oath-card-muted:#555a62;${values(true)}${dayValues(true)}}\n:root[data-oath-theme="dark"]{--oath-color-scheme:dark;color-scheme:dark;--oath-card:#1b1c1e;--oath-card-hover:#242629;--oath-card-ink:#f3f4f6;--oath-card-muted:#b2b6be;${values(false)}${dayValues(false)}}\n/* Product screenshots and press-kit specimens retain their exact brand colors. */\n:is([data-preview-device],.press-art,.press-swatch,.press-cover,.press-demonstrations,.press-donts){${values(false)}}\n`;
+ return `:root{--oath-color-scheme:light;color-scheme:light;--oath-surface:#${softGray};--oath-surface-hover:#${hoverGray};--oath-card:var(--oath-surface);--oath-card-hover:var(--oath-surface-hover);--oath-card-ink:#202227;--oath-card-muted:#555a62;${values(true)}${dayValues(true)}}\n:root[data-oath-theme="dark"]{--oath-color-scheme:dark;color-scheme:dark;--oath-surface:#1b1c1e;--oath-surface-hover:#242629;--oath-card:var(--oath-surface);--oath-card-hover:var(--oath-surface-hover);--oath-card-ink:#f3f4f6;--oath-card-muted:#b2b6be;${values(false)}${dayValues(false)}}\n/* Product screenshots and press-kit specimens retain their exact brand colors. */\n:is([data-preview-device],.press-art,.press-swatch,.press-cover,.press-demonstrations,.press-donts){${values(false)}}\n`;
 }
 export function formControlCSS() {
  const arrow=color=>`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%23${color}' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`;

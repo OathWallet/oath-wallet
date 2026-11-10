@@ -4,7 +4,7 @@ import {createServer} from 'node:http';
 import {readFile,mkdir} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {chromium} from 'playwright';
-import {handleHelp} from '../src/help/index.js';
+import worker from '../src/index.js';
 
 test('shared help chrome matches the main header and works at phone, tablet and desktop widths',async()=>{
   const originalFetch=globalThis.fetch;
@@ -23,7 +23,7 @@ test('shared help chrome matches the main header and works at phone, tablet and 
       const url=new URL(req.url,'https://help.oathwallet.org');
       const request=new Request(url);
       const reference=/\.dc\.html$|^\/(?:index.html|support.js|oath-icons.js|assets\/)/.test(decodeURIComponent(url.pathname));
-      const response=reference?await assets.fetch(request):await handleHelp(request,{ASSETS:assets});
+      const response=reference?await assets.fetch(request):await worker.fetch(request,{ASSETS:assets});
       res.writeHead(response.status,Object.fromEntries(response.headers));res.end(Buffer.from(await response.arrayBuffer()));
     }catch(error){res.writeHead(500);res.end(error.message);}
   });
@@ -42,7 +42,7 @@ test('shared help chrome matches the main header and works at phone, tablet and 
         await page.goto(origin+'/');
         await page.evaluate(()=>document.fonts.ready);
         assert.equal(await page.locator('header img').evaluate(img=>img.complete&&img.naturalWidth>0),true);
-        assert.equal(await page.locator('footer img').evaluate(img=>img.complete&&img.naturalWidth>0),true);
+        assert.equal(await page.locator('footer img').first().evaluate(img=>img.complete&&img.naturalWidth>0),true);
         assert.equal(await page.locator('footer').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');
         assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`horizontal overflow at ${width}`);
         const bar=page.locator('header > div');
@@ -81,14 +81,14 @@ test('shared help chrome matches the main header and works at phone, tablet and 
         if(width===390||width===1280){
           await page.screenshot({path:fileURLToPath(new URL(`help-${width}.png`,report)),fullPage:true});
         }
-        // Compare actual geometry with the unchanged main website component.
+        // Compare actual geometry with the main website component.
         const reference=await context.newPage();
         await reference.goto(origin+'/index.html');
         await reference.locator('header > div').waitFor();
         await reference.evaluate(()=>document.fonts.ready);
         const referenceMetrics=await reference.locator('header > div').evaluate(el=>{const s=getComputedStyle(el),r=el.getBoundingClientRect();return {width:r.width,height:r.height,left:r.left,top:r.top,radius:s.borderRadius,bg:s.backgroundColor,padding:s.padding};});
-        assert.equal(metrics.bg,'rgba(255, 255, 255, 0.88)');
-        assert.deepEqual({...metrics,bg:referenceMetrics.bg},referenceMetrics,`header layout differs from main site at ${width}px`);
+        assert.equal(metrics.bg,'rgb(246, 247, 248)');
+        assert.deepEqual(metrics,referenceMetrics,`header layout differs from main site at ${width}px`);
         assert.deepEqual(errors,[],`browser errors at ${width}px`);
       }finally{await context.close();}
     }

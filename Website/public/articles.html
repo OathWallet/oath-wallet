@@ -174,11 +174,11 @@
         </sc-for>
       </div>
       <label style="display:flex;align-items:center;gap:12px;font:400 13px/1.4 'IBM Plex Mono',monospace;color:var(--oath-c-b9b7b0)">Language
-        <select value="{{ locale }}" onChange="{{ onLanguage }}" aria-label="Article language" style="max-width:220px;height:42px;padding:0 36px 0 16px;border:1px solid rgba(var(--oath-rgb-f2f0ea),.2);border-radius:999px;background:var(--oath-c-141416);color:var(--oath-c-f2f0ea);font:400 15px/1.4 'Instrument Sans',sans-serif;cursor:pointer">
+        <select value="{{ locale }}" onChange="{{ onLanguage }}" aria-label="Article language" style="max-width:220px;height:42px;padding:0 36px 0 16px;border:1px solid rgba(var(--oath-rgb-f2f0ea),.2);border-radius:999px;background:var(--oath-surface);color:var(--oath-c-f2f0ea);font:400 15px/1.4 'Instrument Sans',sans-serif;cursor:pointer">
           <!-- article-language-options:start --><option value="en">English</option><option value="id">Bahasa Indonesia</option><option value="de">Deutsch</option><option value="es">Español</option><option value="fr">Français</option><option value="pt-BR">Português (Brasil)</option><option value="vi">Tiếng Việt</option><option value="tr">Türkçe</option><option value="ru">Русский</option><option value="ur">اردو</option><option value="ar">العربية</option><option value="hi">हिन्दी</option><option value="bn">বাংলা</option><option value="ko">한국어</option><option value="ja">日本語</option><option value="zh-Hans">简体中文</option><!-- article-language-options:end -->
         </select>
       </label>
-      <div style="height:42px;min-width:min(100%,280px);border-radius:999px;background:var(--oath-c-141416);box-shadow:inset 0 0 0 1px rgba(var(--oath-rgb-f2f0ea),.1);display:flex;align-items:center;gap:10px;padding:0 16px">
+      <div style="height:42px;min-width:min(100%,280px);border-radius:999px;background:var(--oath-surface);box-shadow:inset 0 0 0 1px rgba(var(--oath-rgb-f2f0ea),.1);display:flex;align-items:center;gap:10px;padding:0 16px">
         <svg width="16" height="16" viewBox="0 0 20 20" style="display:block;flex:none"><circle cx="8.5" cy="8.5" r="6.5" fill="none" stroke="#8E8C86" stroke-width="1.8"></circle><path d="m13.5 13.5 5 5" stroke="#8E8C86" stroke-width="1.8" stroke-linecap="round"></path></svg>
         <input value="{{ q }}" onChange="{{ onQ }}" aria-label="Search articles" placeholder="Search articles" style="flex:1;min-width:0;border:0;outline:none;background:transparent;color:var(--oath-c-f2f0ea);font:400 15px/1 'Instrument Sans',sans-serif">
       </div>
