@@ -1,0 +1,182 @@
+{
+  "reviewed": "2026-11-10",
+  "issuer": "Backed Assets (JE) Limited",
+  "productSource": "https://xstocks.com/",
+  "assets": {
+    "texas-instruments-xstock": {
+      "symbol": "TXNx",
+      "underlying": "TXN",
+      "name": "Texas Instruments xStock",
+      "isin": "CH1564487408",
+      "source": "https://api.backed.fi/api/v2/public/assets/TXNx",
+      "networks": {
+        "arbitrum": {
+          "reference": "0xce6d41dca96b4ebe560721df729dbcba46a87ac7"
+        },
+        "bnb": {
+          "reference": "0xce6d41dca96b4ebe560721df729dbcba46a87ac7"
+        },
+        "ethereum": {
+          "reference": "0xce6d41dca96b4ebe560721df729dbcba46a87ac7"
+        },
+        "hyperevm": {
+          "reference": "0xce6d41dca96b4ebe560721df729dbcba46a87ac7"
+        },
+        "optimism": {
+          "reference": "0xce6d41dca96b4ebe560721df729dbcba46a87ac7"
+        },
+        "solana": {
+          "reference": "XsU4fHhJEFcrwNh4RYuHmWdaoCfsrWKEm4UEs3zTJwH"
+        },
+        "ton": {
+          "reference": "0:ff3cd036ca1abb39ab5c54b8e887b481c98e2434efd05640f4079a5a9cf9b8a2",
+          "issuerFormat": "EQD_PNA2yhq7OatcVLjoh7SByY4kNO_QVkD0B5panPm4ogQz"
+        },
+        "xlayer": {
+          "reference": "0xce6d41dca96b4ebe560721df729dbcba46a87ac7"
+        }
+      },
+      "identityNote": "Texas Instruments Inc. is the underlying company. When looking up the certificate, use the product ISIN CH1564487408. US8825081040 identifies the underlying stock."
+    },
+    "csx-xstock": {
+      "symbol": "CSXx",
+      "underlying": "CSX",
+      "name": "CSX xStock",
+      "isin": "CH1580493018",
+      "source": "https://api.backed.fi/api/v2/public/assets/CSXx",
+      "networks": {
+        "arbitrum": {
+          "reference": "0x41d7f18d1967d20e13c7949b954c50ff697f40cc"
+        },
+        "bnb": {
+          "reference": "0x41d7f18d1967d20e13c7949b954c50ff697f40cc"
+        },
+        "ethereum": {
+          "reference": "0x41d7f18d1967d20e13c7949b954c50ff697f40cc"
+        },
+        "hyperevm": {
+          "reference": "0x41d7f18d1967d20e13c7949b954c50ff697f40cc"
+        },
+        "optimism": {
+          "reference": "0x41d7f18d1967d20e13c7949b954c50ff697f40cc"
+        },
+        "solana": {
+          "reference": "XskJzVZDKvqm999PGat2ifznPVmmDXn4Zi1LZ7Y5CVr"
+        },
+        "ton": {
+          "reference": "0:f215f812c742d3585ad6dd31f99d7ed8fcfea3e8b75a777114747aa020ae5673",
+          "issuerFormat": "EQDyFfgSx0LTWFrW3TH5nX7Y_P6j6Ldad3EUdHqgIK5Wc0z3"
+        },
+        "xlayer": {
+          "reference": "0x41d7f18d1967d20e13c7949b954c50ff697f40cc"
+        }
+      },
+      "identityNote": "CSX is both the underlying ticker and the company name. The final x in CSXx identifies the tracker certificate. If the sender lists only CSX, ask for the withdrawal network and full identifier before choosing this entry."
+    },
+    "sndk-2x-long-etf-xstock": {
+      "symbol": "SNXXx",
+      "underlying": "SNXX",
+      "name": "SNDK 2x Long ETF xStock",
+      "isin": "CH1588660709",
+      "source": "https://api.backed.fi/api/v2/public/assets/SNXXx",
+      "networks": {
+        "arbitrum": {
+          "reference": "0x868339e39489139f9cd27f279819886c1d352d1d"
+        },
+        "bnb": {
+          "reference": "0x868339e39489139f9cd27f279819886c1d352d1d"
+        },
+        "ethereum": {
+          "reference": "0x868339e39489139f9cd27f279819886c1d352d1d"
+        },
+        "hyperevm": {
+          "reference": "0x868339e39489139f9cd27f279819886c1d352d1d"
+        },
+        "optimism": {
+          "reference": "0x868339e39489139f9cd27f279819886c1d352d1d"
+        },
+        "solana": {
+          "reference": "Xs3EFHHyP27EsAw3ftS8UFsN8kwkhFvbppji6bbkkPn"
+        },
+        "ton": {
+          "reference": "0:0b3e090f49881f3afd3741aac587b4fdf6e94f6549bd90d193321ae40b15aafa",
+          "issuerFormat": "EQALPgkPSYgfOv03QarFh7T99ulPZUm9kNGTMhrkCxWq-jpg"
+        },
+        "xlayer": {
+          "reference": "0x868339e39489139f9cd27f279819886c1d352d1d"
+        }
+      },
+      "identityNote": "The underlying instrument is the SNDK 2x Long ETF with ticker SNXX. A search for SanDisk or SNDK can lead to a different product. Match SNXXx and the ISIN before comparing networks."
+    },
+    "idexx-laboratories-xstock": {
+      "symbol": "IDXXx",
+      "underlying": "IDXX",
+      "name": "IDEXX Laboratories xStock",
+      "isin": "CH1580494016",
+      "source": "https://api.backed.fi/api/v2/public/assets/IDXXx",
+      "networks": {
+        "arbitrum": {
+          "reference": "0x1fb76285f9c1a9410d4d7afcdb57ad7c98d62c68"
+        },
+        "bnb": {
+          "reference": "0x1fb76285f9c1a9410d4d7afcdb57ad7c98d62c68"
+        },
+        "ethereum": {
+          "reference": "0x1fb76285f9c1a9410d4d7afcdb57ad7c98d62c68"
+        },
+        "hyperevm": {
+          "reference": "0x1fb76285f9c1a9410d4d7afcdb57ad7c98d62c68"
+        },
+        "optimism": {
+          "reference": "0x1fb76285f9c1a9410d4d7afcdb57ad7c98d62c68"
+        },
+        "solana": {
+          "reference": "Xs2AVjDnFK6ShEvX6QfSFodHpy8znSBhimB4kvTFTa1"
+        },
+        "ton": {
+          "reference": "0:a1e4d85faa1b3a3b0ddbc4cc3f9f8d5987065532050fb09e0b1b32f919d43548",
+          "issuerFormat": "EQCh5Nhfqhs6Ow3bxMw_n41ZhwZVMgUPsJ4LGzL5GdQ1SCHi"
+        },
+        "xlayer": {
+          "reference": "0x1fb76285f9c1a9410d4d7afcdb57ad7c98d62c68"
+        }
+      },
+      "identityNote": "IDXX is the ticker for IDEXX Laboratories. The issuer appends a lowercase x to form IDXXx, which the catalog displays as IDXXX. Searching by the complete mint or contract removes ambiguity."
+    },
+    "freeport-mcmoran-xstock": {
+      "symbol": "FCXx",
+      "underlying": "FCX",
+      "name": "Freeport-McMoRan xStock",
+      "isin": "CH1580492895",
+      "source": "https://api.backed.fi/api/v2/public/assets/FCXx",
+      "networks": {
+        "arbitrum": {
+          "reference": "0x9f37aec0200892d5a9d612a7b5ec8f59c2719fad"
+        },
+        "bnb": {
+          "reference": "0x9f37aec0200892d5a9d612a7b5ec8f59c2719fad"
+        },
+        "ethereum": {
+          "reference": "0x9f37aec0200892d5a9d612a7b5ec8f59c2719fad"
+        },
+        "hyperevm": {
+          "reference": "0x9f37aec0200892d5a9d612a7b5ec8f59c2719fad"
+        },
+        "optimism": {
+          "reference": "0x9f37aec0200892d5a9d612a7b5ec8f59c2719fad"
+        },
+        "solana": {
+          "reference": "XsT9Z9BYM5Bp2JAuKVgw1XLdENGyvQwC5C2gAuzeKyY"
+        },
+        "ton": {
+          "reference": "0:c42eabb3c3e6ac5a2153e388956dd5ef034e4d55a9de7019ed993bfe7f5a5950",
+          "issuerFormat": "EQDELquzw-asWiFT44iVbdXvA05NVanecBntmTv-f1pZUNcq"
+        },
+        "xlayer": {
+          "reference": "0x9f37aec0200892d5a9d612a7b5ec8f59c2719fad"
+        }
+      },
+      "identityNote": "FCX identifies the Freeport-McMoRan underlying stock. In the released wallet catalog the certificate appears as FCXX. Check the network and the certificate identifier independently of the uppercase ticker."
+    }
+  }
+}

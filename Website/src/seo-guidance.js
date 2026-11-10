@@ -1,7 +1,8 @@
+import {xstockReviewDate} from './xstock-guides.js';
 import guidance from '../content/priority-guidance.json' with {type:'json'};
 const h=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const absolute=url=>url.startsWith('/')?'https://oathwallet.org'+url:url;
-export const priorityUpdated=path=>guidance.pages[path]?.updated||(guidance.pages[path]?guidance.updated:undefined);
+export const priorityUpdated=path=>guidance.pages[path]?.updated||(guidance.pages[path]?guidance.updated:xstockReviewDate(path));
 export const priorityDescription=path=>guidance.pages[path]?.description;
 const images=p=>p.images||(p.image?[p.image]:[]);
 const figure=image=>`<figure><a href="${h(image.path)}" aria-label="View full screenshot: ${h(image.alt)}"><img src="${h(image.path)}" alt="${h(image.alt)}" width="${image.width||1320}" height="${image.height||2868}" loading="lazy" decoding="async"></a><figcaption><strong>${h(image.version)} · App screenshot.</strong> ${h(image.caption)}</figcaption></figure>`;
@@ -13,7 +14,7 @@ const attribution=p=>`Guidance reviewed for Oath ${h(p.version||guidance.version
 export function priorityOverviewHTML(path){
  const p=guidance.pages[path];if(!p?.overview)return '';
  const o=p.overview;
- return `<section class="oath-guidance oath-guidance-overview" aria-labelledby="priority-overview" data-priority-reviewed="${h(p.updated)}"><div><p class="guidance-kicker">In Oath · ${h(p.version)}</p><h2 id="priority-overview">${h(o.title)}</h2><p class="guidance-answer">${h(o.answer)}</p><dl class="guidance-facts">${o.facts.map(f=>`<div><dt>${h(f.label)}</dt><dd>${h(f.text)}</dd></div>`).join('')}</dl><div class="guidance-example"><h3>${h(o.example.title)}</h3><p>${h(o.example.text)}</p></div><p class="guidance-source">${attribution(p)}</p></div>${gallery(p)}</section>`;
+ return `<section class="oath-guidance oath-guidance-overview" aria-labelledby="priority-overview" data-priority-reviewed="${h(p.updated)}"><div><p class="guidance-kicker">In Oath · ${h(p.version)}</p><h2 id="priority-overview">${h(o.title)}</h2><p class="guidance-answer">${h(o.answer)}</p><dl class="guidance-facts">${o.facts.map(f=>`<div><dt>${h(f.label)}</dt><dd>${h(f.text)}</dd></div>`).join('')}</dl><div class="guidance-example"><h3>${h(o.example.title)}</h3><p>${h(o.example.text)}</p>${o.action?`<p><a href="${h(o.action.url)}">${h(o.action.label)}</a></p>`:''}</div><p class="guidance-source">${attribution(p)}</p></div>${gallery(p)}</section>`;
 }
 export function priorityHTML(path){
  const p=guidance.pages[path];if(!p)return '';

@@ -1,3 +1,4 @@
+import {storeCampaign, campaignAnchors} from './store-campaigns.js';
 // Apple's native Safari banner needs only the App Store ID. No app-argument:
 // website URLs and query strings must not be forwarded into wallet actions.
 // https://developer.apple.com/documentation/webkit/promoting-apps-with-smart-app-banners
@@ -11,7 +12,7 @@ export async function applyAppBanner(request, response) {
   // Embedded design documents and ownership-verification files are not pages.
   if (path.endsWith('.dc.html') || /\/yandex_[a-f0-9]+\.html$/i.test(path)) return response;
   const html = await response.text();
-  const updated = html.replace(/<head\b[^>]*>[\s\S]*?<\/head>/i, head => {
+  const updated = campaignAnchors(html, storeCampaign(request.url)).replace(/<head\b[^>]*>[\s\S]*?<\/head>/i, head => {
     const clean = head.replace(/<meta\b(?=[^>]*\bname\s*=\s*(["'])apple-itunes-app\1)[^>]*>/gi, '');
     return clean.replace(/<\/head>/i, appBanner + '</head>');
   });

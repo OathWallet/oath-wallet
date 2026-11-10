@@ -71,3 +71,5 @@ Oath 4.0.3 app screenshot with sample data. Check the exact network as well as t
 ## Compare the versioned evidence
 
 The [Wallet Compatibility Lab](https://oathwallet.org/compatibility) separates source review, reference-library checks and tests of Oath’s released Bitcoin core. [Read the November 9, 2026 results](https://oathwallet.org/compatibility/2026-11-09) for the exact account types, source revision, passing checks and limitations. Installed third-party apps and funded migrations were not tested in that edition.
+
+[Later MetaMask accounts and indexes in the dated lab results](https://oathwallet.org/compatibility/2026-11-09#metamask-later).

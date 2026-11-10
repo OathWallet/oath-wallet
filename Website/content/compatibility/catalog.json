@@ -14,9 +14,9 @@
     {
       "path": "/compatibility/2026-11-09",
       "heading": "The first edition. Every result in view.",
-      "title": "Wallet Compatibility Results \u2014 November 2026 | Oath",
+      "title": "Wallet Compatibility Results — November 2026 | Oath",
       "description": "Oath 5.0.2 compatibility evidence: 14 reference-library checks, four source assertions and 14 passing Bitcoin host tests, with exact scope and skipped tests.",
-      "updated": "2026-11-09"
+      "updated": "2026-11-10"
     },
     {
       "path": "/compatibility/methodology",

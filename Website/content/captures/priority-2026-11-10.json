@@ -1,0 +1,56 @@
+{
+  "sourceCommit": "d039b009d8c81b0497f2ac7e6abebfdf54ff8612",
+  "version": "5.0.2",
+  "build": 104,
+  "capturedOn": "2026-11-10",
+  "device": "iPhone 17 Pro Max simulator",
+  "runtime": "iOS 27.0",
+  "method": "Actual released app screens rendered with a simulator-only display fixture. The Sui QR encodes a deliberately invalid demonstration string. No accounts were funded and no transaction was signed.",
+  "images": [
+    {
+      "name": "sui",
+      "assetID": "sui:native",
+      "view": "OathReceiveSheet",
+      "rawSHA256": "2e37ae505100c88ccf9d8927449608bccd5af8d544c418b42df63612e134d03c",
+      "capturedAt": "2026-11-10T09:51:53.862876+00:00",
+      "path": "/assets/guides/2026-11-10/sui.webp",
+      "sha256": "2b895641bd14f5d00d7da016f6608e25cffdbfc86d8ebf97d4d48e3256ce3a73",
+      "width": 1320,
+      "height": 2868,
+      "version": "Oath 5.0.2 (104) · Mac simulator",
+      "alt": "Oath Receive Sui Network screen with a demo QR, Copy address and Share buttons",
+      "caption": "This real app screen uses an invalid demonstration address. Use Copy address in your own wallet or show its QR code to your sender.",
+      "encoding": "Lossless WebP at original dimensions"
+    },
+    {
+      "name": "trx",
+      "assetID": "tron:native",
+      "view": "OathAssetDetailScreen",
+      "rawSHA256": "22cf270bd46a6308f41ae0bee52b6da212cf872a24be3040dbed35caaea3b772",
+      "capturedAt": "2026-11-10T09:51:58.654146+00:00",
+      "path": "/assets/guides/2026-11-10/trx.webp",
+      "sha256": "7cd47add584d2236527744c23f68fc7e9d87459fafa766f88bb371dea442de09",
+      "width": 1320,
+      "height": 2868,
+      "version": "Oath 5.0.2 (104) · Mac simulator",
+      "alt": "Native TRX asset screen in Oath showing Send, Receive and example TRX activity",
+      "caption": "The native TRX screen labels amounts in TRX. Balances, prices and activity are mock data.",
+      "encoding": "Lossless WebP at original dimensions"
+    },
+    {
+      "name": "txnx",
+      "assetID": "ethereum:0xce6d41dca96b4ebe560721df729dbcba46a87ac7",
+      "view": "OathAssetDetailScreen",
+      "rawSHA256": "01270af2d911592a1c4311d85c241c370665b1f72d7cce9377a18c2317a6eca5",
+      "capturedAt": "2026-11-10T09:52:03.321330+00:00",
+      "path": "/assets/guides/2026-11-10/txnx.webp",
+      "sha256": "77e3e62167c51724d79a4a1fd32bc5a8bb5f560e9200eab143cb62e03e025d0a",
+      "width": 1320,
+      "height": 2868,
+      "version": "Oath 5.0.2 (104) · Mac simulator",
+      "alt": "Texas Instruments xStock asset detail in Oath for the Ethereum catalog entry, with mock TXNX activity",
+      "caption": "Ethereum entry selected for this capture. TXNX is the released catalog spelling. The displayed balance, price and history are mock data, independent of the market price.",
+      "encoding": "Lossless WebP at original dimensions"
+    }
+  ]
+}
