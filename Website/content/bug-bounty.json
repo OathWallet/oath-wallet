@@ -1,7 +1,7 @@
 {
-  "updated": "2026-11-06",
-  "version": "1.3",
-  "startsAt": "2026-12-01T00:00:00Z",
+  "updated": "2026-11-10",
+  "version": "1.4",
+  "startsAt": "2027-02-10T00:00:00Z",
   "reportURL": "https://github.com/OathWallet/oath-wallet/security/advisories/new",
   "email": "care@oathwallet.org",
   "rewards": [
