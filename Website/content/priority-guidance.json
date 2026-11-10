@@ -25,6 +25,10 @@
       ],
       "links": [
         {
+          "label": "Withdraw USDT from Binance using TRON",
+          "url": "https://articles.oathwallet.org/withdraw-usdt-binance-to-oath-tron"
+        },
+        {
           "url": "/networks/fees",
           "label": "Find the fee asset for your network"
         },
@@ -45,13 +49,53 @@
           "label": "TRON account and resource guidance"
         }
       ],
-      "image": {
-        "path": "/help/assets/guide-chain-tron.webp",
-        "version": "Oath 4.0.3",
-        "alt": "Use TRON in Oath",
-        "caption": "Existing app capture with sample data. Appearance can differ in newer releases; this image is not a completed transfer.",
-        "sha256": "b7582af6a9f3a5ff6245673843544d923bba80fca2bab9c6600a2b9659d5cfd3"
-      }
+      "updated": "2026-11-10",
+      "version": "5.0.2",
+      "build": 104,
+      "sourceCommit": "d039b009d8c81b0497f2ac7e6abebfdf54ff8612",
+      "overview": {
+        "title": "Receiving TRX or USDT on TRON?",
+        "answer": "For native TRX, open Receive and choose TRON. For a USDT withdrawal, select USDT on TRON in Oath and confirm that the sending service uses TRON (TRC20). Compare the destination before submitting.",
+        "facts": [
+          {
+            "label": "TRX",
+            "text": "TRX is the native asset. The first screenshot shows its own Send, Receive and activity controls."
+          },
+          {
+            "label": "USDT on TRON",
+            "text": "USDT is a TRC-20 token. An ordinary outgoing token transfer uses TRON resources and can consume TRX when resources are insufficient. Read the estimate for the selected account."
+          }
+        ],
+        "example": {
+          "title": "Withdrawing from Binance",
+          "text": "Choose USDT as the asset and match the TRON network on the withdrawal screen. Review the current withdrawal fee and the amount that will arrive."
+        },
+        "action": {
+          "label": "Withdraw USDT from Binance using TRON",
+          "url": "https://articles.oathwallet.org/withdraw-usdt-binance-to-oath-tron"
+        }
+      },
+      "images": [
+        {
+          "path": "/assets/guides/2026-11-10/trx.webp",
+          "version": "Oath 5.0.2 (104) · Mac simulator",
+          "sha256": "7cd47add584d2236527744c23f68fc7e9d87459fafa766f88bb371dea442de09",
+          "width": 1320,
+          "height": 2868,
+          "alt": "Native TRX asset screen in Oath showing Send, Receive and example TRX activity",
+          "caption": "The native TRX screen labels amounts in TRX. Balances, prices and activity are mock data."
+        },
+        {
+          "path": "/assets/guides/2026-11-09/usdt-tron.webp",
+          "version": "Oath 5.0.2 (104) · Mac simulator",
+          "sha256": "a2d69078f9c785e406ca2ad70b8e7da5bf1127f23de7b27b94d064fb48310a04",
+          "width": 1320,
+          "height": 2868,
+          "alt": "Oath USDT on TRON asset screen with mock balance and sample sent and received activity",
+          "caption": "Real app capture with mock balances, prices and transfer history. No live transfers were made. Always use your own receiving details; never send funds to an example address."
+        }
+      ],
+      "description": "Receive native TRX or USDT on TRON in Oath for iPhone. Match the Binance TRC20 withdrawal network and check TRX fees before sending."
     },
     "/tokens/usdt/tron": {
       "updated": "2026-11-09",
@@ -1187,7 +1231,7 @@
       ]
     },
     "/networks/bitcoin-cash": {
-      "updated": "2026-11-09",
+      "updated": "2026-11-10",
       "version": "5.0.2",
       "build": 104,
       "sourceCommit": "d039b009d8c81b0497f2ac7e6abebfdf54ff8612",
@@ -1293,6 +1337,125 @@
           "version": "Oath 5.0.2 (104) · Mac simulator",
           "alt": "Oath Bitcoin Cash asset screen with mock balance and sample sent and received activity",
           "caption": "Real app capture with mock balances, prices and transfer history. No live transfers were made. Always use your own receiving details; never send funds to an example address."
+        }
+      ]
+    },
+    "/networks/sui": {
+      "updated": "2026-11-10",
+      "version": "5.0.2",
+      "build": 104,
+      "sourceCommit": "d039b009d8c81b0497f2ac7e6abebfdf54ff8612",
+      "description": "Find your Sui Mainnet receiving address in Oath on iPhone. Copy it or share your QR code, check the sender’s network and understand SUI gas fees.",
+      "title": "Before the sender confirms",
+      "overview": {
+        "title": "How to receive SUI on iPhone",
+        "answer": "Open the wallet you want to receive into, tap Receive and choose Sui Network. On the Receive Sui Network screen, tap Copy address or let the sender scan your QR code. Ask them to select Sui Mainnet for the transfer.",
+        "facts": [
+          {
+            "label": "When you receive",
+            "text": "Showing your address or QR code does not submit a transaction. The outgoing transaction needs a gas payer. A sending exchange may also charge its own withdrawal fee."
+          },
+          {
+            "label": "When you send later",
+            "text": "For an ordinary send from Oath, keep SUI in the same Sui account for gas and review the estimate before confirming."
+          }
+        ],
+        "example": {
+          "title": "The sender only sees another network",
+          "text": "Stop at the network selection. Ask whether the sending service supports withdrawals on Sui Mainnet. Address appearance alone cannot confirm the network."
+        }
+      },
+      "questions": [
+        {
+          "q": "How can I check a pending withdrawal?",
+          "a": "Ask the sender for the transaction digest and check the destination on Sui Mainnet. An exchange withdrawal can still be processing before it has an on-chain transaction."
+        }
+      ],
+      "links": [
+        {
+          "label": "Check network fees in Oath",
+          "url": "/networks/fees"
+        }
+      ],
+      "sources": [
+        {
+          "label": "Sui documentation on wallets and gas",
+          "url": "https://www.docs.sui.io/onchain-finance/asset-custody/wallets/what-is-a-wallet"
+        },
+        {
+          "label": "Oath 5.0.2 release source",
+          "url": "https://github.com/OathWallet/oath-wallet/tree/d039b009d8c81b0497f2ac7e6abebfdf54ff8612"
+        }
+      ],
+      "images": [
+        {
+          "path": "/assets/guides/2026-11-10/sui.webp",
+          "version": "Oath 5.0.2 (104) · Mac simulator",
+          "sha256": "2b895641bd14f5d00d7da016f6608e25cffdbfc86d8ebf97d4d48e3256ce3a73",
+          "width": 1320,
+          "height": 2868,
+          "alt": "Oath Receive Sui Network screen with a demo QR, Copy address and Share buttons",
+          "caption": "This real app screen uses an invalid demonstration address. Use Copy address in your own wallet or show its QR code to your sender."
+        }
+      ]
+    },
+    "/tokens/texas-instruments-xstock": {
+      "updated": "2026-11-10",
+      "version": "5.0.2",
+      "build": 104,
+      "sourceCommit": "d039b009d8c81b0497f2ac7e6abebfdf54ff8612",
+      "title": "Recognize TXNx in Oath",
+      "questions": [
+        {
+          "q": "Why does the app screenshot say TXNX?",
+          "a": "The released catalog uses uppercase TXNX. The issuer writes TXNx. Check the selected network and complete identifier when looking up the asset."
+        }
+      ],
+      "links": [
+        {
+          "label": "Check the Ethereum TXNx entry shown here",
+          "url": "/tokens/texas-instruments-xstock/ethereum"
+        }
+      ],
+      "images": [
+        {
+          "path": "/assets/guides/2026-11-10/txnx.webp",
+          "version": "Oath 5.0.2 (104) · Mac simulator",
+          "sha256": "77e3e62167c51724d79a4a1fd32bc5a8bb5f560e9200eab143cb62e03e025d0a",
+          "width": 1320,
+          "height": 2868,
+          "alt": "Texas Instruments xStock asset detail in Oath for the Ethereum catalog entry, with mock TXNX activity",
+          "caption": "Ethereum entry selected for this capture. TXNX is the released catalog spelling. The displayed balance, price and history are mock data, independent of the market price."
+        }
+      ]
+    },
+    "/tokens/texas-instruments-xstock/ethereum": {
+      "updated": "2026-11-10",
+      "version": "5.0.2",
+      "build": 104,
+      "sourceCommit": "d039b009d8c81b0497f2ac7e6abebfdf54ff8612",
+      "title": "Recognize TXNx in Oath",
+      "questions": [
+        {
+          "q": "Why does the app screenshot say TXNX?",
+          "a": "The released catalog uses uppercase TXNX. The issuer writes TXNx. Check the selected network and complete identifier when looking up the asset."
+        }
+      ],
+      "links": [
+        {
+          "label": "Compare all TXNx networks",
+          "url": "/tokens/texas-instruments-xstock"
+        }
+      ],
+      "images": [
+        {
+          "path": "/assets/guides/2026-11-10/txnx.webp",
+          "version": "Oath 5.0.2 (104) · Mac simulator",
+          "sha256": "77e3e62167c51724d79a4a1fd32bc5a8bb5f560e9200eab143cb62e03e025d0a",
+          "width": 1320,
+          "height": 2868,
+          "alt": "Texas Instruments xStock asset detail in Oath for the Ethereum catalog entry, with mock TXNX activity",
+          "caption": "Ethereum entry selected for this capture. TXNX is the released catalog spelling. The displayed balance, price and history are mock data, independent of the market price."
         }
       ]
     }

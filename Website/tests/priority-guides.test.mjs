@@ -14,7 +14,7 @@ const env={ASSETS:{async fetch(req){const p=new URL(req.url).pathname;try{return
 const get=p=>worker.fetch(new Request(origin+p),env);
 const escape=s=>s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
 test('ten reviewed guides have visible unique answers, examples, sources and complete Markdown',async()=>{
- assert.deepEqual(Object.keys(guidance.pages).filter(p=>guidance.pages[p].overview).sort(),[...paths].sort());
+ assert.deepEqual(Object.keys(guidance.pages).filter(p=>guidance.pages[p].overview).sort(),[...paths,'/networks/tron','/networks/sui'].sort());
  assert.equal(new Set(paths.map(p=>guidance.pages[p].overview.answer)).size,10);
  for(const path of paths){
   const page=guidance.pages[path];assert.equal(page.version,'5.0.2');assert.equal(page.build,104);
@@ -38,7 +38,7 @@ test('ten reviewed guides have visible unique answers, examples, sources and com
 test('review dates are assigned only to the pages actually reviewed',async()=>{
  const xml=(await Promise.all(['/sitemaps/pages.xml',...Array.from({length:4},(_,i)=>'/sitemaps/tokens-000'+(i+1)+'.xml')].map(async p=>(await read(p)).toString()))).join('\n');
  for(const path of paths){const entries=[...xml.matchAll(/<url>([\s\S]*?)<\/url>/g)].filter(m=>m[1].includes(`<loc>${origin+path}</loc>`));assert.equal(entries.length,1,path);assert.ok(entries[0][1].includes(`<lastmod>${guidance.pages[path].updated}</lastmod>`),path);}
- assert.equal(priorityUpdated('/networks/tron'),'2026-11-06');assert.equal(priorityUpdated('/features/walletconnect'),'2026-11-06');assert.equal(priorityUpdated('/tokens/nonexistent'),undefined);
+ assert.equal(priorityUpdated('/networks/tron'),'2026-11-10');assert.equal(priorityUpdated('/features/walletconnect'),'2026-11-06');assert.equal(priorityUpdated('/tokens/nonexistent'),undefined);
  assert.doesNotMatch(xml,/<loc>https:\/\/oathwallet.org\/tokens\/treehouse\/ethereum<\/loc><lastmod>2026-11-09<\/lastmod>/);
 });
 test('screenshots preserve genuine capture identity and expose sample-data captions',async()=>{

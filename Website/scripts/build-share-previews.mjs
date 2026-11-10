@@ -1,5 +1,6 @@
 // Rebuild share cards from the same approved logo as the website and iOS app.
 import {readFile, writeFile, readdir} from 'node:fs/promises';
+import {reviewedAssets} from '../src/xstock-guides.js';
 import sharp from 'sharp';
 import {brandVersion,sharePreviewVersion} from '../src/brand.js';
 
@@ -10,6 +11,10 @@ const {facts:{slogan}} = JSON.parse(await readFile(new URL('oath-data.json', roo
 const split = slogan.lastIndexOf(' ');
 if (split < 1) throw Error('The homepage sharing slogan needs two lines');
 const cards = {
+  'guide-sui': ['SUI NETWORK · IPHONE', 'Find your address.', 'Receive SUI.'],
+  'guide-tron': ['TRON NETWORK · IPHONE', 'TRX or USDT?', 'Choose your transfer.'],
+  'guide-bitcoin-cash': ['BITCOIN CASH · IPHONE', 'Receive BCH.', 'Check the network.'],
+  ...Object.fromEntries(Object.values(reviewedAssets).map(asset => ['guide-'+asset.symbol.toLowerCase(), ['TOKEN IDENTITY · IPHONE', asset.symbol, 'Issuer and networks.']])),
   home: ['SELF-CUSTODY CRYPTO WALLET · IPHONE', slogan.slice(0, split), slogan.slice(split + 1)],
   features: ['FEATURES', 'Your wallet.', 'Your control.'],
   security: ['SECURITY', 'Built for', 'self-custody.'],

@@ -1,9 +1,11 @@
+import {verifySearchRelease} from './verify-search-release.mjs';
 import {verifyIndexingPolicy} from './verify-indexing-policy.mjs';
 import assert from 'node:assert/strict';
 import {stripCloudflareLabyrinth} from './cloudflare-html.mjs';
 import {tokenPageTitle} from '../src/token-titles.js';
 import {escapeHTML} from '../src/tokens.js';
 import {renderSecurityTxt, securityHosts, securityTxtPath} from '../src/security-txt.js';
+import {campaignAnchors,storeCampaign} from '../src/store-campaigns.js';
 import {appBanner} from '../src/app-banner.js';
 
 for (const url of ['https://oathwallet.org/', 'https://oathwallet.org/networks/ethereum', 'https://help.oathwallet.org/', 'https://articles.oathwallet.org/']) {
@@ -164,7 +166,7 @@ const {priorityHTML,priorityOverviewHTML}=await import('../src/seo-guidance.js')
 for(const p of decisionGuides.pages){
  const url='https://oathwallet.org'+p.path,r=await fetch(url,{signal:AbortSignal.timeout(20000)});
  assert.equal(r.status,200,url);const html=await r.text(),expected=await readFile(new URL('../public'+p.path+'.html',import.meta.url),'utf8');
- assert.equal(html.match(/<main\b[\s\S]*?<\/main>/)?.[0],expected.match(/<main\b[\s\S]*?<\/main>/)?.[0],url+' differs from this commit');
+ assert.equal(html.match(/<main\b[\s\S]*?<\/main>/)?.[0],campaignAnchors(expected,storeCampaign(url)).match(/<main\b[\s\S]*?<\/main>/)?.[0],url+' differs from this commit');
  assert.ok(html.includes('<link rel="canonical" href="'+url+'">'));assert.ok(!r.headers.get('x-robots-tag')?.includes('noindex'));
 }
 const priorityPaths=Object.keys(priority.pages);
@@ -311,3 +313,5 @@ for(const edition of compatibility.editions)for(const extension of ['json','csv'
  assert.equal(await response.text(),await readFile(new URL('../public'+path,import.meta.url),'utf8'),path+' differs from accepted edition');
 }
 console.log(`Verified ${compatibility.pages.length} Compatibility Lab pages and ${compatibility.editions.length} accepted editions, including exact HTML, Markdown, JSON and CSV.`);
+
+await verifySearchRelease();
