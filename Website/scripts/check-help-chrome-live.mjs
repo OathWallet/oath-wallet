@@ -2,17 +2,18 @@ import assert from 'node:assert/strict';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {chromium} from 'playwright';
+import {themeVersion} from '../src/theme.js';
 
 const origin='https://help.oathwallet.org';
 const report=new URL('../Reports/help-chrome-2026-10-12/',import.meta.url);
 await mkdir(report,{recursive:true});
-const resources=['/','/articles/create-wallet','/collections/wallets','/search?q=solana','/help/help.js?v=20261012-shell2','/help/help.css?v=20261012-shell2','/help/site-chrome.css?v=20261012-shell2','/assets/brand/oath-mark-light.svg'];
+const resources=['/','/articles/create-wallet','/collections/wallets','/search?q=solana','/help/help.js?v=20261031-redesign1',`/help/help.css?v=${themeVersion}`,`/help/site-chrome.css?v=${themeVersion}`,'/assets/brand/oath-mark-light.svg'];
 const checks=await Promise.all(resources.map(async path=>{
   const response=await fetch(origin+path);
   const body=await response.text();assert.equal(response.status,200,path);
   if(response.headers.get('content-type')?.includes('text/html')){
     assert.ok(body.includes('oath-site-header'),path);assert.ok(body.includes('oath-site-footer'),path);
-    assert.ok(body.includes('20261012-shell2'),path);
+    assert.ok(body.includes(`/help/site-chrome.css?v=${themeVersion}`),path);
   }
   return {path,status:response.status,source:response.headers.get('x-oath-content')};
 }));
@@ -34,7 +35,7 @@ try{
         else errors.push(text);
       });
       await page.goto(origin+'/');await page.evaluate(()=>document.fonts.ready);
-      assert.equal(await page.locator('header > div').evaluate(el=>getComputedStyle(el).backgroundColor),'rgba(255, 255, 255, 0.88)');
+      assert.equal(await page.locator('header > div').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(246, 247, 248)');
       assert.equal(await page.locator('footer').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');
       assert.equal(await page.locator('header img').evaluate(img=>img.complete&&img.naturalWidth>0),true);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);

@@ -8,7 +8,7 @@
   --catalog-blue: hsl(218 88% 42%);
   --catalog-action: hsl(218 88% 45%);
   --catalog-tint: hsl(218 100% 96%);
-  --catalog-soft: hsl(222 24% 95%);
+  --catalog-soft: var(--oath-surface);
 }
 :root[data-oath-theme="dark"] {
   --catalog-bg: hsl(225 13% 8%);
@@ -19,7 +19,6 @@
   --catalog-blue: hsl(216 100% 72%);
   --catalog-action: hsl(218 88% 45%);
   --catalog-tint: hsl(221 36% 20%);
-  --catalog-soft: hsl(224 10% 18%);
 }
 body:has(.wallet-catalog) {margin:0;background:var(--catalog-bg);color:var(--catalog-text);font-family:'Instrument Sans',system-ui,sans-serif}
 main.wallet-catalog {box-sizing:border-box;width:min(100%,1192px);max-width:none;min-height:65vh;margin:0 auto;padding:122px 40px 72px;color:var(--catalog-text);font:400 16px/1.55 'Instrument Sans',system-ui,sans-serif}
@@ -45,7 +44,7 @@ main.wallet-catalog {box-sizing:border-box;width:min(100%,1192px);max-width:none
 .catalog-heading-text,.asset-heading>div {min-width:0}
 .catalog-heading-text {display:flex;align-items:center;gap:18px}
 .wallet-catalog :is(.catalog-heading,.asset-heading) p {margin:9px 0 0;font-size:16px;color:var(--catalog-muted)}
-.catalog-nav {display:inline-flex;align-items:center;flex:none;padding:4px;background:var(--catalog-soft);border:1px solid var(--catalog-line);border-radius:16px}
+.catalog-nav {display:inline-flex;align-items:center;flex:none;padding:4px;background:var(--catalog-soft);border:0;border-radius:16px}
 .wallet-catalog .catalog-nav a {min-height:44px;display:grid;place-items:center;padding:0 17px;border-radius:12px;font-size:14px;font-weight:600;color:var(--catalog-muted);text-decoration:none}
 .wallet-catalog .catalog-nav a[aria-current] {color:var(--catalog-blue);background:var(--catalog-surface);box-shadow:0 1px 4px hsl(223 20% 20% / .12)}
 .chain-mark {display:block;object-fit:contain;border-radius:24%;flex:none}
@@ -57,7 +56,7 @@ main.wallet-catalog {box-sizing:border-box;width:min(100%,1192px);max-width:none
 .wallet-catalog .token-search {display:grid;grid-template-columns:minmax(0,1fr) minmax(150px,255px) auto;align-items:end;gap:10px;margin:0}
 .wallet-catalog .token-search>div {min-width:0}
 .wallet-catalog .token-search label {display:block;font-size:13px;font-weight:550;color:var(--catalog-muted);margin:0 0 6px}
-.wallet-catalog :is(.token-search input,.token-search select,.wallet-search-input) {width:100%;height:52px;min-height:48px;border:1px solid var(--catalog-line);border-radius:14px;background-color:var(--catalog-surface);color:var(--catalog-text);padding:0 16px;font:500 16px/1.2 'Instrument Sans',sans-serif}
+.wallet-catalog :is(.token-search input,.token-search select,.wallet-search-input) {width:100%;height:52px;min-height:48px;border:1px solid var(--catalog-line);border-radius:14px;background-color:var(--oath-surface);color:var(--catalog-text);padding:0 16px;font:500 16px/1.2 'Instrument Sans',sans-serif}
 .wallet-catalog :is(.token-search input,.wallet-search-input)::placeholder {color:var(--catalog-muted);opacity:1}
 .wallet-catalog input[type="search"] {padding-inline-start:47px;background-image:var(--catalog-search-icon);background-repeat:no-repeat;background-position:16px center;background-size:20px}
 .wallet-catalog {--catalog-search-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23768094' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='10.5' cy='10.5' r='6.5'/%3E%3Cpath d='m16 16 4.5 4.5'/%3E%3C/svg%3E")}
@@ -65,7 +64,7 @@ main.wallet-catalog {box-sizing:border-box;width:min(100%,1192px);max-width:none
 .wallet-catalog .token-search button {height:52px}
 .wallet-catalog .token-search>a {grid-column:1/-1;justify-self:start;display:inline-flex;align-items:center;min-height:44px}
 .wallet-catalog .token-priority,.receive-choices,.wallet-anchors {display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:14px 0 24px}
-.wallet-catalog :is(.token-priority,.receive-choices,.wallet-anchors) a {display:inline-flex;align-items:center;gap:9px;min-height:44px;padding:7px 14px;border:1px solid var(--catalog-line);border-radius:14px;background:var(--catalog-surface);color:var(--catalog-blue);font-size:14px;font-weight:550;text-decoration:none}
+.wallet-catalog :is(.token-priority,.receive-choices,.wallet-anchors) a {display:inline-flex;align-items:center;gap:9px;min-height:44px;padding:7px 14px;border:0;border-radius:14px;background:var(--oath-surface);color:var(--catalog-blue);font-size:14px;font-weight:550;text-decoration:none}
 .wallet-catalog .token-priority a {color:var(--catalog-text)}
 .wallet-catalog .wallet-results h2,.results-heading {display:flex;align-items:center;gap:12px}
 .wallet-catalog .wallet-results h2 small,.results-heading>span {font:500 13px/1.5 'Instrument Sans',sans-serif;letter-spacing:0;color:var(--catalog-muted)}
@@ -86,13 +85,13 @@ main.wallet-catalog {box-sizing:border-box;width:min(100%,1192px);max-width:none
 .row-chevron {display:block;flex:none;width:8px;height:8px;border-top:1.5px solid var(--catalog-muted);border-right:1.5px solid var(--catalog-muted);transform:rotate(45deg);margin-inline:3px}
 .wallet-catalog .token-pagination {display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:12px;margin:20px 0;color:var(--catalog-muted);font-size:14px}
 .wallet-catalog .token-pagination a,.wallet-catalog .wallet-panel>a {display:inline-flex;align-items:center;min-height:44px}
-.wallet-catalog .token-pagination .token-button {color:var(--catalog-blue)!important;border:1px solid var(--catalog-line);background:var(--catalog-surface)}
+.wallet-catalog .token-pagination .token-button {color:var(--catalog-blue)!important;border:0;background:var(--oath-surface)}
 .wallet-catalog .token-page-index {border-block:1px solid var(--catalog-line);padding:10px 0;margin:28px 0;color:var(--catalog-muted);font-size:14px}
 .wallet-catalog summary {min-height:44px;align-content:center;cursor:pointer}
 .wallet-catalog .token-page-index a {min-height:44px}
 .wallet-catalog .network-controls-panel {margin-bottom:18px}
 .wallet-catalog .directory-filters {display:flex;flex-wrap:wrap;gap:7px;margin:12px 0}
-.wallet-catalog .directory-filters button {min-height:44px;min-width:44px;padding:0 16px;border-radius:12px;border:1px solid var(--catalog-line);background:var(--catalog-surface);color:var(--catalog-muted);font:550 14px 'Instrument Sans',sans-serif;cursor:pointer}
+.wallet-catalog .directory-filters button {min-height:44px;min-width:44px;padding:0 16px;border-radius:12px;border:0;background:var(--oath-surface);color:var(--catalog-muted);font:550 14px 'Instrument Sans',sans-serif;cursor:pointer}
 .wallet-catalog .directory-filters [aria-pressed="true"] {background:var(--catalog-tint);border-color:var(--catalog-blue);color:var(--catalog-blue)}
 .featured-networks {display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
 .wallet-catalog .network-tile {position:relative;isolation:isolate;overflow:hidden;display:flex;align-items:flex-start;flex-direction:column;justify-content:flex-end;min-height:138px;padding:16px;border:0;border-radius:19px;background:var(--oath-card);color:var(--catalog-text);text-decoration:none}

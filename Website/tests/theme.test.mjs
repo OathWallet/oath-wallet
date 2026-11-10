@@ -38,15 +38,15 @@ test('runtime pages retain status and CSP; API, HEAD and app artwork are untouch
  for(const [url,method,type] of [['https://oathwallet.org/api','GET','application/json'],['https://oathwallet.org/','HEAD','text/html'],['https://oathwallet.org/Oath%20App%20Home.dc.html','GET','text/html'],['https://oathwallet.org/yandex_ab1234.html','GET','text/html']]){const res=new Response('unchanged',{headers:{'Content-Type':type}});assert.equal(await applyTheme(new Request(url,{method}),res),res);}
 });
 
-test('light surfaces match native app neutrals while dark mode and brand colors stay intact',()=>{
+test('light surfaces use the shared website neutrals while dark mode and brand colors stay intact',()=>{
  assert.equal(palette['0a0a0b'],'ffffff');
  assert.equal(palette['0b0b0d'],'ffffff');
- assert.equal(palette['111112'],'f0f0f0');
+ assert.equal(palette['111112'],'f6f7f8');
  assert.equal(palette['f2f0ea'],'000000');
  assert.equal(palette['a5a39d'],'636363');
  const [light,dark]=paletteCSS().split('\n');
  assert.match(light,/--oath-day-c-fafbf7:#ffffff;/);
- assert.match(light,/--oath-day-c-f2f2f7:#f0f0f0;/);
+ assert.match(light,/--oath-day-c-f2f2f7:#f6f7f8;/);
  assert.match(dark,/--oath-c-0a0a0b:#0a0a0b;/);
  assert.match(dark,/--oath-c-f2f0ea:#f2f0ea;/);
  assert.match(dark,/--oath-day-c-fafbf7:#0a0a0b;/);
@@ -62,7 +62,7 @@ test('token and transfer field surfaces follow the theme instead of retaining da
  assert.equal(themeCSS(themed),themed);
  const [light,dark]=paletteCSS().split('\n');
  for(const color of ['171719','19191a']){
-  assert.ok(light.includes(`--oath-c-${color}:#f0f0f0;`));
+  assert.ok(light.includes(`--oath-c-${color}:#f6f7f8;`));
   assert.ok(dark.includes(`--oath-c-${color}:#${color};`));
  }
 });
@@ -86,9 +86,29 @@ test('network cards use one borderless surface in both themes and retain a keybo
  assert.doesNotMatch(css,/\.network-card:nth-child/);
  assert.match(css,/focus-visible[^}]+outline:/);
  const [light,dark]=paletteCSS().split('\n');
- for(const token of ['--oath-card','--oath-card-hover','--oath-card-ink','--oath-card-muted']){
+ for(const token of ['--oath-surface','--oath-surface-hover','--oath-card-ink','--oath-card-muted']){
   const value=new RegExp(token+':(#[a-f0-9]{6});');
   assert.ok(value.test(light)&&value.test(dark),token);
   assert.notEqual(light.match(value)[1],dark.match(value)[1],token);
+ }
+});
+
+test('the network and review carousels share a borderless control in both themes',async()=>{
+ const homepage=await readFile(new URL('../public/index.html',import.meta.url),'utf8');
+ for(const label of ['Previous networks','Next networks','Previous review','Next review']){
+  const button=homepage.match(new RegExp('<button[^>]*aria-label="'+label+'"[^>]*>'))?.[0];
+  assert.match(button,/class="carousel-arrow"/);
+  assert.doesNotMatch(button,/ style(?:-hover)?=/);
+ }
+ const css=await readFile(new URL('../public/network-guides.css',import.meta.url),'utf8');
+ const normal=css.match(/\.carousel-arrow\{([^}]+)\}/)?.[1];
+ assert.match(normal,/background:var\(--oath-surface\)/);
+ assert.match(normal,/border:0;/);
+ assert.doesNotMatch(normal,/box-shadow/);
+ assert.match(css,/\.carousel-arrow:hover[^}]*background:var\(--oath-surface-hover\)/);
+ assert.match(css,/\.carousel-arrow:focus-visible[^}]+outline:/);
+ for(const scheme of paletteCSS().split('\n').slice(0,2)){
+  assert.ok(scheme.includes('--oath-card:var(--oath-surface);'));
+  assert.ok(scheme.includes('--oath-card-hover:var(--oath-surface-hover);'));
  }
 });
