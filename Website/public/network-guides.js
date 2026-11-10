@@ -2,11 +2,15 @@
 (()=>{
  const search=document.querySelector('[data-network-search]');
  if(!search)return;
+ const controls=document.querySelector('[data-network-controls]');
+ const featured=document.querySelector('[data-network-featured]');
+ if(controls)controls.hidden=false;
  const cards=[...document.querySelectorAll('[data-network-keywords]')];
  const filters=[...document.querySelectorAll('[data-network-filter]')];
  let group='all';
  function update(){
   const query=search.value.trim().toLocaleLowerCase();let visible=0;
+  if(featured)featured.hidden=Boolean(query)||group!=='all';
   for(const card of cards){card.hidden=!(group==='all'||card.dataset.networkGroup===group)||!card.dataset.networkKeywords.toLocaleLowerCase().includes(query);if(!card.hidden)visible++;}
   document.querySelector('[data-network-count]').textContent=`${visible} ${visible===1?'network':'networks'}`;
   document.querySelector('[data-network-empty]').hidden=visible!==0;

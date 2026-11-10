@@ -244,7 +244,7 @@ console.log('Verified the published homepage artwork and bounded animation rende
 // Check the shipped artwork integration and representative real image responses.
 const {default:artwork}=await import('../src/artwork-manifest.json',{with:{type:'json'}});
 const {imageType}=await import('../src/artwork-route.js');
-for(const path of ['/tokens.css','/token-artwork.css','/token-artwork.js']){
+for(const path of ['/tokens.css','/wallet-catalog.css','/token-artwork.css','/token-artwork.js']){
  const response=await fetch('https://oathwallet.org'+path,{signal:AbortSignal.timeout(20000)});
  assert.equal(response.status,200);assert.equal(await response.text(),await readFile(new URL('../public'+path,import.meta.url),'utf8'),path+' differs from this commit');
 }
@@ -292,6 +292,23 @@ for(let offset=0;offset<directoryChecks.length;offset+=5)await Promise.all(direc
  assert.equal(page.mainEntity.itemListElement.length,Math.min(50,directory.total));
 }));
 console.log(`Verified direct page browsing and collection metadata for all ${directoryChecks.length} catalog directories.`);
+
+const {networks:guides}=(await import('../content/networks.json',{with:{type:'json'}})).default;
+for(let start=0;start<guides.length;start+=5){
+ await Promise.all(guides.slice(start,start+5).map(async guide=>{
+  const path='/networks/'+guide.slug,url='https://oathwallet.org'+path;
+  const response=await fetch(url,{signal:AbortSignal.timeout(20000)});
+  assert.equal(response.status,200,path);
+  const html=await response.text();
+  assert.ok(html.includes('<h1>'+escapeHTML(guide.name)+'</h1>')&&html.includes('href="/wallet-catalog.css"'),path);
+  assert.ok(html.includes('rel="canonical" href="'+url+'"')&&html.includes('id="receive"'),path);
+  const nativeAt=html.indexOf('class="native-asset-row"');
+  if(tokens.networks[guide.id]){
+   assert.ok(nativeAt>=0&&nativeAt<html.indexOf('class="token-row"')&&html.includes('href="'+path+'/tokens"'),path+' native asset and token catalog');
+  }else assert.equal(nativeAt,-1,path+' native-only guide');
+ }));
+}
+console.log('Verified redesigned guide, receiving section and token availability on all '+guides.length+' networks.');
 
 await verifyIndexingPolicy();
 

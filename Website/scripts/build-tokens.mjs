@@ -1,5 +1,6 @@
 import {priorityUpdated} from '../src/seo-guidance.js';
 import {artworkSnapshot,attachArtwork} from './token-artwork.mjs';
+import {chainMark,rowContents} from '../src/catalog-ui.js';
 import {tokenArtwork} from '../src/token-artwork.js';
 import {qualifyTokenTitles,qualifyOverviewTitles} from './token-titles.mjs';
 import {readFile,writeFile,mkdir,rm,rename,readdir} from 'node:fs/promises';
@@ -17,7 +18,7 @@ let previous;
 try{previous=readLedger(JSON.parse(await readFile(ledgerFile)));}catch(e){if(e.code!=='ENOENT')throw e;}
 const {ledger,rows:baseRows}=assignRoutes(source,previous);
 const artwork=await artworkSnapshot(), rows=qualifyTokenTitles(attachArtwork(baseRows,artwork),source.networks);
-const template=await Promise.all(['scripts/build-tokens.mjs','src/brand.js','src/xstock-guides.js','content/reviewed-xstocks.json','src/token-titles.js','scripts/token-titles.mjs','src/artwork-manifest.json','src/token-artwork.js','public/token-artwork.css','src/tokens.js','src/transfer-preparation.js','src/seo-guidance.js','content/priority-guidance.json','public/seo-guidance.css','public/tokens.css','public/Oath Header.dc.html','public/Oath Footer.dc.html'].map(p=>readFile(new URL(p,base),'utf8')));
+const template=await Promise.all(['scripts/build-tokens.mjs','src/brand.js','src/xstock-guides.js','content/reviewed-xstocks.json','src/token-titles.js','scripts/token-titles.mjs','src/artwork-manifest.json','src/token-artwork.js','public/token-artwork.css','src/tokens.js','src/catalog-ui.js','public/wallet-catalog.css','src/transfer-preparation.js','src/seo-guidance.js','content/priority-guidance.json','public/seo-guidance.css','public/tokens.css','public/Oath Header.dc.html','public/Oath Footer.dc.html'].map(p=>readFile(new URL(p,base),'utf8')));
 const version=digest(JSON.stringify({source,ledger,template})).slice(0,16), prefix=`/token-data/${version}`;
 const stage=new URL('public/token-data-next/',base);
 await rm(stage,{recursive:true,force:true});await mkdir(stage,{recursive:true});
@@ -31,7 +32,7 @@ for(const row of rows){
 }
 qualifyOverviewTitles([...coins.values()]);
 const order=(a,b)=>a.name.localeCompare(b.name,'en')||a.symbol.localeCompare(b.symbol,'en')||(a.path||a.slug).localeCompare(b.path||b.slug,'en');
-const summaries=[...coins.values()].sort(order).map(c=>({name:c.name,symbol:c.symbol,slug:c.slug,artwork:c.assets.find(a=>a.artwork)?.artwork,path:c.assets.length===1?c.assets[0].path:'/tokens/'+c.slug,networks:c.assets.map(a=>a.network)}));
+const summaries=[...coins.values()].sort(order).map(c=>({name:c.name,symbol:c.symbol,slug:c.slug,titleQualifier:c.assets.length===1?c.assets[0].titleQualifier:c.titleQualifier,artwork:c.assets.find(a=>a.artwork)?.artwork,path:c.assets.length===1?c.assets[0].path:'/tokens/'+c.slug,networks:c.assets.map(a=>a.network)}));
 const shards={};
 for(const coin of coins.values()){
   coin.artwork=coin.assets.find(a=>a.artwork)?.artwork;
@@ -66,12 +67,16 @@ for(const coin of coins.values()){
   for(const a of coin.assets)addURL(a.path,'token',a.network);
 }
 // A compact server-side index; clients receive only the matching page of results.
-await put('search.json',rows.map(a=>[a.name,a.symbol,a.path,a.network,a.reference,a.coinID,a.artwork||null]));
+await put('search.json',rows.map(a=>[a.name,a.symbol,a.path,a.network,a.reference,a.coinID,a.artwork||null,...(a.titleQualifier||coins.get(a.slug).titleQualifier?[a.titleQualifier||null,coins.get(a.slug).titleQualifier||null]:[])]));
 const chrome=await buildSiteChrome();
 await put('chrome.json',{header:chrome.header,footer:chrome.footer});
 const manifest={format:1,version,prefix,pageSize,count:rows.length,coinCount:coins.size,
   hubCount:[...coins.values()].filter(c=>c.assets.length>1).length,pages:Math.ceil(summaries.length/pageSize),
   source:{version:source.version,build:source.build,revision:source.revision,sha256:source.sha256,date:source.sourceDate},
+  shortcuts:['usdt','usdc'].map(slug=>{
+    const coin=coins.get(slug);
+    return {symbol:coin.symbol,path:'/tokens/'+slug,artwork:coin.artwork};
+  }),
   networks:networkInfo,nativeOnly:source.nativeOnly,enabled:source.enabled,
   samples:[...Object.values(networkInfo).map(n=>n.featured[0].path),'/tokens/usdt','/tokens/usdc','/tokens/usdt/tron','/tokens/usdc/base','/tokens/usdc/solana'],
   documents:'/tokens/documents.json'};
@@ -99,10 +104,12 @@ for(const n of source.networks){
   md=md.replace(/\n<!-- token-catalog:start -->[\s\S]*?<!-- token-catalog:end -->\n?/g,'');
   const info=networkInfo[n.id];
   if(info){
-    const section=`<!-- token-catalog:start --><section class="network-token-section" aria-labelledby="network-tokens"><h2 id="network-tokens">Tokens on ${htmlEscape(n.name)}</h2><p>Native coin: ${htmlEscape(n.symbol)}. Browse ${info.count.toLocaleString('en-US')} token entries from Oath’s released discovery catalog.</p><ul class="token-list">${info.featured.map(a=>`<li><a class="token-row" href="${a.path}">${tokenArtwork(a)}<span class="token-row-name"><strong>${htmlEscape(a.name)}</strong><span>${htmlEscape(a.symbol)}</span></span><span class="token-badge">${htmlEscape(n.name)}</span></a></li>`).join('')}</ul><p><a href="/networks/${n.slug}/tokens">Browse all ${htmlEscape(n.name)} tokens</a></p><p class="token-notice">Catalog inclusion is not issuer verification, safety approval or individually tested sending. Match the exact network and token identifier.</p></section><!-- token-catalog:end -->`;
-    html=html.replace('</main>',section+'</main>');
+    const section=`<!-- token-catalog:start --><section class="network-token-section" aria-labelledby="network-tokens"><h2 id="network-tokens">Tokens on ${htmlEscape(n.name)}</h2><a class="native-asset-row" href="#receive">${rowContents(chainMark(n),n.symbol,'Native coin · '+n.name)}</a><ul class="token-list">${info.featured.map(a=>`<li><a class="token-row" href="${htmlEscape(a.path)}">${rowContents(tokenArtwork(a),a.name,a.symbol,'<span class="network-ticker">'+htmlEscape(n.name)+'</span>')}</a></li>`).join('')}</ul><p><a href="/networks/${n.slug}/tokens">Browse all ${htmlEscape(n.name)} tokens</a></p><p class="token-notice">Catalog inclusion is not issuer verification, safety approval or individually tested sending. Match the exact network and token identifier.</p></section><!-- token-catalog:end -->`;
+    html=html.replace(/<!-- wallet-token-directory:start -->[\s\S]*?<!-- wallet-token-directory:end -->/,'<!-- wallet-token-directory:start --><p class="wallet-panel-link"><a href="/networks/'+n.slug+'/tokens">Browse '+htmlEscape(n.name)+' tokens</a></p><!-- wallet-token-directory:end -->')
+      .replace('<!-- wallet-featured-tokens -->', '<!-- wallet-featured-tokens -->'+section)
+      .replace(/<!-- catalog-link:start -->[\s\S]*?<!-- catalog-link:end -->/, '<!-- catalog-link:start --><a href="#network-tokens">Tokens</a><!-- catalog-link:end -->');
     if(!html.includes('href="/token-artwork.css"'))html=html.replace('</head>','<link rel="stylesheet" href="/token-artwork.css"><script src="/token-artwork.js" defer></script></head>');
-    if(!html.includes('href="/tokens.css"'))html=html.replace('</head>','<link rel="stylesheet" href="/tokens.css"></head>');
+
     md+=`\n<!-- token-catalog:start -->\n## Tokens on ${n.name}\n\nNative coin: ${n.symbol}. ${info.count} catalog token entries.\n\n${info.featured.map(a=>`- [${a.name} (${a.symbol}) on ${n.name}](https://oathwallet.org${a.path})`).join('\n')}\n\n[Browse all ${n.name} tokens](https://oathwallet.org/networks/${n.slug}/tokens). Catalog inclusion is not issuer verification or individually tested sending.\n<!-- token-catalog:end -->\n`;
   }
   await writeFile(file,html);await writeFile(mdFile,md);
