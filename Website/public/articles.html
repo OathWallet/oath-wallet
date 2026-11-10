@@ -174,7 +174,7 @@
         </sc-for>
       </div>
       <label style="display:flex;align-items:center;gap:12px;font:400 13px/1.4 'IBM Plex Mono',monospace;color:var(--oath-c-b9b7b0)">Language
-        <select value="{{ locale }}" onChange="{{ onLanguage }}" aria-label="Article language" style="max-width:220px;height:42px;padding:0 36px 0 16px;border:1px solid rgba(var(--oath-rgb-f2f0ea),.2);border-radius:999px;background:var(--oath-surface);color:var(--oath-c-f2f0ea);font:400 15px/1.4 'Instrument Sans',sans-serif;cursor:pointer">
+        <select value="{{ locale }}" onChange="{{ onLanguage }}" aria-label="Article language" style="max-width:220px;height:42px;padding-block:0;padding-inline-start:16px;border:1px solid rgba(var(--oath-rgb-f2f0ea),.2);border-radius:999px;background-color:var(--oath-surface);color:var(--oath-c-f2f0ea);font:400 15px/1.4 'Instrument Sans',sans-serif;cursor:pointer">
           <!-- article-language-options:start --><option value="en">English</option><option value="id">Bahasa Indonesia</option><option value="de">Deutsch</option><option value="es">Español</option><option value="fr">Français</option><option value="pt-BR">Português (Brasil)</option><option value="vi">Tiếng Việt</option><option value="tr">Türkçe</option><option value="ru">Русский</option><option value="ur">اردو</option><option value="ar">العربية</option><option value="hi">हिन्दी</option><option value="bn">বাংলা</option><option value="ko">한국어</option><option value="ja">日本語</option><option value="zh-Hans">简体中文</option><!-- article-language-options:end -->
         </select>
       </label>
@@ -218,10 +218,10 @@
         <div style="position:absolute;inset:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:20px;padding:clamp(20px,3vw,32px);pointer-events:none">
           <sc-for list="{{ ghosts }}" as="g" hint-placeholder-count="6">
             <div style="display:flex;flex-direction:column;gap:14px;opacity:{{ g.o }};transition:opacity 1.6s ease">
-              <div style="aspect-ratio:1200/630;border-radius:22px;background:var(--oath-c-141416)"></div>
-              <div style="height:12px;width:32%;border-radius:6px;background:var(--oath-c-141416)"></div>
-              <div style="height:22px;width:86%;border-radius:8px;background:var(--oath-c-141416)"></div>
-              <div style="height:22px;width:62%;border-radius:8px;background:var(--oath-c-141416)"></div>
+              <div style="aspect-ratio:1200/630;border-radius:22px;background:var(--oath-surface)"></div>
+              <div style="height:12px;width:32%;border-radius:6px;background:var(--oath-surface)"></div>
+              <div style="height:22px;width:86%;border-radius:8px;background:var(--oath-surface)"></div>
+              <div style="height:22px;width:62%;border-radius:8px;background:var(--oath-surface)"></div>
             </div>
           </sc-for>
         </div>

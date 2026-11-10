@@ -215,7 +215,7 @@
   <section id="f2" data-screen-label="03 Encrypted backup" style="max-width:1320px;margin:0 auto;padding:clamp(96px,12vw,160px) clamp(20px,5vw,32px) 0;scroll-margin-top:60px">
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:clamp(32px,5vw,72px);align-items:center">
       <div class="oath-card" style="order:{{ ord }};border-radius:32px;padding:clamp(28px,5vw,56px);display:flex;justify-content:center">
-        <div style="width:100%;max-width:340px;border-radius:36px;background:#1C1C1E;box-shadow:inset 0 0 0 .5px rgba(var(--oath-rgb-ffffff),.1),0 40px 60px -30px rgba(0,0,0,.8);padding:26px 22px 22px;display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;font-family:-apple-system,BlinkMacSystemFont,'Instrument Sans',sans-serif">
+        <div data-preview-device style="width:100%;max-width:340px;border-radius:36px;background:#1C1C1E;box-shadow:inset 0 0 0 .5px rgba(var(--oath-rgb-ffffff),.1),0 40px 60px -30px rgba(0,0,0,.8);padding:26px 22px 22px;display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;font-family:-apple-system,BlinkMacSystemFont,'Instrument Sans',sans-serif">
           <div style="width:36px;height:5px;border-radius:3px;background:#48484A"></div>
           <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#0A84FF" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M3 8V5.5A2.5 2.5 0 0 1 5.5 3H8"></path><path d="M16 3h2.5A2.5 2.5 0 0 1 21 5.5V8"></path><path d="M21 16v2.5a2.5 2.5 0 0 1-2.5 2.5H16"></path><path d="M8 21H5.5A2.5 2.5 0 0 1 3 18.5V16"></path><path d="M8.5 8.5v1.5"></path><path d="M15.5 8.5v1.5"></path><path d="M12 8.5v4.5h-1"></path><path d="M8.5 15.5c1.9 1.6 5.1 1.6 7 0"></path></svg>
           <div style="display:flex;flex-direction:column;gap:6px"><span style="font-weight:700;font-size:20px;color:var(--oath-c-ffffff)">Restore your wallet</span><span style="font-size:14px;line-height:1.4;color:#8E8E93">Illustration: restore an existing iCloud backup with its backup password.</span></div>
@@ -265,7 +265,7 @@
         <a href="https://github.com/OathWallet/oath-wallet" target="_blank" rel="noopener" style="align-self:flex-start;height:54px;padding:0 24px;border-radius:999px;background:var(--oath-c-f2f0ea);color:var(--oath-c-0a0a0b);display:flex;align-items:center;gap:10px;font:600 15px/1 'Instrument Sans',sans-serif" style-hover="transform:translateY(-2px)">View the source on GitHub →</a>
       </div>
       <div class="oath-card" style="border-radius:24px;overflow:hidden">
-        <div style="height:44px;display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid rgba(var(--oath-rgb-f2f0ea),.08)"><span style="width:11px;height:11px;border-radius:50%;background:#3A3A3E"></span><span style="width:11px;height:11px;border-radius:50%;background:#3A3A3E"></span><span style="width:11px;height:11px;border-radius:50%;background:#3A3A3E"></span><span style="margin-left:10px;font:400 12px/1 'IBM Plex Mono',monospace;color:var(--oath-c-8e8c86)">github.com/OathWallet/oath-wallet</span></div>
+        <div style="height:44px;display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid rgba(var(--oath-rgb-f2f0ea),.08)"><span style="width:11px;height:11px;border-radius:50%;background:var(--oath-card-muted)"></span><span style="width:11px;height:11px;border-radius:50%;background:var(--oath-card-muted)"></span><span style="width:11px;height:11px;border-radius:50%;background:var(--oath-card-muted)"></span><span style="margin-left:10px;font:400 12px/1 'IBM Plex Mono',monospace;color:var(--oath-c-8e8c86)">github.com/OathWallet/oath-wallet</span></div>
         <div style="padding:22px 22px 26px;display:flex;flex-direction:column;gap:10px;font:400 clamp(12px,1.3vw,14px)/1.6 'IBM Plex Mono',monospace;overflow-x:auto">
           <sc-for list="{{ term }}" as="ln" hint-placeholder-count="7">
             <span style="white-space:pre;color:{{ ln.c }};opacity:{{ ln.o }};transform:{{ ln.t }};transition:opacity .4s ease,transform .5s cubic-bezier(.16,1,.3,1)">{{ ln.s }}</span>
@@ -291,7 +291,7 @@
           <span style="justify-self:end;display:flex;align-items:center;gap:10px"><span style="font:500 clamp(11px,1.2vw,13px)/1 'IBM Plex Mono',monospace;color:var(--oath-c-d6d4cd)">{{ bt.pre }}</span><span style="height:24px;padding:0 9px;border-radius:999px;background:var(--oath-c-f2f0ea);color:var(--oath-c-0a0a0b);display:flex;align-items:center;font:500 11.5px/1 'IBM Plex Mono',monospace">HD</span></span>
         </div>
       </sc-for>
-      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px;padding:clamp(18px,2.4vw,26px) clamp(18px,3vw,32px);background:var(--oath-c-111113)">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px;padding:clamp(18px,2.4vw,26px) clamp(18px,3vw,32px);background:var(--oath-surface)">
         <span style="font:400 12.5px/1.4 'IBM Plex Mono',monospace;letter-spacing:.04em;color:var(--oath-c-8e8c86)">Also supported</span>
         <sc-for list="{{ chains }}" as="ch" hint-placeholder-count="4">
           <span style="display:flex;align-items:center;gap:9px;font:500 15px/1 'Instrument Sans',sans-serif"><img src="{{ ch.icon }}" alt="" style="display:block;width:28px;height:28px" role="presentation">{{ ch.n }}</span>
@@ -461,13 +461,13 @@ class Component extends DCLogic {
       evmLeft: EVM.filter(e => !revoked[e.id]).length,
       evm: EVM.map(e => {
         const r = !!revoked[e.id];
-        return { app: e.app, icon: e.icon, detail: r ? 'Revoked' : e.detail, riskC: r ? 'var(--oath-c-8e8c86)' : e.risk ? '#FF9F0A' : 'var(--oath-c-8e8c86)', o: r ? 0.5 : 1, label: r ? 'Revoked' : 'Revoke', bbg: r ? '#1E1E21' : 'var(--oath-c-f2f0ea)', bfg: r ? 'var(--oath-c-8e8c86)' : 'var(--oath-c-0a0a0b)',
+        return { app: e.app, icon: e.icon, detail: r ? 'Revoked' : e.detail, riskC: r ? 'var(--oath-c-8e8c86)' : e.risk ? '#FF9F0A' : 'var(--oath-c-8e8c86)', o: r ? 0.5 : 1, label: r ? 'Revoked' : 'Revoke', bbg: r ? 'var(--oath-surface)' : 'var(--oath-c-f2f0ea)', bfg: r ? 'var(--oath-card-muted)' : 'var(--oath-c-0a0a0b)',
           revoke: () => this.setState(s => ({ revoked: Object.assign({}, s.revoked, { [e.id]: !s.revoked[e.id] }) })) };
       }),
 
       cur: { code: CURS[ci][0], v: fmt(CURS[ci]), dir: CURS[ci][1].startsWith('ar') ? 'rtl' : 'ltr' },
       curO: 1, curT: 'translateY(0)',
-      curs: CURS.map((c, k) => ({ code: c[0], go: () => this.setState({ cur: k }), bg: k === ci ? 'var(--oath-c-f2f0ea)' : '#1E1E21', fg: k === ci ? 'var(--oath-c-0a0a0b)' : 'var(--oath-c-d6d4cd)' })),
+      curs: CURS.map((c, k) => ({ code: c[0], go: () => this.setState({ cur: k }), bg: k === ci ? 'var(--oath-c-f2f0ea)' : 'var(--oath-surface)', fg: k === ci ? 'var(--oath-c-0a0a0b)' : 'var(--oath-c-d6d4cd)' })),
 
       prices, live: tick % 2 ? 1 : 0.35,
     };
