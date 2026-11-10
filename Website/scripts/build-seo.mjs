@@ -1,3 +1,4 @@
+import bountyPolicy from '../content/bug-bounty.json' with {type:'json'};
 import compatibility from '../content/compatibility/catalog.json' with {type:'json'};
 import priorityGuidance from '../content/priority-guidance.json' with {type:'json'};
 import decisionGuides from '../content/decision-guides.json' with {type:'json'};
@@ -161,7 +162,7 @@ for (const path of mainPaths) {
  if(priorityGuidance.pages[path]?.updated) dates.set('https://oathwallet.org'+path,priorityGuidance.pages[path].updated);
  else if(decisionGuides.pages.some(p=>p.path===path)||priorityGuidance.pages[path]||path==='/about') dates.set('https://oathwallet.org'+path,'2026-11-06');
  else if(path==='/features'||path.startsWith('/features/')) dates.set('https://oathwallet.org'+path,featureCatalog.reviewed);
- else if(path==='/bug-bounty') dates.set('https://oathwallet.org'+path,'2026-10-31');
+ else if(path==='/bug-bounty') dates.set('https://oathwallet.org'+path,bountyPolicy.updated);
  else if(path==='/') dates.set('https://oathwallet.org'+path,'2026-11-06');
  else if(path.startsWith('/networks')) dates.set('https://oathwallet.org'+path,networkCatalog.reviewed);
  else if(!dates.has('https://oathwallet.org'+path)) dates.set('https://oathwallet.org'+path,'2026-10-27');

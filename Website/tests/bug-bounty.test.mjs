@@ -45,11 +45,21 @@ test('countdown uses the policy launch instant, rolls over and stops at launch',
  const source=await read('bug-bounty.js');
  const policy=JSON.parse(await readFile(new URL('../content/bug-bounty.json',import.meta.url),'utf8'));
  const start=Date.parse(policy.startsAt);
- assert.equal(policy.startsAt,'2026-12-01T00:00:00Z');
+ assert.equal(policy.startsAt,'2027-02-10T00:00:00Z');
  const html=await read('bug-bounty.html');
  assert.ok(html.includes(`data-bounty-start="${policy.startsAt}"`));
- assert.match(html,/December 1, 2026 · 00:00 UTC/);
- assert.match(await read('bug-bounty.md'),/Bounty program opens December 1, 2026/);
+ const label='February 10, 2027 at 00:00 UTC';
+ const notice=`Reports received on or after ${label} can qualify for rewards.`;
+ const markdown=await read('bug-bounty.md');
+ assert.ok(html.includes(`<time datetime="${policy.startsAt}" class="bounty-launch-date">${label}</time>`));
+ assert.ok(markdown.includes(`Bounty program opens ${label}`));
+ for(const text of [html,markdown])assert.ok(text.includes(notice));
+ for(const meta of ['name="description"', 'property="og:description"'])
+  assert.ok(html.includes(`${meta} content="Oath Wallet bug bounty eligibility begins ${label}.`));
+ const structured=JSON.parse(html.match(/<script type="application\/ld\+json">([^<]+)<\/script>/)[1]);
+ assert.ok(structured.description.includes(label));
+ assert.equal(structured.dateModified,policy.updated);
+ assert.ok((await read('sitemaps/pages.xml')).includes(`<loc>https://oathwallet.org/bug-bounty</loc><lastmod>${policy.updated}</lastmod>`));
  let now=start-90061000,tick,cleared=false;
  const status={textContent:'Program opens'},time={hidden:false};
  const fields=Object.fromEntries(['days','hours','minutes','seconds'].map(x=>[x,{textContent:''}]));

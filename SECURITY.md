@@ -20,10 +20,11 @@ phrase, private key, passkey, wallet backup, or unnecessary personal data.
 
 Do not post exploit details in public issues. If private reporting is unavailable,
 request a private contact route without disclosing the vulnerability publicly.
-The [Oath bug bounty program](https://oathwallet.org/bug-bounty) defines eligible
-targets, testing rules and USD rewards: Low $0, Medium $250, High $1,000 and
-Critical $10,000. Payment applies to eligible, validated reports under that
-program, not to every submission. Response and remediation times are not guaranteed.
+Private reporting is open now. Reports received on or after February 10, 2027 at
+00:00 UTC can qualify for a reward under the
+[Oath bug bounty program](https://oathwallet.org/bug-bounty). See the program
+policy for eligible targets, testing rules and current reward amounts.
+Response and remediation times are not guaranteed.
 
 Public test fixtures are deliberately unsafe for holding funds. They are documented
 in the fixture READMEs and are not production service credentials.

@@ -5680,9 +5680,9 @@ Canonical: https://oathwallet.org/bug-bounty
 
 # Oath Wallet Bug Bounty
 
-Program v1.3. Updated 2026-11-06.
+Program v1.4. Updated 2026-11-10.
 
-Bounty program opens December 1, 2026 · 00:00 UTC. Private security reports remain welcome before launch.
+Bounty program opens February 10, 2027 at 00:00 UTC. Private security reports remain welcome before launch.
 
 Help us find vulnerabilities in Oath and make self-custody stronger for everyone.
 
@@ -5771,6 +5771,8 @@ No denial-of-service, stress tests, bulk scanning, brute force, spam, phishing, 
 Report promptly through the private channel. Keep exploit details private while we investigate and coordinate a disclosure date with us. Do not put vulnerabilities, secrets or personal data in public GitHub issues or social posts.
 
 ## Eligibility and payment
+
+Reports received on or after February 10, 2027 at 00:00 UTC can qualify for rewards. Please report vulnerabilities privately as soon as you find them.
 
 - Submit an original, reproducible security issue affecting an in-scope target. Explain the attacker’s prerequisites, the violated security boundary and the demonstrated impact.
 - The first actionable report of a unique issue is eligible. Multiple symptoms of one root cause are assessed together, not paid separately. Findings from work already commissioned and paid for by Oath are not paid again under this program.
