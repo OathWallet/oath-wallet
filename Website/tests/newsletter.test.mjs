@@ -43,3 +43,12 @@ test('HTTPS engagement is scoped, validated by the backend, uncached and non-mut
   assert.equal(await handleNewsletter(new Request('https://oathwallet.org'+path),env),null);
  }finally{globalThis.fetch=original;}
 });
+
+test('the newsletter has one public signup URL across the site and legacy paths', async()=>{
+ const {default:worker}=await import('../src/index.js');
+ for(const url of ['https://oathwallet.org/newsletter','https://oathwallet.org/newsletter/','https://oathwallet.org/news/index.html','https://news.oathwallet.org/news/index.html']){
+  const response=await worker.fetch(new Request(url+'?utm_source=site'),{});
+  assert.equal(response.status,308);
+  assert.equal(response.headers.get('Location'),'https://news.oathwallet.org/?utm_source=site');
+ }
+});

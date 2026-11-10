@@ -22,8 +22,7 @@ await writeFile(new URL('theme.css',root),paletteCSS()+formControlCSS()+`\n.oath
 .oath-card[aria-pressed=true]{color:var(--oath-c-6da7ff)}
 :is(a,button).oath-card:focus-visible{outline:2px solid currentColor;outline-offset:4px}
 /* Brand actions keep white labels on Oath blue or dark green. */
-.on-submit,.on-success a,.button.primary{--oath-day-c-ffffff:#ffffff;--oath-day-c-25432f:#25432f;--oath-day-c-345a3f:#345a3f;--oath-day-c-406547:#406547;--green:#2c4d35}
-.on-launcher{--oath-day-c-edece5:#edece5;--oath-day-c-314635:#314635;--oath-day-c-3c443c:#3c443c}
+.button.primary{--oath-day-c-ffffff:#ffffff;--oath-day-c-25432f:#25432f;--oath-day-c-345a3f:#345a3f;--oath-day-c-406547:#406547;--green:#2c4d35}
 @media print{.oath-theme-switch{display:none}}
 `);
 const articleHash=createHash('sha256').update(await readFile(new URL('article.css',root))).digest('hex').slice(0,12);

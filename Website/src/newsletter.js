@@ -27,6 +27,9 @@ export async function handleNewsletter(request,env){
  if(!isNews&&!local&&!url.pathname.startsWith('/_newsletter/'))return null;
  try{
   if(isNews&&url.protocol!=='https:'){url.protocol='https:';return Response.redirect(url.href,301);}
+  if(isNews && ['/news/', '/news/index.html', '/newsletter', '/newsletter/'].includes(url.pathname) && ['GET','HEAD'].includes(request.method)){
+   return Response.redirect('https://news.oathwallet.org/'+url.search,308);
+  }
   if(isNews&&url.pathname.startsWith('/t/')){
    if(!['GET','HEAD'].includes(request.method))return newsletterSecurity(json(405,{error:'Method not allowed.'}));
    const match=/^\/t\/(open|click)\/([a-f0-9-]{36})$/.exec(url.pathname);
