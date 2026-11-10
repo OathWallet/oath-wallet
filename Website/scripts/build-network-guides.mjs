@@ -88,7 +88,7 @@ const groups=[...new Set(networks.map(n=>n.group))];
 const featured=['bitcoin','ethereum','solana','tron','sui','bitcoincash'].map(id=>networks.find(n=>n.id===id)).filter(Boolean);
 function directoryCard(n){
  const keywords=[n.name,n.symbol,n.group,n.id,n.id==='ton'?'TON Toncoin':''].join(' ');
- return `<a class="network-directory-row" href="/networks/${n.slug}" data-network-group="${esc(n.group)}" data-network-keywords="${esc(keywords)}">${rowContents(chainMark(n),n.name,n.group,'<span class="network-ticker">'+esc(n.symbol)+'</span>')}</a>`;
+ return `<a class="network-directory-row" href="/networks/${n.slug}" data-network-group="${esc(n.group)}" data-network-keywords="${esc(keywords)}">${rowContents(chainMark(n,40,{lazy:true}),n.name,n.group,'<span class="network-ticker">'+esc(n.symbol)+'</span>')}</a>`;
 }
 const directory=`${directoryHeading('Networks',networks.length+' network guides for receiving, sending and fees','Networks')}
  <section id="browse-networks" aria-label="Browse networks">

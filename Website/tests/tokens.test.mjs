@@ -45,7 +45,8 @@ test('asset-first search and chain-first search use the right canonical destinat
  assert.ok(manifest.shortcuts.every(s=>s.artwork&&html.includes(s.artwork)));
  const networkHTML=await read('/networks.html');
  assert.equal((networkHTML.match(/class="network-tile"/g)||[]).length,6);
- assert.equal((networkHTML.match(/class="network-directory-row"/g)||[]).length,42);
+ assert.equal((networkHTML.match(/class="network-directory-row"[^>]*><img[^>]*loading="lazy"/g)||[]).length,42);
+ assert.doesNotMatch(networkHTML, /class="network-tile"[^>]*><img[^>]*loading="lazy"/);
 });
 
 test('edge cache keeps search and Markdown separate and survives asset read failures',async()=>{
