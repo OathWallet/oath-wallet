@@ -70,3 +70,18 @@
 @media(max-width:1000px){.feature-main{padding-left:28px;padding-right:28px}.feature-hero{gap:32px;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)}.feature-main h1{font-size:64px}.feature-section{gap:40px}.feature-hub-grid{grid-template-columns:1fr}.feature-hub-grid>a{padding:28px}.feature-hub h3{margin:16px 0}.feature-hub-grid p{max-width:65ch}}
 @media(max-width:700px){.feature-main{padding:98px 22px 64px}.feature-crumbs{font-size:12px;margin-bottom:36px;gap:9px}.feature-hero{display:flex;flex-direction:column;gap:48px;padding-bottom:48px;align-items:stretch}.feature-main h1{font-size:clamp(48px,11vw,68px);max-width:12ch}.feature-main .feature-dek{font-size:17px}.feature-actions{gap:20px;margin:26px 0}.feature-capture>a{width:250px}.feature-capture figcaption{max-width:290px}.feature-highlights{grid-template-columns:1fr;gap:28px}.feature-highlights>div{border-bottom:1px solid rgba(var(--oath-rgb-ffffff),0.0902);padding-bottom:24px}.feature-highlights>div:last-child{border:0;padding:0}.feature-section{grid-template-columns:1fr;gap:32px;padding:56px 0}.feature-main h2{font-size:42px}.feature-detail{margin-top:56px;padding:28px 24px}.feature-guides{padding:48px 0}.feature-guides>div,.feature-related>div{grid-template-columns:1fr;gap:0}.feature-related{padding-top:48px}.feature-hub{padding-top:56px}.feature-hub h2{font-size:42px}.feature-steps li{padding-left:44px}}
 @media(prefers-reduced-motion:reduce){.feature-hub-grid>a{transition:none}}
+
+/* Related guide links fill their final row, including three-link collections. */
+@media (min-width: 701px) {
+  .feature-guides > div > a:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+}
+@media (min-width: 960px) {
+  .feature-guides > div:has(> a:nth-child(3):last-child) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .feature-guides > div > a:nth-child(3):last-child {
+    grid-column: auto;
+  }
+}
