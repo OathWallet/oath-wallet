@@ -211,11 +211,11 @@
   </section>
 
   <section data-screen-label="02 Safety" style="max-width:1320px;margin:0 auto;padding:clamp(48px,6vw,72px) clamp(20px,5vw,32px) 0">
-    <div style="border-radius:clamp(24px,3vw,32px);background:var(--oath-c-f2f0ea);color:var(--oath-c-0a0a0b);padding:clamp(22px,3.4vw,36px);display:flex;flex-wrap:wrap;align-items:center;gap:18px 28px">
+    <div class="oath-card" style="border-radius:clamp(24px,3vw,32px);padding:clamp(22px,3.4vw,36px);display:flex;flex-wrap:wrap;align-items:center;gap:18px 28px">
       <span style="width:52px;height:52px;flex:none;border-radius:16px;background:var(--oath-c-0a0a0b);color:var(--oath-c-f2f0ea);display:flex;align-items:center;justify-content:center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M12 3 4.5 6v5.5c0 4.6 3.2 8.4 7.5 9.5 4.3-1.1 7.5-4.9 7.5-9.5V6Z"></path><path d="M12 8.5v4"></path><path d="M12 15.8v.2"></path></svg></span>
       <div style="flex:1;min-width:240px;display:flex;flex-direction:column;gap:6px">
         <span style="font:400 clamp(24px,2.6vw,34px)/1.1 'Instrument Serif',serif">We will never ask for your recovery phrase.</span>
-        <span style="font:400 15px/1.5 'Instrument Sans',sans-serif;color:#48474A">Not by email, not in a DM, not on a call. Anyone who asks is trying to steal your wallet — don’t share it, and report them to us.</span>
+        <span style="font:400 15px/1.5 'Instrument Sans',sans-serif;color:var(--oath-card-muted)">Not by email, not in a DM, not on a call. Anyone who asks is trying to steal your wallet — don’t share it, and report them to us.</span>
       </div>
     </div>
   </section>
@@ -227,9 +227,9 @@
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:clamp(10px,1.4vw,14px)">
       <sc-for list="{{ topics }}" as="tp" hint-placeholder-count="6">
-        <button onClick="{{ tp.go }}" style="text-align:left;border:0;cursor:pointer;border-radius:24px;padding:22px 22px 20px;min-height:150px;display:flex;flex-direction:column;justify-content:space-between;gap:24px;background:{{ tp.bg }};color:{{ tp.fg }};box-shadow:inset 0 0 0 1px {{ tp.ring }};transition:background .35s,color .35s,transform .3s cubic-bezier(.16,1,.3,1)" style-hover="transform:translateY(-3px)">
-          <span style="font:400 12px/1 'IBM Plex Mono',monospace;opacity:.6">{{ tp.n }}</span>
-          <div style="display:flex;flex-direction:column;gap:6px"><span style="font:400 26px/1.1 'Instrument Serif',serif">{{ tp.t }}</span><span style="font:400 13.5px/1.4 'Instrument Sans',sans-serif;opacity:.7">{{ tp.d }}</span></div>
+        <button onClick="{{ tp.go }}" aria-pressed="{{ tp.selected }}" class="oath-card" style="text-align:left;cursor:pointer;border-radius:24px;padding:22px 22px 20px;min-height:150px;display:flex;flex-direction:column;justify-content:space-between;gap:24px;transition:background .35s,color .35s,transform .3s cubic-bezier(.16,1,.3,1)" style-hover="transform:translateY(-3px)">
+          <span style="font:400 12px/1 'IBM Plex Mono',monospace;color:var(--oath-card-muted)">{{ tp.n }}</span>
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font:400 26px/1.1 'Instrument Serif',serif">{{ tp.t }}</span><span style="font:400 13.5px/1.4 'Instrument Sans',sans-serif;color:var(--oath-card-muted)">{{ tp.d }}</span></div>
         </button>
       </sc-for>
     </div>
@@ -266,7 +266,7 @@
 
   <section id="contact" data-screen-label="05 Contact" style="max-width:1320px;margin:0 auto;padding:clamp(96px,12vw,160px) clamp(20px,5vw,32px) clamp(96px,12vw,140px)">
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:clamp(16px,2vw,20px)">
-      <div style="border-radius:clamp(28px,3vw,36px);box-shadow:inset 0 0 0 1px rgba(var(--oath-rgb-f2f0ea),.12);padding:clamp(28px,4vw,48px);display:flex;flex-direction:column;justify-content:space-between;gap:48px">
+      <div class="oath-card" style="border-radius:clamp(28px,3vw,36px);padding:clamp(28px,4vw,48px);display:flex;flex-direction:column;justify-content:space-between;gap:48px">
         <div style="display:flex;flex-direction:column;gap:18px">
           <span style="font:400 12.5px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--oath-c-8e8c86)">Still need help?</span>
           <h2 style="margin:0;font:400 clamp(40px,5vw,76px)/.95 'Instrument Serif',serif;letter-spacing:-.02em">Talk to <em style="color:var(--oath-c-8e8c86)">a person.</em></h2>
@@ -281,7 +281,7 @@
         </div>
       </div>
 
-      <div style="border-radius:clamp(28px,3vw,36px);background:var(--oath-c-141416);box-shadow:inset 0 0 0 1px rgba(var(--oath-rgb-f2f0ea),.1);padding:clamp(24px,4vw,40px);display:flex;flex-direction:column;gap:16px">
+      <div class="oath-card" style="border-radius:clamp(28px,3vw,36px);padding:clamp(24px,4vw,40px);display:flex;flex-direction:column;gap:16px">
         <span style="font:600 18px/1 'Instrument Sans',sans-serif;padding-bottom:6px">Write to support</span>
         <a href="https://github.com/OathWallet/oath-wallet/security/policy" style="font:400 14px/1.5 'Instrument Sans',sans-serif;text-decoration:underline">Read the security reporting policy</a>
         <label style="display:flex;flex-direction:column;gap:8px"><span style="font:400 12px/1 'IBM Plex Mono',monospace;letter-spacing:.05em;text-transform:uppercase;color:var(--oath-c-8e8c86)">Topic</span>
@@ -371,7 +371,7 @@ class Component extends DCLogic {
       countLabel: `${FAQ.length} answers · ${TOPICS.length} topics`,
       topics: TOPICS.map(([k, t, d], i) => {
         const on = topic === k;
-        return { n: String(i + 1).padStart(2, '0') + ' · ' + counts[k] + ' answers', t, d, bg: on ? 'var(--oath-c-f2f0ea)' : 'var(--oath-c-141416)', fg: on ? 'var(--oath-c-0a0a0b)' : 'var(--oath-c-f2f0ea)', ring: on ? 'var(--oath-c-f2f0ea)' : 'rgba(var(--oath-rgb-f2f0ea),.1)',
+        return { n: String(i + 1).padStart(2, '0') + ' · ' + counts[k] + ' answers', t, d, selected: on,
           go: () => { this.setState({ topic: on ? null : k, open: 0 }); const el = document.getElementById('faq'); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 90, behavior: 'smooth' }); } };
       }),
       faqKicker: topic ? CAT[topic] : needle ? `Results for “${q.trim()}”` : 'All topics',

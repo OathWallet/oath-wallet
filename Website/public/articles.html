@@ -188,7 +188,7 @@
   <section data-screen-label="02 Article list" style="max-width:1320px;margin:0 auto;padding:clamp(40px,6vw,64px) clamp(20px,5vw,32px) clamp(96px,12vw,140px)">
     <p role="status" aria-live="polite" style="margin:0 0 28px;font:400 13px/1.5 'IBM Plex Mono',monospace;color:var(--oath-c-8e8c86)">{{ resultCount }} {{ resultLabel }} · {{ languageLabel }}</p>
     <sc-if value="{{ hasFeatured }}" hint-placeholder-val="{{ false }}">
-      <a href="{{ featured.href }}" lang="{{ featured.locale }}" dir="{{ featured.dir }}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:clamp(20px,4vw,48px);align-items:center;margin-bottom:clamp(48px,7vw,80px)" style-hover="opacity:.92">
+      <a href="{{ featured.href }}" lang="{{ featured.locale }}" dir="{{ featured.dir }}" class="oath-card" style="padding:clamp(16px,2vw,26px);border-radius:28px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:clamp(20px,4vw,48px);align-items:center;margin-bottom:clamp(48px,7vw,80px)" style-hover="opacity:.92">
         <img src="{{ featured.cover }}" alt="{{ featured.alt }}" style="display:block;width:100%;aspect-ratio:1200/630;object-fit:contain;border-radius:28px">
         <div style="display:flex;flex-direction:column;gap:18px">
           <span style="font:400 12px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--oath-c-8e8c86)">Featured · {{ featured.category }}</span>
@@ -202,7 +202,7 @@
     <sc-if value="{{ hasList }}" hint-placeholder-val="{{ false }}">
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:clamp(28px,3vw,40px) clamp(16px,2vw,24px)">
         <sc-for list="{{ list }}" as="a" hint-placeholder-count="3">
-          <a href="{{ a.href }}" lang="{{ a.locale }}" dir="{{ a.dir }}" style="display:flex;flex-direction:column;gap:16px;transition:transform .5s cubic-bezier(.16,1,.3,1)" style-hover="transform:translateY(-4px)">
+          <a href="{{ a.href }}" lang="{{ a.locale }}" dir="{{ a.dir }}" class="oath-card" style="padding:clamp(16px,2vw,26px);border-radius:28px;display:flex;flex-direction:column;gap:16px;transition:transform .5s cubic-bezier(.16,1,.3,1)" style-hover="transform:translateY(-4px)">
             <img src="{{ a.cover }}" alt="{{ a.alt }}" loading="lazy" style="display:block;width:100%;aspect-ratio:1200/630;object-fit:contain;border-radius:24px">
             <span style="font:400 12px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--oath-c-8e8c86)">{{ a.category }} · {{ a.read }}</span>
             <span style="font:400 clamp(24px,2.2vw,30px)/1.12 'Instrument Serif',serif">{{ a.title }}</span>
@@ -214,7 +214,7 @@
     </sc-if>
 
     <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ true }}">
-      <div style="position:relative;border-radius:clamp(28px,4vw,40px);box-shadow:inset 0 0 0 1px rgba(var(--oath-rgb-f2f0ea),.1);overflow:hidden;padding:clamp(40px,7vw,96px) clamp(20px,5vw,64px);display:flex;flex-direction:column;align-items:center;text-align:center">
+      <div class="oath-card" style="position:relative;border-radius:clamp(28px,4vw,40px);overflow:hidden;padding:clamp(40px,7vw,96px) clamp(20px,5vw,64px);display:flex;flex-direction:column;align-items:center;text-align:center">
         <div style="position:absolute;inset:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:20px;padding:clamp(20px,3vw,32px);pointer-events:none">
           <sc-for list="{{ ghosts }}" as="g" hint-placeholder-count="6">
             <div style="display:flex;flex-direction:column;gap:14px;opacity:{{ g.o }};transition:opacity 1.6s ease">
