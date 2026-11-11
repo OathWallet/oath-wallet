@@ -222,9 +222,12 @@ public final class OathDatabase: Sendable {
     }
     /// Name and artwork are one committed edit; observations never see a new
     /// name paired with the previous color. Nil restores the original palette.
-    public func customizeWallet(_ id: String, name: String, colorHex: String?, keepDefaultName: Bool = false) async throws {
+    @discardableResult
+    public func customizeWallet(_ id: String, name: String, colorHex: String?, keepDefaultName: Bool = false,
+                                automaticNameWhenEmpty: String? = nil) async throws -> WalletRecord {
         let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard WalletRecord.isValidName(name) else { throw StoreError.invalidValue("wallet name") }
+        let confirmedName = name.isEmpty ? (automaticNameWhenEmpty ?? "") : name
+        guard WalletRecord.isValidName(confirmedName) else { throw StoreError.invalidValue("wallet name") }
         if let colorHex {
             guard colorHex.utf8.count == 6,
                   colorHex.utf8.allSatisfy({ (48...57).contains($0) || (65...70).contains($0) }) else {
@@ -232,12 +235,13 @@ public final class OathDatabase: Sendable {
             }
         }
         try Task.checkCancellation()
-        try await storageWrite { db in
+        return try await storageWrite { db in
             if keepDefaultName {
                 guard try WalletRecord.fetchOne(db, key: id)?.name.isEmpty == true else { throw StoreError.invalidTransition }
             }
-            try db.execute(sql: "UPDATE wallets SET name=?, confirmedName=?, colorHex=?, needsCustomization=0 WHERE id=?", arguments: [keepDefaultName ? "" : name, name, colorHex, id])
-            guard db.changesCount == 1 else { throw StoreError.missingRecord }
+            try db.execute(sql: "UPDATE wallets SET name=?, confirmedName=?, colorHex=?, needsCustomization=0 WHERE id=? AND deletedAt IS NULL", arguments: [keepDefaultName ? "" : name, confirmedName, colorHex, id])
+            guard db.changesCount == 1, let record = try WalletRecord.fetchOne(db, key: id) else { throw StoreError.missingRecord }
+            return record
         }
     }
     /// Removes public metadata only. The caller must separately erase the

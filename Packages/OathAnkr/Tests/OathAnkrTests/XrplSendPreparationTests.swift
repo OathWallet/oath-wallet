@@ -80,6 +80,7 @@ private actor XrplPreparationReports: DiagnosticTransport {
         let initial = await reports.events
         XCTAssertFalse(initial.contains { $0.error.message == "reserve" })
         XCTAssertTrue(initial.contains { $0.error.message == "insufficientFunds" })
+        try await OathDiagnostics.withStep("account_requirement_validation") {
         for (reserve, minimum) in [("1", UInt64(1_000_000)), ("2", 2_000_000)] {
             await transport.configure(balance: 10_000_000)
             await transport.activation(reserve)
@@ -127,9 +128,13 @@ private actor XrplPreparationReports: DiagnosticTransport {
             do { _ = try await interrupted.value; XCTFail("Canceled review must not publish a quote") }
             catch { XCTAssertTrue(error is CancellationError) }
         }
+        }
         try await Task.sleep(for: .milliseconds(200))
         let validated = await reports.events
-        XCTAssertEqual(validated.count, initial.count, "Account requirements must not create app-error events")
+        // Earlier queued reports can arrive after the initial snapshot. Attribute
+        // events to this phase instead of comparing unrelated global counts.
+        XCTAssertFalse(validated.contains { $0.context["action"] == "account_requirement_validation" },
+            "Account requirements and cancellation must not create app-error events")
         XCTAssertFalse(validated.contains { $0.error.message == "reserve" || $0.error.message == "recipientUnfunded" || $0.error.message.hasPrefix("recipientMinimum") })
 
         // An original provider error and its enclosing preparation must retain

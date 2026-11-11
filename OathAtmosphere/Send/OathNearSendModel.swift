@@ -12,7 +12,7 @@ import OathDiagnostics
     private(set) var submission: OathBitcoinSubmission?
     private(set) var gasPrice: Decimal?
     private(set) var accountGuidance: SendAccountGuidance?
-    private(set) var failureMessage: OathStringKey?
+    private(set) var failureMessage: OathSendFailure?
     var notice: OathStringKey?
     @ObservationIgnored private var work: Task<Void,Never>?
     @ObservationIgnored private var generation = UUID()
@@ -42,7 +42,7 @@ import OathDiagnostics
                 guard generation == token, !Task.isCancelled else { return }
                 busy = false; needsRefresh = true
                 accountGuidance = .failure(error, native: holding.reference == "native", implicitNearRecipient: NearSendPlan.isImplicit(recipient))
-                failureMessage = Self.message(error)
+                failureMessage = OathSendFailure.reason(error, fallback: .sendPreparationFailed)
                 needsAmountChange = (error as? NearSendError) == .insufficientFunds
             }
         }
@@ -66,25 +66,11 @@ import OathDiagnostics
                 if error is OathBiometricCredentialError { passcode = true }
                 else if error as? OathWalletError == .wrongPasscode { passcode = true; notice = .unlockIncorrect }
                 else if case OathWalletError.throttled = error { passcode = true; notice = .unlockWait }
-                else if !(error is CancellationError) { passcode = false; needsRefresh = true; accountGuidance = .failure(error, native: quote.plan.reference == "native", implicitNearRecipient: NearSendPlan.isImplicit(quote.plan.recipient)); failureMessage = Self.message(error); self.quote = nil; OathHaptics.shared.play(.warning) }
+                else if !(error is CancellationError) { passcode = false; needsRefresh = true; accountGuidance = .failure(error, native: quote.plan.reference == "native", implicitNearRecipient: NearSendPlan.isImplicit(quote.plan.recipient)); failureMessage = OathSendFailure.reason(error, fallback: .sendSubmitFailed); self.quote = nil; OathHaptics.shared.play(.warning) }
             }
         }
     }
 
-    private static func message(_ error: Error) -> OathStringKey? {
-        if error is SendFeeFundingError { return .sendNativeFeeRequired }
-        guard let e = error as? NearSendError else { return nil }
-        switch e {
-        case .unsupportedAccount: return .nearAccountUnsupported
-        case .recipientMissing: return .nearRecipientMissing
-        case .metadataChanged: return .nearMetadataChanged
-        case .storageUnsupported: return .nearStorageUnsupported
-        case .feeTooHigh: return .nearFeeTooHigh
-        case .execution: return .nearSendFailed
-        case .insufficientFunds: return .nearInsufficientFunds
-        default: return nil
-        }
-    }
 
     func cancel() {
         generation = UUID(); work?.cancel(); work = nil; busy = false; passcode = false; notice = nil

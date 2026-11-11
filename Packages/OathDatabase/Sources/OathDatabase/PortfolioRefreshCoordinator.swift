@@ -22,7 +22,7 @@ import OathDiagnostics
     public func observe(
         stream: @escaping @Sendable () -> AsyncThrowingStream<Value, any Error>,
         isCurrent: @escaping @MainActor @Sendable () -> Bool,
-        publish: @escaping @MainActor @Sendable (Value) throws -> Void,
+        publish: @escaping @MainActor @Sendable (Value) async throws -> Void,
         exhausted: @escaping @MainActor @Sendable () -> Void
     ) {
         stop()
@@ -36,7 +36,7 @@ import OathDiagnostics
                         for try await value in stream() {
                             try Task.checkCancellation()
                             guard self?.generation == token, isCurrent() else { return }
-                            try publish(value)
+                            try await publish(value)
                         }
                         try Task.checkCancellation()
                         throw BalanceRefreshError.observationEnded
@@ -65,7 +65,7 @@ import OathDiagnostics
         work: @MainActor () async -> [BalanceRefreshOutcome],
         read: @Sendable () async throws -> Value,
         isCurrent: @MainActor () -> Bool,
-        publish: @MainActor (Value) throws -> Void
+        publish: @MainActor (Value) async throws -> Void
     ) async throws {
         let outcomes = await work()
         try Task.checkCancellation()
@@ -74,7 +74,7 @@ import OathDiagnostics
             let value = try await read()
             try Task.checkCancellation()
             guard isCurrent() else { throw CancellationError() }
-            try publish(value)
+            try await publish(value)
         } catch {
             if !Task.isCancelled && !(error is CancellationError) {
                 OathDiagnostics.record(error, component: "portfolio_refresh", operation: "reconcile")

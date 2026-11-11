@@ -9,6 +9,8 @@ struct UTXOAPIProvider: Sendable {
     let base: URL
     let format: Format
 
+    static let bitcoinMempool = Self(network: .bitcoin, base: URL(string: "https://mempool.space/api")!, format: .mempool)
+
     static func providers(for network: UTXONetwork) -> [Self] {
         func api(_ base: String, _ format: Format) -> Self {
             Self(network: network, base: URL(string: base)!, format: format)
@@ -16,7 +18,7 @@ struct UTXOAPIProvider: Sendable {
         let chair = api("https://api.blockchair.com/\(network == .bitcoincash ? "bitcoin-cash" : network.rawValue)", .blockchair)
         switch network {
         case .bitcoin:
-            return [api("https://mempool.space/api", .mempool),
+            return [bitcoinMempool,
                     api("https://blockstream.info/api", .blockstream),
                     api("https://api.blockcypher.com/v1/btc/main", .blockcypher), chair]
         case .bitcoincash:

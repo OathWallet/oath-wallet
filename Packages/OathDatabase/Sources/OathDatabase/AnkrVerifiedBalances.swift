@@ -48,7 +48,8 @@ extension OathDatabase {
                         """, arguments: [ticket.account.id,asset.id,try JSONEncoder().encode(item),item.balanceUsd,page.fetchedAt.timeIntervalSince1970,
                             item.reference == "native" || verifiedReferences.contains(item.reference) || old])
                     // Keep quotes on their provider timestamp, not the RPC's.
-                    if let stamp = page.value.syncStatus?.timestamp, stamp <= now + 60, now - stamp <= 900,
+                    if !PriceRecord.excludedCurrentSources(networkID: asset.networkID, reference: asset.reference).contains("ankr"),
+                       let stamp = page.value.syncStatus?.timestamp, stamp <= now + 60, now - stamp <= 900,
                        !item.tokenPrice.isEmpty, item.tokenPrice.utf8.contains(where: { (49...57).contains($0) }) {
                         // A malformed optional quote cannot roll back verified quantities.
                         if OathDiagnostics.attempt("validate_indexer_quote", body: { try Validation.price(item.tokenPrice) }) != nil {

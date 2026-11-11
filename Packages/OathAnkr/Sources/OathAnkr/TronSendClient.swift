@@ -13,6 +13,15 @@ public actor TronSendClient {
             endpoints=[URL(string:"https://rpc.ankr.com/premium-http/tron")!.appendingPathComponent(apiKey),network.endpoint]
         } else { endpoints=[network.endpoint] }
     }
+    public static func safeCode(_ code: String) -> String {
+        switch code {
+        case "SIGERROR", "CONTRACT_VALIDATE_ERROR", "CONTRACT_EXE_ERROR", "BANDWITH_ERROR",
+             "DUP_TRANSACTION_ERROR", "TAPOS_ERROR", "TOO_BIG_TRANSACTION_ERROR",
+             "TRANSACTION_EXPIRATION_ERROR", "SERVER_BUSY", "OTHER_ERROR": code
+        default: "UNKNOWN"
+        }
+    }
+
     private func post(_ base:URL,_ method:String,_ params:[String:TronJSON] = [:]) async throws -> TronJSON {
         do {
             try Task.checkCancellation()

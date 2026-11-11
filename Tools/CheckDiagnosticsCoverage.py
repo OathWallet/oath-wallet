@@ -60,6 +60,10 @@ for root in roots:
                 # cover both supersession and genuine cursor conflicts.
                 observed += 1
                 continue
+            if file.relative_to(ROOT).as_posix() == 'OathAtmosphere/Home/OathWalletSidebarModel.swift' and 'diagnostics: sidebar-selection-reconciliation' in body and 'report(error)' in body:
+                continue  # The injected production session boundary records the failure.
+            if file.relative_to(ROOT).as_posix() == 'OathAtmosphere/Wallet/OathWalletSession.swift' and 'diagnostics: wallet-creation-feedback' in body and 'self.failed =' in body:
+                continue  # changeWallet records the persistence failure; this updates presentation.
             if file.name == 'OathBiometricCredentialStore.swift' and label.strip() == 'let error as LAError' and 'return Self.enrollmentFailure(error, kind: kind)' in body:
                 continue  # The helper reports failures except unavailable optional biometry.
             if file.name == 'TonSynchronizer.swift' and 'diagnostics: ton-flight-cleanup' in body and 'throw error' in body:
@@ -131,9 +135,9 @@ for root in roots:
                 continue  # Only rejected draft fields; SQLite, revision and network configuration failures still report.
             if file.name == 'OathPermissionReview.swift' and 'diagnostics: permission-preparation-feedback' in body and 'self.error=Self.message(error)' in body:
                 continue  # PermissionPreparation reports before rethrow; the view only presents the unchanged error.
-            if file.relative_to(ROOT).as_posix() == 'OathAtmosphere/Send/OathEVMSendModel.swift' and 'diagnostics: evm-preparation-feedback' in body and 'failureMessage = Self.message(error)' in body:
+            if file.relative_to(ROOT).as_posix() == 'OathAtmosphere/Send/OathEVMSendModel.swift' and 'diagnostics: evm-preparation-feedback' in body and 'failureMessage = OathSendFailure.reason(error, fallback: .sendPreparationFailed)' in body:
                 continue  # EVMSendPreparation reports quote failures; typed balance requirements reach this UI unchanged.
-            if file.name == 'OathXrplSendModel.swift' and 'diagnostics: xrpl-preparation-feedback' in body and 'failureMessage = Self.message(error)' in body:
+            if file.name == 'OathXrplSendModel.swift' and 'diagnostics: xrpl-preparation-feedback' in body and 'failureMessage = OathSendFailure.reason(error, fallback: .sendPreparationFailed)' in body:
                 continue  # XrplSendPreparation reports unexpected failures; the model presents the original error unchanged.
             if file.name == 'UTXOFeeProvider.swift' and any(marker in body for marker in (
                 'diagnostics: fee-flight-propagation', 'diagnostics: fee-peer-cleanup')):

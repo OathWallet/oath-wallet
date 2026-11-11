@@ -5,6 +5,8 @@ import OathDatabase
 
 struct OathWalletSwitcherSheet: View {
     let session: OathWalletSession
+    let startsAtAddWallet: Bool
+    let onCreate: (UUID) -> Void
     let onCreated: (String) -> Void
     let onCustomize: (String) -> Void
     @Environment(\.dismiss) private var dismiss
@@ -26,10 +28,14 @@ struct OathWalletSwitcherSheet: View {
     @State private var savingOrder = false
     @State private var removal: OathWalletRemovalModel
     @State private var showsRemovalPasscode = false
+    @State private var addWalletContentHeight: CGFloat = 0
+    @State private var addWalletTopInset: CGFloat = 0
 
-    init(session: OathWalletSession, onCreated: @escaping (String) -> Void,
+    init(session: OathWalletSession, startsAtAddWallet: Bool = false, onCreate: @escaping (UUID) -> Void, onCreated: @escaping (String) -> Void,
          onCustomize: @escaping (String) -> Void) {
         self.session = session
+        self.startsAtAddWallet = startsAtAddWallet
+        self.onCreate = onCreate
         self.onCreated = onCreated
         self.onCustomize = onCustomize
         _removal = State(initialValue: OathWalletRemovalModel(session: session))
@@ -43,12 +49,20 @@ struct OathWalletSwitcherSheet: View {
         .init(wallets: session.wallets, deletedCount: session.recentlyDeletedWallets.count)
     }
 
+    private var presentationDetent: PresentationDetent {
+        guard startsAtAddWallet, path.isEmpty else { return .large }
+        guard addWalletContentHeight > 0 else { return .medium }
+        // Include the actual native navigation/grabber inset. The system adds
+        // the bottom safe area to the detent; counting it here adds blank space.
+        return .height(ceil(addWalletContentHeight + addWalletTopInset))
+    }
+
     var body: some View {
         OathWalletSettingsScreen(session: session, switcherPath: $path,
             dismissDisabled: work != nil || savingOrder || removal.busy || removal.confirming || restore.phase == .saving) { onWalletSettings, onRecentlyDeleted in
             AnyView(switcherNavigationRoot(onWalletSettings: onWalletSettings, onRecentlyDeleted: onRecentlyDeleted))
         }
-        .presentationDetents([.large])
+        .presentationDetents([presentationDetent])
         .presentationDragIndicator(.visible)
         .oathNativeLocalization()
         .oathHapticFeedback(.error, trigger: failed, when: failed)
@@ -118,9 +132,25 @@ struct OathWalletSwitcherSheet: View {
 
     private func switcherNavigationRoot(onWalletSettings: @escaping (String) -> Void,
                                         onRecentlyDeleted: @escaping () -> Void) -> some View {
-        walletList(onWalletSettings: onWalletSettings, onRecentlyDeleted: onRecentlyDeleted)
+        Group {
+            if startsAtAddWallet {
+                ScrollView {
+                    addWalletActions
+                        .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) {
+                            addWalletContentHeight = $0
+                        }
+                }
+                    .onGeometryChange(for: CGFloat.self, of: { $0.safeAreaInsets.top }) {
+                        addWalletTopInset = $0
+                    }
+                    .scrollBounceBehavior(.basedOnSize)
+                    .disabled(!actionsEnabled)
+            } else {
+                walletList(onWalletSettings: onWalletSettings, onRecentlyDeleted: onRecentlyDeleted)
+            }
+        }
             .background(Color(uiColor: OathSurfaceColors.canvas))
-            .navigationTitle(strings.text(.wallets))
+            .navigationTitle(strings.text(startsAtAddWallet ? .addWallet : .wallets))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -128,6 +158,7 @@ struct OathWalletSwitcherSheet: View {
                         .disabled(!actionsEnabled)
                         .accessibilityIdentifier("wallets.close")
                 }
+                if !startsAtAddWallet {
                 ToolbarItem(placement: .topBarTrailing) {
                     Group {
                         if editing {
@@ -139,6 +170,7 @@ struct OathWalletSwitcherSheet: View {
                     }
                     .disabled(!actionsEnabled)
                     .accessibilityIdentifier("wallets.edit")
+                }
                 }
             }
             .navigationDestination(for: Route.self) { route in
@@ -244,8 +276,16 @@ struct OathWalletSwitcherSheet: View {
                         }
                     }
                     OathSettingsSectionRule()
-                    OathWalletActions(identifier: "wallets", isCreating: work != nil && pendingWalletID == nil,
-                        onCreate: { pendingWalletID = nil; createWallet() },
+                    addWalletActions
+                }
+                .oathLanguage(strings.language)
+            }
+        .accessibilityIdentifier("wallets.list")
+    }
+
+    private var addWalletActions: some View {
+        OathWalletActions(identifier: "wallets",
+                        onCreate: { if actionsEnabled { onCreate(createRequestID) } },
                         onCreateMultisig: { path.append(Route.multisig) },
                         onImport: { path.append(Route.importPhrase) },
                         onImportPrivateKey: { path.append(Route.privateKeyChains) },
@@ -254,10 +294,6 @@ struct OathWalletSwitcherSheet: View {
                             restore.start()
                             path.append(Route.restoreList)
                         })
-                }
-                .oathLanguage(strings.language)
-            }
-        .accessibilityIdentifier("wallets.list")
     }
 
     private func move(_ proposed: [String]) {
@@ -294,19 +330,6 @@ struct OathWalletSwitcherSheet: View {
         // Return from wallet navigation to the normal switcher, not its editor.
         editing = false
         action(id)
-    }
-
-    private func createWallet() {
-        guard work == nil else { return }
-        work = Task {
-            defer { work = nil }
-            do {
-                let id = try await session.addWallet(requestID: createRequestID)
-                guard !Task.isCancelled, session.isUnlocked else { return }
-                onCreated(id)
-            } catch is CancellationError { }
-            catch { OathDiagnostics.record(error); if !Task.isCancelled, session.isUnlocked { failed = true } }
-        }
     }
 
     private func run(_ action: @escaping @MainActor () async throws -> Void) {
@@ -379,11 +402,12 @@ struct OathAdditionalWalletImportPage: View {
 }
 
 /// The switcher hands off after its sheet has dismissed. Import and Customize
-/// share one full-screen native navigation stack; no PIN setup is repeated.
+/// share one native navigation stack; no PIN setup is repeated.
 enum OathAdditionalWalletDestination: Identifiable {
-    case createMultisig, importPhrase, importPrivateKey, customize(String)
+    case create(UUID), createMultisig, importPhrase, importPrivateKey, customize(String)
     var id: String {
         switch self {
+        case .create(let request): "create-" + request.uuidString
         case .createMultisig: "create-multisig"
         case .importPhrase: "import"
         case .importPrivateKey: "import-private-key"
@@ -414,6 +438,7 @@ struct OathAdditionalWalletFlow: View {
         NavigationStack(path: $path) {
             Group {
                 switch start {
+                case .create(let request): customize(request.uuidString, mode: .create(request))
                 case .createMultisig: EmptyView()
                 case .importPhrase:
                     OathAdditionalWalletImportPage(session: session, scannedPhrase: scannedPhrase) { id in path.append(.customize(id)) }
@@ -454,13 +479,13 @@ struct OathAdditionalWalletFlow: View {
             guard unlocked, let id = session.pendingCustomizationID, !path.contains(.customize(id)) else { return }
             switch start {
             case .importPhrase, .importPrivateKey: path.append(.customize(id))
-            case .createMultisig, .customize: break
+            case .create, .createMultisig, .customize: break
             }
         }
     }
 
-    private func customize(_ id: String) -> some View {
-        OathWalletCustomizationScreen(session: session, walletID: id, mode: .setup) { dismiss() }
+    private func customize(_ id: String, mode: OathWalletCustomizationScreen.Mode = .setup) -> some View {
+        OathWalletCustomizationScreen(session: session, walletID: id, mode: mode) { dismiss() }
             .oathWalletCustomizationNavigation()
             .navigationBarBackButtonHidden()
     }

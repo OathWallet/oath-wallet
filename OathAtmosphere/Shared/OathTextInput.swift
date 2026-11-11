@@ -93,9 +93,14 @@ struct OathTextInput: UIViewRepresentable {
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: Field, context: Context) -> CGSize? {
+        let height = max(OathInputMetrics.minimumContentHeight, uiView.intrinsicContentSize.height + (prominent ? 12 : 0))
+        if prominent, let font = uiView.font {
+            let label = (text.isEmpty ? title : text) as NSString
+            let textWidth = ceil(label.size(withAttributes: [.font: font]).width)
+            return CGSize(width: min(proposal.width ?? .infinity, max(44, textWidth + 4)), height: height)
+        }
         guard let width = proposal.width, width.isFinite else { return nil }
-        return CGSize(width: width, height: max(OathInputMetrics.minimumContentHeight,
-                                                uiView.intrinsicContentSize.height + (prominent ? 12 : 0)))
+        return CGSize(width: width, height: height)
     }
     static func dismantleUIView(_ field: Field, coordinator: Coordinator) {
         coordinator.focus.invalidate()

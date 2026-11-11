@@ -43,8 +43,13 @@ public actor MarketDataService {
     }
 
     public func cachedQuote(for asset: MarketAsset) async throws -> CachedMarketValue<MarketQuote>? {
-        var result: CachedMarketValue<MarketQuote>? = try await cached(key("quote", asset, version: 2))
-        if result == nil { result = try await cached(key("quote", asset)) }
+        let excluded = PriceRecord.excludedCurrentSources(networkID: asset.networkID, reference: asset.reference)
+        let versions = excluded.isEmpty ? [2, 1] : [3, 2, 1]
+        var result: CachedMarketValue<MarketQuote>?
+        for version in versions {
+            result = try await cached(key("quote", asset, version: version), excluding: excluded)
+            if result != nil { break }
+        }
         // All chain synchronizers publish into the same price table. Reuse that
         // quote even for newly added tokens, and never relabel its observation time.
         if let saved = try await database.asset(networkID: asset.networkID, reference: asset.reference),
@@ -139,19 +144,14 @@ public actor MarketDataService {
             description:token.description ?? "",imageURL:token.logo,website:nil,
             providerURL:"https://stellar.expert/explorer/public/contract/"+token.reference),fetchedAt:Date(timeIntervalSince1970:saved.fetchedAt))
     }
-    func cached<T: Decodable & Sendable>(_ key: String) async throws -> CachedMarketValue<T>? {
-        guard let entry = try await database.marketCache(key: key),
+    func cached<T: Decodable & Sendable>(_ key: String, excluding sources: Set<String> = []) async throws -> CachedMarketValue<T>? {
+        guard let entry = try await database.marketCache(key: key), !sources.contains(entry.source),
               let value = OathDiagnostics.attempt("decode_cached_metadata", body: { try JSONDecoder().decode(T.self, from: entry.payload) }) else { return nil }
         return CachedMarketValue(value: value, fetchedAt: Date(timeIntervalSince1970: entry.fetchedAt))
     }
     func decoded<T: Decodable & Sendable>(_ entry: MarketCacheEntry) throws -> CachedMarketValue<T> {
         CachedMarketValue(value: try JSONDecoder().decode(T.self, from: entry.payload),
                           fetchedAt: Date(timeIntervalSince1970: entry.fetchedAt))
-    }
-
-    func nativeMarketAsset(networkID: String) async throws -> MarketAsset? {
-        guard let asset = try await database.asset(networkID: networkID, reference: "native") else { return nil }
-        return MarketAsset(id: asset.id, networkID: asset.networkID, reference: asset.reference, decimals: asset.decimals)
     }
 
     public func quote(for asset: MarketAsset, force: Bool = false) async throws -> CachedMarketValue<MarketQuote> {
@@ -162,7 +162,7 @@ public actor MarketDataService {
         }
     }
 
-    private func quoteValue(for asset: MarketAsset, force: Bool) async throws -> CachedMarketValue<MarketQuote> {
+    func quoteValue(for asset: MarketAsset, force: Bool, nativeBatchURL: URL? = nil, propagatingReportedFailures: Bool = false) async throws -> CachedMarketValue<MarketQuote> {
         if LifiTokenMetadata.url(network: asset.networkID, reference: asset.reference) != nil {
             do {
                 let primary = try await lifiToken(for: asset, force: force)
@@ -181,12 +181,18 @@ public actor MarketDataService {
            previous.isFresh(at: now(), lifetime: 60) || (quoteRefreshAfter[asset.cacheIdentity].map { $0 > .now } ?? false) { return previous }
         let transport = transport, now = now
         do {
-            let refreshed: CachedMarketValue<MarketQuote> = try decoded(await load(key: key("quote", asset, version: 2), source: "Market providers", lifetime: 60, force: force) {
+            // Older Fantom entries may carry a retired source. A fresh load
+            // writes a new key without overwriting the original observation.
+            let version = asset.networkID == "fantom" && asset.isNative ? 3 : 2
+            let refreshed: CachedMarketValue<MarketQuote> = try decoded(await load(key: key("quote", asset, version: version), source: "Market providers", lifetime: 60, force: force, propagatingReportedFailures: propagatingReportedFailures) {
                 try await OathDiagnostics.$chain.withValue(asset.networkID) {
                     try await OathDiagnostics.$operationID.withValue(OathDiagnostics.operationID ?? UUID()) {
                         var candidates = ContractPriceRequest.requests(for: asset).map { request in
                             ParallelMarketPrice.Candidate(source: request.provider.rawValue) {
-                                let bytes = try await transport.data(from: request.url)
+                                // All native assets in a refresh share the public GET.
+                                // Decode only this asset's exact project ID and timestamp.
+                                let url = request.provider == .gecko && asset.isNative ? nativeBatchURL ?? request.url : request.url
+                                let bytes = try await transport.data(from: url)
                                 return try ContractPriceDecoding.decode(bytes, request: request, asset: asset, now: now())
                             }
                         }
@@ -196,24 +202,26 @@ public actor MarketDataService {
                                 return try NativeCoinPrice.decode(bytes, for: asset, now: now())
                             })
                         }
-                        if let request = GnosisNativePrice.request(for: asset) {
-                            candidates.append(.init(source: "GeckoTerminal (WXDAI)") {
+                        if let request = WrappedNativePrice.request(for: asset) {
+                            candidates.append(.init(source: WrappedNativePrice.source(for: asset)) {
                                 let fetchedAt = now()
                                 let bytes = try await transport.data(from: request.url)
-                                return try GnosisNativePrice.decode(bytes, for: asset, fetchedAt: fetchedAt)
+                                return try WrappedNativePrice.decode(bytes, for: asset, fetchedAt: fetchedAt)
                             })
                         }
-                        if let url = GnosisNativePrice.lifiURL(for: asset) {
+                        if let url = WrappedNativePrice.lifiURL(for: asset) {
                             candidates.append(.init(source: "LI.FI (WXDAI)") {
                                 let fetchedAt = now()
                                 let bytes = try await transport.data(from: url)
-                                return try GnosisNativePrice.decodeLifi(bytes, for: asset, fetchedAt: fetchedAt)
+                                return try WrappedNativePrice.decodeLifi(bytes, for: asset, fetchedAt: fetchedAt)
                             })
                         }
                         // Keep Coinbase in the race for existing supported
                         // native coins; adding an independent source must not
                         // replace a working route. Telos/OKB/xDAI have no spot route.
-                        if !asset.isNative || !["telos", "xlayer", "gnosis"].contains(asset.networkID) {
+                        // FTM's un-timestamped spot and CoinPaprika quote can retain
+                        // retired exchange prices. Opera uses its verified wrapper.
+                        if !asset.isNative || !["telos", "xlayer", "gnosis", "fantom"].contains(asset.networkID) {
                             candidates.append(.init(source: "Coinbase") {
                                 let code = try await self.coinbaseCode(for: asset)
                                 let data = try await transport.data(from: URL(string: "https://api.coinbase.com/v2/prices/\(code)-USD/spot")!)
@@ -449,11 +457,22 @@ public actor MarketDataService {
             let date = now()
             let pools = try await transport.data(from: TokenPoolChart.poolsURL(for: asset))
             try Task.checkCancellation()
-            let selection = try TokenPoolChart.select(pools, for: asset)
-            let candles = try await transport.data(from: TokenPoolChart.candlesURL(for: asset, selection: selection, at: date))
-            try Task.checkCancellation()
-            let chart = try TokenPoolChart.decode(candles, for: asset, selection: selection, at: date)
-            return (try JSONEncoder().encode(chart), date.timeIntervalSince1970, nil)
+            for selection in try TokenPoolChart.rankedPools(pools, for: asset) {
+                try Task.checkCancellation()
+                do {
+                    let url = try TokenPoolChart.candlesURL(for: asset, selection: selection, at: date)
+                    let candles = try await transport.data(from: url)
+                    try Task.checkCancellation()
+                    let chart = try TokenPoolChart.decode(candles, for: asset, selection: selection, at: date)
+                    return (try JSONEncoder().encode(chart), date.timeIntervalSince1970, nil)
+                } catch MarketDataError.notListed {
+                    // diagnostics: optional-market-absence
+                    // This market disappeared or had too few recent trades.
+                    // The next verified pool supplies its own complete series.
+                    continue
+                }
+            }
+            throw MarketDataError.notListed
         }
         try Task.checkCancellation()
         let committed = try await database.saveMarketCache(.init(key: key("chart", asset), source: entry.source,

@@ -13,7 +13,7 @@ import OathDiagnostics
     private(set) var submission: OathBitcoinSubmission?
     private(set) var gasPrice: Decimal?
     private(set) var accountGuidance: SendAccountGuidance?
-    private(set) var failureMessage: OathStringKey?
+    private(set) var failureMessage: OathSendFailure?
     var notice: OathStringKey?
     @ObservationIgnored private var work: Task<Void,Never>?
     @ObservationIgnored private var generation = UUID()
@@ -46,7 +46,7 @@ import OathDiagnostics
                 guard generation == token, !Task.isCancelled else { return }
                 busy = false; needsRefresh = true
                 accountGuidance = .failure(error, native: holding.reference == "native")
-                failureMessage = Self.message(error)
+                failureMessage = OathSendFailure.reason(error, fallback: .sendPreparationFailed)
                 needsAmountChange = closure != nil || [.insufficientFunds, .amount].contains(error as? XrplSendError)
                 needsRecipientChange = (error as? XrplSendError) == .sameRecipient
             }
@@ -72,24 +72,8 @@ import OathDiagnostics
                 if error is OathBiometricCredentialError { passcode = true }
                 else if error as? OathWalletError == .wrongPasscode { passcode = true; notice = .unlockIncorrect }
                 else if case OathWalletError.throttled = error { passcode = true; notice = .unlockWait }
-                else if !(error is CancellationError) { passcode = false; needsRefresh = true; needsAmountChange = quote.plan.closesAccount; accountGuidance = .failure(error, native: quote.plan.reference == "native"); failureMessage = Self.message(error); self.quote = nil; OathHaptics.shared.play(.warning) }
+                else if !(error is CancellationError) { passcode = false; needsRefresh = true; needsAmountChange = quote.plan.closesAccount; accountGuidance = .failure(error, native: quote.plan.reference == "native"); failureMessage = OathSendFailure.reason(error, fallback: .sendSubmitFailed); self.quote = nil; OathHaptics.shared.play(.warning) }
             }
-        }
-    }
-    private static func message(_ error: Error) -> OathStringKey? {
-        if error is SendFeeFundingError { return .sendNativeFeeRequired }
-        guard let e = error as? XrplSendError else { return nil }
-        switch e {
-        case .closureUnavailable, .closureTooSoon, .closureObligations: return .xrplCloseUnavailable
-        case .amount: return .sendAmountInvalid
-        case .sameRecipient: return .sendChangeAddress
-        case .reserve: return .xrplReserveRequired
-        case .destinationTag: return .xrplTagRequired
-        case .recipientUnfunded: return .xrplRecipientUnfunded
-        case .unsupportedAccount: return .xrplAccountUnsupported
-        case .simulation: return .xrplPaymentRestricted
-        case .execution: return .xrplSendFailed
-        default: return nil
         }
     }
 

@@ -30,6 +30,8 @@ public struct TransactionDetails: Equatable, Sendable {
     public let toAddresses: [String]
     public let feeAsset: AssetRecord?
     public let replacementHash: String?
+    public var bitcoinSignalsRBF: Bool? = nil
+    public var replacedBitcoinTransactions: [String] = []
     /// Current cached value in the requested display currency. Missing market
     /// data stays unknown; a missing price must never turn a paid fee into zero.
     public let feeFiatValue: Decimal?
@@ -76,7 +78,7 @@ extension OathDatabase {
             let locale = Locale(identifier: "en_US_POSIX")
             guard let exchangeRate, let units = try? amount.units(decimals: asset.decimals),
                   let quantity = Decimal(string: units, locale: locale),
-                  let price = try String.fetchOne(db, sql: "SELECT value FROM prices WHERE assetID=? AND currency='USD' ORDER BY \(PriceRecord.preferredOrder) LIMIT 1", arguments: [asset.id]),
+                  let price = try String.fetchOne(db, sql: "SELECT value FROM prices WHERE assetID=? AND currency='USD' AND \(PriceRecord.currentSourcePredicate) ORDER BY \(PriceRecord.preferredOrder) LIMIT 1", arguments: [asset.id]),
                   let usd = Decimal(string: price, locale: locale),
                   let localPrice = FiatConversion.multiply(usd, exchangeRate) else { return nil }
             return FiatConversion.multiply(quantity, localPrice)
@@ -109,6 +111,12 @@ extension OathDatabase {
             transfers: transfers, fromAddresses: parties.from, toAddresses: parties.to,
             feeAsset: asset,
             replacementHash: try String.fetchOne(db, sql: "SELECT replacementHash FROM transactionEvidence WHERE accountID=? AND transactionID=?", arguments: [accountID, transactionID]),
+            bitcoinSignalsRBF: parties.bitcoinSignalsRBF,
+            replacedBitcoinTransactions: tx.networkID == "bitcoin" ? try String.fetchAll(db, sql: """
+                SELECT DISTINCT original.hash FROM transactionEvidence e JOIN transactions original ON original.id=e.transactionID
+                WHERE e.accountID=? AND original.networkID='bitcoin' AND e.replacementHash=?
+                  AND e.outcome IN ('replaced','canceled') ORDER BY original.hash
+                """, arguments: [accountID, tx.hash]) : [],
             feeFiatValue: fiat, totalAmount: total,
             confirmations: try transactionConfirmations(db, accountID: accountID, transaction: tx, state: outcome ?? tx.state),
             inputs: parties.inputs, outputs: parties.outputs, swap: swap, historyEntries: entries)
@@ -190,6 +198,7 @@ extension OathDatabase {
         var to = Set(transfers.map(\.toAddress).filter { !$0.isEmpty })
         if let network = UTXONetwork(rawValue: tx.networkID) {
             var inputs: [TransactionEndpoint]?, outputs: [TransactionEndpoint]?
+            var signalsRBF: Bool?
             var signedRecipientAmount: String?
             // A send is visible immediately after signing, before the indexer
             // stores its raw transaction. Read the durable, validated journal
@@ -218,6 +227,7 @@ extension OathDatabase {
                 guard details.txid == tx.hash else {
                     throw OathDiagnostics.failure(StoreError.conflictingIdentity, reason: "receipt_transaction_hash_mismatch")
                 }
+                if network == .bitcoin && !details.coinbase { signalsRBF = details.signalsRBF }
                 let journalPlan: BitcoinSendPlan? = try (journal?["plan"] as Data?).map {
                     let plan = try JSONDecoder().decode(BitcoinSendPlan.self, from: $0)
                     guard plan.chain == network else {
@@ -272,7 +282,7 @@ extension OathDatabase {
             // Missing parents and non-address scripts are unknown, not the
             // wallet's current receive address. Coinbase has no sender address.
             return ReceiptParties(from: from.sorted(), to: to.sorted(), senderFee: tx.feeAtomic, inputs: inputs, outputs: outputs,
-                                 signedRecipientAmount: signedRecipientAmount)
+                                 bitcoinSignalsRBF: signalsRBF, signedRecipientAmount: signedRecipientAmount)
         }
         guard let account = try AccountRecord.fetchOne(db, key: accountID) else { return ReceiptParties(from: from.sorted(), to: to.sorted(), senderFee: nil) }
         let selectedSolana = tx.networkID == "solana" ? try publicOwner ?? String.fetchOne(db,

@@ -18,13 +18,13 @@ struct BrandedRefreshIndicator: View {
         ZStack {
             if phase == .succeeded || phase == .acknowledged {
                 Image(systemName: "checkmark")
-                    .font(.system(size: 28, weight: .semibold))
+                    .font(.system(size: 28, weight: .medium))
                     .foregroundStyle(.white)
                     .transition(replacement)
                     .accessibilityIdentifier("refresh.logo.success")
             } else if phase == .failed {
                 Image(systemName: "exclamationmark")
-                    .font(.system(size: 28, weight: .semibold))
+                    .font(.system(size: 28, weight: .medium))
                     .foregroundStyle(.white)
                     .transition(replacement)
                     .accessibilityIdentifier("refresh.logo.failure")

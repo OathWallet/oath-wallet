@@ -9,7 +9,6 @@ enum NativeCoinPrice {
     static let telos = NativeInformation.Identity(id: "tlos-telos", name: "Telos", symbol: "TLOS")
     static let supported: [String: (decimals: Int, identity: NativeInformation.Identity)] = [
         "telos": (18, telos), "xlayer": (18, NativeInformation.okb),
-        "fantom": (18, .init(id: "ftm-fantom", name: "Fantom", symbol: "FTM")),
         "bitcoin": (8, NativeInformation.bitcoin), "bitcoincash": (8, NativeInformation.bitcoinCash),
         "dogecoin": (8, NativeInformation.doge),
         "litecoin": (8, .init(id: "ltc-litecoin", name: "Litecoin", symbol: "LTC"))
@@ -41,35 +40,52 @@ enum NativeCoinPrice {
     }
 }
 
-/// Gnosis documents this contract as the ERC-20 representation of native xDAI.
-/// Use its actual market price, never a fixed USD peg or another chain's DAI.
+/// Canonical wrappers redeem directly for native units on their own network.
+/// Bind market prices to the exact contract, decimals and active liquidity.
 /// https://docs.gnosischain.com/about/tokens/xdai#wrapped-xdai-wxdai
-enum GnosisNativePrice {
-    static let wrapped = MarketAsset(id: "gnosis:wxdai", networkID: "gnosis",
+enum WrappedNativePrice {
+    static let gnosis = MarketAsset(id: "gnosis:wxdai", networkID: "gnosis",
         reference: "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d", decimals: 18)
 
+    static let fantom = MarketAsset(id: "fantom:wftm", networkID: "fantom",
+        reference: "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83", decimals: 18)
+
+    static func wrapped(for asset: MarketAsset) -> MarketAsset? {
+        guard asset.isNative, asset.decimals == 18 else { return nil }
+        switch asset.networkID {
+        case "gnosis": return gnosis
+        case "fantom": return fantom
+        default: return nil
+        }
+    }
+
+    static func source(for asset: MarketAsset) -> String {
+        asset.networkID == "gnosis" ? "GeckoTerminal (WXDAI)" : "GeckoTerminal (WFTM)"
+    }
+
     static func request(for asset: MarketAsset) -> ContractPriceRequest? {
-        guard asset.isNative, asset.networkID == "gnosis", asset.decimals == 18 else { return nil }
+        guard let wrapped = wrapped(for: asset) else { return nil }
         return ContractPriceRequest.requests(for: wrapped).first { $0.provider == .terminal }
     }
 
     static func lifiURL(for asset: MarketAsset) -> URL? {
         guard asset.isNative, asset.networkID == "gnosis", asset.decimals == 18 else { return nil }
-        return LifiTokenMetadata.url(network: wrapped.networkID, reference: wrapped.reference)
+        return LifiTokenMetadata.url(network: gnosis.networkID, reference: gnosis.reference)
     }
 
     static func decodeLifi(_ data: Data, for asset: MarketAsset, fetchedAt: Date) throws -> ResolvedMarketPrice {
         guard lifiURL(for: asset) != nil else { throw MarketDataError.invalidResponse }
         // Bind the response to the canonical wrapped contract, chain and scale.
         // LI.FI supplies a retrieval-time quote; never substitute a fixed peg.
-        let value = try LifiTokenMetadata.decode(data, network: wrapped.networkID,
-            reference: wrapped.reference, decimals: wrapped.decimals)
+        let value = try LifiTokenMetadata.decode(data, network: gnosis.networkID,
+            reference: gnosis.reference, decimals: gnosis.decimals)
         guard let price = value.priceUSD else { throw MarketDataError.notListed }
         return .init(quote: .init(code: "XDAI", usd: price), date: fetchedAt, source: "LI.FI (WXDAI)")
     }
 
     static func decode(_ data: Data, for asset: MarketAsset, fetchedAt: Date) throws -> ResolvedMarketPrice {
-        guard let request = request(for: asset), data.count <= 2_000_000,
+        guard let wrapped = wrapped(for: asset), let symbol = MarketIdentity.native[asset.networkID]?.coinbase,
+              let request = request(for: asset), data.count <= 2_000_000,
               let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let token = root["data"] as? [String: Any],
               let attributes = token["attributes"] as? [String: Any],
@@ -84,7 +100,7 @@ enum GnosisNativePrice {
         // This endpoint has no observation timestamp: retain the retrieval time,
         // including after persistence/reopen, rather than inventing a market time.
         let resolved = try ContractPriceDecoding.decode(data, request: request, asset: wrapped, now: fetchedAt)
-        return .init(quote: .init(code: "XDAI", usd: resolved.quote.usd), date: fetchedAt,
-                     source: "GeckoTerminal (WXDAI)")
+        return .init(quote: .init(code: symbol, usd: resolved.quote.usd),
+                     date: fetchedAt, source: source(for: asset))
     }
 }

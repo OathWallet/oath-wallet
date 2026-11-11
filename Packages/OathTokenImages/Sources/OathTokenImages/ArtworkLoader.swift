@@ -103,6 +103,38 @@ public actor ArtworkLoader {
     private let downloads = ArtworkWorkPool<String, Result<Data, Error>>(concurrency: 6)
     private let diskIndex: ArtworkDiskIndex
     private var failures: [String: Date] = [:]
+    private var gatewayRetryAt: [String: Date] = [:]
+    private struct GatewayCoolingDown: Error {}
+
+    // Only forward a public root CID. Signed URLs, subpaths and arbitrary
+    // publisher hosts must never be copied to another provider.
+    static func gatewayCID(_ url: URL) -> String? {
+        guard let parts = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              parts.scheme == "https", parts.host == "ipfs.io" || parts.host == "gateway.pinata.cloud",
+              parts.user == nil, parts.password == nil, parts.port == nil,
+              parts.query == nil, parts.fragment == nil, parts.percentEncodedPath.hasPrefix("/ipfs/") else { return nil }
+        let cid = String(parts.percentEncodedPath.dropFirst(6))
+        guard cid.utf8.count <= 90, cid.range(of: #"^(Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-z2-7]{58})$"#,
+            options: .regularExpression) != nil else { return nil }
+        return cid
+    }
+
+    private func fetch(_ url: URL) async -> Result<Data, Error> {
+        let gateway = Self.gatewayCID(url) == nil ? nil : url.host
+        if let gateway, now() < (gatewayRetryAt[gateway] ?? .distantPast) {
+            return .failure(GatewayCoolingDown())
+        }
+        do { return .success(try await transport.data(from: url)) }
+        catch {
+            // diagnostics: artwork-flight-propagation. Errors reach download_decode. A
+            // primary gateway 429 also retains its HTTP transport diagnostic.
+            if let gateway, let limited = error as? ArtworkRateLimit {
+                gatewayRetryAt[gateway] = max(gatewayRetryAt[gateway] ?? .distantPast,
+                                              now().addingTimeInterval(limited.delay))
+            }
+            return .failure(error)
+        }
+    }
 
     public init(directory: URL? = nil, transport: any ArtworkTransport = ArtworkURLTransport(),
                 freshFor: TimeInterval = 7 * 24 * 3600, retryAfter: TimeInterval = 30,
@@ -196,15 +228,8 @@ public actor ArtworkLoader {
                 let data: Data
                 if let inline = ArtworkSource.inlineData(candidate) { data = inline }
                 else if let url = URL(string: candidate) {
-                    let transport = self.transport
                     guard let result = await downloads.value(for: candidate, operation: {
-                        do { return .success(try await transport.data(from: url)) }
-                        catch {
-                            // diagnostics: artwork-flight-propagation. Preserve
-                            // the original error for download_decode below,
-                            // where optional absence/cancellation are excluded.
-                            return .failure(error)
-                        }
+                        await self.fetch(url)
                     }) else { return nil }
                     data = try result.get()
                 }
@@ -222,9 +247,12 @@ public actor ArtworkLoader {
             } catch {
                 guard !Task.isCancelled, !OathDiagnostics.isExpectedCancellation(error) else { return nil }
                 let absent = error is OptionalArtworkAbsent && ArtworkFallbackCatalog.identity(candidate) != nil
-                if absent {
+                if index == 0, error is ArtworkRateLimit || error is GatewayCoolingDown,
+                   let url = URL(string: candidate), url.host == "ipfs.io", let cid = Self.gatewayCID(url) {
+                    candidates.append("https://gateway.pinata.cloud/ipfs/" + cid)
+                } else if absent {
                     rememberAbsence(candidate)
-                } else {
+                } else if !(error is GatewayCoolingDown) {
                     OathDiagnostics.record(error, component: "artwork", operation: "download_decode",
                         context: ["host": URL(string: candidate)?.host ?? "inline",
                             "source": String(ArtworkSource.key(candidate).prefix(12)),

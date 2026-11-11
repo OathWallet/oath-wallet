@@ -11,7 +11,8 @@ extension OathArtworkPlacement {
     static func walletBackdrop(size: CGSize) -> Self {
         Self(logo: CGRect(x: -100, y: -100, width: 1, height: 1), logoClip: .zero,
              copy: CGRect(origin: .zero, size: size),
-             actions: CGRect(x: 0, y: size.height + 160, width: size.width, height: 1))
+             actions: CGRect(x: 0, y: size.height + 160, width: size.width, height: 1),
+             rendersLogo: false)
     }
 }
 

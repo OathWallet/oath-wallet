@@ -31,6 +31,8 @@ public actor AnkrSynchronizer {
     private let client: AnkrClient
     public typealias BalanceClient = @Sendable (String) throws -> EVMSendClient
     private let balanceClient: BalanceClient?
+    // Keep provider recovery state across accounts/refreshes, bounded by the
+    // supported chain set. These clients hold no wallet quantities or signing keys.
     private var balanceReaders: [String: EVMSendClient] = [:]
     private var flights: [String: (UUID, Task<AnkrSyncOutcome, Never>)] = [:]
     private var epoch = UUID()
@@ -260,7 +262,7 @@ public actor AnkrSynchronizer {
             async let discovery = Self.balanceInventory(client: client, chain: chain, address: account.address, onlyWhitelisted: onlyWhitelisted, requestScope: requestScope)
             // Native/known quantities publish even if token discovery is slow or down.
             let initial = try await rpc.portfolioBalances(owner: account.address,
-                assets: known.map { EVMBalanceAsset(reference: $0.reference, decimals: $0.decimals) })
+                assets: known.map { EVMBalanceAsset(reference: $0.reference, decimals: $0.decimals) }, propagateReportedHeadFailure: true)
             try await database.commitVerifiedAnkrBalances(initial, ticket: ticket, discoveryComplete: false, final: false)
             committed = true
             let result = await discovery
@@ -271,7 +273,11 @@ public actor AnkrSynchronizer {
                 try await database.commitVerifiedAnkrBalances(initial, ticket: ticket, discoveryComplete: false, final: true)
                 failureReported = true // balanceInventory reported this original cause.
                 throw error
-            case .success(let pages):
+            case .success(let initialPages):
+                let inventory = try await reconcileIndex(initialPages, chain: chain, address: account.address,
+                    onlyWhitelisted: onlyWhitelisted, snapshot: initial, requestScope: requestScope)
+                let pages = inventory.pages
+                var staleWhitelistFailure: (any Error)?
                 var assets = Dictionary(uniqueKeysWithValues: known.map { ($0.reference, $0.decimals) })
                 var metadataComplete = true
                 for value in pages.flatMap(\.value.assets) {
@@ -286,19 +292,21 @@ public actor AnkrSynchronizer {
                 if Set(assets.keys).isSubset(of: Set(initial.amounts.keys)), initial.failedReferences.isEmpty { snapshot = initial }
                 else {
                     snapshot = try await rpc.portfolioBalances(owner: account.address,
-                        assets: assets.map { EVMBalanceAsset(reference: $0.key, decimals: $0.value) }, minimumHeight: initial.height)
+                        assets: assets.map { EVMBalanceAsset(reference: $0.key, decimals: $0.value) }, minimumHeight: initial.height,
+                        propagateReportedHeadFailure: true)
                 }
-                let status = pages.last?.value.syncStatus
-                let current = status?.status == "synced" && status?.timestamp.map {
-                    (-60...60).contains(Date().timeIntervalSince1970 - $0)
-                } == true
+                var indexWatermarks = inventory.currentPages.map(\.value.syncStatus)
                 var verified = Set<String>()
                 var verifiedComplete = true
                 if onlyWhitelisted { verified = Set(pages.flatMap(\.value.assets).map(\.reference)) }
                 else {
                     switch await Self.balanceInventory(client: client, chain: chain, address: account.address, onlyWhitelisted: true, requestScope: requestScope) {
                     case .success(let whitelist):
-                        let decimals = Dictionary(uniqueKeysWithValues: whitelist.flatMap(\.value.assets).map { ($0.reference, $0.tokenDecimals) })
+                        let verification = try await reconcileIndex(whitelist, chain: chain, address: account.address,
+                            onlyWhitelisted: true, snapshot: snapshot, requestScope: requestScope)
+                        indexWatermarks += verification.currentPages.map(\.value.syncStatus)
+                        staleWhitelistFailure = verification.staleFailure
+                        let decimals = Dictionary(uniqueKeysWithValues: verification.currentPages.flatMap(\.value.assets).map { ($0.reference, $0.tokenDecimals) })
                         verified = Set(assets.keys.filter { assets[$0] == decimals[$0] })
                     case .failure:
                         // balanceInventory reports the original verification failure.
@@ -306,8 +314,11 @@ public actor AnkrSynchronizer {
                     }
                 }
                 try Task.checkCancellation()
-                let complete = current && verifiedComplete && metadataComplete && snapshot.failedReferences.isEmpty
                 try await rpc.validatePortfolioBalances(snapshot)
+                let now = Date()
+                let incompletePage = indexWatermarks.firstIndex { !Self.currentIndex($0, snapshot: snapshot, at: now) }
+                let current = !indexWatermarks.isEmpty && incompletePage == nil
+                let complete = current && verifiedComplete && metadataComplete && snapshot.failedReferences.isEmpty
                 try await database.commitVerifiedAnkrBalances(snapshot, ticket: ticket, pages: pages, verifiedReferences: verified,
                     discoveryComplete: complete, final: true)
                 if !complete {
@@ -315,13 +326,21 @@ public actor AnkrSynchronizer {
                     // is usable. Own this summary while the chain and reason
                     // are known; presentation must retain the partial state.
                     let reason: String
+                    let watermark = incompletePage.flatMap { indexWatermarks[$0] }
                     if !snapshot.failedReferences.isEmpty { reason = "balance_unavailable" }
                     else if !metadataComplete { reason = "metadata_conflict" }
                     else if !verifiedComplete { reason = "verification_unavailable" }
-                    else if status == nil { reason = "index_sync_missing" }
-                    else if status?.status != "synced" { reason = "index_sync_pending" }
+                    else if watermark == nil { reason = "index_sync_missing" }
+                    else if watermark?.status == "outOfSync" { reason = "index_out_of_sync" }
+                    else if watermark?.status != "synced" { reason = "index_sync_pending" }
                     else { reason = "index_sync_stale" }
                     failureContext.merge(["stage": "inventory", "reason": reason]) { _, value in value }
+                    if reason.hasPrefix("index_"), let index = incompletePage {
+                        let discovery = index < inventory.currentPages.count
+                        failureContext.merge(Self.indexContext(watermark, snapshot: snapshot)) { _, value in value }
+                        failureContext["category"] = discovery ? "discovery" : "whitelist"
+                        if reason == "index_sync_stale", let reported = discovery ? inventory.staleFailure : staleWhitelistFailure { throw reported }
+                    }
                     throw BalanceRefreshError.incomplete
                 }
             }
@@ -341,6 +360,61 @@ public actor AnkrSynchronizer {
             }
             return committed ? .partial(propagated) : .failed(propagated)
         }
+    }
+
+    private static func currentIndex(_ status: AnkrSyncStatus?, snapshot: EVMPortfolioBalances, at now: Date) -> Bool {
+        guard status?.status == "synced", let stamp = status?.timestamp else { return false }
+        return abs(now.timeIntervalSince1970 - stamp) <= 60 || snapshot.matchesIdleIndex(status, at: now)
+    }
+
+    private static func indexContext(_ status: AnkrSyncStatus?, snapshot: EVMPortfolioBalances) -> [String: String] {
+        var context = ["rpc_height": String(snapshot.height)]
+        if let height = status?.blockNumber { context["index_height"] = String(height) }
+        if let time = status?.timestamp.flatMap(UInt64.init(exactly:)) { context["index_block_time"] = String(time) }
+        return context
+    }
+
+    private struct IndexRead {
+        var pages: [AnkrPage<AnkrBalanceResult>]
+        var currentPages: [AnkrPage<AnkrBalanceResult>]
+        var staleFailure: (any Error)?
+    }
+
+    /// Keep all discovered token identities. Only the latest fully enumerated,
+    /// nonregressing index pass can establish coverage for this wallet filter.
+    private func reconcileIndex(_ pages: [AnkrPage<AnkrBalanceResult>], chain: AnkrChain, address: String,
+                                onlyWhitelisted: Bool, snapshot: EVMPortfolioBalances, requestScope: AnkrRequestScope) async throws -> IndexRead {
+        var result = IndexRead(pages: pages, currentPages: pages)
+        guard chain == .fantom || chain == .scroll else { return result }
+        let now = Date()
+        let statuses = pages.compactMap(\.value.syncStatus)
+        guard statuses.count == pages.count, let oldestAllowedTime = statuses.compactMap(\.timestamp).max(),
+              let lagging = statuses.first(where: { !Self.currentIndex($0, snapshot: snapshot, at: now) }),
+              let stamp = lagging.timestamp, stamp <= now.timeIntervalSince1970 else { return result }
+        // An explicit outOfSync at the current tip can persist for the whole idle interval.
+        // Retry it only when the verified node has a later block for the index to catch up to.
+        let behindNode = lagging.status == "outOfSync" && lagging.blockNumber.map { $0 < snapshot.height } == true
+        guard lagging.status == "syncing" || behindNode ||
+                (lagging.status == "synced" && now.timeIntervalSince1970 - stamp > 60) else { return result }
+        if chain == .scroll && lagging.status == "synced" {
+            result.staleFailure = OathDiagnostics.recordedForPropagation(BalanceRefreshError.incomplete,
+                component: "portfolio_refresh", operation: "index_freshness_retry",
+                context: Self.indexContext(lagging, snapshot: snapshot).merging(
+                    ["chain": chain.networkID, "stage": "inventory", "reason": "index_sync_stale",
+                     "category": onlyWhitelisted ? "whitelisted_inventory" : "unfiltered_inventory"]) { _, value in value })
+        }
+        let retry = await Self.balanceInventory(client: client, chain: chain, address: address, onlyWhitelisted: onlyWhitelisted, requestScope: requestScope)
+        try Task.checkCancellation()
+        let minimumHeight = statuses.compactMap(\.blockNumber).max() ?? 0
+        guard case .success(let refreshed) = retry, !refreshed.isEmpty, refreshed.allSatisfy({ page in
+            guard let status = page.value.syncStatus, let state = status.status,
+                  ["synced", "syncing", "outOfSync"].contains(state), let time = status.timestamp,
+                  let height = status.blockNumber else { return false }
+            return time >= oldestAllowedTime && height >= minimumHeight
+        }) else { return result }
+        result.pages += refreshed
+        result.currentPages = refreshed
+        return result
     }
 
     private static func balanceInventory(client: AnkrClient, chain: AnkrChain, address: String,

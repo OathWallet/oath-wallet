@@ -134,6 +134,12 @@ extension OathDatabase {
         try await pool.read { try AssetRecord.fetchAll($0, sql: "SELECT * FROM assets WHERE networkID=? AND id>? ORDER BY id LIMIT ?",
                                                        arguments: [networkID, afterID, Self.pageSize(limit)]) }
     }
+    public func nativeAssets(networkIDs: Set<String>) async throws -> [AssetRecord] {
+        try await pool.read { db in
+            try AssetRecord.filter(Column("reference") == "native" && networkIDs.contains(Column("networkID")))
+                .order(Column("networkID")).fetchAll(db)
+        }
+    }
     public func asset(networkID: String, reference: String) async throws -> AssetRecord? {
         try await pool.read { try AssetRecord.fetchOne($0, sql: "SELECT * FROM assets WHERE networkID=? AND reference=?",
                                                        arguments: [networkID, reference]) }

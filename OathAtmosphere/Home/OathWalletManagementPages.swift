@@ -324,6 +324,7 @@ struct OathWalletListRow: View {
     let balances: OathWalletListBalances
     var showsDisclosure = true
     var isWorking = false
+    var compact = false
     @Environment(\.oathLocalizer) private var strings
     @Environment(\.dynamicTypeSize) private var typeSize
     private var isActive: Bool { wallet.id == session.displayedProfile?.id.uuidString }
@@ -333,7 +334,7 @@ struct OathWalletListRow: View {
         OathListRow {
             OathWalletListIcon(colorHex: wallet.colorHex, isActive: isActive)
         } content: {
-            if typeSize.isAccessibilitySize {
+            if compact || typeSize.isAccessibilitySize {
                 VStack(alignment: .leading, spacing: 6) {
                     name
                     balance
@@ -383,7 +384,7 @@ struct OathWalletListRow: View {
     }
 }
 
-/// Use the same actual wallet color and SF Symbols hierarchy in lists and bars.
+/// Lists use the wallet color. Artwork toolbars can override the foreground for contrast.
 struct OathWalletSymbol: View {
     let colorHex: String?
     // Lists provide an illustration size; toolbars inherit native SF metrics.

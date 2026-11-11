@@ -98,7 +98,15 @@ public struct Holding: Decodable, FetchableRecord, Sendable, Equatable, Identifi
 }
 
 public struct WalletSnapshot: Sendable, Equatable {
-    public let wallet: WalletRecord
+    public private(set) var wallet: WalletRecord
+
+    public mutating func applyCustomization(from record: WalletRecord) {
+        guard wallet.id == record.id, wallet.vaultReference == record.vaultReference else { return }
+        wallet.name = record.name
+        wallet.confirmedName = record.confirmedName
+        wallet.colorHex = record.colorHex
+        wallet.needsCustomization = record.needsCustomization
+    }
     public let accounts: [AccountRecord]
     public let networks: [NetworkRecord]
     public let holdings: [Holding]
@@ -337,7 +345,7 @@ extension OathDatabase {
                     SELECT 1 FROM ankrAssets verified WHERE verified.accountID=b.accountID
                     AND verified.assetID=b.assetID AND verified.onlyWhitelisted=1))
             LEFT JOIN prices p ON p.assetID=a.id AND p.currency='USD' AND p.observedAt=(
-                SELECT observedAt FROM prices WHERE assetID=a.id AND currency='USD' ORDER BY \(PriceRecord.preferredOrder) LIMIT 1)
+                SELECT observedAt FROM prices WHERE assetID=a.id AND currency='USD' AND \(PriceRecord.currentSourcePredicate) ORDER BY \(PriceRecord.preferredOrder) LIMIT 1)
             LEFT JOIN exchangeRates fx ON fx.currency=?
             LEFT JOIN transactionCounts tc ON tc.accountID=c.id AND tc.assetID=a.id
             WHERE n.enabled=1 OR ?

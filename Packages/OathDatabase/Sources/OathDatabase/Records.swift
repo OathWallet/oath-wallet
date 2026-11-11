@@ -144,6 +144,20 @@ public struct BalanceRecord: Codable, Equatable, Sendable, FetchableRecord, Pers
 
 public struct PriceRecord: Codable, Equatable, Sendable, FetchableRecord, PersistableRecord {
     public static let databaseTableName = "prices"
+    // These sources can publish the retired FTM exchange market, or a price
+    // without an observation time. Preserve earlier rows for historical reads.
+    private static let retiredFantomSources: Set<String> = ["ankr", "Coinbase", "CoinPaprika"]
+    public static func excludedCurrentSources(networkID: String, reference: String) -> Set<String> {
+        networkID == "fantom" && reference == "native" ? retiredFantomSources : []
+    }
+    static let currentSourcePredicate: String = {
+        let sources = retiredFantomSources.sorted().map { "'\($0)'" }.joined(separator: ",")
+        return """
+            (prices.source NOT IN (\(sources)) OR NOT EXISTS (
+                SELECT 1 FROM assets quoteAsset WHERE quoteAsset.id=prices.assetID
+                    AND quoteAsset.networkID='fantom' AND quoteAsset.reference='native'))
+            """
+    }()
     /// Prefer a current primary token quote over incidental inventory prices.
     /// Retain all fallback observations; after 60 seconds they are eligible
     /// again. The timestamp remains the original retrieval time.

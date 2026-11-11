@@ -6,10 +6,10 @@ import OathDatabase
     static func holding(_ index: Int, amount: String = "123456789", timestamp: Double = 1,
                         network: String = "ethereum", activity: Int = 0, pending: Int = 0,
                         native: Bool = false, account: String? = nil, price: String? = "12.5",
-                        rate: String? = "1", priceTimestamp: Double? = nil, verified: Bool = true) throws -> Holding {
+                        rate: String? = "1", priceTimestamp: Double? = nil, verified: Bool = true, decimals: Int = 8) throws -> Holding {
         var json: [String: Any] = ["accountID": account ?? "fixture-" + network, "networkID": network,
             "address": "public-fixture", "assetID": "asset-\(index)", "reference": native ? "native" : "token-\(index)",
-            "name": "Token \(index)", "symbol": "T\(index)", "decimals": 8, "amountAtomic": amount,
+            "name": "Token \(index)", "symbol": "T\(index)", "decimals": decimals, "amountAtomic": amount,
             "balanceObservedAt": timestamp,
             "priceObservedAt": priceTimestamp ?? timestamp, "priceSource": "fixture", "transactionCount": activity, "pendingTransactionCount": pending]
         json["homeVerified"] = verified
@@ -75,7 +75,73 @@ import OathDatabase
         print("PASS: stopped observer + partial provider failure publishes committed quantities, fiat rows and totals through production Home in USD/EUR/JOD; delayed prices revalue without reopening")
     }
 
+    static func verifyNativePickerDisplayEquality() throws {
+        precondition(OathImportChain.enabledCases.count == 42)
+        for (index, chain) in OathImportChain.enabledCases.enumerated() {
+            let current = try holding(index, network: chain.id, native: true)
+            let timestampOnly = try holding(index, timestamp: 99, network: chain.id, activity: 20, pending: 2, native: true)
+            precondition(current.hasSameAssetSelectionContent(as: timestampOnly), chain.id + ": observation/history changes must not redraw rows")
+            let quantity = try holding(index, amount: "223456789", network: chain.id, native: true)
+            let price = try holding(index, network: chain.id, native: true, price: "13")
+            let rate = try holding(index, network: chain.id, native: true, rate: "0.709")
+            for changed in [quantity, price, rate] {
+                precondition(!current.hasSameAssetSelectionContent(as: changed), chain.id + ": visible balances must update")
+            }
+            let unpriced = try holding(index, network: chain.id, native: true, price: nil)
+            let token = try holding(index, network: chain.id, native: false)
+            precondition(!current.hasSameAssetSelectionContent(as: unpriced))
+            precondition(!current.hasSameAssetSelectionContent(as: token))
+        }
+        print("PASS: all 42 native picker rows suppress timestamp/history redraws while updating quantity, price, rate and asset identity")
+    }
+
+    private final class Notifications: @unchecked Sendable {
+        private let lock = NSLock()
+        private var fired = false
+        func fire() { lock.withLock { fired = true } }
+        var changed: Bool { lock.withLock { fired } }
+    }
+
+    @MainActor static func verifyRowPublication() async throws {
+        for grouped in [false, true] {
+            let model = OathHomePortfolioModel()
+            var filter = PortfolioFilter()
+            filter.groupsTokensByChain = grouped
+            let a = try holding(0, amount: "1000000000000000000", native: true, decimals: 18)
+            let b = try holding(1)
+            try model.publish(try await model.prepare(input([a, b], filter: filter)))
+            let first = model.cell(a.id)!, untouched = model.cell(b.id)!
+            let one = Notifications(), two = Notifications(), order = Notifications()
+            withObservationTracking { _ = first.value } onChange: { one.fire() }
+            withObservationTracking { _ = untouched.value } onChange: { two.fire() }
+            withObservationTracking { _ = model.layout } onChange: { order.fire() }
+            let tick = try holding(0, amount: a.amountAtomic!, timestamp: 2, native: true, decimals: 18)
+            model.update(input([tick, b], filter: filter))
+            try await waitUntil { model.latestHolding(a.id)?.balanceObservedAt == 2 }
+            let tiny = try holding(0, amount: "1000000000000000001", timestamp: 3, native: true, decimals: 18)
+            model.update(input([tiny, b], filter: filter))
+            try await waitUntil { model.latestHolding(a.id)?.amountAtomic == tiny.amountAtomic }
+            precondition(!one.changed && !two.changed && !order.changed)
+            let visible = try holding(0, amount: "2000000000000000000", native: true, decimals: 18)
+            model.update(.init(walletID: "public-fixture", holdings: [visible, b], currency: "USD",
+                               total: 50, filter: filter, query: "", formattingLocale: "en_US", sortingLocale: "en_US"))
+            try await waitUntil { first.value.nativeSummary.contains("2") && model.total == "$50.00" }
+            precondition(one.changed && !two.changed && !order.changed)
+            precondition(first === model.cell(a.id) && untouched === model.cell(b.id))
+            let added = try holding(2, network: "bitcoin", native: true)
+            model.update(input([added, visible, b], filter: filter))
+            try await waitUntil { model.layout.first?.id == added.id }
+            precondition(order.changed && !two.changed)
+            model.update(input([visible, b, added], filter: filter))
+            try await waitUntil { model.layout.last?.id == added.id }
+            precondition(model.cell(a.id) === first && !two.changed)
+        }
+        print("PASS: flat/grouped stable cells, unchanged observation, exact sub-display quantities, coherent totals, insertions and reordering")
+    }
+
     @MainActor static func main() async throws {
+        try await verifyRowPublication()
+        try verifyNativePickerDisplayEquality()
         try await verifyLiveAssetFilters()
         try await verifyRefreshPublication()
         let matrix = try JSONDecoder().decode([String: String].self, from: Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1])))

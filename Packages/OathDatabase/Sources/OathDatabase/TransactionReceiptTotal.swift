@@ -28,6 +28,7 @@ struct ReceiptParties {
     let senderFee: String?
     var inputs: [TransactionEndpoint]? = nil
     var outputs: [TransactionEndpoint]? = nil
+    var bitcoinSignalsRBF: Bool? = nil
     var signedRecipientAmount: String? = nil
     var owner: String? = nil
     var isEVM = false

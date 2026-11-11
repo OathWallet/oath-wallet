@@ -26,8 +26,14 @@ final class OathWalletSession {
     // Display-only metadata survives a lock so SwiftUI does not destroy the
     // current navigation/sheet hierarchy. Secrets still live only in the vault.
     private(set) var displayedProfile: OathWalletProfile?
+    @ObservationIgnored private var storedPortfolio: WalletSnapshot?
+    private(set) var portfolioRevision: UInt64 = 0
+    @ObservationIgnored private var snapshotRequest: UInt64 = 0
     private(set) var portfolio: WalletSnapshot? {
-        didSet {
+        get { access(keyPath: \.portfolio); return storedPortfolio }
+        set {
+            withMutation(keyPath: \.portfolio) { storedPortfolio = newValue }
+            portfolioRevision &+= 1
             let hidden = portfolio?.settings["balancesHidden"] == "true"
             if balancesHidden != hidden { balancesHidden = hidden }
             if let portfolio, assetFilterEditorState?.walletID == portfolio.wallet.id {
@@ -67,6 +73,7 @@ final class OathWalletSession {
     private(set) var bitcoinRefreshing = false
     private(set) var bitcoinRefreshFailed = false
     private(set) var bitcoinRevision = 0
+    @ObservationIgnored private var homeActivationWork: Task<Void, Never>?
     @ObservationIgnored private var bitcoinWork: Task<Void, Never>?
     @ObservationIgnored private var solanaWork: Task<Void, Never>?
     @ObservationIgnored private var ankrWork: Task<Void, Never>?
@@ -418,6 +425,7 @@ final class OathWalletSession {
         generation = UUID()
         homePortfolio.cancel()
         stopBalanceDayObservation()
+        homeActivationWork?.cancel(); homeActivationWork = nil
         bitcoinWork?.cancel(); bitcoinWork = nil
         ankrWork?.cancel(); ankrWork = nil
         assetFilterWork?.cancel(); assetFilterWork = nil
@@ -573,7 +581,7 @@ final class OathWalletSession {
             }, isCurrent: {
                 token == generation && isUnlocked && displayedProfile?.id == current.id
             }, publish: { value in
-                try applyPortfolioSnapshot(value, walletID: current.id, token: token, database: database)
+                try await applyPortfolioSnapshot(value, walletID: current.id, token: token, database: database)
                 ensurePortfolioObservation(database: database, walletID: current.id, token: token, currency: currency)
             })
         } catch {
@@ -1427,25 +1435,24 @@ final class OathWalletSession {
         return profile.id.uuidString
     }
 
-    func customizeWallet(_ id: String, name: String, colorHex: String?, keepDefaultName: Bool = false) async throws {
+    func customizeWallet(_ id: String, name: String, colorHex: String?, keepDefaultName: Bool = false,
+                         strings: OathLocalizer = .current) async throws {
         guard isUnlocked else { throw OathWalletError.locked }
         guard !changingWallet else { throw OathWalletError.unavailable }
-        guard wallets.contains(where: { $0.id == id }) else { throw StoreError.missingRecord }
+        guard let wallet = wallets.first(where: { $0.id == id }) else { throw StoreError.missingRecord }
         let token = generation
         let database = try await vault.database()
         try Task.checkCancellation()
         guard token == generation, isUnlocked else { throw CancellationError() }
-        try await database.customizeWallet(id, name: name, colorHex: colorHex, keepDefaultName: keepDefaultName)
-        // Completion follows the committed snapshot, not an observation that
-        // may arrive on the following run loop. Home opens in the chosen color.
-        let records = try await vault.wallets()
-        var snapshot: WalletSnapshot?
-        if let selected = displayedProfile?.id.uuidString {
-            snapshot = try await database.snapshot(walletID: selected, currency: portfolio?.currency ?? "USD")
+        let committed = try await database.customizeWallet(id, name: name, colorHex: colorHex, keepDefaultName: keepDefaultName,
+                                                           automaticNameWhenEmpty: OathWalletNaming.automaticName(wallet, strings: strings))
+        try Task.checkCancellation()
+        guard token == generation, isUnlocked,
+              let index = wallets.firstIndex(where: { $0.id == id && $0.vaultReference == committed.vaultReference }) else {
+            throw CancellationError()
         }
-        guard token == generation, isUnlocked else { throw CancellationError() }
-        wallets = records
-        if let snapshot { portfolio = snapshot }
+        wallets[index] = committed
+        if portfolio?.wallet.id == id { portfolio?.applyCustomization(from: committed) }
         OathHaptics.shared.play(.success)
     }
 
@@ -1491,6 +1498,7 @@ final class OathWalletSession {
         tokenSelection.cancel()
         managedTokenOperations.cancel(); managedTokenRefreshes.cancel()
         solanaWork?.cancel(); solanaWork = nil
+        homeActivationWork?.cancel(); homeActivationWork = nil
         bitcoinWork?.cancel(); bitcoinWork = nil
         deletionTimer?.cancel(); deletionTimer = nil
         portfolioRefresh.stop()
@@ -1581,16 +1589,28 @@ final class OathWalletSession {
         }
         observeWallets(database: database, ids: Set(records.map(\.id)), token: token)
         scheduleDeletionCleanup()
-        await recordBalanceSnapshot(.appOpen, openingHome: true)
-        await OathPostSendBalanceRefresh.shared.resume(vault: vault)
         guard token == generation, isUnlocked else { throw CancellationError() }
+        homeActivationWork?.cancel()
+        let activation = Task { [weak self] in
+            guard let self, self.generation == token, self.isUnlocked, !Task.isCancelled else { return }
+            await self.recordBalanceSnapshot(.appOpen, openingHome: true)
+            guard self.generation == token, self.isUnlocked, !Task.isCancelled else { return }
+            await OathPostSendBalanceRefresh.shared.resume(vault: self.vault)
+        }
+        homeActivationWork = activation
         bitcoinWork?.cancel()
         bitcoinRefreshFailed = false
-        bitcoinWork = Task { [weak self] in await OathDiagnostics.attempt("refresh_bitcoin") { try await self?.refreshBitcoin() } }
+        bitcoinWork = Task { [weak self] in
+            await activation.value
+            guard token == self?.generation, !Task.isCancelled else { return }
+            await OathDiagnostics.attempt("refresh_bitcoin") { try await self?.refreshBitcoin() }
+        }
         let initialBitcoinWork = bitcoinWork
         ankrWork?.cancel()
         ankrRefreshFailed = false
         ankrWork = Task { [weak self] in
+            await activation.value
+            guard token == self?.generation, !Task.isCancelled else { return }
             await OathDiagnostics.attempt("refresh_ankr") { try await self?.refreshAnkr() }
             await initialBitcoinWork?.value
             guard let self, token == self.generation, self.isUnlocked, !Task.isCancelled else { return }
@@ -1619,8 +1639,8 @@ final class OathWalletSession {
         // SQL and formatting run on their own executors. No provider request or
         // authentication callback controls the availability of saved rows.
         async let history = OathDiagnostics.attempt("prepare_home_history") {
-            try await database.chainHistory(walletID: snapshot.wallet.id, currency: snapshot.currency,
-                                            limit: 51, localeIdentifier: locale)
+            try await OathHomeHistorySnapshot.preload(database: database, walletID: snapshot.wallet.id,
+                                                      currency: snapshot.currency, localeIdentifier: locale)
         }
         let day = BalanceDaySummary.interval(containing: Date())
         async let dailySummary = OathDiagnostics.attempt("prepare_balance_day") {
@@ -1631,13 +1651,42 @@ final class OathWalletSession {
         let summary = await dailySummary
         guard token == generation, !Task.isCancelled else { throw CancellationError() }
         try homePortfolio.publish(prepared)
-        homeHistory = items.map { .init(walletID: snapshot.wallet.id, currency: snapshot.currency,
-                                       localeIdentifier: locale, items: $0) }
+        if let items {
+            homeHistory = .init(walletID: snapshot.wallet.id, currency: snapshot.currency, localeIdentifier: locale, items: items)
+        } else if homeHistory?.walletID != snapshot.wallet.id || homeHistory?.currency != snapshot.currency {
+            homeHistory = nil
+        }
         // Preserve the matching last-known baseline if this best-effort local
         // read fails; never borrow another wallet/currency/day's comparison.
         if let summary { balanceDaySummary = summary }
         else if balanceDaySummary?.walletID != snapshot.wallet.id || balanceDaySummary?.currency != snapshot.currency
             || balanceDaySummary?.interval != day { balanceDaySummary = nil }
+    }
+
+    func rememberHomeHistory(_ page: OathHomeHistorySnapshot) {
+        guard isUnlocked, !changingWallet, !resetting, portfolio?.wallet.id == page.walletID,
+              portfolio?.currency == page.currency, homeHistory != page else { return }
+        homeHistory = page
+    }
+
+    // Keep one local page ready for transactions committed while another tab is open.
+    func observeHomeHistory(walletID: String, currency: String, localeIdentifier: String) async {
+        let token = generation
+        await OathDiagnostics.$operationID.withValue(UUID()) {
+            do {
+                let db = try await vault.database()
+                try Task.checkCancellation()
+                for try await page in db.observeChainHistory(walletID: walletID, currency: currency,
+                    limit: OathHomeHistorySnapshot.pageSize + 1, localeIdentifier: localeIdentifier) {
+                    guard !Task.isCancelled, token == generation else { return }
+                    rememberHomeHistory(.init(walletID: walletID, currency: currency,
+                                              localeIdentifier: localeIdentifier, items: page))
+                }
+            } catch {
+                guard !Task.isCancelled, token == generation else { return }
+                OathDiagnostics.record(error, component: "history", operation: "prepare_home_history")
+            }
+        }
     }
 
     private func observeWallets(database: OathDatabase, ids: Set<String>, token: UUID) {
@@ -1672,7 +1721,7 @@ final class OathWalletSession {
             guard let self else { return false }
             return token == self.generation && self.isUnlocked && self.displayedProfile?.id == walletID
         }, publish: { [weak self] value in
-            try self?.applyPortfolioSnapshot(value, walletID: walletID, token: token, database: database)
+            try await self?.applyPortfolioSnapshot(value, walletID: walletID, token: token, database: database)
         }, exhausted: { [weak self] in
             guard let self, token == self.generation else { return }
             self.observationCurrency = nil
@@ -1680,19 +1729,30 @@ final class OathWalletSession {
         })
     }
 
-    private func applyPortfolioSnapshot(_ value: WalletSnapshot, walletID: UUID, token: UUID, database: OathDatabase) throws {
+    private func applyPortfolioSnapshot(_ value: WalletSnapshot, walletID: UUID, token: UUID, database: OathDatabase) async throws {
         guard token == generation, case .home(let active) = state, active.id == walletID else { return }
-        let previous = portfolio
-        if previous != value { portfolio = value }
+        snapshotRequest &+= 1
+        let request = snapshotRequest, revision = portfolioRevision
+        let changes = await Self.compare(portfolio, with: value)
+        guard token == generation, isUnlocked, request == snapshotRequest, revision == portfolioRevision,
+              !Task.isCancelled else { return }
+        if changes.changed { portfolio = value }
         observeBalanceDay(database: database, walletID: walletID.uuidString, currency: value.currency,
                           interval: BalanceDaySummary.interval(containing: Date()), token: token)
-        if previous?.currency != value.currency || previous?.totalFiat != value.totalFiat
-            || previous?.valuationComplete != value.valuationComplete || previous?.holdings != value.holdings {
+        if changes.balanceChanged {
             scheduleBalanceSnapshot(token: token)
         }
         let updated = try OathWalletProfile.stored(value)
         if active != updated { publishHome(updated) }
     }
+
+    @concurrent private static func compare(_ previous: WalletSnapshot?, with value: WalletSnapshot)
+        async -> (changed: Bool, balanceChanged: Bool) {
+        let balanceChanged = previous?.currency != value.currency || previous?.totalFiat != value.totalFiat
+            || previous?.valuationComplete != value.valuationComplete || previous?.holdings != value.holdings
+        return (balanceChanged || previous != value, balanceChanged)
+    }
+
 
     private func publishHome(_ profile: OathWalletProfile) {
         if displayedProfile != profile { displayedProfile = profile }
@@ -1754,6 +1814,7 @@ final class OathWalletSession {
 
     private func continueReset() async {
         resetting = true; resetFailed = false
+        homeActivationWork?.cancel(); homeActivationWork = nil
         bitcoinWork?.cancel(); bitcoinWork = nil
         ankrWork?.cancel(); ankrWork = nil
         assetFilterWork?.cancel(); assetFilterWork = nil
@@ -1807,6 +1868,10 @@ enum OathWalletNaming {
     static func displayName(_ wallet: WalletRecord?, strings: OathLocalizer) -> String {
         guard let wallet else { return strings.text(.mainWalletName) }
         if !wallet.name.isEmpty { return wallet.name }
+        return automaticName(wallet, strings: strings)
+    }
+
+    static func automaticName(_ wallet: WalletRecord, strings: OathLocalizer) -> String {
         if wallet.kind == "passphrase" {
             return strings.format(.passphraseWalletName, strings.number(max(1, wallet.nameIndex)))
         }
@@ -1824,4 +1889,44 @@ enum OathWalletNaming {
         return wallet.nameIndex > 0 ? strings.format(.indexedWalletName, base, strings.number(wallet.nameIndex)) : base
     }
 
+}
+
+/// Keeps one idempotent local creation alive while the user edits its pending presentation.
+@MainActor @Observable
+final class OathWalletCreationPreparation {
+    private(set) var failed = false
+    @ObservationIgnored private var work: Task<Bool, Never>?
+    @ObservationIgnored private var attempt: UUID?
+
+    @discardableResult
+    func start(_ persist: @escaping @MainActor () async throws -> Void) -> Task<Bool, Never> {
+        if let work { return work }
+        let id = UUID()
+        attempt = id
+        failed = false
+        let current = Task {
+            do {
+                try Task.checkCancellation()
+                try await persist()
+                try Task.checkCancellation()
+                return self.attempt == id
+            } catch {
+                // diagnostics: wallet-creation-feedback; changeWallet already reports persistence failures.
+                if self.attempt == id {
+                    self.work = nil
+                    self.failed = !(error is CancellationError) && !Task.isCancelled
+                }
+                return false
+            }
+        }
+        work = current
+        return current
+    }
+
+    func cancel() {
+        attempt = nil
+        work?.cancel()
+        work = nil
+        failed = false
+    }
 }

@@ -1,35 +1,13 @@
 import SwiftUI
 
-/// Both wallet summaries end their actions at the same inset, regardless of
-/// whether the content above them is a portfolio change or an asset logo.
-/// Minimum sizing still allows larger text and stacked actions to grow.
-struct OathWalletSummaryLayout: Layout {
-    let viewportHeight: CGFloat
-    let bottomSafeAreaInset: CGFloat
+/// Home and Asset Detail measure the balance and actions at their natural height.
+struct OathWalletSummaryLayout<Content: View>: View {
+    @ViewBuilder let content: () -> Content
 
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let measured = subviews.map { $0.sizeThatFits(ProposedViewSize(width: proposal.width, height: nil)) }
-        // Keep equal header heights and enough space for the balance group
-        // to sit between the toolbar and actions, including at larger text sizes.
-        let minimumHeight = min(360, max(280, (viewportHeight + bottomSafeAreaInset) * 0.4))
-        return CGSize(width: proposal.width ?? measured.map(\.width).max() ?? 0,
-                      // Reserve at least 44pt above the centered group, even
-                      // with large text: a settled 28pt ring plus 8pt either
-                      // side fits without moving the balance while refreshing.
-                      height: max(minimumHeight, measured.reduce(0) { $0 + $1.height } + 44 * 2 + 40))
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        guard subviews.count == 2 else { return }
-        let childProposal = ProposedViewSize(width: bounds.width, height: nil)
-        let actionsHeight = subviews[1].sizeThatFits(childProposal).height
-        let actionsTop = bounds.maxY - 40 - actionsHeight
-        // Center the whole balance group in the available space. Measuring the
-        // actions also preserves centering when they stack for larger text.
-        subviews[0].place(at: CGPoint(x: bounds.midX, y: (bounds.minY + actionsTop) / 2),
-                          anchor: .center, proposal: childProposal)
-        subviews[1].place(at: CGPoint(x: bounds.midX, y: bounds.maxY - 40),
-                          anchor: .bottom, proposal: childProposal)
+    var body: some View {
+        VStack(spacing: 44, content: content)
+            .padding(.top, 36)
+            .padding(.bottom, 40)
     }
 }
 
@@ -67,8 +45,7 @@ private struct OathHeaderBounds: PreferenceKey {
     }
 }
 
-/// The artwork owns its contrast requirement; the enclosing screen passes it
-/// to native bars without changing the appearance of the list or presented sheets.
+/// The header reports only when artwork enters or leaves the bar's background.
 private struct OathArtworkAtScrollEdge: PreferenceKey {
     // Unrelated children contribute the identity value, never overwrite a
     // measured list surface. Welcome has no scrolling surface and stays dark.
@@ -76,28 +53,32 @@ private struct OathArtworkAtScrollEdge: PreferenceKey {
     static func reduce(value: inout Bool, nextValue: () -> Bool) { value = value && nextValue() }
 }
 
-struct OathArtworkNavigationAppearance: ViewModifier {
-    @Environment(\.colorScheme) private var colorScheme
+#if canImport(UIKit)
+struct OathArtworkBarAppearance: ViewModifier {
+    var stylesNavigationBar = false
+    var hasArtworkHeader = true
     @State private var artworkAtTop = true
+    @Environment(\.colorScheme) private var colorScheme
 
     func body(content: Content) -> some View {
-        // Resolve the navigation bar explicitly on both surfaces. Clearing the
-        // preference leaves custom toolbar hosts to inherit their previous or
-        // system appearance, which can differ from the app's selected theme.
-        // This styles native chrome only, never the list or presented sheets.
-        let navigationScheme: ColorScheme = artworkAtTop ? .dark : colorScheme
+        let overArtwork = hasArtworkHeader && artworkAtTop
+        let screen = content
+            .onPreferenceChange(OathArtworkAtScrollEdge.self) { artworkAtTop = $0 }
+        let scheme: ColorScheme = overArtwork ? .dark : colorScheme
         if #available(iOS 27, *) {
-            content
-                .toolbarColorScheme(navigationScheme, for: .navigationBar)
-                .toolbarColorScheme(artworkAtTop ? .dark : nil, for: .statusBar)
-                .onPreferenceChange(OathArtworkAtScrollEdge.self) { artworkAtTop = $0 }
+            if stylesNavigationBar {
+                screen.toolbarColorScheme(scheme, for: .navigationBar, .statusBar)
+            } else {
+                screen.toolbarColorScheme(artworkAtTop ? .dark : nil, for: .statusBar)
+            }
+        } else if stylesNavigationBar {
+            screen.toolbarColorScheme(scheme, for: .navigationBar)
         } else {
             content
-                .toolbarColorScheme(navigationScheme, for: .navigationBar)
-                .onPreferenceChange(OathArtworkAtScrollEdge.self) { artworkAtTop = $0 }
         }
     }
 }
+#endif
 
 /// Dark mode carries the animated colors through one continuous frosted panel.
 /// Keep the material behind the entire list, rather than giving reusable rows
@@ -105,45 +86,45 @@ struct OathArtworkNavigationAppearance: ViewModifier {
 struct OathHeaderScrollBackground<Artwork: View>: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    @ViewBuilder let artwork: () -> Artwork
+    @ViewBuilder let artwork: (Bool) -> Artwork
+
+    init(@ViewBuilder artwork: @escaping (Bool) -> Artwork) { self.artwork = artwork }
+    init(@ViewBuilder artwork: @escaping () -> Artwork) { self.artwork = { _ in artwork() } }
 
     func body(content: Content) -> some View {
-        content.overlayPreferenceValue(OathHeaderBounds.self) { bounds in
-            GeometryReader { geometry in
-                Color.clear.preference(key: OathArtworkAtScrollEdge.self,
-                    value: bounds.map { geometry[$0].maxY + OathHomeBodySurface.clearance > 0 } ?? false)
-            }
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
-        }
-        .backgroundPreferenceValue(OathHeaderBounds.self) { bounds in
-            GeometryReader { geometry in
-                let top = bounds.map { geometry[$0].maxY + OathHomeBodySurface.clearance } ?? 0
-                let bottom = top + (bounds == nil ? 0 : OathHomeBodySurface.cornerRadius)
-                let frosted = colorScheme == .dark && !reduceTransparency
-                Color(uiColor: OathSurfaceColors.groupedCanvas)
-                    .overlay {
-                        artwork()
-                            .mask(alignment: .top) {
-                                Rectangle().frame(height: frosted ? geometry.size.height : max(0, min(geometry.size.height, bottom)))
-                            }
-                    }
-                    .overlay(alignment: .bottom) {
-                        if frosted {
-                            Rectangle()
-                                .fill(.regularMaterial)
-                                .overlay(Color.black.opacity(0.18))
-                                .overlay {
-                                    LinearGradient(colors: [.white.opacity(0.04), .clear, .black.opacity(0.12)],
-                                                   startPoint: .topLeading, endPoint: .bottomTrailing)
-                                }
-                                .mask(alignment: .bottom) {
-                                    Rectangle().frame(height: max(0, min(geometry.size.height, geometry.size.height - top)))
+        content.backgroundPreferenceValue(OathHeaderBounds.self) { bounds in
+            GeometryReader { viewport in
+                let edge = bounds.map { viewport[$0].maxY + OathHomeBodySurface.clearance }
+                GeometryReader { geometry in
+                    let inset = viewport.frame(in: .global).minY - geometry.frame(in: .global).minY
+                    let top = edge.map { $0 + inset } ?? 0
+                    let bottom = top + (bounds == nil ? 0 : OathHomeBodySurface.cornerRadius)
+                    let frosted = colorScheme == .dark && !reduceTransparency
+                    Color(uiColor: OathSurfaceColors.groupedCanvas)
+                        .overlay {
+                            artwork(geometry.size.height > 0 && (frosted || bottom > 0))
+                                .mask(alignment: .top) {
+                                    Rectangle().frame(height: frosted ? geometry.size.height : max(0, min(geometry.size.height, bottom)))
                                 }
                         }
-                    }
+                        .overlay(alignment: .bottom) {
+                            if frosted {
+                                Rectangle()
+                                    .fill(.regularMaterial)
+                                    .overlay(Color.black.opacity(0.18))
+                                    .overlay {
+                                        LinearGradient(colors: [.white.opacity(0.04), .clear, .black.opacity(0.12)],
+                                                       startPoint: .topLeading, endPoint: .bottomTrailing)
+                                    }
+                                    .mask(alignment: .bottom) {
+                                        Rectangle().frame(height: max(0, min(geometry.size.height, geometry.size.height - top)))
+                                    }
+                            }
+                        }
+                }
+                .ignoresSafeArea()
+                .preference(key: OathArtworkAtScrollEdge.self, value: (edge ?? 0) > 0)
             }
-            .ignoresSafeArea()
             .allowsHitTesting(false)
             .accessibilityHidden(true)
         }
@@ -159,8 +140,8 @@ private struct OathHomeBodySurface: View {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     // Keep the canvas below the native glass actions' backdrop.
     nonisolated static let clearance: CGFloat = 8
-    // The old width-dependent 96–112pt inset reserved room for a fade that no
-    // longer exists. Section content now starts at the regular list margin.
+    // Align section content with the standard list margin.
+    // No additional inset is needed for the section edge.
     nonisolated static let contentInset: CGFloat = 20
     nonisolated static let cornerRadius: CGFloat = 0
 

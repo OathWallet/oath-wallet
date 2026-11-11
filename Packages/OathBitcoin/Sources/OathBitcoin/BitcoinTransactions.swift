@@ -19,6 +19,7 @@ public enum BitcoinTransactions {
     public struct Details: Sendable {
         public let txid: String
         public let coinbase: Bool
+        public let signalsRBF: Bool
         public let inputs: [Input]
         public let outputs: [Output]
     }
@@ -32,6 +33,7 @@ public enum BitcoinTransactions {
             return Output(value: Int64(output.value.toSat()), script: script.hex, address: address(script, network: network))
         }
         return Details(txid: tx.computeTxid().description, coinbase: tx.isCoinbase(),
+            signalsRBF: !tx.isCoinbase() && tx.input().contains { $0.sequence < 0xfffffffe },
             inputs: tx.isCoinbase() ? [] : tx.input().map { Input(txid: $0.previousOutput.txid.description, index: Int($0.previousOutput.vout)) }, outputs: outputs)
     }
     private static func address(_ script: Data, network: UTXONetwork) -> String? {

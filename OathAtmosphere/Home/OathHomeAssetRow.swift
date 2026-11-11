@@ -109,8 +109,9 @@ private struct OathUntrackedPriceBounds: PreferenceKey {
 extension View {
     /// A sibling hit target over the label avoids nesting a button inside the
     /// asset navigation button. Remaining row taps still open asset details.
-    func oathUntrackedPriceAction(_ action: @escaping () -> Void) -> some View {
-        modifier(OathUntrackedPriceAction(action: action))
+    @ViewBuilder func oathUntrackedPriceAction(enabled: Bool = true, _ action: @escaping () -> Void) -> some View {
+        if enabled { modifier(OathUntrackedPriceAction(action: action)) }
+        else { self }
     }
 }
 
@@ -119,8 +120,8 @@ private struct OathUntrackedPriceAction: ViewModifier {
     @Environment(\.oathLocalizer) private var strings
     func body(content: Content) -> some View {
         content.overlayPreferenceValue(OathUntrackedPriceBounds.self) { anchor in
-            GeometryReader { geometry in
-                if let anchor {
+            if let anchor {
+                GeometryReader { geometry in
                     let bounds = geometry[anchor]
                     OathButton(action: action) {
                         Color.clear.contentShape(Rectangle())
@@ -157,7 +158,7 @@ struct OathAssetTreeHeading: View {
 }
 
 struct OathAssetTreeRow<Content: View>: View {
-    let entry: OathHomeAssetTreeEntry?
+    let entry: OathHomeRowLayout?
     @ViewBuilder let content: () -> Content
     @ScaledMetric(relativeTo: .body) private var indentation = 28.0
     @ScaledMetric(relativeTo: .body) private var iconSize = 40.0
@@ -167,7 +168,7 @@ struct OathAssetTreeRow<Content: View>: View {
         content()
             .padding(.leading, entry?.isChild == true ? indentation : 0)
             .overlay {
-                if let entry {
+                if let entry, entry.isChild || entry.hasChildren {
                     OathAssetTreeBranch(isChild: entry.isChild, hasChildren: entry.hasChildren,
                         continues: entry.continues, indentation: indentation,
                         iconSize: iconSize, iconColumnWidth: iconColumnWidth)

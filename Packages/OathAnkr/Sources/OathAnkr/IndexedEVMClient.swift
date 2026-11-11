@@ -48,20 +48,39 @@ public struct IndexedEVMClient: Sendable {
         filecoinArchive = FilecoinHistoryArchive(transport: transport)
     }
     private struct Exchange: Sendable { let value: SolanaJSON; let raw: Data }
-    private func exchange(_ request: URLRequest) async throws -> Exchange {
+    private func exchange(_ request: URLRequest, monadTokenPage: Bool = false) async throws -> Exchange {
+        var retriedThrottle = false
         for attempt in 0..<3 {
             try Task.checkCancellation()
             do {
-                let (data, status) = try await transport.sendPreservingTransportError(request)
-                guard data.count <= 64 * 1024 * 1024 else { throw AnkrError.responseTooLarge }
-                guard status == 200 else { throw AnkrError.http(status) }
-                return Exchange(value: try JSONDecoder().decode(SolanaJSON.self, from: data), raw: data)
+                let response: AnkrHTTPResponse
+                if monadTokenPage {
+                    response = try await transport.sendResponsePreservingTransportError(request)
+                } else {
+                    let (data, status) = try await transport.sendPreservingTransportError(request)
+                    response = .init(data: data, status: status)
+                }
+                guard response.data.count <= 64 * 1024 * 1024 else { throw AnkrError.responseTooLarge }
+                let value = response.status == 200 ? try JSONDecoder().decode(SolanaJSON.self, from: response.data) : nil
+                let rpcThrottle = monadTokenPage && value?["jsonrpc"].string == "2.0" && value?["id"].integer == 1 && value?["error"]["code"].text == "429"
+                if monadTokenPage, response.status == 429 || rpcThrottle {
+                    let error = rpcThrottle ? AnkrError.rpc(429) : AnkrError.http(429)
+                    guard !retriedThrottle, attempt < 2,
+                          let delay = AnkrReadRetry.indexRateLimitDelay(response.retryAfter, now: .now) else { throw error }
+                    OathDiagnostics.record(error, operation: "monad_index_rate_limit",
+                                           context: ["chain": "monad", "method": "alchemy_getTokenBalances"])
+                    retriedThrottle = true
+                    try await Task.sleep(for: .seconds(delay))
+                    continue
+                }
+                guard let value else { throw AnkrError.http(response.status) }
+                return Exchange(value: value, raw: response.data)
             } catch {
                 if error is CancellationError || Task.isCancelled || (error as? URLError)?.code == .cancelled { throw CancellationError() }
                 OathDiagnostics.record(error, operation: "indexed_read", context: ["chain": chain.rawValue, "host": request.url?.host ?? ""])
                 let retry: Bool
                 switch error {
-                case AnkrError.http(let code): retry = code == 429 || (500...599).contains(code)
+                case AnkrError.http(let code): retry = (!monadTokenPage && code == 429) || (500...599).contains(code)
                 default: retry = AnkrReadRetry.transientTransport(error)
                 }
                 if retry, attempt < 2 { try await Task.sleep(for: .milliseconds(500 * (1 << attempt))); continue }
@@ -234,12 +253,80 @@ public struct IndexedEVMClient: Sendable {
               case .object(let object) = try JSONDecoder().decode(SolanaJSON.self, from: bytes) else { throw AnkrError.invalidResponse }
         return object
     }
+    private static func metadataServiceUnavailable(_ error: any Error) -> Bool {
+        switch error {
+        case AnkrError.transport: return true
+        case AnkrError.http(let code): return code == 429 || (500...599).contains(code)
+        case AnkrError.rpc(let code): return code == 429 || AnkrReadRetry.gatewayRecoveryCodes.contains(code)
+        default: return false
+        }
+    }
+
+    private func metadataBatch(_ calls: [(String, [SolanaJSON])], recoverMonadDiscovery: Bool) async throws -> ([SolanaJSON], [Data])? {
+        func read(_ client: Self, _ batch: [(String, [SolanaJSON])]) async throws -> ([SolanaJSON], Data) {
+            let (rows, raw) = try await client.rpc([("eth_chainId", [])] + batch)
+            guard try IndexedEVMIdentity.amount(Self.result(rows[0])) == String(chain.chainID) else { throw AnkrError.wrongChain }
+            return (rows, raw)
+        }
+        let alternate = recoverMonadDiscovery && chain == .monad && fallbackEndpoint != endpoint ? fallbackEndpoint : nil
+        func recover(_ batch: [(String, [SolanaJSON])], using alternate: URL) async throws -> ([SolanaJSON], Data)? {
+            try Task.checkCancellation()
+            var recovery = self
+            recovery.endpoint = alternate
+            do { return try await read(recovery, batch) }
+            catch {
+                try Task.checkCancellation()
+                guard Self.metadataServiceUnavailable(error) else { throw error }
+                OathDiagnostics.record(error, operation: "monad_metadata_unavailable",
+                                       context: ["chain": chain.rawValue, "host": alternate.host ?? "", "stage": "metadata"])
+                return nil
+            }
+        }
+
+        var (rows, raw): ([SolanaJSON], Data)
+        do { (rows, raw) = try await read(self, calls) }
+        catch {
+            try Task.checkCancellation()
+            guard let alternate, Self.metadataServiceUnavailable(error) else { throw error }
+            OathDiagnostics.record(error, operation: "monad_metadata_fallback",
+                                   context: ["chain": chain.rawValue, "host": endpoint.host ?? "", "stage": "metadata"])
+            guard let (alternateRows, alternateRaw) = try await recover(calls, using: alternate) else { return nil }
+            return (alternateRows, [alternateRaw])
+        }
+        guard let alternate else { return (rows, [raw]) }
+        // HTTP 200 can contain a gateway rejection for just one decimals call.
+        // Keep successful siblings and optional labels. State reads recheck precision at the pinned block.
+        let failed = calls.indices.compactMap { index -> (index: Int, code: Int)? in
+            let row = rows[index + 1]
+            guard calls[index].1.first?["data"].string == "0x313ce567", row["result"].isNull,
+                  let code = row["error"]["code"].text.flatMap(Int.init),
+                  Self.metadataServiceUnavailable(AnkrError.rpc(code)) else { return nil }
+            return (index, code)
+        }
+        guard let first = failed.first else { return (rows, [raw]) }
+        OathDiagnostics.record(AnkrError.rpc(first.code), operation: "monad_metadata_fallback",
+                               context: ["chain": chain.rawValue, "host": endpoint.host ?? "", "stage": "metadata"])
+        do {
+            guard let (replies, recoveryRaw) = try await recover(failed.map { calls[$0.index] }, using: alternate) else {
+                return (rows, [raw])
+            }
+            for (call, reply) in zip(failed, replies.dropFirst()) { rows[call.index + 1] = reply }
+            return (rows, [raw, recoveryRaw])
+        } catch {
+            if error is CancellationError || Task.isCancelled { throw CancellationError() }
+            // Reject the alternate batch without losing valid primary metadata.
+            OathDiagnostics.record(error, operation: "monad_metadata_unavailable",
+                                   context: ["chain": chain.rawValue, "host": alternate.host ?? "", "stage": "metadata"])
+            return (rows, [raw])
+        }
+    }
+
     /// ERC-20 metadata is optional in the index. Resolve missing fields from
     /// contracts in bounded batches; decimals are never guessed.
-    private func metadata(_ references: [String]) async throws -> ([String: IndexedEVMToken], [Data]) {
+    private func metadata(_ references: [String], recoverMonadDiscovery: Bool = false) async throws -> ([String: IndexedEVMToken], [Data]) {
         let refs = Array(Set(try references.map(IndexedEVMIdentity.address))).sorted()
         let chunks = stride(from: 0, to: refs.count, by: (chain.batchLimit - 1) / 3).map { Array(refs[$0..<min($0 + (chain.batchLimit - 1) / 3, refs.count)]) }
-        return try await withThrowingTaskGroup(of: ([String: IndexedEVMToken], Data).self) { group in
+        return try await withThrowingTaskGroup(of: ([String: IndexedEVMToken], [Data]).self) { group in
             var next = 0, tokens: [String: IndexedEVMToken] = [:], archive: [Data] = []
             func enqueue() {
                 guard next < chunks.count else { return }
@@ -250,8 +337,7 @@ public struct IndexedEVMClient: Sendable {
                             ("eth_call", [SolanaJSON.object(["to": .string(ref), "data": .string(selector)]), .string("latest")])
                         }
                     }
-                    let (rows, raw) = try await rpc([("eth_chainId", [])] + calls)
-                    guard try IndexedEVMIdentity.amount(Self.result(rows[0])) == String(chain.chainID) else { throw AnkrError.wrongChain }
+                    guard let (rows, raw) = try await metadataBatch(calls, recoverMonadDiscovery: recoverMonadDiscovery) else { return ([:], []) }
                     var found: [String: IndexedEVMToken] = [:]
                     for (i, ref) in batch.enumerated() {
                         let offset = 1 + i * 3
@@ -274,12 +360,15 @@ public struct IndexedEVMClient: Sendable {
             }
             for _ in 0..<min(4, chunks.count) { enqueue() }
             for try await (found, raw) in group {
-                tokens.merge(found, uniquingKeysWith: { first, _ in first }); archive.append(raw); enqueue()
+                tokens.merge(found, uniquingKeysWith: { first, _ in first })
+                archive.append(contentsOf: raw)
+                enqueue()
             }
             return (tokens, archive)
         }
     }
-    private func discover(owner: String) async throws -> ([IndexedEVMToken], [Data], Set<String>, Set<String>) {
+    private typealias Discovery = ([IndexedEVMToken], [Data], Set<String>, Set<String>)
+    private func discover(owner: String) async throws -> Discovery {
         if chain == .monad { return try await monadDiscovery(owner: owner) }
         var cursor: String?, visited: Set<String> = [], tokens: [String: IndexedEVMToken] = [:]
         var raw: [Data] = [], missing: [String] = [], seen: Set<String> = []
@@ -305,6 +394,23 @@ public struct IndexedEVMClient: Sendable {
         tokens.merge(resolved, uniquingKeysWith: { first, _ in first })
         return (tokens.values.sorted { $0.reference < $1.reference }, raw + metadataRaw, seen, [])
     }
+    private func independentMonadProof(_ calls: [(String, [SolanaJSON])]) async throws -> ([SolanaJSON], Data) {
+        // The archive must be independent of the node that supplied the pinned state.
+        var reader = self
+        if let alchemyEndpoint, alchemyEndpoint != endpoint {
+            reader.endpoint = alchemyEndpoint
+            do {
+                return try await reader.rpc(calls)
+            } catch AnkrError.http(429) {
+                // exchange already recorded the rate limit and exhausted its retries.
+            }
+        }
+        try Task.checkCancellation()
+        let archive = URL(string: "https://rpc2.monad.xyz")!
+        guard archive != endpoint else { throw AnkrError.incompleteInventory }
+        reader.endpoint = archive
+        return try await reader.rpc(calls)
+    }
     /// Alchemy may return a zero-balance EIP-7702 account in its ERC-20 list.
     /// Treat it as a non-token only when two independent nodes agree at the
     /// pinned block: identical delegation code and no ABI balance/decimals.
@@ -312,10 +418,8 @@ public struct IndexedEVMClient: Sendable {
     /// or ambiguous response can never take this path. No balance is fabricated.
     private func nonTokenIndexReferences(_ references: [String], owner: String, blockNumber: String,
                                          blockHash: String) async -> (Set<String>, [Data]) {
-        guard chain == .monad, let alternate = alchemyEndpoint, alternate != endpoint else { return ([], []) }
+        guard chain == .monad else { return ([], []) }
         let refs = Array(references.sorted().prefix(16)) // Bound recovery work during a broad provider outage.
-        var backup = self; backup.endpoint = alternate
-        let independent = backup
         let balanceData = "0x70a08231" + String(repeating: "0", count: 24) + owner.dropFirst(2)
         var verified: Set<String> = [], archive: [Data] = []
         for offset in stride(from: 0, to: refs.count, by: 2) {
@@ -331,7 +435,7 @@ public struct IndexedEVMClient: Sendable {
                 await OathDiagnostics.attempt("non_token_index_validation") {
                     try Task.checkCancellation()
                     async let primary = rpc(requests)
-                    async let secondary = independent.rpc(requests)
+                    async let secondary = independentMonadProof(requests)
                     let (left, right) = try await (primary, secondary)
                     for rows in [left.0, right.0] {
                         guard try IndexedEVMIdentity.amount(Self.result(rows[0])) == String(chain.chainID),
@@ -387,12 +491,24 @@ public struct IndexedEVMClient: Sendable {
     }
     private func inventoryFromRPC(owner: String, tracked: [IndexedEVMToken]) async throws -> IndexedEVMInventory {
         let owner = try chain == .iotex ? IoTeXIdentity.ethereum(owner) : IndexedEVMIdentity.address(owner)
-        async let discovery = await OathDiagnostics.attempt("token_discovery") { try await discover(owner: owner) }
+        async let discovery = discover(owner: owner)
         let (head, headRaw) = try await rpc([("eth_chainId", []), ("eth_getBlockByNumber", [.string("latest"), .bool(false)])])
         guard try IndexedEVMIdentity.amount(Self.result(head[0])) == String(chain.chainID) else { throw AnkrError.wrongChain }
         let block = try Self.result(head[1]), height = try IndexedEVMIdentity.height(block["number"])
         guard let blockNumber = block["number"].string, let hash = block["hash"].string, AnkrQuantity.hash(hash) else { throw AnkrError.invalidResponse }
-        let discovered = await discovery
+        let discovered: Discovery?
+        var issue: IndexedEVMInventory.IncompleteReason?
+        do { discovered = try await discovery }
+        catch {
+            try Task.checkCancellation()
+            if error is CancellationError { throw error }
+            OathDiagnostics.record(error, operation: "token_discovery")
+            discovered = nil
+            switch error {
+            case AnkrError.rpc(429), AnkrError.http(429): issue = .indexRateLimited
+            default: issue = .indexUnavailable
+            }
+        }
         try Task.checkCancellation()
         var tokens = Dictionary((discovered?.0 ?? []).map { ($0.reference, $0) }, uniquingKeysWith: { first, _ in first })
         for token in tracked where token.reference != "native" && token.reference != chain.nativeERC20 {
@@ -488,8 +604,12 @@ public struct IndexedEVMClient: Sendable {
         // Every indexed reference needs verified metadata or the narrow two-node
         // non-token proof. Failed pagination and unknown tokens remain partial.
         let metadataCovered = discovered.map { $0.2.isSubset(of: Set(tokens.keys).union(nonTokenProof.0)) } == true
+        if issue == nil {
+            if !metadataCovered { issue = .metadataUnverified }
+            else if gathered.0.contains(where: { $0.amount == nil }) { issue = .balanceUnavailable }
+        }
         return .init(chain: chain, owner: owner, block: height, blockHash: hash, observedAt: .now,
-                     holdings: gathered.0, complete: metadataCovered && gathered.0.allSatisfy { $0.amount != nil }, raw: archive)
+                     holdings: gathered.0, complete: issue == nil, incompleteReason: issue, raw: archive)
     }
     enum HistoryAvailability: DiagnosticAvailabilityError {
         case missingRPCRecord, filecoinWrappingEvidenceRequired
@@ -1028,10 +1148,11 @@ private extension IndexedEVMClient {
         request.httpBody = try JSONEncoder().encode(SolanaJSON.object(["jsonrpc": .string("2.0"), "id": .number("1"), "method": .string(method), "params": .array(params)]))
         try await indexPermits.acquire()
         do {
-            let response = try await exchange(request)
+            let response = try await exchange(request, monadTokenPage: method == "alchemy_getTokenBalances")
             guard response.value["id"].integer == 1, response.value["jsonrpc"].string == "2.0" else { throw AnkrError.invalidResponse }
             let value = try Self.result(response.value)
-            await indexPermits.release(); return .init(value: value, raw: response.raw)
+            await indexPermits.release()
+            return .init(value: value, raw: response.raw)
         } catch { OathDiagnostics.record(error, operation: "monad_index"); await indexPermits.release(); throw error }
     }
 
@@ -1062,7 +1183,7 @@ private extension IndexedEVMClient {
         } while page != nil
         // Discovery is only a contract list. Values, decimals and chain identity
         // are read independently from the selected RPC at the pinned block.
-        let (tokens, metadataRaw) = try await metadata(Array(references))
+        let (tokens, metadataRaw) = try await metadata(Array(references), recoverMonadDiscovery: true)
         return (tokens.values.sorted { $0.reference < $1.reference }, raw + metadataRaw, references, indexedZero.subtracting(ineligibleZero))
     }
 

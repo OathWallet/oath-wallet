@@ -283,7 +283,22 @@ public struct NativeRefreshScroll<Content: View>: View {
             restingTopInset = nil
         }
 
-        @objc private func panChanged() { scrollViewDidScroll(scroll) }
+        @objc private func panChanged(_ pan: UIPanGestureRecognizer) {
+            switch pan.state {
+            case .began:
+                pullGesture.beginPan()
+                updateDragging(enabled)
+            case .ended, .cancelled, .failed:
+                pullGesture.endPan(at: restingPosition)
+                pullFeedback = RefreshPullFeedback()
+                updateDragging(false)
+            default: break
+            }
+        }
+
+        private var restingPosition: CGFloat {
+            scroll.contentOffset.y + (restingTopInset ?? scroll.adjustedContentInset.top)
+        }
 
         public override func viewWillAppear(_ animated: Bool) {
             super.viewWillAppear(animated)
@@ -305,10 +320,6 @@ public struct NativeRefreshScroll<Content: View>: View {
         }
 
         public func scrollViewDidScroll(_ scrollView: UIScrollView) {
-            // The recognizer ends on finger release, before native deceleration
-            // or refresh rebound finishes. Observe it without taking ownership.
-            let gestureState = scrollView.panGestureRecognizer.state
-            updateDragging(enabled && (gestureState == .began || gestureState == .changed))
             if activeRequest == nil && !control.isRefreshing && !model.cycle.isReturning {
                 restingTopInset = scrollView.adjustedContentInset.top
             }
@@ -317,6 +328,7 @@ public struct NativeRefreshScroll<Content: View>: View {
             guard indicator != .system else { return }
             let panState = scrollView.panGestureRecognizer.state
             pullGesture.observe(position: -origin, isPanning: panState == .began || panState == .changed)
+            if indicator == .progressRing, origin <= 0, model.cycle.phase == .idle { return }
             let allowsPull = pullGesture.allowsRefresh
             var cycle = model.cycle
             if !allowsPull && (cycle.phase == .idle || cycle.phase == .pulling) {
@@ -343,13 +355,15 @@ public struct NativeRefreshScroll<Content: View>: View {
             positionIndicator()
         }
 
-        public func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
-            scrollViewDidScroll(scrollView)
-            updateDragging(false)
-        }
+
+        private var positionedIdleRing = false
 
         fileprivate func positionIndicator() {
             guard isViewLoaded, let nativeControl = attachedScroll?.refreshControl else { return }
+            let idleRing = indicator == .progressRing && model.cycle.phase == .idle
+            if idleRing && positionedIdleRing && restingPosition >= 0 &&
+                ringIndicatorView.superview === nativeControl { return }
+            positionedIdleRing = idleRing
             // Keep the visual inside UIRefreshControl for its entire lifetime,
             // exactly like the logo. UIKit owns reveal, inset and return motion.
             if indicatorView.superview !== nativeControl {

@@ -2,16 +2,28 @@ import Foundation
 import OathAnkr
 
 extension OathSendModel {
+    /// The balance used for amount validation and Max is spendable, not gross
+    /// holdings. An entered/previously reviewed amount is never enlarged here.
+    var validatedBalance: String? {
+        guard let holding, let value = senderSnapshot, let identity = senderSnapshotIdentity,
+              identity.wallet == walletID, identity.account == holding.accountID,
+              identity.chain == holding.networkID, identity.asset == holding.assetID, identity.reference == holding.reference,
+              identity.decimals == holding.decimals,
+              identity.amountAtomic == holding.amountAtomic,
+              identity.pending == holding.pendingTransactionCount else { return holding?.amountAtomic }
+        return value.spendable
+    }
+
     func balanceIdentity(session: OathWalletSession) -> OathSendBalanceIdentity? {
         guard session.isUnlocked, !session.resetting, !session.changingWallet, supportsSend,
-              let holding, !holding.isCatalogPreview, let snapshot,
+              let holding, !holding.isCatalogPreview, let snapshot, snapshot.wallet.id == walletID,
               let account = snapshot.accounts.first(where: { $0.id == holding.accountID }),
               session.wallets.contains(where: { $0.id == walletID }) else { return nil }
         return .init(session: session.sendSessionGeneration, wallet: walletID, account: account.id,
                      chain: holding.networkID, asset: holding.assetID, reference: holding.reference, decimals: holding.decimals,
                      sender: account.address,
                      publicPolicy: snapshot.wallet.kind + ":" + snapshot.wallet.vaultReference + ":" + account.derivationPath + ":" + String(account.syncGeneration) + ":" + balancePreparationGeneration.uuidString,
-                     observation: holding.balanceObservedAt, pending: holding.pendingTransactionCount)
+                     amountAtomic: holding.amountAtomic, pending: holding.pendingTransactionCount)
     }
 
     func startBalancePreparation(session: OathWalletSession) async {

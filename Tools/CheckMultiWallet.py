@@ -28,6 +28,7 @@ with tempfile.TemporaryDirectory(prefix="oath-multiwallet-") as temporary:
         "Wallet/OathWalletVault.swift", "Wallet/OathWalletSession.swift", "Wallet/OathVaultEnvelope.swift",
         "Wallet/OathWalletRestoration.swift", "Wallet/OathMultisigCreation.swift",
         "Home/OathHomePortfolioModel.swift", "Home/OathAssetAmountFormat.swift",
+        "Home/OathAssetFilterModel.swift",
         "Wallet/OathRecoveryPhraseModel.swift",
         "Wallet/OathPassphraseWalletModel.swift", "Wallet/OathWalletRemovalModel.swift",
         "Wallet/OathPrivateKeyModel.swift",
@@ -40,12 +41,16 @@ with tempfile.TemporaryDirectory(prefix="oath-multiwallet-") as temporary:
         "Passcode/OathPasscodeStore.swift", "Passcode/OathPasscodeSetupModel.swift", "Passcode/OathBiometricSetup.swift",
         "Passcode/OathBiometricCredentialStore.swift", "Passcode/OathBiometricPresentation.swift", "Passcode/OathDeviceBiometrics.swift",
         "Tokens/OathTokenNetwork.swift",
-        "Send/OathSendDiagnostics.swift",
+        "Send/OathSendDiagnostics.swift", "Send/OathSendFailure.swift",
         "Import/OathImportCatalog.swift", "Import/OathMnemonicValidator.swift",
         "Localization/OathLocalization.swift", "Localization/OathLanguageCatalog.swift", "Localization/OathStringKey.swift",
     ]
     for file in files:
         shutil.copyfile(root / "OathAtmosphere" / file, sources / Path(file).name)
+    # Compile the production row, operation state and refresh queue used by the
+    # session. The unrelated token-search screen model has its own host harness.
+    managed = (root / "OathAtmosphere/Tokens/OathManageTokensModel.swift").read_text()
+    (sources / "OathManagedTokenOperations.swift").write_text(managed.split("protocol OathManagedTokenCatalog:")[0])
     # New multisig paths use production descriptors and signing policy. Only
     # WalletCore's iOS-only BIP39 seed call is replaced by the equivalent host KDF.
     multisig = (root / "OathAtmosphere/Wallet/OathBitcoinMultisig.swift").read_text().replace("import WalletCore\n", "")
@@ -481,7 +486,7 @@ actor OathAnkrSync {
         try Task.checkCancellation()
         if let refreshFailure { throw refreshFailure }
     }
-    func refreshBalances(walletID: String) async throws { try Task.checkCancellation() }
+    func refreshBalances(walletID: String, networkIDs: Set<String>? = nil) async throws { try Task.checkCancellation() }
     func refreshCronos(walletID: String) async throws { try Task.checkCancellation() }
     func refreshSolana(accountID: String) async throws {
         try Task.checkCancellation(); completedSolanaRefreshes += 1
@@ -508,6 +513,7 @@ actor OathMarketEnvironment {
 struct FixtureMarketService: Sendable {
     // Provider behavior is covered by OathMarketData package tests.
     func refreshNativeQuotes(networkIDs: [String]) async { }
+    func refreshTokenQuotes(walletID: String) async { }
     func quote(for asset: MarketAsset) async throws { try Task.checkCancellation() }
 }
 """)
@@ -625,6 +631,7 @@ extension OathPostSendBalanceRefresh { func submitted(walletID: String, networkI
 }
 """)
     if "--lifecycle" in sys.argv:
+        shutil.copyfile(root / "Tools/CheckSendFailure.swift", sources / "CheckSendFailure.swift")
         check = sources / "CheckMultiWallet.swift"
         check.write_text(check.read_text().replace("@main", ""))
         (sources / "CheckLifecycleMain.swift").write_text("""
@@ -632,6 +639,7 @@ extension OathPostSendBalanceRefresh { func submitted(walletID: String, networkI
     @MainActor static func main() async throws {
         _ = try await CheckMultiWallet.checkWalletLifecycle()
         _ = try await CheckMultiWallet.checkReset()
+        CheckMultiWallet.checkSendFailure()
     }
 }
 """)

@@ -181,7 +181,6 @@ enum OathWalletCreationOptions {
 
 struct OathWalletActions: View {
     let identifier: String
-    var isCreating = false
     let onCreate: () -> Void
     let onCreateMultisig: () -> Void
     let onImport: () -> Void
@@ -191,7 +190,7 @@ struct OathWalletActions: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            action(.createWallet, icon: "plus.circle", suffix: "create", working: isCreating, onCreate)
+            action(.createWallet, icon: "plus.circle", suffix: "create", onCreate)
             if OathWalletCreationOptions.showsMultisig {
                 action(.createMultisignatureWallet, icon: "signature", suffix: "createMultisig", onCreateMultisig)
             }
@@ -201,10 +200,10 @@ struct OathWalletActions: View {
         }
     }
 
-    private func action(_ title: OathStringKey, icon: String, suffix: String, working: Bool = false,
+    private func action(_ title: OathStringKey, icon: String, suffix: String,
                         _ action: @escaping () -> Void) -> some View {
         OathButton(action: action) {
-            OathSettingsRow(title: strings.text(title), icon: icon, isWorking: working)
+            OathSettingsRow(title: strings.text(title), icon: icon)
         }
         .buttonStyle(OathSettingsRowButtonStyle())
         .accessibilityIdentifier(identifier + "." + suffix)

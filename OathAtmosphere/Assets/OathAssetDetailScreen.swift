@@ -9,12 +9,9 @@ import OathNativeRefresh
 struct OathAssetDetailScreen: View {
     let route: OathAssetRoute
     let session: OathWalletSession
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.oathWalletSidebar) private var sidebar
     @Environment(\.oathLocalizer) private var strings
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @State private var model = OathAssetDetailModel()
     @State private var scrollEffects = OathHomeScrollEffects()
     @State private var sheet: Sheet?
@@ -23,17 +20,15 @@ struct OathAssetDetailScreen: View {
     @State private var scanUsesCurrentAsset = true
     @State private var selectedTransaction: HistoryEntry?
     @State private var showsAllActivity = false
-    @State private var chartExpanded = false
-    @State private var chartSelectedDate: Date?
     private enum Sheet: Identifiable {
-        case receive, send, information, verification, priceUntracked
+        case receive, send, information, verification, priceChart
         var id: String {
             switch self {
             case .receive: "receive"
             case .send: "send"
             case .information: "information"
             case .verification: "verification"
-            case .priceUntracked: "priceUntracked"
+            case .priceChart: "priceChart"
             }
         }
     }
@@ -53,7 +48,8 @@ struct OathAssetDetailScreen: View {
     private var currency: String { session.portfolio?.currency ?? "USD" }
     private var active: Bool { scenePhase == .active && session.isUnlocked && session.portfolio?.wallet.id == route.walletID }
     private var metadataReady: Bool { active && !holding.isCatalogPreview }
-    private var networkName: String { session.portfolio?.networks.first { $0.id == holding.networkID }?.name ?? holding.networkID }
+    private var network: NetworkRecord? { session.portfolio?.networks.first { $0.id == route.holding.networkID } }
+    private var networkName: String { network?.name ?? OathImportChain(rawValue: holding.networkID)?.name ?? holding.networkID }
     private var receiveAddress: OathWalletAddress? {
         guard let chain = OathImportChain(rawValue: holding.networkID) else { return nil }
         let path = session.portfolio?.accounts.first { $0.id == holding.accountID }?.derivationPath ?? ""
@@ -115,21 +111,20 @@ struct OathAssetDetailScreen: View {
                     }
                 }) {
                 OathHeaderScrollContent(viewportHeight: geometry.size.height, fillsViewport: model.history.isEmpty) {
-                    summary(viewportHeight: geometry.size.height, bottomSafeAreaInset: geometry.safeAreaInsets.bottom)
+                    summary()
                 } content: {
                     OathEmptyStateLayout(centersContent: model.history.isEmpty) {
-                        VStack(alignment: .leading, spacing: 28) {
-                            market
-                            Text(strings.text(.assetActivity)).oathFont(.title3, weight: .bold)
-                                .accessibilityAddTraits(.isHeader)
-                        }.frame(maxWidth: .infinity, alignment: .leading).padding(.bottom, 28)
+                        Text(strings.text(.assetActivity)).oathFont(.title3, weight: .bold)
+                            .accessibilityAddTraits(.isHeader)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.bottom, 28)
                         activity.padding(.bottom, 28)
-                        // Keep both actions in the layout's single footer slot.
                         VStack(alignment: .leading, spacing: 0) {
                             OathHairline()
                                 .padding(.horizontal, -20)
                                 .padding(.bottom, 12)
                             if holding.reference != "native" { verificationRow }
+                            priceRow
                             OathButton { sheet = .information } label: {
                                 OathSettingsRow(title: strings.text(.assetInformation), icon: "info.circle",
                                     subtitle: strings.text(.assetInformationDetail))
@@ -144,45 +139,12 @@ struct OathAssetDetailScreen: View {
                 }
             }
             .id(strings.language.isRightToLeft)
-            .modifier(OathWalletHeaderBackground(animates: active && sheet == nil && !showsScanner,
+            .modifier(OathWalletHeaderBackground(animates: active && !sidebar.isVisible && sheet == nil && !showsScanner,
                 colorHex: session.portfolio?.wallet.colorHex, effects: scrollEffects))
         }
         .background(Color(uiColor: OathSurfaceColors.groupedCanvas).ignoresSafeArea())
-        .navigationBarBackButtonHidden()
-        .background(OathNativeBackGesture(isEnabled: active && sheet == nil && !showsScanner))
+        .toolbar { assetToolbar }
         .toolbar(.hidden, for: .bottomBar, .tabBar)
-        .toolbar {
-            OathArtworkToolbar {
-                OathAssetBackButton(name: strings.invariant(holding.name), backLabel: strings.text(.back),
-                    chain: holding.reference == "native" ? nil : OathImportChain(rawValue: holding.networkID)) { dismiss() }
-            } trailing: {
-                HStack(spacing: 0) {
-                    OathButton { sheet = .information } label: {
-                        OathNavigationToolbarSymbol("info.circle")
-                            .frame(width: 44, height: 44)
-                            .contentShape(Circle())
-                    }
-                    .accessibilityLabel(strings.text(.assetInformation))
-                    .accessibilityIdentifier("asset.information")
-                    Divider()
-                        .frame(height: 22)
-                        .accessibilityHidden(true)
-                    OathButton(feedback: .scan) {
-                        guard canScan else { return }
-                        scannedRecipient = nil
-                        scanUsesCurrentAsset = true
-                        showsScanner = true
-                    } label: {
-                        OathNavigationToolbarSymbol("viewfinder")
-                            .frame(width: 44, height: 44)
-                            .contentShape(Circle())
-                    }
-                    .disabled(!canScan)
-                    .accessibilityLabel(strings.text(.scan))
-                    .accessibilityIdentifier("asset.scanner")
-                }
-            }
-        }
         .navigationDestination(isPresented: Binding(get: { selectedTransaction != nil }, set: { if !$0 { selectedTransaction = nil } })) {
             if let selectedTransaction {
                 OathTransactionDetailScreen(entry: model.history.first { $0.id == selectedTransaction.id }?.entry ?? selectedTransaction,
@@ -193,7 +155,7 @@ struct OathAssetDetailScreen: View {
             OathChainActivityScreen(walletID: route.walletID, networkID: holding.networkID,
                 networkName: networkName, accountID: holding.accountID, assetID: holding.assetID, session: session)
         }
-        .oathArtworkAppBar()
+        .oathNativeAppBar(title: strings.invariant(holding.name))
         .oathScannerCover(isPresented: $showsScanner, onDismiss: {
             guard scannedRecipient != nil, canScan else { scannedRecipient = nil; return }
             sheet = .send
@@ -208,8 +170,7 @@ struct OathAssetDetailScreen: View {
                     .environment(\.oathScanSession, session)
             }
         }
-        .sheet(item: $sheet,
-               onDismiss: { scannedRecipient = nil; scanUsesCurrentAsset = true }) { selection in
+        .sheet(item: $sheet, onDismiss: { scannedRecipient = nil; scanUsesCurrentAsset = true }) { selection in
             Group {
                 switch selection {
                 case .receive:
@@ -223,10 +184,11 @@ struct OathAssetDetailScreen: View {
                     OathAssetInformationSheet(holding: holding, networkName: networkName, currency: currency, model: model)
                 case .verification:
                     verificationSheet
-                case .priceUntracked:
-                    OathWalletInfoSheet(title: .assetPriceUnavailable, icon: "exclamationmark.circle",
-                                        detail: .assetPriceUntrackedDetail)
-                        .accessibilityIdentifier("asset.priceUntracked.sheet")
+                case .priceChart:
+                    OathAssetPriceSheet(symbol: holding.symbol, quote: displayQuote, chart: model.chart,
+                        chartLoading: metadataReady && model.loading && model.chart == nil && !model.chartFailed,
+                        chartFailed: model.chartFailed,
+                        conversionRate: conversionRate, quoteCurrency: quoteCurrency, priceText: priceText)
                 }
             }.oathLanguage(strings.language)
         }
@@ -329,19 +291,17 @@ struct OathAssetDetailScreen: View {
         }
     }
 
-    private func summary(viewportHeight: CGFloat, bottomSafeAreaInset: CGFloat) -> some View {
-        OathWalletSummary(viewportHeight: viewportHeight, bottomSafeAreaInset: bottomSafeAreaInset) {
+    private func summary() -> some View {
+        OathWalletSummary {
             OathWalletBalance(value: String(OathAssetAmountFormat(locale: strings.language.locale,
                 selectedCurrencyCode: currency).fiat(.init(native: holding.nativeDisplayValue ?? .zero,
                 fiat: holding.fiatDisplayValue ?? .zero, currencyCode: currency)).characters),
-                concealed: session.balancesHidden, valueIdentifier: "asset.fiatBalance") {
-                OathAssetLogo(holding: holding, information: model.information?.value,
-                              size: OathWalletSummaryStyle.identityHeight)
-            }
+                concealed: session.balancesHidden, valueIdentifier: "asset.fiatBalance", title: strings.text(.totalBalance))
         } detail: {
             Text(strings.invariant(
                 OathAssetAmountFormat(locale: strings.language.locale).native(holding.nativeDisplayValue, ticker: holding.symbol)))
                 .oathFont(.title3).foregroundStyle(.white.opacity(0.8)).monospacedDigit()
+                .lineLimit(1).minimumScaleFactor(0.5)
                 .oathBalanceConcealed(session.balancesHidden)
                 .accessibilityIdentifier("asset.balance")
         } send: {
@@ -379,197 +339,40 @@ struct OathAssetDetailScreen: View {
         showsScanner = false
     }
 
-    private var market: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .center, spacing: 16) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(strings.format(.assetPrice, strings.invariant(holding.symbol)))
-                        .oathFont(.subheadline).foregroundStyle(.secondary)
-                    if let price = selectedChartPoint.map({ Decimal($0.close) }) ?? displayQuote?.value {
-                        Text(priceText(price)).oathFont(.title2, weight: .medium).monospacedDigit()
-                            .lineLimit(1).minimumScaleFactor(0.7)
-                            .accessibilityIdentifier("asset.price")
-                    } else if model.quoteLoading && !route.holding.isCatalogPreview {
-                        ProgressView().accessibilityLabel(strings.text(.assetMarketLoading))
-                    } else {
-                        OathButton { sheet = .priceUntracked } label: {
-                            Label(strings.text(.assetPriceUnavailable), systemImage: "exclamationmark.circle")
-                                .labelStyle(OathPriceUntrackedLabelStyle())
-                                .oathFont(.body).foregroundStyle(.secondary)
-                                .frame(minHeight: 44).contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("asset.priceUntracked")
-                    }
-                }
-                Spacer(minLength: 4)
-                if let chart = availableChart {
-                    OathButton {
-                        withAnimation(reduceMotion ? nil : .smooth(duration: 0.25)) { chartExpanded.toggle() }
-                    } label: {
-                        VStack(alignment: .trailing, spacing: 7) {
-                            if chart.isFresh(lifetime: 600), !model.chartFailed, let change = chart.value.changePercent {
-                                Text(change.formatted(.number.sign(strategy: .always()).precision(.fractionLength(2))
-                                    .locale(strings.language.locale)) + "%")
-                                    .foregroundStyle(OathAssetChartPalette.color(for: change)).monospacedDigit()
-                            }
-                            Label(strings.text(.assetChart24h), systemImage: chartExpanded ? "chevron.up" : "chevron.down")
-                                .foregroundStyle(.secondary)
-                        }.oathFont(.caption, weight: .medium).padding(.vertical, 8).contentShape(Rectangle())
-                    }.buttonStyle(.plain).accessibilityIdentifier("asset.chartToggle")
-                }
+    @ViewBuilder private var priceRow: some View {
+        let title = strings.format(.assetPrice, strings.invariant(holding.symbol))
+        if let quote = displayQuote {
+            OathButton(feedback: .navigate) {
+                guard displayQuote != nil else { return }
+                sheet = .priceChart
+            } label: {
+                OathSettingsRow(title: title, icon: "chart.xyaxis.line", subtitle: priceText(quote.value))
             }
-            if let date = selectedChartPoint.map({ Date(timeIntervalSince1970: $0.time) }) ?? displayQuote?.date {
-                Text(date
-                    .formatted(.dateTime.month(.abbreviated).day().hour().minute().locale(strings.language.locale)))
-                    .oathFont(.caption2).foregroundStyle(.secondary)
-            }
-            if chartExpanded { chartContent }
-        }
-        .padding(18)
-        .background { priceCardBackground }
-        .onChange(of: chartExpanded) { _, expanded in if !expanded { chartSelectedDate = nil } }
-        .onChange(of: scenePhase) { _, phase in if phase != .active { chartSelectedDate = nil } }
-        .onDisappear { chartSelectedDate = nil }
-    }
-
-    @ViewBuilder private var priceCardBackground: some View {
-        let shape = RoundedRectangle(cornerRadius: 26, style: .continuous)
-        if colorScheme == .dark && !reduceTransparency {
-            // A denser native frost and a subtle rim distinguish the price
-            // card from the regular material on the surrounding activity panel.
-            shape.fill(.thickMaterial)
-                .overlay {
-                    shape.fill(LinearGradient(colors: [.white.opacity(0.08), .white.opacity(0.02)],
-                                              startPoint: .topLeading, endPoint: .bottomTrailing))
-                }
-                .overlay { shape.strokeBorder(.white.opacity(0.12), lineWidth: 0.5) }
+            .buttonStyle(OathSettingsRowButtonStyle())
+            .padding(.horizontal, -20)
+            .accessibilityIdentifier("asset.priceRow")
         } else {
-            shape.fill(Color(uiColor: OathSurfaceColors.field))
+            let loading = model.quoteLoading && !holding.isCatalogPreview
+            OathSettingsRow(title: title, icon: "chart.xyaxis.line", accessory: .none,
+                subtitle: strings.text(loading ? .assetMarketLoading : .assetPriceUnavailable), isWorking: loading)
+                .padding(.horizontal, -20)
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("asset.priceUntracked")
         }
     }
 
-    private var displayQuote: (value: Decimal, date: Date)? {
-        if let quote = model.quote, let value = quote.value.decimal, quote.isFresh(lifetime: 120), !model.quoteFailed {
+    private var displayQuote: (value: Decimal, date: Date?)? {
+        if let quote = model.quote, let value = quote.value.decimal, value > 0, quote.isFresh(lifetime: 120), !model.quoteFailed {
             return (value, quote.fetchedAt)
         }
         if let text = holding.usdPrice, let value = Decimal(string: text, locale: Locale(identifier: "en_US_POSIX")),
-           value > 0, let date = holding.priceObservedAt {
-            return (value, Date(timeIntervalSince1970: date))
+           value > 0 {
+            return (value, holding.priceObservedAt.map(Date.init(timeIntervalSince1970:)))
         }
-        if let quote = model.quote, let value = quote.value.decimal { return (value, quote.fetchedAt) }
+        if let quote = model.quote, let value = quote.value.decimal, value > 0 { return (value, quote.fetchedAt) }
         return nil
     }
 
-    private var availableChart: CachedMarketValue<MarketChart>? {
-        guard let chart = model.chart, chart.value.points.count >= 2 else { return nil }
-        return chart
-    }
-
-    private var selectedChartPoint: MarketCandle? {
-        guard chartExpanded, let date = chartSelectedDate, let points = availableChart?.value.points,
-              let index = OathChartFeedback.nearestIndex(to: date.timeIntervalSince1970, times: points.map(\.time)) else { return nil }
-        return points[index]
-    }
-
-    @ViewBuilder private var chartContent: some View {
-        if let saved = availableChart {
-            let points = saved.value.points
-            let rate = conversionRate
-            let minimum = (points.map(\.close).min() ?? 0) * rate
-            let maximum = (points.map(\.close).max() ?? 1) * rate
-            let inset = max((maximum - minimum) * 0.12, maximum * 0.001)
-            let lowerBound = max(0, minimum - inset)
-            let change = saved.value.changePercent ?? ((points.last?.close ?? 0) - (points.first?.close ?? 0))
-            let color = OathAssetChartPalette.color(for: change)
-            Chart {
-                ForEach(points) { point in
-                    AreaMark(x: .value(strings.text(.assetTime), Date(timeIntervalSince1970: point.time)),
-                             yStart: .value(strings.text(.assetPriceLabel), lowerBound),
-                             yEnd: .value(strings.text(.assetPriceLabel), point.close * rate))
-                        .interpolationMethod(.monotone)
-                        .foregroundStyle(LinearGradient(colors: [color.opacity(0.22), color.opacity(0.02)],
-                                                        startPoint: .top, endPoint: .bottom))
-                        .accessibilityHidden(true)
-                    LineMark(x: .value(strings.text(.assetTime), Date(timeIntervalSince1970: point.time)),
-                             y: .value(strings.text(.assetPriceLabel), point.close * rate))
-                        // Monotone curves soften corners without inventing
-                        // peaks or troughs between the actual closing prices.
-                        .interpolationMethod(.monotone)
-                        .lineStyle(.init(lineWidth: 2.75, lineCap: .round, lineJoin: .round))
-                        .foregroundStyle(color)
-                }
-                if let selected = selectedChartPoint {
-                    RuleMark(x: .value(strings.text(.assetTime), Date(timeIntervalSince1970: selected.time)))
-                        .foregroundStyle(Color.secondary.opacity(0.5))
-                        .lineStyle(.init(lineWidth: 1, dash: [4, 4]))
-                        .accessibilityHidden(true)
-                    PointMark(x: .value(strings.text(.assetTime), Date(timeIntervalSince1970: selected.time)),
-                              y: .value(strings.text(.assetPriceLabel), selected.close * rate))
-                        .symbolSize(65)
-                        .foregroundStyle(color)
-                        .accessibilityHidden(true)
-                } else if let last = points.last {
-                    PointMark(x: .value(strings.text(.assetTime), Date(timeIntervalSince1970: last.time)),
-                              y: .value(strings.text(.assetPriceLabel), last.close * rate))
-                        .symbolSize(30)
-                        .foregroundStyle(color)
-                        .accessibilityHidden(true)
-                }
-            }
-            .chartXSelection(value: $chartSelectedDate)
-            .onChange(of: chartSelectedDate) { oldDate, newDate in
-                guard let newDate,
-                      let index = OathChartFeedback.nearestIndex(to: newDate.timeIntervalSince1970, times: points.map(\.time)) else { return }
-                let oldIndex = oldDate.flatMap { OathChartFeedback.nearestIndex(to: $0.timeIntervalSince1970, times: points.map(\.time)) }
-                guard index != oldIndex else { return }
-                let low = points.map(\.close).min() ?? 0
-                let range = (points.map(\.close).max() ?? low) - low
-                let height = range > 0 ? (points[index].close - low) / range : 0.5
-                let movement = oldIndex.map { range > 0 ? abs(points[index].close - points[$0].close) / range : 0 } ?? 0
-                OathHaptics.shared.playChartSample(height: height, movement: movement)
-            }
-            .onChange(of: saved.fetchedAt) { _, _ in chartSelectedDate = nil }
-            .chartYScale(domain: lowerBound...(maximum + inset))
-            .chartXScale(range: .plotDimension(padding: 5))
-            .chartYAxis {
-                AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) {
-                    AxisGridLine(stroke: .init(lineWidth: 0.5))
-                        .foregroundStyle(Color.secondary.opacity(0.16))
-                    AxisValueLabel(format: FloatingPointFormatStyle<Double>(locale: strings.language.locale)
-                        .notation(.compactName).precision(.fractionLength(0...2)))
-                        .foregroundStyle(Color.secondary)
-                }
-            }
-            .chartXAxis {
-                AxisMarks(values: .automatic(desiredCount: 3)) {
-                    AxisValueLabel(format: .dateTime.hour(.defaultDigits(amPM: .abbreviated))
-                        .locale(strings.language.locale))
-                        .foregroundStyle(Color.secondary)
-                }
-            }
-            .frame(height: 180).padding(.top, 16)
-            // Time increases left to right in all languages; surrounding UI is RTL-aware.
-            .environment(\.layoutDirection, .leftToRight)
-            .environment(\.locale, strings.language.locale)
-            .accessibilityIdentifier("asset.chart")
-            .accessibilityValue(selectedChartPoint.map {
-                priceText(Decimal($0.close)) + ", " + Date(timeIntervalSince1970: $0.time)
-                    .formatted(.dateTime.month(.abbreviated).day().hour().minute().locale(strings.language.locale))
-            } ?? "")
-            .accessibilityAdjustableAction { direction in
-                let index = chartSelectedDate.flatMap {
-                    OathChartFeedback.nearestIndex(to: $0.timeIntervalSince1970, times: points.map(\.time))
-                } ?? (points.count - 1)
-                switch direction {
-                case .increment: chartSelectedDate = Date(timeIntervalSince1970: points[min(points.count - 1, index + 1)].time)
-                case .decrement: chartSelectedDate = Date(timeIntervalSince1970: points[max(0, index - 1)].time)
-                @unknown default: break
-                }
-            }
-            Text(strings.format(.assetChartCurrency, quoteCurrency)).oathFont(.caption2).foregroundStyle(.secondary)
-        }
-    }
     private var conversionRate: Double {
         guard currency != "USD", let rate = holding.exchangeRate.flatMap(Double.init), rate.isFinite, rate > 0 else { return 1 }
         return rate
@@ -615,6 +418,173 @@ struct OathAssetDetailScreen: View {
             }
         }
     }
+
+    @ToolbarContentBuilder private var assetToolbar: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            OathButton(strings.text(.assetInformation), systemImage: "info.circle") { sheet = .information }
+                .accessibilityIdentifier("asset.information")
+        }
+        ToolbarItem(placement: .topBarTrailing) {
+            OathButton(strings.text(.scan), systemImage: "viewfinder", feedback: .scan) {
+                guard canScan else { return }
+                scannedRecipient = nil
+                scanUsesCurrentAsset = true
+                showsScanner = true
+            }
+            .disabled(!canScan)
+            .accessibilityIdentifier("asset.scanner")
+        }
+    }
+}
+
+private struct OathAssetPriceSheet: View {
+    let symbol: String
+    let quote: (value: Decimal, date: Date?)?
+    let chart: CachedMarketValue<MarketChart>?
+    let chartLoading: Bool
+    let chartFailed: Bool
+    let conversionRate: Double
+    let quoteCurrency: String
+    let priceText: (Decimal) -> String
+    @State private var chartSelectedDate: Date?
+    @Environment(\.oathLocalizer) private var strings
+    @Environment(\.scenePhase) private var scenePhase
+
+    var body: some View {
+        OathWalletSheet(title: .assetChart24h) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(strings.format(.assetPrice, strings.invariant(symbol)))
+                    .oathFont(.subheadline).foregroundStyle(.secondary)
+                HStack {
+                    if let price = selectedChartPoint.map({ Decimal($0.close) }) ?? quote?.value {
+                        Text(priceText(price)).oathFont(.title2, weight: .medium).monospacedDigit()
+                            .accessibilityIdentifier("asset.price")
+                    }
+                    Spacer(minLength: 8)
+                    if let chart, chart.isFresh(lifetime: 600), !chartFailed, let change = chart.value.changePercent {
+                        Text(change.formatted(.number.sign(strategy: .always()).precision(.fractionLength(2))
+                            .locale(strings.language.locale)) + "%")
+                            .oathFont(.subheadline).foregroundStyle(OathAssetChartPalette.color(for: change)).monospacedDigit()
+                    }
+                }
+                if let date = selectedChartPoint.map({ Date(timeIntervalSince1970: $0.time) }) ?? quote?.date {
+                    Text(date.formatted(.dateTime.month(.abbreviated).day().hour().minute().locale(strings.language.locale)))
+                        .oathFont(.caption2).foregroundStyle(.secondary)
+                }
+                if let chart, chart.value.points.count >= 2 {
+                    chartContent(chart)
+                } else if chartLoading {
+                    ProgressView(strings.text(.assetMarketLoading)).frame(maxWidth: .infinity)
+                } else {
+                    Text(strings.text(.assetChartUnavailable)).oathFont(.subheadline).foregroundStyle(.secondary)
+                }
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in if phase != .active { chartSelectedDate = nil } }
+    }
+
+    private var selectedChartPoint: MarketCandle? {
+        guard let date = chartSelectedDate, let points = chart?.value.points,
+              let index = OathChartFeedback.nearestIndex(to: date.timeIntervalSince1970, times: points.map(\.time)) else { return nil }
+        return points[index]
+    }
+
+    @ViewBuilder private func chartContent(_ saved: CachedMarketValue<MarketChart>) -> some View {
+        let points = saved.value.points
+        let rate = conversionRate
+        let minimum = (points.map(\.close).min() ?? 0) * rate
+        let maximum = (points.map(\.close).max() ?? 1) * rate
+        let inset = max((maximum - minimum) * 0.12, maximum * 0.001)
+        let lowerBound = max(0, minimum - inset)
+        let change = saved.value.changePercent ?? ((points.last?.close ?? 0) - (points.first?.close ?? 0))
+        let color = OathAssetChartPalette.color(for: change)
+        Chart {
+            ForEach(points) { point in
+                AreaMark(x: .value(strings.text(.assetTime), Date(timeIntervalSince1970: point.time)),
+                         yStart: .value(strings.text(.assetPriceLabel), lowerBound),
+                         yEnd: .value(strings.text(.assetPriceLabel), point.close * rate))
+                    .interpolationMethod(.monotone)
+                    .foregroundStyle(LinearGradient(colors: [color.opacity(0.22), color.opacity(0.02)],
+                                                    startPoint: .top, endPoint: .bottom))
+                    .accessibilityHidden(true)
+                LineMark(x: .value(strings.text(.assetTime), Date(timeIntervalSince1970: point.time)),
+                         y: .value(strings.text(.assetPriceLabel), point.close * rate))
+                    // Monotone curves soften corners without inventing
+                    // peaks or troughs between the actual closing prices.
+                    .interpolationMethod(.monotone)
+                    .lineStyle(.init(lineWidth: 2.75, lineCap: .round, lineJoin: .round))
+                    .foregroundStyle(color)
+            }
+            if let selected = selectedChartPoint {
+                RuleMark(x: .value(strings.text(.assetTime), Date(timeIntervalSince1970: selected.time)))
+                    .foregroundStyle(Color.secondary.opacity(0.5))
+                    .lineStyle(.init(lineWidth: 1, dash: [4, 4]))
+                    .accessibilityHidden(true)
+                PointMark(x: .value(strings.text(.assetTime), Date(timeIntervalSince1970: selected.time)),
+                          y: .value(strings.text(.assetPriceLabel), selected.close * rate))
+                    .symbolSize(65)
+                    .foregroundStyle(color)
+                    .accessibilityHidden(true)
+            } else if let last = points.last {
+                PointMark(x: .value(strings.text(.assetTime), Date(timeIntervalSince1970: last.time)),
+                          y: .value(strings.text(.assetPriceLabel), last.close * rate))
+                    .symbolSize(30)
+                    .foregroundStyle(color)
+                    .accessibilityHidden(true)
+            }
+        }
+        .chartXSelection(value: $chartSelectedDate)
+        .onChange(of: chartSelectedDate) { oldDate, newDate in
+            guard let newDate,
+                  let index = OathChartFeedback.nearestIndex(to: newDate.timeIntervalSince1970, times: points.map(\.time)) else { return }
+            let oldIndex = oldDate.flatMap { OathChartFeedback.nearestIndex(to: $0.timeIntervalSince1970, times: points.map(\.time)) }
+            guard index != oldIndex else { return }
+            let low = points.map(\.close).min() ?? 0
+            let range = (points.map(\.close).max() ?? low) - low
+            let height = range > 0 ? (points[index].close - low) / range : 0.5
+            let movement = oldIndex.map { range > 0 ? abs(points[index].close - points[$0].close) / range : 0 } ?? 0
+            OathHaptics.shared.playChartSample(height: height, movement: movement)
+        }
+        .onChange(of: saved.fetchedAt) { _, _ in chartSelectedDate = nil }
+        .chartYScale(domain: lowerBound...(maximum + inset))
+        .chartXScale(range: .plotDimension(padding: 5))
+        .chartYAxis {
+            AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) {
+                AxisGridLine(stroke: .init(lineWidth: 0.5))
+                    .foregroundStyle(Color.secondary.opacity(0.16))
+                AxisValueLabel(format: FloatingPointFormatStyle<Double>(locale: strings.language.locale)
+                    .notation(.compactName).precision(.fractionLength(0...2)))
+                    .foregroundStyle(Color.secondary)
+            }
+        }
+        .chartXAxis {
+            AxisMarks(values: .automatic(desiredCount: 3)) {
+                AxisValueLabel(format: .dateTime.hour(.defaultDigits(amPM: .abbreviated))
+                    .locale(strings.language.locale))
+                    .foregroundStyle(Color.secondary)
+            }
+        }
+        .frame(height: 180).padding(.top, 16)
+        // Time increases left to right in all languages; surrounding UI is RTL-aware.
+        .environment(\.layoutDirection, .leftToRight)
+        .environment(\.locale, strings.language.locale)
+        .accessibilityIdentifier("asset.chart")
+        .accessibilityValue(selectedChartPoint.map {
+            priceText(Decimal($0.close)) + ", " + Date(timeIntervalSince1970: $0.time)
+                .formatted(.dateTime.month(.abbreviated).day().hour().minute().locale(strings.language.locale))
+        } ?? "")
+        .accessibilityAdjustableAction { direction in
+            let index = chartSelectedDate.flatMap {
+                OathChartFeedback.nearestIndex(to: $0.timeIntervalSince1970, times: points.map(\.time))
+            } ?? (points.count - 1)
+            switch direction {
+            case .increment: chartSelectedDate = Date(timeIntervalSince1970: points[min(points.count - 1, index + 1)].time)
+            case .decrement: chartSelectedDate = Date(timeIntervalSince1970: points[max(0, index - 1)].time)
+            @unknown default: break
+            }
+        }
+        Text(strings.format(.assetChartCurrency, quoteCurrency)).oathFont(.caption2).foregroundStyle(.secondary)
+    }
 }
 
 /// Explicit adaptive chart colors never inherit the artwork's white tint.
@@ -645,4 +615,7 @@ struct OathAssetLogo: View {
             OathTokenLogo(source: information?.imageURL ?? holding.logo, symbol: holding.symbol, size: size, fallbackSource: holding.logo, identity: holding.artworkIdentity)
         }
     }
+
+
+
 }

@@ -18,10 +18,12 @@ enum OathLogoTexture {
             encoder.setComputePipelineState(pipeline)
             encoder.setTexture(source, index: 0)
             encoder.setTexture(texture, index: 1)
-            encoder.dispatchThreads(
-                MTLSize(width: source.width, height: source.height, depth: 1),
-                threadsPerThreadgroup: MTLSize(width: 16, height: 16, depth: 1)
-            )
+            // Older simulator GPUs require uniform threadgroups. The kernel
+            // skips any threads beyond the last row or column of the texture.
+            let group = MTLSize(width: 16, height: 16, depth: 1)
+            let grid = MTLSize(width: (source.width + group.width - 1) / group.width,
+                               height: (source.height + group.height - 1) / group.height, depth: 1)
+            encoder.dispatchThreadgroups(grid, threadsPerThreadgroup: group)
             encoder.endEncoding()
             guard let blit = command.makeBlitCommandEncoder() else { throw LoadError.unavailable }
             blit.generateMipmaps(for: texture)

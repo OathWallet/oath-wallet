@@ -11,7 +11,7 @@ import OathDiagnostics
     private(set) var passcode = false
     private(set) var submission: OathBitcoinSubmission?
     private(set) var gasPrice: Decimal?
-    private(set) var failureMessage: OathStringKey?
+    private(set) var failureMessage: OathSendFailure?
     var notice: OathStringKey?
     @ObservationIgnored private var work: Task<Void,Never>?
     @ObservationIgnored private var generation = UUID()
@@ -43,7 +43,7 @@ import OathDiagnostics
                 // requirements unchanged, without reporting them again.
                 guard generation == token, !Task.isCancelled else { return }
                 busy = false; needsRefresh = true
-                failureMessage = Self.message(error)
+                failureMessage = OathSendFailure.reason(error, fallback: .sendPreparationFailed)
                 needsAmountChange = (error as? EVMSendError) == .insufficientFunds
             }
         }
@@ -67,19 +67,11 @@ import OathDiagnostics
                 if error is OathBiometricCredentialError { passcode = true }
                 else if error as? OathWalletError == .wrongPasscode { passcode = true; notice = .unlockIncorrect }
                 else if case OathWalletError.throttled = error { passcode = true; notice = .unlockWait }
-                else if !(error is CancellationError) { passcode = false; needsRefresh = true; failureMessage = Self.message(error); self.quote = nil; OathHaptics.shared.play(.warning) }
+                else if !(error is CancellationError) { passcode = false; needsRefresh = true; failureMessage = OathSendFailure.reason(error, fallback: .sendSubmitFailed); self.quote = nil; OathHaptics.shared.play(.warning) }
             }
         }
     }
 
-    private static func message(_ error: Error) -> OathStringKey? {
-        if error as? EVMSendError == .sameRecipient { return .sendSelfTransferWallet }
-        if error is SendFeeFundingError { return .sendNativeFeeRequired }
-        if error as? EVMSendError == .multisigSetupRequired { return .multisigEVMSetupNeeded }
-        if error as? EVMSendError == .multisigFunding { return .multisigEVMFundingNeeded }
-        if error as? EVMSendError == .insufficientFunds { return .sendAdjustAmount }
-        return .sendRefreshNeeded
-    }
 
     func cancel() {
         generation = UUID(); work?.cancel(); work = nil; busy = false; passcode = false; notice = nil

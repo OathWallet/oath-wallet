@@ -4,15 +4,10 @@ import OathDiagnostics
 private enum EVMDuplicateBroadcast: Error { case reconcile(Int) }
 
 public actor EVMSendClient {
+    enum HeadValidation { case none, fresh, freshForWalletSync }
+
     /// Shared with history persistence and its bounded execution evidence cache.
     public static let maximumRPCResponseBytes = 8_388_608
-    // ANKR gateway failures are distinct from deterministic node rejections.
-    // Replay only known reads, unchanged, on the next configured provider.
-    // https://www.ankr.com/docs/rpc-service/errors/overview/
-    private static let ankrReadRecoveryCodes: Set<Int> = [
-        -32603, -32055, -32056, -32057, -32059, -32061, -32063, -32064,
-        -32065, -32071, -32072, -32073, -32076
-    ]
     private static let recoverableReadMethods: Set<String> = [
         "eth_chainId", "eth_blockNumber", "eth_getBalance", "eth_call",
         "eth_getTransactionCount", "eth_getBlockByNumber", "eth_getBlockByHash",
@@ -34,11 +29,16 @@ public actor EVMSendClient {
     /// Each request verifies the chain on the same provider, including fallbacks.
     /// One attempt per endpoint, with bounded Celo replica-lag retries for reads.
     /// Transaction rejections and broadcasts are never automatically retried.
-    func rpc(_ method:String,_ params:[SolanaJSON], optionalContractProbe: Bool = false, logScanHead: UInt64? = nil, requireFreshHead: Bool = false) async throws -> SolanaJSON {
+    func rpc(_ method:String,_ params:[SolanaJSON], optionalContractProbe: Bool = false, logScanHead: UInt64? = nil, headValidation: HeadValidation = .none) async throws -> SolanaJSON {
+        try await rpcWithHeadEvidence(method, params, optionalContractProbe: optionalContractProbe,
+                                      logScanHead: logScanHead, headValidation: headValidation).value
+    }
+
+    func rpcWithHeadEvidence(_ method:String,_ params:[SolanaJSON], optionalContractProbe: Bool = false, logScanHead: UInt64? = nil, headValidation: HeadValidation = .none) async throws -> (value: SolanaJSON, corroboratedIdleTip: Bool) {
         try await OathDiagnostics.withChain(network.rawValue) {
             var retry=0
             while true {
-                do { return try await rpcInContext(method, params, optionalContractProbe: optionalContractProbe, logScanHead: logScanHead, requireFreshHead: requireFreshHead) }
+                do { return try await rpcInContext(method, params, optionalContractProbe: optionalContractProbe, logScanHead: logScanHead, headValidation: headValidation) }
                 catch EVMSendError.rpc(-32019) where [.celo,.celoSepolia].contains(network)
                     && ["eth_getBalance","eth_call","eth_getTransactionCount","eth_getBlockByNumber","eth_estimateGas"].contains(method)
                     && retry<2 {
@@ -52,7 +52,32 @@ public actor EVMSendClient {
             }
         }
     }
-    private func rpcInContext(_ method:String,_ params:[SolanaJSON], optionalContractProbe: Bool, logScanHead: UInt64?, requireFreshHead: Bool) async throws -> SolanaJSON {
+    private struct IdleHeadVote {
+        let endpoint: URL
+        let height: UInt64
+        let hash: String
+        let parent: String?
+        let timestamp: UInt64
+        let context: [String: String]
+
+        func agrees(with other: Self) -> Bool {
+            height == other.height && hash == other.hash && timestamp == other.timestamp
+        }
+
+        // Recheck only a direct parent of the block already seen by both other operators.
+        static func laggingEndpoint(in votes: [Self]) -> URL? {
+            guard votes.count == 3, let older = votes.min(by: { $0.height < $1.height }) else { return nil }
+            let peers = votes.filter { $0.endpoint != older.endpoint }
+            guard peers.count == 2, peers[0].agrees(with: peers[1]),
+                  peers[0].height > older.height, peers[0].height - older.height == 1,
+                  peers[0].timestamp >= older.timestamp,
+                  Date.now.timeIntervalSince1970 - Double(peers[0].timestamp) <= 300,
+                  peers.allSatisfy({ $0.parent == older.hash }) else { return nil }
+            return older.endpoint
+        }
+    }
+
+    private func rpcInContext(_ method:String,_ params:[SolanaJSON], optionalContractProbe: Bool, logScanHead: UInt64?, headValidation: HeadValidation) async throws -> (value: SolanaJSON, corroboratedIdleTip: Bool) {
         try await permits.acquire()
         do {
             var failure:Error=EVMSendError.transport
@@ -79,7 +104,23 @@ public actor EVMSendClient {
                endpoints[1].absoluteString == "https://api.node.glif.io/rpc/v1" {
                 targets.swapAt(0, 1)
             }
-            for endpoint in targets {
+            // Opera and Scroll can go more than a minute between blocks. Only the wallet reader
+            // may use a bounded older tip, after all three configured operators attest
+            // to exactly the same latest block. A send quote always requires a fresh tip.
+            let checkIdleTip = headValidation == .freshForWalletSync && (network == .fantom || network == .scroll) &&
+                targets.count == 3 && Set(targets.compactMap(\.host)) ==
+                    Set(["rpc.ankr.com"] + network.portfolioRecoveryEndpoints.compactMap(\.host))
+            var idleVotes: [IdleHeadVote] = []
+            var recheckingIdleParent = false
+            defer {
+                // A newer or conflicting head, missing witness, or failed lookup leaves
+                // the earlier provider observations actionable.
+                for vote in idleVotes {
+                    OathDiagnostics.record(EVMSendError.expired, component: "evm_send", operation: method, context: vote.context)
+                }
+            }
+            var remaining = targets[...]
+            while let endpoint = remaining.popFirst() {
                 var failureContext = ["chain": network.rawValue, "method": method,
                                       "host": endpoint.host ?? "unknown"]
                 do {
@@ -96,7 +137,6 @@ public actor EVMSendClient {
                         let (data,status)=try await transport.sendPreservingTransportError(request)
                         DiagnosticHTTP.response(data,status:status,request:request)
                         guard (200...299).contains(status) else { throw EVMSendError.http(status) }
-                        // Bound the standalone check before admitting a broadcast.
                         guard data.count<=Self.maximumRPCResponseBytes else { throw EVMSendError.malformed }
                         let reply=try JSONDecoder().decode(SolanaJSON.self,from:data)
                         guard reply["id"].integer==0,reply["jsonrpc"].string=="2.0",try Self.uint(result(reply))==network.chainID else { throw EVMSendError.wrongNetwork }
@@ -108,6 +148,7 @@ public actor EVMSendClient {
                     request.setValue("OathWallet/1.0",forHTTPHeaderField:"User-Agent")
                     request.setValue("application/json",forHTTPHeaderField:"Content-Type");request.httpBody=try JSONEncoder().encode(body)
                     let (data,status)=try await transport.sendPreservingTransportError(request)
+                    if headValidation == .freshForWalletSync { try Task.checkCancellation() }
                     DiagnosticHTTP.response(data,status:status,request:request)
                     guard (200...299).contains(status) else { throw EVMSendError.http(status) }
                     guard data.count<=Self.maximumRPCResponseBytes,let rows=try JSONDecoder().decode(SolanaJSON.self,from:data).array,rows.count==2,
@@ -131,22 +172,53 @@ public actor EVMSendClient {
                         throw EVMDuplicateBroadcast.reconcile(result["error"]["code"].text.flatMap(Int.init) ?? -32000)
                     }
                     let value=try self.result(result, optionalContractProbe: optionalContractProbe, feeContext: ["eth_estimateGas", "linea_estimateGas", "eth_sendRawTransaction"].contains(method))
-                    if requireFreshHead {
+                    var corroboratedIdleTip = false
+                    if headValidation != .none {
                         // A successful RPC envelope can still come from a lagging
                         // replica. Validate inside the provider loop so a quote
                         // can use a fresh, independently chain-verified fallback.
                         // Historical reads and broadcasts never take this path.
                         guard method == "eth_getBlockByNumber", params.first == .string("latest"),
                               let hash = value["hash"].string, AnkrQuantity.hash(hash) else { throw EVMSendError.malformed }
-                        _ = try Self.uint(value["number"])
+                        let height = try Self.uint(value["number"])
                         let timestamp = try Self.uint(value["timestamp"])
                         let headOffset = Double(timestamp) - Date.now.timeIntervalSince1970
-                        guard abs(headOffset) < (network.isFilecoin ? 180 : 60) else {
+                        if recheckingIdleParent, !(-300 ... -60).contains(headOffset) {
+                            failureContext["reason"] = "idle_head_changed"
+                            throw EVMSendError.expired
+                        }
+                        if abs(headOffset) >= (network.isFilecoin ? 180 : 60) {
                             // Distinguish the failed condition without guessing
                             // whether the provider or device clock caused it.
                             // Attach it to the existing single provider report.
                             failureContext["reason"] = headOffset > 0 ? "head_timestamp_future" : "head_timestamp_stale"
-                            throw EVMSendError.expired
+                            if headValidation == .freshForWalletSync && (network == .fantom || network == .scroll) {
+                                failureContext["rpc_height"] = String(height)
+                                failureContext["rpc_block_time"] = String(timestamp)
+                            }
+                            // A much older parent may identify the one operator to recheck.
+                            // Only the final, unanimous block can supply the wallet snapshot.
+                            guard checkIdleTip, headOffset <= -60 else { throw EVMSendError.expired }
+                            let vote = IdleHeadVote(endpoint: endpoint, height: height, hash: hash,
+                                                    parent: value["parentHash"].string, timestamp: timestamp, context: failureContext)
+                            if !remaining.isEmpty {
+                                idleVotes.append(vote)
+                                continue
+                            }
+                            guard idleVotes.count == 2 else { throw EVMSendError.expired }
+                            if !idleVotes.allSatisfy({ $0.agrees(with: vote) && (!recheckingIdleParent || $0.parent == vote.parent) }) {
+                                let votes = idleVotes + [vote]
+                                guard !recheckingIdleParent, let lagging = IdleHeadVote.laggingEndpoint(in: votes) else {
+                                    throw EVMSendError.expired
+                                }
+                                idleVotes = votes.filter { $0.endpoint != lagging }
+                                recheckingIdleParent = true
+                                remaining.append(lagging)
+                                continue
+                            }
+                            guard headOffset >= -300 else { throw EVMSendError.expired }
+                            corroboratedIdleTip = true
+                            idleVotes.removeAll()
                         }
                         // Successful refreshes must not keep extending a backup's
                         // lease forever. Re-probe the configured primary after
@@ -164,15 +236,18 @@ public actor EVMSendClient {
                         missingIndexedLookup=true
                         continue
                     }
-                    await permits.release();return value
+                    await permits.release()
+                    return (value, corroboratedIdleTip)
                 } catch {
                     // Exact duplicate control flow is handled by submit after
                     // releasing this RPC permit; it is never a retry here.
                     if error is EVMDuplicateBroadcast { throw error }
-                    verifiedEndpoints.removeValue(forKey:endpoint)
                     if error is CancellationError || Task.isCancelled || (error as? URLError)?.code == .cancelled {
+                        // Cancellation ended the comparison before the remaining operators could answer.
+                        idleVotes.removeAll()
                         throw CancellationError()
                     }
+                    verifiedEndpoints.removeValue(forKey:endpoint)
                     // A failed preferred provider must not be retried first on
                     // every subsequent pinned read. Cancellation leaves health
                     // unchanged because it does not establish provider failure.
@@ -180,6 +255,14 @@ public actor EVMSendClient {
                     // Own the native transport report with chain/method/host.
                     // The generic send() path would report here a second time
                     // after erasing TLS/certificate details into transport.
+                    // Preserve each provider's reason. If all alternatives fail,
+                    // wallet sync carries the last stale-head report through its
+                    // failed refresh instead of emitting a second generic expiry.
+                    if headValidation == .freshForWalletSync, error as? EVMSendError == .expired {
+                        failure = OathDiagnostics.recordedForPropagation(error, component: "evm_send",
+                            operation: method, context: failureContext)
+                        continue
+                    }
                     OathDiagnostics.record(error,component:"evm_send",operation:method,context:failureContext)
                     // Deterministic RPC rejection must remain visible. Network/HTTP,
                     // malformed and misrouted providers may use an independent fallback.
@@ -187,17 +270,18 @@ public actor EVMSendClient {
                     if case EVMSendError.rpc(let code) = error {
                         let recoverableGatewayRead = endpoint.host == "rpc.ankr.com"
                             && Self.recoverableReadMethods.contains(method)
-                            && Self.ankrReadRecoveryCodes.contains(code)
+                            && AnkrReadRetry.gatewayRecoveryCodes.contains(code)
+                        let throttledMonadRead = [.monad, .monadTestnet].contains(network) && code == 429 && Self.recoverableReadMethods.contains(method)
                         if code != -32601 && code != -32004,
                            !(network.isIoTeX && code == 13 && method != "eth_sendRawTransaction"),
-                           !recoverableGatewayRead { throw error }
+                           !recoverableGatewayRead && !throttledMonadRead { throw error }
                     }
                     // Preserve the existing public fallback/error contract after
                     // reporting the original cause. Never weaken TLS validation.
                     failure = error is URLError ? AnkrError.transport : error
                 }
             }
-            if missingIndexedLookup { await permits.release();return .null }
+            if missingIndexedLookup { await permits.release();return (.null, false) }
             throw failure
         } catch {
             // diagnostics: evm-send-permit-cleanup
@@ -234,7 +318,7 @@ public actor EVMSendClient {
     }
     private static func hex(_ n:UInt64)->SolanaJSON { .string("0x"+String(n,radix:16)) }
     func block(_ tag:SolanaJSON,full:Bool=false,requireFresh:Bool=false) async throws -> SolanaJSON {
-        try await rpc("eth_getBlockByNumber",[tag,.bool(full)],requireFreshHead:requireFresh)
+        try await rpc("eth_getBlockByNumber",[tag,.bool(full)],headValidation:requireFresh ? .fresh : .none)
     }
     func call(_ ref:String,_ data:String,_ tag:SolanaJSON) async throws -> SolanaJSON { try await rpc("eth_call",[.object(["to":.string(ref),"data":.string(data)]),tag]) }
     public func balance(owner:String,reference:String) async throws -> String {
@@ -256,7 +340,7 @@ public actor EVMSendClient {
         guard height>=minimumHeight,height<=UInt64(Int64.max),let hash=head["hash"].string,AnkrQuantity.hash(hash) else { throw EVMSendError.changed }
         // Pin the read to one post-receipt block wherever historical state is
         // supported. HyperEVM exposes only latest state.
-        let tag=network == .hyperevm ? SolanaJSON.string("latest"):Self.hex(height)
+        let tag=network.isHyperEVM ? SolanaJSON.string("latest"):Self.hex(height)
         async let nativeWork=balance(owner:plan.sender,reference:"native",tag:tag)
         async let tokenWork:String? = plan.reference == "native" ? nil:balance(owner:plan.sender,reference:plan.reference,tag:tag)
         let (native,token)=try await (nativeWork,tokenWork)
@@ -337,7 +421,7 @@ public actor EVMSendClient {
         let head = try await block(.string("latest"), requireFresh: true), height = try Self.uint(head["number"])
         guard let hash = head["hash"].string, AnkrQuantity.hash(hash),
               abs(Double(try Self.uint(head["timestamp"])) - Date.now.timeIntervalSince1970) < (network.isFilecoin ? 180 : 60) else { throw EVMSendError.expired }
-        let tag = network == .hyperevm ? SolanaJSON.string("latest") : Self.hex(height)
+        let tag = network.isHyperEVM ? SolanaJSON.string("latest") : Self.hex(height)
         async let native = balance(owner: sender, reference: "native", tag: tag)
         async let token: String? = reference == "native" ? nil : balance(owner: sender, reference: reference, tag: tag)
         async let units = self.decimals(reference, tag: tag)
@@ -346,7 +430,7 @@ public actor EVMSendClient {
         guard try await block(Self.hex(height))["hash"].string == hash else { throw EVMSendError.changed }
         return try .init(chain: network.rawValue, sender: sender, reference: reference, decimals: decimals,
                          assetBalance: t ?? n, nativeBalance: n, observedAt: observed,
-                         block: network == .hyperevm ? nil : .init(height: height, hash: hash))
+                         block: network.isHyperEVM ? nil : .init(height: height, hash: hash))
     }
 
     func preparedBalance(_ prepared: SendSenderSnapshot?, native: Bool, sender: String, reference: String, tag: SolanaJSON) async throws -> String {
@@ -379,7 +463,7 @@ public actor EVMSendClient {
         guard (requested != "0" || removal != nil || request != nil),recipient != "0x"+String(repeating:"0",count:40) else { throw EVMSendError.amount }
         let head=try await block(.string("latest"),requireFresh:true),height=try Self.uint(head["number"])
         guard let hash=head["hash"].string,AnkrQuantity.hash(hash) else { throw EVMSendError.malformed }
-        let tag=network == .hyperevm ? SolanaJSON.string("latest"):Self.hex(height)
+        let tag=network.isHyperEVM ? SolanaJSON.string("latest"):Self.hex(height)
         let hasBaseFee = !head["baseFeePerGas"].isNull
         let legacy=request?.legacy ?? !hasBaseFee
         guard legacy || hasBaseFee else { throw EVMSendError.wrongNetwork }
@@ -436,7 +520,7 @@ public actor EVMSendClient {
         let feeAdjustedTransfer = ([.celo, .celoSepolia, .chiliz, .chilizSpicy].contains(network) || network.isFilecoin || network.isSei || network.isZeroG || network.isIoTeX || network.isCronos) && request == nil && removal == nil
         let probe=make(network.maximumGas,!feeAdjustedTransfer && reference == "native" && (maximum || want==native) ? "0":want)
         let estimate:UInt64
-        if network == .linea && removal?.kind != .delegation {
+        if [.linea, .lineaSepolia].contains(network) && removal?.kind != .delegation {
             // Linea computes a calldata-dependent priority fee. Supplying the
             // provisional eth_gasPrice cap makes the node reject its own higher
             // recommendation before it can return an estimate.
@@ -560,7 +644,7 @@ public actor EVMSendClient {
         }
         let head=try await block(.string("latest")),height=try Self.uint(head["number"])
         guard height>=plan.blockHeight,let hash=head["hash"].string,AnkrQuantity.hash(hash) else { throw EVMSendError.changed }
-        let tag=network == .hyperevm ? SolanaJSON.string("latest"):Self.hex(height)
+        let tag=network.isHyperEVM ? SolanaJSON.string("latest"):Self.hex(height)
         async let nonceWork=rpc("eth_getTransactionCount",[.string(plan.sender),.string(network.nonceTag)])
         async let latestNonceWork=rpc("eth_getTransactionCount",[.string(plan.sender),tag])
         async let nativeWork=balance(owner:plan.sender,reference:"native",tag:tag)
@@ -664,7 +748,7 @@ public actor EVMSendClient {
         }
         // A mempool entry is acceptance, never confirmation. Even after provider
         // eviction an EVM signature has no time expiry, so keep its reservation.
-        if network == .hyperevm { return .init(hash:signed.hash,outcome:tx.isNull ? .unknown:.accepted) }
+        if network.isHyperEVM { return .init(hash:signed.hash,outcome:tx.isNull ? .unknown:.accepted) }
         do {
             let final=try await block(.string(network.finalityTag)),height=try Self.uint(final["number"])
             let consumed=try await Self.uint(rpc("eth_getTransactionCount",[.string(plan.sender),Self.hex(height)]))
@@ -709,12 +793,15 @@ public actor EVMSendClient {
         async let headWork=block(.string("latest"))
         let (included,final,head)=try await (blockWork,finalWork,headWork)
         try Task.checkCancellation()
+        // The receipt index may be ahead of the canonical block reader. A
+        // missing block or lagging tip provides no inclusion or fee evidence.
+        if try included.isNull || Self.uint(head["number"]) < height {
+            return .init(hash:signed.hash,outcome:.accepted)
+        }
         guard let canonicalHash=included["hash"].string,AnkrQuantity.hash(canonicalHash),
               try Self.uint(included["number"])==height else { throw EVMSendError.changed }
         // A valid block replacing this receipt's block is a reorg, not failure.
         guard canonicalHash==hash else { return .init(hash:signed.hash,outcome:.accepted) }
-        // Flashblock/preconfirmation receipts can precede a sealed block.
-        guard try Self.uint(head["number"])>=height else { return .init(hash:signed.hash,outcome:.accepted) }
         let gas=try Self.uint(receipt["gasUsed"]),price=try Self.uint(receipt["effectiveGasPrice"]),status=try Self.uint(receipt["status"])
         // Lotus reports total charged FIL divided by gas used. The tip is
         // charged on gas limit, so this rounded price can exceed the fee cap.

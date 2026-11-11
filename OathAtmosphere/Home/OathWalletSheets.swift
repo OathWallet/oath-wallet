@@ -214,19 +214,23 @@ struct OathWalletInfoSheet: View {
 
 struct OathWalletSettingsScreen: View {
     enum Destination: Identifiable {
-        case app, security, wallet(String), customize(String)
+        case app, security, sidebarSecurity, helpCenter, recentlyDeleted, wallet(String), customize(String), sidebar(OathWalletSidebarModel.WalletAction, String)
 
         var walletID: String? {
             switch self {
-            case .app, .security: nil
-            case .wallet(let id), .customize(let id): id
+            case .app, .security, .sidebarSecurity, .helpCenter, .recentlyDeleted: nil
+            case .wallet(let id), .customize(let id), .sidebar(_, let id): id
             }
         }
 
         var id: String {
             switch self {
+            case .sidebarSecurity: "sidebarSecurity"
+            case .recentlyDeleted: "recentlyDeleted"
+            case .sidebar(let action, let id): "sidebar-\(action.rawValue)-\(id)"
             case .app: "app"
             case .security: "security"
+            case .helpCenter: "helpCenter"
             case .wallet(let id): "wallet:\(id)"
             case .customize(let id): "customize:\(id)"
             }
@@ -234,7 +238,8 @@ struct OathWalletSettingsScreen: View {
     }
 
     let session: OathWalletSession
-    private let startsAtSecurity: Bool
+    private let initialDestination: Destination
+    @State private var didStartDestination = false
     private let rootRoute: Route
     private let dismissDisabled: Bool
     private let switcherPath: Binding<NavigationPath>?
@@ -260,7 +265,7 @@ struct OathWalletSettingsScreen: View {
     @State private var privateKeys: OathPrivateKeyModel?
     @State private var contactEditor: OathContactEditorModel?
     @State private var showsMultisigCreation = false
-    @State private var createRequestID = UUID()
+    @State private var newWalletRequest: UUID?
     @State private var creation: Task<Void, Never>?
     @State private var addingWalletID: String?
     @State private var creationFailed = false
@@ -277,19 +282,33 @@ struct OathWalletSettingsScreen: View {
         self.dismissDisabled = dismissDisabled
         self.switcherPath = switcherPath
         self.switcherRoot = switcherRoot
-        if case .security = destination { startsAtSecurity = true } else { startsAtSecurity = false }
+        initialDestination = destination
         switch destination {
         case .app, .security: rootRoute = .settings
+        case .sidebarSecurity: rootRoute = .security
+        case .recentlyDeleted: rootRoute = .recentlyDeleted
+        case .sidebar(.customize, let id): rootRoute = .customize(id)
+        case .sidebar(.revealRecoveryPhrase, let id): rootRoute = .recoveryWarning(id)
+        case .sidebar(_, let id): rootRoute = .wallet(id)
+        case .helpCenter: rootRoute = .helpCenter
         case .wallet(let id): rootRoute = .wallet(id)
         case .customize(let id): rootRoute = .customize(id)
         }
         _security = State(initialValue: OathSecurityModel(session: session))
-        _securityAccess = State(initialValue: OathSecurityAccessModel(session: session))
+        if case .sidebarSecurity = destination {
+            _securityAccess = State(initialValue: OathSecurityAccessModel(session: session,
+                whenPasscodeDisabled: OathSecurityAccessModel.authenticateDeviceOwner))
+        } else {
+            _securityAccess = State(initialValue: OathSecurityAccessModel(session: session))
+        }
         _reset = State(initialValue: OathResetModel(session: session))
         _walletRemoval = State(initialValue: OathWalletRemovalModel(session: session))
     }
 
     private var route: Route { path.last ?? rootRoute }
+    private var requestsSecurityPIN: Bool {
+        route == .securityAccess || (rootRoute == .security && route == .security && securityAccess.phase == .passcode)
+    }
 
     private enum Route: Hashable {
         case settings, wallets, languages, appearance, wallet(String), customize(String), backupPassword(String), hiddenAssets(String)
@@ -416,7 +435,26 @@ struct OathWalletSettingsScreen: View {
         // pop, interactive back, keyboard avoidance and Reduce Motion behavior.
         navigationStack
         .task {
-            if startsAtSecurity && route == .settings { securityAccess.begin(reason: strings.text(.securityAuthenticationReason)) }
+            guard !didStartDestination, session.isUnlocked else { return }
+            didStartDestination = true
+            switch initialDestination {
+            case .security, .sidebarSecurity:
+                securityAccess.begin(reason: strings.text(.securityAuthenticationReason))
+            case .sidebar(let action, let id):
+                guard let wallet = session.wallets.first(where: { $0.id == id }) else { dismiss(); return }
+                switch action {
+                case .revealRecoveryPhrase:
+                    guard !session.changingWallet, wallet.kind != "privateKey", wallet.kind != "watchOnly" else {
+                        dismiss()
+                        return
+                    }
+                    recovery = OathRecoveryPhraseModel(walletID: id, reader: session.vault)
+                case .revealPrivateKey:
+                    if wallet.kind == "privateKey" { startPrivateKeys(walletID: id) }
+                case .customize, .settings: break
+                }
+            default: break
+            }
         }
         .fullScreenCover(isPresented: $showsMultisigCreation) {
             OathAdditionalMultisigFlow(session: session).oathLanguage(strings.language)
@@ -485,6 +523,7 @@ struct OathWalletSettingsScreen: View {
             case .passcode:
                 if route == .settings { path.append(.securityAccess) }
             case .idle:
+                if rootRoute == .security, securityAccess.notice == nil { dismiss(); return }
                 if let index = path.firstIndex(where: \.isSecurity) { path = Array(path.prefix(index)) }
             case .authenticating: break
             }
@@ -541,8 +580,11 @@ struct OathWalletSettingsScreen: View {
         .onChange(of: recovery?.phase) { _, phase in
             guard let recovery else { return }
             let id = recovery.walletID
-            if phase == .warning, let index = path.firstIndex(of: .recoveryWarning(id)), path.count > index + 1 {
-                path = Array(path.prefix(through: index))
+            if phase == .warning {
+                // The warning can be the modal root or a pushed Settings page.
+                if let index = path.firstIndex(where: { $0 == .recoveryPasscode(id) || $0 == .recoveryWords(id) }) {
+                    path.removeSubrange(index...)
+                }
                 return
             }
             guard session.isUnlocked else { return }
@@ -625,8 +667,8 @@ struct OathWalletSettingsScreen: View {
     private var securityAlerts: some View {
         feedbackContent
         .alert(strings.text(.security), isPresented: Binding(
-            get: { securityAccess.notice != nil && route != .securityAccess },
-            set: { if !$0 && route != .securityAccess { securityAccess.notice = nil } }
+            get: { securityAccess.notice != nil && !requestsSecurityPIN },
+            set: { if !$0 && !requestsSecurityPIN { securityAccess.notice = nil } }
         )) {
             if #available(iOS 26.0, *) {
                 OathButton(role: .confirm) { securityAccess.notice = nil }
@@ -753,20 +795,34 @@ struct OathWalletSettingsScreen: View {
         }
     }
 
+    private var securityPasscodePage: some View {
+        OathSecretPasscodePage(session: session, busy: securityAccess.busy,
+            notice: Binding(get: { securityAccess.notice }, set: { securityAccess.notice = $0 }),
+            title: .security, identifier: "security.access", onSubmit: securityAccess.submit)
+    }
+
     private func page(_ destination: Route) -> some View {
         Group {
-            if destination.isSecurity && destination != .securityAccess && !securityAccess.isAuthorized {
+            if destination == .security, rootRoute == .security, !securityAccess.isAuthorized {
+                // The shortcut owns a single protected root. Do not present the
+                // settings list or create a back path through the passcode prompt.
+                if securityAccess.phase == .passcode {
+                    securityPasscodePage
+                } else if securityAccess.phase == .authenticating || !didStartDestination {
+                    ProgressView()
+                } else {
+                    Button(strings.text(.tryAgain)) { securityAccess.begin(reason: strings.text(.securityAuthenticationReason)) }
+                }
+            } else if destination.isSecurity && destination != .securityAccess && !securityAccess.isAuthorized {
                 // Revoke the contents immediately, before the navigation pop
                 // completes after a background/lock transition.
                 Color.clear
             } else if destination == .securityAccess {
-                OathSecretPasscodePage(session: session, busy: securityAccess.busy,
-                    notice: Binding(get: { securityAccess.notice }, set: { securityAccess.notice = $0 }),
-                    title: .security, identifier: "security.access", onSubmit: securityAccess.submit)
+                securityPasscodePage
             } else if destination == .wallets {
                 OathWalletManagementPage(session: session, removal: walletRemoval, editMode: $walletEditMode,
                     onWallet: { path.append(.wallet($0)) }, onRecentlyDeleted: { path.append(.recentlyDeleted) }) {
-                    OathWalletActions(identifier: "settings.wallets", isCreating: creation != nil,
+                    OathWalletActions(identifier: "settings.wallets",
                         onCreate: createWallet, onCreateMultisig: { showsMultisigCreation = true }, onImport: { path.append(.importWallet) },
                         onImportPrivateKey: { path.append(.chooseImportChain) },
                         onRestore: { path.append(.restoreWallet) })
@@ -845,7 +901,7 @@ struct OathWalletSettingsScreen: View {
                 OathLanguageSettingsPage(configuration: languageConfiguration)
             } else if case .customize(let id) = destination {
                 OathWalletCustomizationScreen(session: session, walletID: id,
-                                              mode: addingWalletID == id ? .setup : .edit) {
+                                              mode: customizationMode(for: id)) {
                     if addingWalletID == id || destination == rootRoute { dismiss() }
                     else { pop(.customize(id)) }
                 }
@@ -1001,7 +1057,9 @@ struct OathWalletSettingsScreen: View {
                 onAddSeedPassword: { path.append(.seedPasswordEntry(id)) },
                 onDelete: {
                     guard scenePhase != .background, route == .wallet(id) else { return }
-                    walletRemoval.begin(.init(ids: [id], permanently: false),
+                    let retainInTrash: Bool
+                    if case .sidebar = initialDestination { retainInTrash = true } else { retainInTrash = false }
+                    walletRemoval.begin(.init(ids: [id], permanently: false, recentlyDeletedOnly: retainInTrash),
                         reason: strings.text(.walletRemovalAuthentication))
                 })
                 .disabled(walletRemoval.confirming)
@@ -1043,7 +1101,6 @@ struct OathWalletSettingsScreen: View {
     private func showAddedWallet(_ id: String) {
         guard session.isUnlocked else { return }
         addingWalletID = id
-        createRequestID = UUID()
         if path.last != .customize(id) { path.append(.customize(id)) }
     }
 
@@ -1063,16 +1120,17 @@ struct OathWalletSettingsScreen: View {
     }
 
     private func createWallet() {
-        guard creation == nil, session.isUnlocked, !session.changingWallet else { return }
-        creation = Task {
-            defer { creation = nil }
-            do {
-                let id = try await session.addWallet(requestID: createRequestID)
-                guard !Task.isCancelled else { return }
-                showAddedWallet(id)
-            } catch is CancellationError { }
-            catch { OathDiagnostics.record(error); if !Task.isCancelled, session.isUnlocked { creationFailed = true } }
+        guard creation == nil, session.isUnlocked, !session.changingWallet, route == .wallets else { return }
+        let request = UUID()
+        newWalletRequest = request
+        showAddedWallet(request.uuidString)
+    }
+
+    private func customizationMode(for id: String) -> OathWalletCustomizationScreen.Mode {
+        if let newWalletRequest, newWalletRequest.uuidString == id, addingWalletID == id {
+            return .create(newWalletRequest)
         }
+        return addingWalletID == id ? .setup : .edit
     }
 
     private func startRecovery(walletID: String) {

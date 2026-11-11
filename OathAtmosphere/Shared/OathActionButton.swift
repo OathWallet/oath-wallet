@@ -39,10 +39,11 @@ struct OathBottomAction: View {
 struct OathCloseButton: View {
     @Environment(\.oathLocalizer) private var strings
     var systemImage = "xmark"
+    var feedback: OathHapticEvent? = .dismiss
     let action: @MainActor () -> Void
 
     var body: some View {
-        OathButton(feedback: .dismiss, action: action) {
+        OathButton(feedback: feedback, action: action) {
             Label(strings.text(.close), systemImage: systemImage)
         }
         .labelStyle(.iconOnly)

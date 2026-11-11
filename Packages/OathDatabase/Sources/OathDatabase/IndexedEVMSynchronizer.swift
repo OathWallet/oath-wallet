@@ -90,7 +90,7 @@ public actor IndexedEVMSynchronizer {
                 }
                 try Task.checkCancellation()
                 if !value.complete {
-                    failureContext = ["stage": "inventory", "reason": value.holdings.contains { $0.amount == nil } ? "balance_unavailable" : "discovery_incomplete"]
+                    failureContext = ["stage": "inventory", "reason": value.incompleteReason?.rawValue ?? (value.holdings.contains { $0.amount == nil } ? "balance_unavailable" : "discovery_incomplete")]
                     throw BalanceRefreshError.incomplete
                 }
             } catch {

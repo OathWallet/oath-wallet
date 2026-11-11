@@ -123,12 +123,15 @@ private actor VerifiedRefreshFeed: AnkrTransport {
             let first = try await sync.refreshBalances(walletID: "wallet")
             XCTAssertTrue(first.allSatisfy(\.success), chain.networkID)
             let before = try await db.snapshot(walletID: "wallet", currency: "USD")
-            XCTAssertEqual(before.totalFiat, 6, chain.networkID)
+            // Fantom native quotes from this legacy feed are deliberately rejected.
+            // Its verified token balance still contributes to the portfolio.
+            XCTAssertEqual(before.totalFiat, chain == .fantom ? 4 : 6, chain.networkID)
             await feed.advance()
             let second = try await sync.refreshBalances(walletID: "wallet")
             XCTAssertTrue(second.allSatisfy(\.success), chain.networkID)
-            for _ in 0..<200 where shown.totalFiat != 14 { try await Task.sleep(for: .milliseconds(5)) }
-            XCTAssertEqual(shown.totalFiat, 14, chain.networkID)
+            let expected: Decimal = chain == .fantom ? 8 : 14
+            for _ in 0..<200 where shown.totalFiat != expected { try await Task.sleep(for: .milliseconds(5)) }
+            XCTAssertEqual(shown.totalFiat, expected, chain.networkID)
             XCTAssertEqual(shown.holdings.first { $0.reference == "native" }?.amountAtomic, "3000000000000000000", chain.networkID)
             XCTAssertEqual(shown.holdings.first { $0.reference == refreshToken }?.amountAtomic, "4000000000000000000", chain.networkID)
             observer.stop(); await sync.cancel(); try? FileManager.default.removeItem(at: folder)

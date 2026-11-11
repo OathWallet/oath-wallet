@@ -434,7 +434,7 @@ public actor XrplSendClient {
         let settledCode = code.hasPrefix("tec") && safe == "UNKNOWN" ? "tecUNKNOWN":safe
         return .init(hash:signed.hash,outcome:code == "tesSUCCESS" ? .confirmed:.failed,fee:plan.fee,ledger:ledger,code:settledCode,deliveredAmount:delivered)
     }
-    private static func safeCode(_ value: String?) -> String {
+    public static func safeCode(_ value: String?) -> String {
         let known: Set<String> = ["tecTOO_SOON","tecHAS_OBLIGATIONS","tecNO_SPONSOR_PERMISSION","tefTOO_BIG","tesSUCCESS","tecPATH_PARTIAL","tecPATH_DRY","tecUNFUNDED_PAYMENT","tecNO_DST","tecNO_DST_INSUF_XRP",
             "tecDST_TAG_NEEDED","tecNO_AUTH","tecFROZEN","tecNO_PERMISSION","tecINSUFFICIENT_RESERVE","tecOBJECT_NOT_FOUND",
             "tecNO_LINE","tecNO_ENTRY","tecINTERNAL","tecLIMIT_EXCEEDED","tecINSUF_RESERVE_LINE","tecNO_TARGET",

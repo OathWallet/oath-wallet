@@ -11,7 +11,7 @@ import OathDiagnostics
     private(set) var passcode = false
     private(set) var submission: OathBitcoinSubmission?
     private(set) var gasPrice: Decimal?
-    private(set) var failureMessage: OathStringKey?
+    private(set) var failureMessage: OathSendFailure?
     var notice: OathStringKey?
     @ObservationIgnored private var work: Task<Void,Never>?
     @ObservationIgnored private var generation = UUID()
@@ -39,7 +39,7 @@ import OathDiagnostics
                 OathDiagnostics.record(error,component:"sui_send",operation:"prepare",context:["chain":"sui","stage":"quote"])
                 guard generation == token, !Task.isCancelled else { return }
                 busy = false; needsRefresh = true
-                failureMessage = error is SendFeeFundingError ? .sendNativeFeeRequired : (error as? SuiSendError) == .feeTooHigh ? .solanaFeeTooHigh : (error as? SuiSendError) == .insufficientGas ? .suiGasRequired : nil
+                failureMessage = OathSendFailure.reason(error, fallback: .sendPreparationFailed)
                 needsAmountChange = (error as? SuiSendError) == .insufficientFunds
             }
         }
@@ -64,7 +64,7 @@ import OathDiagnostics
                 if error is OathBiometricCredentialError { passcode = true }
                 else if error as? OathWalletError == .wrongPasscode { passcode = true; notice = .unlockIncorrect }
                 else if case OathWalletError.throttled = error { passcode = true; notice = .unlockWait }
-                else if !(error is CancellationError) { passcode = false; needsRefresh = true; failureMessage = error is SendFeeFundingError ? .sendNativeFeeRequired : (error as? SuiSendError) == .feeTooHigh ? .solanaFeeTooHigh : (error as? SuiSendError) == .executionFailed ? .suiSendFailed : nil; self.quote = nil; OathHaptics.shared.play(.warning) }
+                else if !(error is CancellationError) { passcode = false; needsRefresh = true; failureMessage = OathSendFailure.reason(error, fallback: .sendSubmitFailed); self.quote = nil; OathHaptics.shared.play(.warning) }
             }
         }
     }
