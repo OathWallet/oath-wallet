@@ -33,7 +33,7 @@
 .why-copy p {margin: 1rem 0 0; max-width: 43ch; font: 400 1rem/1.6 'Instrument Sans', system-ui, sans-serif}
 .why-copy a {display: inline-block; margin-top: 1rem; color: inherit; text-decoration: underline; text-underline-offset: .22em}
 .why-art {display: grid; place-items: center; min-width: 0; text-align: center}
-.why-mark {width: clamp(64px, 9vw, 132px); height: auto; transform: rotate(-8deg)}
+.why-mark {width: clamp(64px, 9vw, 132px); height: auto}
 .why-key, .why-request, .why-release {border: 1px solid color-mix(in srgb, currentColor 28%, transparent); width: 100%; max-width: 220px}
 .why-key {display: flex; justify-content: space-evenly; border-radius: 99px; padding: .8rem .2rem; font: 600 clamp(12px, 1.4vw, 19px)/1 monospace}
 .why-request, .why-release {padding: 18px 8px; border-radius: 18px; display: grid; gap: 7px; place-items: center}
