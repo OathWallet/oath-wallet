@@ -2,6 +2,7 @@
   max-width: 1060px;
   margin: auto;
   padding: clamp(80px, 10vw, 150px) clamp(20px, 5vw, 32px);
+  padding-bottom: clamp(20px, 3vw, 40px);
   display: grid;
   gap: clamp(24px, 5vw, 80px);
   align-items: start;
@@ -50,9 +51,7 @@
 .why-section[data-deck] .why-card:not([data-current]) {opacity: 0; pointer-events: none}
 .why-section[data-deck] .why-card[data-current] {z-index: 1}
 @media (prefers-reduced-motion: no-preference) {
-  .why-section[data-deck] .why-card[data-current] > div {animation: why-card-enter .25s ease-out}
   .why-section[data-deck] h2 [data-pending] {visibility: hidden}
-  @keyframes why-card-enter {from {opacity: 0; transform: translateY(8px)}}
 }
 @media (max-width: 760px) {
   .why-section {grid-template-columns: 1fr}

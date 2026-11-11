@@ -45,18 +45,65 @@
       timer = setTimeout(type, delay);
     }
 
-    const pinTop = 92;
+    let pinTop = 92;
+    let current = -1, target = -1, transition;
+    function display(index) {
+      cards.forEach((card, i) => card.toggleAttribute('data-current', i === index));
+      current = index;
+    }
+
+    function enter(direction) {
+      display(target);
+      const animation = cards[current].animate([
+        { opacity: 0, transform: 'translateY(' + direction * 24 + 'px) scale(.985)' },
+        { opacity: 1, transform: 'none' },
+      ], { duration: 320, easing: 'cubic-bezier(.18,.72,.22,1)' });
+      transition = animation;
+      animation.onfinish = () => { if (transition === animation) transition = null; };
+    }
+
+    function select(index, animated) {
+      if (!animated || index < 0) {
+        transition?.cancel();
+        transition = null;
+        target = index;
+        if (current !== index) display(index);
+        return;
+      }
+      if (target === index) return;
+      const direction = index < current ? -1 : 1;
+      target = index;
+      if (current < 0) return enter(direction);
+      // Retarget from the visible pose even if the user reverses mid-transition.
+      const card = cards[current];
+      const style = getComputedStyle(card);
+      const pose = { opacity: style.opacity, transform: style.transform };
+      transition?.cancel();
+      const returning = index === current;
+      const animation = card.animate([
+        pose,
+        returning ? { opacity: 1, transform: 'none' } :
+          { opacity: 0, transform: 'translateY(' + -direction * 18 + 'px) scale(.98)' },
+      ], { duration: 160, easing: 'ease-in' });
+      transition = animation;
+      animation.onfinish = () => {
+        if (transition !== animation) return;
+        transition = null;
+        if (!returning) enter(direction);
+      };
+    }
+
     let step = 0;
 
     function revealFocusedCard(event) {
       const index = cards.indexOf(event.target.closest('.why-card'));
       if (index >= 0 && !cards[index].hasAttribute('data-current')) {
         window.scrollBy({ top: track.getBoundingClientRect().top - pinTop + index * step + 1, behavior: 'instant' });
-        update();
+        update(true);
       }
     }
 
-    function update() {
+    function update(immediate = false) {
       frame = 0;
       const animated = !motion.matches;
       section.setAttribute('data-deck', '');
@@ -66,6 +113,7 @@
       letters.forEach((letter, i) => letter.toggleAttribute('data-pending', animated && i >= count));
       // Every card occupies the same grid cell. Scroll distance selects one card
       // and lets a card taller than the viewport pass completely into view.
+      pinTop = Math.max(92, Math.round((height - stack.offsetHeight) / 2));
       const overflow = Math.max(0, stack.offsetHeight + pinTop + 16 - height);
       step = Math.round(Math.max(180, Math.min(340, height * .38)) + overflow);
       track.style.setProperty('--travel', ((cards.length - 1) * step + overflow) + 'px');
@@ -75,7 +123,7 @@
       const withinCard = distance - index * step;
       stack.style.setProperty('--pin', (pinTop - Math.min(overflow, withinCard)) + 'px');
       const entered = !animated || (count >= letters.length && trackTop <= height * .72);
-      cards.forEach((card, i) => card.toggleAttribute('data-current', entered && i === index));
+      select(entered ? index : -1, animated && !immediate && !document.hidden);
       const showGreeting = entered && index === cards.length - 1 && stack.getBoundingClientRect().bottom > 0;
       if (animated && words.length && showGreeting && !document.hidden) {
         if (!timer) type();
@@ -92,7 +140,7 @@
     }
 
     function schedule() {
-      if (!frame) frame = requestAnimationFrame(update);
+      if (!frame) frame = requestAnimationFrame(() => update());
     }
     update();
     const observer = new ResizeObserver(schedule);
@@ -109,6 +157,7 @@
       document.removeEventListener('visibilitychange', schedule);
       stack.removeEventListener('focusin', revealFocusedCard);
       observer.disconnect();
+      transition?.cancel();
       cancelAnimationFrame(frame);
       clearTimeout(timer);
     };
