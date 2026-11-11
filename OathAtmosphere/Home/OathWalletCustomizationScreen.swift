@@ -5,13 +5,16 @@ import OathDatabase
 /// An in-memory preview until saving atomically commits this wallet's metadata.
 /// Navigation and keyboard avoidance use native controls.
 struct OathWalletCustomizationScreen: View {
-    enum Mode { case setup, edit }
+    enum Mode: Equatable { case setup, edit, create(UUID) }
 
     let session: OathWalletSession
     let walletID: String
     let mode: Mode
     let onSaved: () -> Void
     @Environment(\.oathLocalizer) private var strings
+    @Environment(\.dismiss) private var dismiss
+    @State private var preparation = OathWalletCreationPreparation()
+    @State private var editedCreationName = false
     @State private var name = ""
     @State private var initialDefaultName: String?
     @State private var colorHex: String?
@@ -24,9 +27,20 @@ struct OathWalletCustomizationScreen: View {
     private static let swatches: [String?] = [nil, "8B36C9", "288CBC", "126BB5", "12989C", "209750", "DF438D", "EE741B", "BC2835", "656977"]
     private var wallet: WalletRecord? { session.wallets.first { $0.id == walletID } }
     private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var nameIsValid: Bool { trimmedName.isEmpty || WalletRecord.isValidName(trimmedName) }
+    private var creating: Bool {
+        if case .create = mode { return true }
+        return false
+    }
+    private var readyToEdit: Bool { creating || (initialized && wallet != nil) }
     private var canSave: Bool {
-        initialized && wallet != nil && session.isUnlocked && !session.changingWallet && !submitting
-            && WalletRecord.isValidName(trimmedName)
+        readyToEdit && session.isUnlocked && (creating || !session.changingWallet) && !submitting && nameIsValid
+    }
+    private var editableName: Binding<String> {
+        Binding(get: { name }, set: { value in
+            if creating { editedCreationName = true }
+            name = value
+        })
     }
 
     var body: some View {
@@ -34,21 +48,40 @@ struct OathWalletCustomizationScreen: View {
             ScrollView {
                 VStack(spacing: 24) {
                     Spacer(minLength: 24)
-                    OathTextInput(text: $name, focused: $focused, title: strings.text(.walletName),
-                                  identifier: "walletCustomize.name", prominent: true)
-                        .disabled(submitting)
-                        .padding(.horizontal, 24)
+                    HStack(spacing: 0) {
+                        OathTextInput(text: editableName, focused: $focused,
+                                      title: strings.text(creating && !initialized ? .mainWalletName : .walletName),
+                                      identifier: "walletCustomize.name", prominent: true)
+                        if !name.isEmpty {
+                            Button {
+                                editableName.wrappedValue = ""
+                                focused = true
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 17))
+                                    .symbolRenderingMode(.monochrome)
+                                    .foregroundStyle(.white.opacity(0.78))
+                                    .frame(width: 44, height: 44)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(strings.text(.clear))
+                            .accessibilityIdentifier("walletCustomize.name.clear")
+                        }
+                    }
+                    .disabled(submitting)
+                    .padding(.horizontal, 24)
                     colorChoices
                     saveButton
                         .accessibilityIdentifier("walletCustomize.apply")
                         .oathActionArea()
-                    if initialized && !WalletRecord.isValidName(trimmedName) {
+                    if readyToEdit && !nameIsValid {
                         Text(strings.text(.walletNameHint))
                             .oathFont(.footnote).foregroundStyle(.white)
                             .multilineTextAlignment(.center).padding(.horizontal, 24)
                     }
-                    if failed {
-                        Text(strings.text(.walletCustomizeFailed))
+                    if failed || preparation.failed {
+                        Text(strings.text(preparation.failed ? .walletChangeFailed : .walletCustomizeFailed))
                             .oathFont(.footnote).foregroundStyle(.white)
                             .multilineTextAlignment(.center).padding(.horizontal, 24)
                             .accessibilityIdentifier("walletCustomize.error")
@@ -72,53 +105,69 @@ struct OathWalletCustomizationScreen: View {
             .allowsHitTesting(false)
             .accessibilityHidden(true)
         }
-        .background {
-            OathKeyboardDismissal(requested: submitting) { commit() }
-                .frame(width: 0, height: 0)
-        }
         .oathHapticFeedback(.error, trigger: failed, when: failed)
-        .task {
+        .toolbar {
+            if preparation.failed {
+                ToolbarItem(placement: .topBarLeading) { OathCloseButton { dismiss() } }
+            }
+        }
+        .task(id: session.isUnlocked) {
+            if session.isUnlocked { _ = startCreation() }
+            else { preparation.cancel() }
+        }
+        .task(id: wallet?.id) {
             guard !initialized, let wallet else { return }
-            name = session.walletName(wallet, strings: strings)
-            initialDefaultName = wallet.name.isEmpty ? name : nil
-            colorHex = wallet.colorHex
+            let displayName = session.walletName(wallet, strings: strings)
+            initialDefaultName = wallet.name.isEmpty ? displayName : nil
+            if !creating || !editedCreationName { name = displayName }
+            if !creating { colorHex = wallet.colorHex }
             initialized = true
         }
-        .oathAutofocus(when: initialized && wallet != nil && session.isUnlocked && !submitting) {
+        .oathAutofocus(when: readyToEdit && session.isUnlocked && !submitting) {
             focused = true
         }
         .onDisappear {
+            preparation.cancel()
             work?.cancel()
             work = nil
             focused = false
             submitting = false
         }
+        .oathLanguage(strings.language)
     }
 
     private var colorChoices: some View {
-        ScrollView(.horizontal) {
-            HStack(spacing: 14) {
-                ForEach(0..<Self.swatches.count, id: \.self) { index in
-                    let hex = Self.swatches[index]
-                    OathButton(feedback: .selection) { colorHex = hex } label: {
-                        Circle().fill(color(for: hex))
-                            .overlay(Circle().strokeBorder(.white.opacity(colorHex == hex ? 0.9 : 0.25), lineWidth: colorHex == hex ? 2 : 1))
-                            .overlay {
-                                if colorHex == hex { Image(systemName: "checkmark").font(.system(size: 20, weight: .medium)).foregroundStyle(.white) }
-                            }
-                            .frame(width: 44, height: 44)
-                            .padding(2)
+        let rtl = strings.language.isRightToLeft
+        return ScrollViewReader { proxy in
+            ScrollView(.horizontal) {
+                HStack(spacing: 14) {
+                    ForEach(0..<Self.swatches.count, id: \.self) { index in
+                        let hex = Self.swatches[index]
+                        OathButton(feedback: .selection) { colorHex = hex } label: {
+                            Circle().fill(color(for: hex))
+                                .overlay(Circle().strokeBorder(.white.opacity(colorHex == hex ? 0.9 : 0.25), lineWidth: colorHex == hex ? 2 : 1))
+                                .overlay {
+                                    if colorHex == hex { Image(systemName: "checkmark").font(.system(size: 20, weight: .medium)).foregroundStyle(.white) }
+                                }
+                                .frame(width: 44, height: 44)
+                                .padding(2)
+                        }
+                        .buttonStyle(.plain)
+                        .id(index)
+                        .accessibilityLabel(hex.map { strings.format(.walletColorValue, $0) } ?? strings.text(.walletDefaultColor))
+                        .accessibilityAddTraits(colorHex == hex ? .isSelected : [])
+                        .accessibilityIdentifier("walletCustomize.color.\(hex ?? "default")")
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(hex.map { strings.format(.walletColorValue, $0) } ?? strings.text(.walletDefaultColor))
-                    .accessibilityAddTraits(colorHex == hex ? .isSelected : [])
-                    .accessibilityIdentifier("walletCustomize.color.\(hex ?? "default")")
                 }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 4)
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 4)
+            .scrollIndicators(.hidden)
+            .onChange(of: readyToEdit ? rtl : nil, initial: true) { _, _ in
+                guard readyToEdit, let index = Self.swatches.firstIndex(of: colorHex) else { return }
+                proxy.scrollTo(index, anchor: .center)
+            }
         }
-        .scrollIndicators(.hidden)
         .accessibilityLabel(strings.text(.walletColor))
         .disabled(submitting)
     }
@@ -130,14 +179,23 @@ struct OathWalletCustomizationScreen: View {
     }
 
     private var saveButton: some View {
-        OathActionButton(title: strings.text(mode == .setup ? .continueAction : .apply),
+        OathActionButton(title: strings.text(mode == .edit ? .apply : .continueAction),
                          accent: .black, isWorking: submitting) {
             guard canSave else { return }
             failed = false
             focused = false
             submitting = true
+            commit()
         }
         .disabled(!canSave)
+    }
+
+    private func startCreation() -> Task<Bool, Never>? {
+        guard case .create(let request) = mode, session.isUnlocked else { return nil }
+        return preparation.start {
+            if session.displayedProfile?.id == request, wallet != nil, !session.changingWallet { return }
+            _ = try await session.addWallet(requestID: request)
+        }
     }
 
     private func commit() {
@@ -147,7 +205,9 @@ struct OathWalletCustomizationScreen: View {
         work = Task {
             defer { work = nil; submitting = false }
             do {
-                try await session.customizeWallet(walletID, name: savedName, colorHex: savedColor, keepDefaultName: keepDefaultName)
+                if let pending = startCreation(), !(await pending.value) { return }
+                try Task.checkCancellation()
+                try await session.customizeWallet(walletID, name: savedName, colorHex: savedColor, keepDefaultName: keepDefaultName, strings: strings)
                 guard !Task.isCancelled, session.isUnlocked else { return }
                 onSaved()
             } catch is CancellationError { }

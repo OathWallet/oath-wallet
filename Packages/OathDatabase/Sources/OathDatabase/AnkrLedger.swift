@@ -221,7 +221,7 @@ extension OathDatabase {
                 // a plain decimal; a nonzero digit avoids floating-point loss.
                 let hasQuote = !value.tokenPrice.isEmpty && (value.reference != "native" ||
                     value.tokenPrice.utf8.contains { $0 >= 49 && $0 <= 57 })
-                if hasQuote {
+                if hasQuote && !PriceRecord.excludedCurrentSources(networkID: asset.networkID, reference: asset.reference).contains("ankr") {
                     try PriceRecord(assetID: asset.id, currency: "USD", value: value.tokenPrice, observedAt: now, source: "ankr").upsert(db)
                     try db.execute(sql: """
                         DELETE FROM prices WHERE assetID=? AND currency='USD' AND observedAt NOT IN (

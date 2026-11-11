@@ -1,6 +1,17 @@
 import Foundation
 import OathDiagnostics
 
+extension EVMSendNetwork {
+    /// Balance readers try these only after the primary fails chain or freshness checks.
+    public var portfolioRecoveryEndpoints: [URL] {
+        switch self {
+        case .fantom: [URL(string: "https://rpcapi.fantom.network")!, URL(string: "https://fantom.drpc.org")!]
+        case .scroll: [URL(string: "https://rpc.scroll.io")!, URL(string: "https://scroll-rpc.publicnode.com")!]
+        default: []
+        }
+    }
+}
+
 public struct EVMBalanceAsset: Sendable, Equatable {
     public let reference: String
     public let decimals: Int
@@ -15,6 +26,15 @@ public struct EVMPortfolioBalances: Sendable {
     public let observedAt: Date
     public let amounts: [String: String]
     public let failedReferences: Set<String>
+    let corroboratedIdleTip: Bool
+
+    /// An index can be fully synchronized during a quiet period. Accept its
+    /// older watermark only for the exact tip all three operators verified.
+    public func matchesIdleIndex(_ status: AnkrSyncStatus?, at now: Date) -> Bool {
+        corroboratedIdleTip && status?.status == "synced" && status?.blockNumber == height
+            && status?.timestamp == observedAt.timeIntervalSince1970
+            && (60...300).contains(now.timeIntervalSince(observedAt))
+    }
 }
 
 extension EVMSendClient {
@@ -30,10 +50,13 @@ extension EVMSendClient {
 
     /// Read-only portfolio reconciliation. Never prepares, signs or broadcasts.
     /// A failed contract leaves an explicit hole, not an invented zero.
-    public func portfolioBalances(owner: String, assets: [EVMBalanceAsset], minimumHeight: Int64 = 0) async throws -> EVMPortfolioBalances {
+    public func portfolioBalances(owner: String, assets: [EVMBalanceAsset], minimumHeight: Int64 = 0,
+                                  propagateReportedHeadFailure: Bool = false) async throws -> EVMPortfolioBalances {
         try await OathDiagnostics.withChain(network.rawValue) {
             let owner = try network.address(owner)
-            let head = try await block(.string("latest"), requireFresh: true)
+            let read = try await rpcWithHeadEvidence("eth_getBlockByNumber", [.string("latest"), .bool(false)],
+                                     headValidation: propagateReportedHeadFailure ? .freshForWalletSync : .fresh)
+            let head = read.value
             let height = try Self.uint(head["number"])
             guard height <= UInt64(Int64.max), height >= UInt64(max(0, minimumHeight)),
                   let hash = head["hash"].string, AnkrQuantity.hash(hash) else { throw EVMSendError.changed }
@@ -76,8 +99,15 @@ extension EVMSendClient {
             }
             try Task.checkCancellation()
             guard try await block(tag)["hash"].string == hash else { throw EVMSendError.changed }
+            var observedAt = Date.now
+            if (network == .fantom || network == .scroll), propagateReportedHeadFailure {
+                // Keep a corroborated older block's actual time on the balance row.
+                let blockDate = Date(timeIntervalSince1970: Double(try Self.uint(head["timestamp"])))
+                observedAt = min(observedAt, blockDate)
+            }
             return EVMPortfolioBalances(networkID: network.rawValue, owner: owner, height: Int64(height),
-                blockHash: hash, observedAt: .now, amounts: result.0, failedReferences: result.1)
+                blockHash: hash, observedAt: observedAt, amounts: result.0, failedReferences: result.1,
+                corroboratedIdleTip: read.corroboratedIdleTip)
         }
     }
 }

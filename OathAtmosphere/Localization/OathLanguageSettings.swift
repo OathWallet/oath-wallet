@@ -51,7 +51,6 @@ extension EnvironmentValues {
 }
 
 struct OathLocalizedRoot<Content: View>: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Bindable var settings: OathAppSettings
     @ViewBuilder let content: () -> Content
 
@@ -77,8 +76,6 @@ struct OathLocalizedRoot<Content: View>: View {
                 OathSceneAppearance(appearance: settings.appearance, language: settings.language)
                     .frame(width: 0, height: 0)
             }
-            .contentTransition(.opacity)
-            .animation(reduceMotion ? nil : .smooth(duration: 0.3), value: settings.language)
             .task { await settings.observe() }
             .alert(OathLocalizer.current.text(.walletUnavailable), isPresented: $settings.showsError) {
                 if #available(iOS 26.0, *) {

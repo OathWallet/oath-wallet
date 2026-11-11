@@ -1,4 +1,5 @@
 import MetalKit
+import OathDiagnostics
 
 /// UIKit commits bundled artwork with the other welcome elements. The Metal
 /// layer is transparent until it presents a complete, opaque frame over it.
@@ -139,13 +140,16 @@ private final class OathStartupArtworkView: UIView {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     func update(dark: Bool, colorway: OathColorway, customColor: UInt32?, placement: OathArtworkPlacement?) {
+        let appearance = dark ? "dark" : "light"
+        let showsLogo = placement?.rendersLogo != false
+        if self.colorway == nil || self.dark != dark || showsLogo != (self.placement?.rendersLogo != false) {
+            setBundledImage(showsLogo ? "OathStartup-logo-\(appearance).png" : nil, on: logo)
+        }
         if self.dark != dark || self.colorway != colorway || self.customColor != customColor {
             posterTask?.cancel()
-            let appearance = dark ? "dark" : "light"
-            // UIImage's local resource cache shares these across welcome visits.
-            silk.image = customColor == nil ? UIImage(named: "OathStartup-\(colorway.rawValue)-\(appearance).jpg") : nil
-            readableSilk.image = customColor == nil ? UIImage(named: "OathStartup-\(colorway.rawValue)-\(appearance)-reading.jpg") : nil
-            logo.image = UIImage(named: "OathStartup-logo-\(appearance).png")
+            let base = "OathStartup-\(colorway.rawValue)-\(appearance)"
+            setBundledImage(customColor == nil ? base + ".jpg" : nil, on: silk)
+            setBundledImage(customColor == nil ? base + "-reading.jpg" : nil, on: readableSilk)
             let colors = customColor.map(OathSilkColors.custom) ?? colorway.colors
             let rest = dark ? colors.darkRest : colors.lightRest
             let deep = dark ? colors.darkDeep : colors.lightDeep
@@ -162,6 +166,32 @@ private final class OathStartupArtworkView: UIView {
             setNeedsLayout()
         }
     }
+
+    private func setBundledImage(_ name: String?, on view: UIImageView) {
+        guard let name else {
+            view.image = nil
+            return
+        }
+        guard let source = UIImage(named: name) else {
+            view.image = nil
+            OathDiagnostics.record(PosterError.missingResource, component: "rendering", operation: "load_poster")
+            return
+        }
+        // Supply the first frame immediately. Keep display-ready pixels for subsequent
+        // foreground commits, which would otherwise decode the compressed poster again.
+        view.image = source
+        Task { [weak view] in
+            let prepared = await source.byPreparingForDisplay()
+            guard let view, view.image === source else { return }
+            guard let prepared else {
+                OathDiagnostics.record(PosterError.decodeFailed, component: "rendering", operation: "prepare_poster")
+                return
+            }
+            view.image = prepared
+        }
+    }
+
+    private enum PosterError: Error { case missingResource, decodeFailed }
 
     func setPosterNeeded(_ needed: Bool) {
         guard posterNeeded != needed else { return }

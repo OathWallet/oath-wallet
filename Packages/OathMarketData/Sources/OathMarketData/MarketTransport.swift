@@ -36,7 +36,7 @@ public actor URLSessionMarketTransport: MarketTransport {
         catch AnkrError.http(429) { throw MarketDataError.rateLimited }
         switch response.status {
         case 200: break
-        case 404:
+        case 400, 404:
             guard DiagnosticHTTP.expectedMarketDataAbsence(response.data, status: response.status, request: prepared) else {
                 throw MarketDataError.unavailable
             }

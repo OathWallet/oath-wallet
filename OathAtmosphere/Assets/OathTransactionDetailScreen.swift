@@ -1,5 +1,6 @@
 import OathDiagnostics
 import SwiftUI
+import OathBitcoin
 import OathDatabase
 import OathAnkr
 import OathTokenImages
@@ -15,6 +16,8 @@ struct OathTransactionDetailScreen: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.displayScale) private var displayScale
     @Environment(\.openURL) private var openURL
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var bitcoinEvidence: BitcoinFeeRelationships?
     @State private var swapProgress: ThorchainSwapProgress?
     @State private var details: TransactionDetails?
     @State private var share: OathTransactionSharePayload?
@@ -104,6 +107,18 @@ struct OathTransactionDetailScreen: View {
                 }
             } catch { OathDiagnostics.record(error); /* Preserve the last cached projection on interruption. */ }
         }
+        .task(id: [entry.networkID, entry.hash, details?.state ?? entry.state, scenePhase == .active ? "active" : "inactive"]) {
+            guard entry.networkID == "bitcoin", scenePhase == .active else { return }
+            let client = BitcoinFeeRelationshipClient()
+            repeat {
+                let evidence = await client.lookup(entry.hash)
+                guard !Task.isCancelled else { return }
+                bitcoinEvidence = evidence
+                guard ["pending", "reorged"].contains(details?.state ?? entry.state) else { return }
+                do { try await Task.sleep(for: .seconds(45)) }
+                catch { return } // The receipt closed or its status changed.
+            } while !Task.isCancelled
+        }
         .task(id: entry.hash) {
             guard entry.networkID == "thorchain" else { return }
             // Ordinary transfers, absent indexing and unsupported memo variants
@@ -120,12 +135,18 @@ struct OathTransactionDetailScreen: View {
     /// History and exported images use the same receipt.
     private func receipt(exporting: Bool = false) -> some View {
         let entry = currentEntry
+        let evidence = entry.networkID == "bitcoin" && bitcoinEvidence?.hash == entry.hash ? bitcoinEvidence : nil
+        let nextReplacement = evidence?.replacement?.replacedBy ?? details?.replacementHash
         return OathTransactionReceiptContent(state: details?.state ?? entry.state, timestamp: details?.transaction.timestamp ?? entry.timestamp,
             networkName: networkName, fee: details?.transaction.feeAtomic == nil ? nil : feeText,
             showsSenderTotal: entry.showsSenderTotal && entry.transactionID == self.entry.transactionID,
             total: details?.totalAmount, currency: currency,
             fromAddresses: details?.fromAddresses ?? [], toAddresses: details?.toAddresses ?? [],
-            replacement: details?.replacementHash, hash: details?.transaction.hash ?? entry.hash,
+            replacement: nextReplacement, hash: details?.transaction.hash ?? entry.hash,
+            confirmedReplacement: details?.replacementHash == nextReplacement ? nil : details?.replacementHash,
+            bitcoinSignalsRBF: details?.bitcoinSignalsRBF ?? evidence?.replacement?.signalsRBF,
+            bitcoinReplaces: Set((details?.replacedBitcoinTransactions ?? []) + (evidence?.replacement?.replaces ?? [])).sorted(),
+            bitcoinPackage: evidence?.package, bitcoinLinks: entry.networkID == "bitcoin",
             confirmations: details?.confirmations, inputs: details?.inputs, outputs: details?.outputs,
             nativeSymbol: details?.feeAsset?.symbol ?? holding.symbol,
             nativeDecimals: details?.feeAsset?.decimals ?? holding.decimals,
@@ -193,6 +214,11 @@ struct OathTransactionReceiptContent<Header: View, Supplement: View>: View {
     let toAddresses: [String]
     let replacement: String?
     let hash: String
+    var confirmedReplacement: String?
+    var bitcoinSignalsRBF: Bool?
+    var bitcoinReplaces: [String] = []
+    var bitcoinPackage: BitcoinFeeRelationships.Package?
+    var bitcoinLinks = false
     var confirmations: Int64? = nil
     var inputs: [TransactionEndpoint]? = nil
     var outputs: [TransactionEndpoint]? = nil
@@ -234,6 +260,17 @@ struct OathTransactionReceiptContent<Header: View, Supplement: View>: View {
                         .accessibilityIdentifier("transaction.confirmations")
                 }
                 row(.tokenNetwork, strings.invariant(networkName))
+                if let bitcoinSignalsRBF {
+                    row(.sendRBF, strings.text(bitcoinSignalsRBF ? .sendOptionOn : .sendOptionOff))
+                        .accessibilityIdentifier("transaction.rbf")
+                }
+                if let bitcoinPackage {
+                    let rate = bitcoinPackage.rate.formatted(.number.precision(.fractionLength(0...3)).locale(strings.language.locale))
+                    field(title: strings.text(.bitcoinCombinedFeeRate)) {
+                        Text(strings.invariant(rate + " sat/vB")).foregroundStyle(.secondary)
+                            .oathBalanceConcealed(balancesHidden)
+                    }.accessibilityIdentifier("transaction.combinedFeeRate")
+                }
                 if !["canceled", "replaced", "reorged"].contains(state), let fee {
                     field(title: strings.text(.transactionNetworkFee)) {
                         Text(strings.invariant(fee)).foregroundStyle(.secondary)
@@ -270,7 +307,16 @@ struct OathTransactionReceiptContent<Header: View, Supplement: View>: View {
                 addressGroup(isInput: false, rows: outputRows)
             }
             OathSettingsSectionRule()
-            if let replacement { identifierRow(.transactionReplacement, replacement) }
+            if let replacement { relatedRow(.transactionReplacement, replacement) }
+            if let confirmedReplacement {
+                relatedRow(.transactionReplacement, confirmedReplacement, confirmed: true)
+            }
+            ForEach(bitcoinReplaces, id: \.self) { relatedRow(.bitcoinReplaces, $0) }
+            if let bitcoinPackage {
+                ForEach(bitcoinPackage.parents, id: \.self) { relatedRow(.bitcoinPaysForParent, $0) }
+                ForEach(bitcoinPackage.children, id: \.self) { relatedRow(.bitcoinPaidByChild, $0) }
+                ForEach(bitcoinPackage.otherMembers, id: \.self) { relatedRow(.bitcoinPackageMember, $0) }
+            }
             identifierRow(.assetTransactionID, hash)
             supplement()
         }
@@ -324,20 +370,35 @@ struct OathTransactionReceiptContent<Header: View, Supplement: View>: View {
         .accessibilityElement(children: .combine)
     }
 
+    private func relatedRow(_ key: OathStringKey, _ hash: String, confirmed: Bool = false) -> some View {
+        field(title: strings.text(key)) {
+            VStack(alignment: .trailing, spacing: 3) {
+                copyValue(hash, key: key.rawValue, transaction: true,
+                          url: bitcoinLinks && !exporting ? OathImportChain.bitcoin.transactionExplorerURL(hash: hash) : nil)
+                if confirmed {
+                    Text(strings.text(OathAssetHistoryFormatting.status("confirmed"))).oathFont(.footnote).foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
     private func identifierRow(_ key: OathStringKey, _ value: String) -> some View {
-        field(title: strings.text(key)) { copyValue(value, key: key.rawValue) }
+        field(title: strings.text(key)) { copyValue(value, key: key.rawValue, transaction: true) }
     }
 
     private func copyValue(_ value: String, key: String, amount: String? = nil,
-                           ownership: TransactionEndpoint.Ownership = .unrecognized) -> some View {
+                           ownership: TransactionEndpoint.Ownership = .unrecognized, transaction: Bool = false, url: URL? = nil) -> some View {
         let copyID = key + ":" + value
         return HStack(spacing: 8) {
             VStack(alignment: .trailing, spacing: 4) {
                 HStack(spacing: 6) {
-                    Text(value).lineLimit(1).truncationMode(.middle)
+                    let text = Text(value).lineLimit(1).truncationMode(.middle)
                         .environment(\.layoutDirection, .leftToRight)
                         .foregroundStyle(ownership == .unrecognized ? Color.secondary : Color.primary)
                         .accessibilityLabel(value)
+                    if let url {
+                        Link(destination: url) { text.foregroundStyle(.tint) }
+                            .accessibilityHint(strings.text(.transactionViewExplorer))
+                    } else { text }
                     if ownership == .change {
                         Text(strings.text(.privateKeyChangeAddresses))
                             .oathFont(.caption, weight: .medium)
@@ -365,7 +426,7 @@ struct OathTransactionReceiptContent<Header: View, Supplement: View>: View {
                     .frame(width: 44, height: 44).contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(strings.text(key == OathStringKey.assetTransactionID.rawValue || key == OathStringKey.transactionReplacement.rawValue ? .assetCopyTransaction : .copyAddress))
+            .accessibilityLabel(strings.text(transaction ? .assetCopyTransaction : .copyAddress))
             .accessibilityValue(copiedKey == copyID ? strings.text(.addressCopied) : "")
             .accessibilityIdentifier("transaction.copy.\(key)")
         }

@@ -29,7 +29,7 @@ struct ArtworkDecodeFailure: Error, CustomNSError {
     }
 }
 
-/// Immutable full-resolution raster or vector drawing. Originals are kept on
+/// Immutable display-sized or original raster, or vector drawing. Originals are kept on
 /// disk without transcoding; SVG remains vector at every display/export scale.
 public enum ArtworkImage: Sendable {
     case raster(CGImage, background: TokenArtworkColor)
@@ -78,8 +78,16 @@ public enum ArtworkImage: Sendable {
             }
             return .raster(image, background: color)
         }
-        try ArtworkSVGValidation.validate(data)
-        guard let svg = SVG(data: data) else { throw ArtworkDecodeFailure(stage: .svgDrawing) }
+        let hasMissingRectangleDimensions = try ArtworkSVGValidation.validate(data)
+        let svg: SVG
+        if let original = SVG(data: data) {
+            svg = original
+        } else if hasMissingRectangleDimensions, let normalized = ArtworkRectangleDefaults.apply(to: data),
+                  let compatible = SVG(data: normalized) {
+            svg = compatible
+        } else {
+            throw ArtworkDecodeFailure(stage: .svgDrawing)
+        }
         guard svg.size.width.isFinite, svg.size.height.isFinite,
               svg.size.width > 0, svg.size.height > 0, svg.size.width <= 16384, svg.size.height <= 16384 else { throw ArtworkDecodeFailure(stage: .svgDimensions) }
         let color = TokenArtworkPalette.analyze(size: svg.size) { $0.draw(svg, in: $1) }
@@ -108,7 +116,9 @@ private final class ArtworkSVGValidation: NSObject, XMLParserDelegate {
     private var ids: [String: Int] = [:]
     private var refs: [(Int, String)] = []
     private var root = false
-    static func validate(_ data: Data) throws {
+    private var hasMissingRectangleDimensions = false
+    /// Return whether a rectangle could require SVG's default dimensions.
+    static func validate(_ data: Data) throws -> Bool {
         guard data.count <= 512 * 1024, let text = String(data: data, encoding: .utf8) else { throw ArtworkDecodeFailure(stage: .svgDocument) }
         guard !text.lowercased().contains("<!doctype"), !text.lowercased().contains("<!entity") else { throw ArtworkDecodeFailure(stage: .svgSafety) }
         let delegate = ArtworkSVGValidation(), parser = XMLParser(data: data)
@@ -141,9 +151,13 @@ private final class ArtworkSVGValidation: NSObject, XMLParserDelegate {
         for node in delegate.edges.indices {
             guard budget(node, depth: 0) != nil else { throw ArtworkDecodeFailure(stage: .svgSafety) }
         }
+        return delegate.hasMissingRectangleDimensions
     }
     func parser(_ parser: XMLParser, didStartElement name: String, namespaceURI: String?, qualifiedName: String?, attributes: [String: String]) {
         if edges.isEmpty { root = name.lowercased() == "svg" }
+        if name == "rect", attributes["width"] == nil || attributes["height"] == nil {
+            hasMissingRectangleDimensions = true
+        }
         guard edges.count < 4000, stack.count < 64,
               !["script", "foreignobject", "iframe", "image", "animate", "set"].contains(name.lowercased()) else { valid = false; parser.abortParsing(); return }
         let index = edges.count

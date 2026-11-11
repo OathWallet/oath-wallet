@@ -5,6 +5,7 @@ import Observation
 struct OathWalletRemovalAction: Equatable, Sendable {
     let ids: Set<String>
     let permanently: Bool
+    var recentlyDeletedOnly = false
     var resetsApp = false
     var recentlyDeletedIDs: Set<String> = []
 }
@@ -19,16 +20,30 @@ struct OathWalletRemovalAction: Equatable, Sendable {
     @ObservationIgnored private var grant: UUID?
     @ObservationIgnored private var generation = UUID()
     @ObservationIgnored private var work: Task<Void, Never>?
+    @ObservationIgnored private var moveAlreadyConfirmed = false
     private let session: OathWalletSession
 
     init(session: OathWalletSession) { self.session = session }
 
     func begin(_ action: OathWalletRemovalAction, reason: String) {
+        start(action, reason: reason, moveAlreadyConfirmed: false)
+    }
+
+    /// The drawer already confirmed this exact, recoverable move. The vault
+    /// must still authorize it before the session can change any wallet.
+    func moveConfirmedWalletToRecentlyDeleted(_ id: String, reason: String) {
+        guard phase == .idle, session.wallets.contains(where: { $0.id == id }) else { return }
+        start(.init(ids: [id], permanently: false, recentlyDeletedOnly: true),
+              reason: reason, moveAlreadyConfirmed: true)
+    }
+
+    private func start(_ action: OathWalletRemovalAction, reason: String, moveAlreadyConfirmed: Bool) {
         guard session.isUnlocked, !session.changingWallet, !busy, !confirming, !action.ids.isEmpty else { return }
         cancel()
+        self.moveAlreadyConfirmed = moveAlreadyConfirmed
         var action = action
         let activeIDs = Set(session.wallets.map(\.id))
-        if !action.permanently, !activeIDs.isEmpty, action.ids == activeIDs {
+        if !action.recentlyDeletedOnly, !action.permanently, !activeIDs.isEmpty, action.ids == activeIDs {
             // Bind both confirmations to exactly this membership. A wallet
             // added/restored while the alert is open must never be erased.
             action.resetsApp = true
@@ -62,6 +77,7 @@ struct OathWalletRemovalAction: Equatable, Sendable {
                     self.phase = action.resetsApp && !action.recentlyDeletedIDs.isEmpty
                         ? .recentlyDeletedConfirmation : .confirmation
                     self.busy = false; self.work = nil
+                    if self.moveAlreadyConfirmed { self.confirm() }
                 } catch {
                     guard let self, self.generation == token else { return }
                     self.busy = false; self.work = nil
@@ -132,6 +148,7 @@ struct OathWalletRemovalAction: Equatable, Sendable {
         generation = UUID(); work?.cancel(); work = nil; busy = false; phase = .idle
         if let grant { Task { [session] in await session.vault.cancelWalletRemovalAuthorization(grant) } }
         grant = nil; action = nil
+        moveAlreadyConfirmed = false
         if !preserveNotice { notice = nil }
     }
 }

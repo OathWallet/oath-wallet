@@ -22,11 +22,13 @@ enum OathChartFeedback {
 /// screen, wallet, secret or transaction in a feedback event.
 enum OathHapticEvent: CaseIterable, Sendable {
     case tap, navigate, dismiss, selection, input, copy, paste, clear, scan, scanned, share, refresh
-    case success, warning, error
+    case expand, collapse, success, warning, error
 
-    enum Pattern: Equatable { case soft, light, heavy, selection, success, warning, error }
+    enum Pattern: Equatable { case soft, rigid, light, heavy, selection, success, warning, error }
     var pattern: Pattern {
         switch self {
+        case .expand: .soft
+        case .collapse: .rigid
         case .selection: .selection
         case .input: .light
         case .copy: .heavy
@@ -40,7 +42,7 @@ enum OathHapticEvent: CaseIterable, Sendable {
         switch self {
         case .error: 4
         case .warning: 3
-        case .success, .scanned, .copy, .paste, .refresh: 2
+        case .success, .scanned, .copy, .paste, .refresh, .expand, .collapse: 2
         default: 1
         }
     }
@@ -109,6 +111,13 @@ struct OathHapticPolicy {
         output(event)
     }
 
+    func prepare(_ event: OathHapticEvent) {
+        #if canImport(UIKit)
+        guard isEnabled, active() else { return }
+        OathHapticDriver.shared.prepare(event)
+        #endif
+    }
+
     /// Called only when a user crosses a chart sample, never for quote updates.
     /// UIKit feedback is best effort; muted/inactive/unsupported hardware is
     /// expected and does not represent an app diagnostic failure.
@@ -137,17 +146,29 @@ struct OathHapticPolicy {
     private let light = UIImpactFeedbackGenerator(style: .light)
     private let heavy = UIImpactFeedbackGenerator(style: .heavy)
     private let chartSoft = UIImpactFeedbackGenerator(style: .soft)
-    private let chartFirm = UIImpactFeedbackGenerator(style: .rigid)
+    private let rigid = UIImpactFeedbackGenerator(style: .rigid)
     private let selection = UISelectionFeedbackGenerator()
     private let notification = UINotificationFeedbackGenerator()
+    func prepare(_ event: OathHapticEvent) {
+        switch event.pattern {
+        case .soft: soft.prepare()
+        case .rigid: rigid.prepare()
+        case .light: light.prepare()
+        case .heavy: heavy.prepare()
+        case .selection: selection.prepare()
+        case .success, .warning, .error: notification.prepare()
+        }
+    }
+
     func playChart(intensity: Double, firm: Bool) {
-        let generator = firm ? chartFirm : chartSoft
+        let generator = firm ? rigid : chartSoft
         generator.impactOccurred(intensity: CGFloat(intensity))
         generator.prepare()
     }
     func play(_ event: OathHapticEvent) {
         switch event.pattern {
         case .soft: soft.impactOccurred(intensity: 0.65); soft.prepare()
+        case .rigid: rigid.impactOccurred(); rigid.prepare()
         case .light: light.impactOccurred(intensity: 0.45); light.prepare()
         case .heavy: heavy.impactOccurred(intensity: 1); heavy.prepare()
         case .selection: selection.selectionChanged(); selection.prepare()

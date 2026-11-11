@@ -105,7 +105,14 @@ public actor TokenArtworkResolver {
         // cached bytes, then ask the published list for this exact coin identity.
         func prefersCatalog(_ source: String) -> Bool {
             if source == "https://circle.com/usdc-icon" { return true }
-            return token.networkID == "sui" && (source == "https://miucoin.io/favicon.ico" || source == "https://winx.io/WIN.svg")
+            // This publisher SVG embeds raster data rejected by the image
+            // safety policy. Resolve the published image by exact contract.
+            if token.networkID == "zerog", source == "https://ascend.finance/imgs/a0g.svg" { return true }
+            guard token.networkID == "sui" else { return false }
+            // These reported publisher URLs fail before rendering. The Sui
+            // catalog matches by full Move coin type and can supply another image.
+            return ["https://miucoin.io/favicon.ico", "https://winx.io/WIN.svg",
+                    "https://bafybeieycjagqv7xtenzxss5xkcxgeru7wql6izhzokr4ay4xdbrul4ef4.ipfs.w3s.link"].contains(source)
         }
         if let source = saved.first {
             let image = prefersCatalog(source)
@@ -148,23 +155,34 @@ public actor TokenArtworkResolver {
         let candidates = ArtworkSource.candidates(hasRetiredSource
             ? published + saved + cachedMetadata + discoveryMetadata + request.sources
             : saved + cachedMetadata + published + discoveryMetadata + request.sources)
-        for source in candidates {
-            guard !Task.isCancelled else { return nil }
-            if let image = await loader.image(for: [source], maxPixelSize: request.maxPixelSize) {
-                await remember(source, token: token, image: image, maxPixelSize: request.maxPixelSize)
-                return image
-            }
-        }
+        if let image = await firstImage(in: candidates, for: request) { return image }
         guard !Task.isCancelled else { return nil }
         let refreshed = await metadataSources(for: token)
-        for source in ArtworkSource.candidates(refreshed) where !candidates.contains(source) {
-            if let image = await loader.image(for: [source], maxPixelSize: request.maxPixelSize) {
-                await remember(source, token: token, image: image, maxPixelSize: request.maxPixelSize)
+        let freshSources = ArtworkSource.candidates(refreshed).filter { !candidates.contains($0) }
+        if let image = await firstImage(in: freshSources, for: request) { return image }
+        guard !Task.isCancelled else { return nil }
+        // Historical transfers can carry only a contract, or an expired ordinary
+        // URL. Neither input triggers the directory-URL recovery path above.
+        if published.isEmpty && !hasRetiredSource {
+            let attempted = Set(candidates + freshSources)
+            let exact = await loader.catalogSources(for: token)
+            if let image = await firstImage(in: ArtworkSource.candidates(exact).filter { !attempted.contains($0) }, for: request) {
                 return image
             }
         }
         // Missing optional artwork never becomes a persisted placeholder.
         return await cached(for: token, sources: request.sources, maxPixelSize: request.maxPixelSize)
+    }
+
+    private func firstImage(in sources: [String], for request: Request) async -> ArtworkImage? {
+        for source in sources {
+            guard !Task.isCancelled else { return nil }
+            if let image = await loader.image(for: [source], maxPixelSize: request.maxPixelSize) {
+                await remember(source, token: request.token, image: image, maxPixelSize: request.maxPixelSize)
+                return image
+            }
+        }
+        return nil
     }
 
     private func metadataSources(for token: TokenArtworkIdentity) async -> [String] {

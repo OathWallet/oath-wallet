@@ -1,0 +1,246 @@
+{
+  "version": "5.0.3",
+  "build": "109",
+  "tag": "v5.0.3-build109",
+  "date": "2026-11-11",
+  "source_identity": "See source.json attached to the same release.",
+  "toolchain": {
+    "xcode": "27.2 (27B52)",
+    "swift": "6.4.2",
+    "host": "macOS arm64"
+  },
+  "package_checks": [
+    {
+      "package": "OathAnkr",
+      "command": "swift test --package-path Packages/OathAnkr --build-system native --jobs 4 --parallel --num-workers 4",
+      "exit_code": 1,
+      "scheduled_cases": 1817,
+      "count_includes_skipped_cases": true,
+      "skip_count": "not separately reported by SwiftPM parallel summary",
+      "log_sha256": "c2ed808a0a2debdd6cd2d51b424e2a15ad2bfec1948abcf109aae11006c9c7f8",
+      "status": "passed_after_targeted_retest",
+      "initial_failed_cases": [
+        "testLocalCommitmentsReserveNextNonceTokenAmountAndMaximumGasAcrossNetworks"
+      ],
+      "correction": "Restored the local-reservation nonce expectation to 8; only pending-provider nonce expectations use 7 for HyperEVM.",
+      "targeted_retest": {
+        "command": "swift test --package-path Packages/OathAnkr --build-system native --jobs 4 --parallel --num-workers 4 --filter EVMSendRPCRegressionTests",
+        "exit_code": 0,
+        "scheduled_cases": 20,
+        "failures": 0,
+        "log_sha256": "f0ee20f728f21d57831b88814bdecfe89ca9fff573b8b25b0e4658dab40b3472"
+      }
+    },
+    {
+      "package": "OathDatabase",
+      "command": "swift test --package-path Packages/OathDatabase --build-system native --jobs 4 --parallel --num-workers 4",
+      "exit_code": 0,
+      "scheduled_cases": 921,
+      "count_includes_skipped_cases": true,
+      "skip_count": "not separately reported by SwiftPM parallel summary",
+      "log_sha256": "729439e3fff99e2cf3f7dc7649bb9babb47e1d07a7330c990a6b801ce3c2914b"
+    },
+    {
+      "package": "OathMarketData",
+      "command": "swift test --package-path Packages/OathMarketData --build-system native --jobs 4 --parallel --num-workers 4",
+      "exit_code": 0,
+      "scheduled_cases": 191,
+      "count_includes_skipped_cases": true,
+      "skip_count": "not separately reported by SwiftPM parallel summary",
+      "log_sha256": "e1e90b2ecb51e8bf3395b685ad2d8212943a018c21df396d82b24b497d46f8ae"
+    },
+    {
+      "package": "OathBitcoin",
+      "command": "swift test --package-path Packages/OathBitcoin --build-system native --jobs 4 --parallel --num-workers 4",
+      "exit_code": 0,
+      "scheduled_cases": 381,
+      "count_includes_skipped_cases": true,
+      "skip_count": "not separately reported by SwiftPM parallel summary",
+      "log_sha256": "2d629b4a2af16b5bfb989ec7f398942ce40ed942bf4efca75d15d0df473b893d"
+    },
+    {
+      "package": "OathTokenImages",
+      "command": "swift test --package-path Packages/OathTokenImages --build-system native --jobs 4 --parallel --num-workers 4",
+      "exit_code": 0,
+      "scheduled_cases": 131,
+      "count_includes_skipped_cases": true,
+      "skip_count": "not separately reported by SwiftPM parallel summary",
+      "log_sha256": "08e055c8ae4f82ec8548eaae7ee6c757ff5459b9ce3c1122effb30a0b399f432"
+    }
+  ],
+  "checks": [
+    {
+      "name": "wallet_lifecycle",
+      "command": "python3 Tools/CheckMultiWallet.py --lifecycle",
+      "exit_code": 0,
+      "result_markers": [
+        "Passed 144 wallet lifecycle",
+        "Passed 37 reset checks",
+        "Passed 24 send-failure presentation"
+      ],
+      "log_sha256": "1549cc07b719c79019ffe49b193766ce31a23c70bd53c435b4f4225ad7e7a8e1"
+    },
+    {
+      "name": "home_portfolio",
+      "command": "python3 Tools/CheckHomePortfolio.py",
+      "exit_code": 0,
+      "result_markers": [
+        "PASS: exact formatting"
+      ],
+      "log_sha256": "27f827020be1887d46f7b47052cf5550316747d6b9060e05eb88aaa14570d7e5"
+    },
+    {
+      "name": "sidebar",
+      "command": "python3 Tools/CheckWalletSidebar.py",
+      "exit_code": 0,
+      "result_markers": [
+        "PASS: production sidebar"
+      ],
+      "log_sha256": "dcb7fa7cb688414b87e960270682110f5def81ec723902c323c5593aeb64ec7a"
+    },
+    {
+      "name": "walletconnect_management",
+      "command": "python3 Tools/CheckScanner.py --connections",
+      "exit_code": 0,
+      "result_markers": [
+        "Passed 156"
+      ],
+      "log_sha256": "42eff8d1b605f3c4028243d0816f01aeea90c921a2ed2153bc07d3f4c6a9ef7c"
+    },
+    {
+      "name": "send_preparation",
+      "command": "python3 Tools/CheckSendBalancePreparation.py",
+      "exit_code": 0,
+      "result_markers": [
+        "PASS: selected controlled preparation"
+      ],
+      "log_sha256": "de81cf41055c84ebd29a3d0b896e092549a1297030d58fe785344b5239e55f47"
+    },
+    {
+      "name": "source",
+      "command": "python3 Tools/ValidatePublicRelease.py --scan",
+      "exit_code": 0,
+      "result_markers": [
+        "Public release validation passed"
+      ],
+      "log_sha256": "0a30ca3c239b9f7eb7f8337d856222bfdd0bad294e29b8265b0c16040e57be98"
+    },
+    {
+      "name": "diagnostics_coverage",
+      "command": "python3 Tools/CheckDiagnosticsCoverage.py",
+      "exit_code": 0,
+      "result_markers": [
+        "Diagnostics coverage guard passed"
+      ],
+      "log_sha256": "383b2285f8abd96472cb12682abee43925a5e6526073fe86056c8e2c86643ef2"
+    },
+    {
+      "name": "localization",
+      "command": "python3 Tools/CheckLocalizationCatalog.py",
+      "exit_code": 0,
+      "result_markers": [
+        "0 findings"
+      ],
+      "log_sha256": "769b06f3cf00c300c20ac29fb89d14ef956a3738978a642613059cf5bb323413"
+    },
+    {
+      "name": "clipboard",
+      "command": "python3 Tools/CheckClipboard.py",
+      "exit_code": 0,
+      "result_markers": [
+        "Passed 33"
+      ],
+      "log_sha256": "39a8c42f3db002d3f84bb80fcb184cd63834885b4da27fc0bd25461013984312"
+    },
+    {
+      "name": "distribution",
+      "command": "python3 -m unittest discover -s Distribution/tests -v",
+      "exit_code": 0,
+      "result_markers": [
+        "Ran 12 tests",
+        "OK"
+      ],
+      "log_sha256": "c210f9b37a297b03433b1248cf3101eea4451b27b322060ad854b66731d173e9"
+    },
+    {
+      "name": "ios_diagnostics",
+      "command": "python3 Tools/CheckDiagnosticsBoundary.py /tmp/oath109-derived/Build/Products/Debug-iphoneos",
+      "exit_code": 0,
+      "result_markers": [
+        "iOS diagnostics boundary passed"
+      ],
+      "log_sha256": "c0a08f5f9efeb6f2980c4b3ac854e1e2e312b618e2ebbfa7fb09e4b8a4d8c8fa"
+    },
+    {
+      "name": "unsigned_ios_Debug",
+      "command": "xcodebuild build -project OathAtmosphere.xcodeproj -scheme OathAtmosphere -configuration Debug -destination 'generic/platform=iOS' -derivedDataPath /tmp/oath109-derived CODE_SIGNING_ALLOWED=NO",
+      "exit_code": 0,
+      "built_version": "5.0.3",
+      "built_number": "109",
+      "log_sha256": "ac2f8c31658ac0f7cd10d555c77327561ad873da75661f7ef0e743858430ad49"
+    },
+    {
+      "name": "unsigned_ios_Release",
+      "command": "xcodebuild build -project OathAtmosphere.xcodeproj -scheme OathAtmosphere -configuration Release -destination 'generic/platform=iOS' -derivedDataPath /tmp/oath109-derived CODE_SIGNING_ALLOWED=NO",
+      "exit_code": 0,
+      "built_version": "5.0.3",
+      "built_number": "109",
+      "log_sha256": "26157500726365760e80da3020c6639fdcc145d7acaeff2829d355990586d2da"
+    }
+  ],
+  "additional_checks": {
+    "sidebar_package": {
+      "tests": 10,
+      "failures": 0
+    },
+    "diagnostics_default": {
+      "scheduled": 126,
+      "skipped": 3,
+      "failures": 0
+    },
+    "diagnostics_isolated_trace": {
+      "tests": 12,
+      "failures": 0
+    },
+    "diagnostics_isolated_propagation": {
+      "tests": 3,
+      "failures": 0
+    },
+    "diagnostics_unique_result": {
+      "passed": 125,
+      "skipped": 1,
+      "failures": 0
+    }
+  },
+  "preparation_findings": [
+    {
+      "issue": "Legacy native-price ingestion could reintroduce a retired Fantom quote.",
+      "resolution": "Applied the same quote-source exclusion to legacy ingestion; full ledger and pricing suites rerun."
+    },
+    {
+      "issue": "Receipt fixture omitted from the test resources.",
+      "resolution": "Restored the synthetic public testnet receipt fixture and reran the Bitcoin suite."
+    },
+    {
+      "issue": "Fantom total and HyperEVM testnet nonce expectations did not reflect intended provider policy.",
+      "resolution": "Updated tests to reject retired native quotes and check latest-only HyperEVM nonces, including testnet."
+    },
+    {
+      "issue": "Asynchronous diagnostic delivery made an XRPL global-count assertion race with a preceding test phase.",
+      "resolution": "Bound the assertion to the validation phase and reran the isolated recorder suite."
+    },
+    {
+      "issue": "Lifecycle host source inventory lagged the session dependencies.",
+      "resolution": "Added the production helper types and documented no-network method signatures; reran lifecycle/reset tests."
+    }
+  ],
+  "limits": [
+    "No simulator or physical device was launched.",
+    "No live transaction was performed.",
+    "No Apple upload or review submission was performed.",
+    "Parallel package counts include opt-in skips; these are not reported as passing tests.",
+    "The lifecycle host harness replaces platform derivation and provider adapters with documented synthetic fixtures.",
+    "The home-list timing is a single synthetic Mac-host run under concurrent work, not a device latency guarantee.",
+    "Maintainer-directed testing is not independent certification or a completed security audit."
+  ]
+}

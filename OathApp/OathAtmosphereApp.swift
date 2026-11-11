@@ -218,7 +218,7 @@ private struct OathOnboardingFlow: View {
                 onMoreOptions: { showsMoreOptions = true }
             )
             .oathNativeLocalization(navigationBackground: .hidden, navigationMaterial: nil, systemNavigationAppearance: true)
-            .modifier(OathArtworkNavigationAppearance())
+            .modifier(OathArtworkBarAppearance(stylesNavigationBar: true))
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: Destination.self) { destination in
                 switch destination {

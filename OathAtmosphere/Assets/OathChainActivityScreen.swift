@@ -12,6 +12,7 @@ struct OathChainActivityScreen: View {
     var query = ""
     var isVisible = true
     var filterSelection: Binding<OathHistoryFilterSelection>? = nil
+    let showsWalletSidebar: Bool
     @State private var chainQuery = ""
     @State private var localFilters = OathHistoryFilterSelection()
     @State private var showsFilters = false
@@ -19,21 +20,22 @@ struct OathChainActivityScreen: View {
     @Environment(\.oathLocalizer) private var strings
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var model = OathChainActivityModel()
+    @State private var model: OathChainActivityModel
     @State private var selected: ChainHistoryItem?
     @State private var headerHeight: CGFloat = 0
 
     init(walletID: String, networkID: String? = nil, networkName: String? = nil,
          accountID: String? = nil, assetID: String? = nil, session: OathWalletSession,
          query: String = "", isVisible: Bool = true,
-         filterSelection: Binding<OathHistoryFilterSelection>? = nil) {
+         filterSelection: Binding<OathHistoryFilterSelection>? = nil, showsWalletSidebar: Bool = false) {
         self.walletID = walletID; self.networkID = networkID; self.networkName = networkName
         self.accountID = accountID; self.assetID = assetID; self.session = session
         self.query = query; self.isVisible = isVisible; self.filterSelection = filterSelection
+        self.showsWalletSidebar = showsWalletSidebar
         let seed = session.homeHistory
         let canSeed = networkID == nil && accountID == nil && assetID == nil && query.isEmpty
             && (filterSelection?.wrappedValue.activeCount ?? 0) == 0
-            && seed?.walletID == walletID && seed?.currency == session.homePortfolio.currency
+            && seed?.walletID == walletID && seed?.currency == session.portfolio?.currency
         _model = State(initialValue: OathChainActivityModel(seed: canSeed ? seed : nil))
     }
 
@@ -103,22 +105,25 @@ struct OathChainActivityScreen: View {
             .listRowSpacing(0)
             .contentMargins(.vertical, 0, for: .scrollContent)
             .scrollContentBackground(.hidden)
-            .modifier(OathHomeScrollEdgeAppearance())
             // Stable activity IDs let the native list insert/remove only the
             // changed rows, including transitions to and from an empty result.
             .animation(reduceMotion ? nil : .default, value: model.items.map(\.id))
             .animation(reduceMotion ? nil : .default, value: filters.wrappedValue.activeCategories)
         }
         .background(Color(uiColor: OathSurfaceColors.groupedCanvas).ignoresSafeArea())
-        .navigationTitle(strings.text(networkID == nil ? .historyTab : .assetActivity))
-        .navigationBarTitleDisplayMode(networkID == nil ? .large : .inline)
-        .toolbar(.visible, for: .navigationBar)
-        .oathNativeLocalization(navigationMaterial: nil, systemNavigationAppearance: true)
         .toolbar(.hidden, for: .bottomBar)
         .toolbar(networkID == nil ? .visible : .hidden, for: .tabBar)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) { filterButton }
+            if showsWalletSidebar {
+                ToolbarItem(placement: .topBarLeading) { OathWalletSidebarButton() }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                filterButton
+                    .badge(filters.wrappedValue.activeCount)
+                    .id(filters.wrappedValue.activeCount)
+            }
         }
+        .oathNativeAppBar(title: strings.text(networkID == nil ? .historyTab : .assetActivity), hasArtworkHeader: false)
         .sheet(isPresented: $showsFilters, onDismiss: {
             // Apply after the sheet is gone so the native list's diff is visible.
             // Cancel or interactive dismissal leaves the committed filter alone.
@@ -144,32 +149,39 @@ struct OathChainActivityScreen: View {
             await OathDiagnostics.$chain.withValue(networkID) {
                 await OathDiagnostics.$operationID.withValue(UUID()) {
                     await model.observe(walletID: walletID, networkID: networkID, accountID: accountID, assetID: assetID, currency: currency,
-                                        query: databaseQuery, filter: filters.wrappedValue.resolved(), localeIdentifier: strings.language.locale.identifier)
+                                        query: databaseQuery, filter: filters.wrappedValue.resolved(), localeIdentifier: strings.language.locale.identifier,
+                                        seed: session.homeHistory, database: session.vault.database, remember: session.rememberHomeHistory)
                 }
             }
+        }
+        .task(id: active ? walletID : nil) {
+            guard active else { return }
+            await OathSwapHistoryEnrichment.shared.observe(walletID: walletID)
         }
     }
 
-    private var filterButton: some View {
-        OathButton { showsFilters = true } label: {
-            HStack(spacing: 5) {
-                OathNavigationToolbarSymbol(filters.wrappedValue.activeCount == 0
-                    ? "line.3.horizontal.decrease" : "line.3.horizontal.decrease.circle.fill")
-                if filters.wrappedValue.activeCount > 0 {
-                    Text(strings.number(filters.wrappedValue.activeCount)).oathFont(.caption, weight: .medium)
+    @ViewBuilder private var filterButton: some View {
+        let count = filters.wrappedValue.activeCount
+        let symbol = count == 0 ? "line.3.horizontal.decrease" : "line.3.horizontal.decrease.circle.fill"
+        Group {
+            if #unavailable(iOS 26), count > 0 {
+                OathButton { showsFilters = true } label: {
+                    HStack {
+                        Image(systemName: symbol)
+                        Text(verbatim: strings.number(count))
+                    }
                 }
+                .accessibilityLabel(strings.text(.historyFilters))
+            } else {
+                OathButton(strings.text(.historyFilters), systemImage: symbol) { showsFilters = true }
             }
-            .frame(minWidth: 44, minHeight: 44)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel(strings.text(.historyFilters))
-        .accessibilityValue(strings.format(.historyActiveCount, strings.number(filters.wrappedValue.activeCount)))
+        .accessibilityValue(strings.format(.historyActiveCount, strings.number(count)))
         .accessibilityIdentifier("history.filters")
     }
 
     @ViewBuilder private var emptyContent: some View {
-        if model.loading || model.failed {
+        if model.failed || (model.loading && !model.hasCurrentPage) {
             pagingContent
         } else if filters.wrappedValue.activeCount > 0 {
             OathEmptyState(title: strings.text(.historyNoResults), systemImage: "line.3.horizontal.decrease.circle",

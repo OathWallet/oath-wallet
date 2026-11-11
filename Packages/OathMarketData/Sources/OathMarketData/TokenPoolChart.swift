@@ -69,7 +69,7 @@ enum TokenPoolChart {
         let attributes: Attributes
         struct Attributes: Decodable { let address: String; let decimals: Int? }
     }
-    static func select(_ data: Data, for asset: MarketAsset) throws -> Selection {
+    static func rankedPools(_ data: Data, for asset: MarketAsset) throws -> [Selection] {
         guard data.count <= 2_000_000, let network = network(for: asset) else { throw MarketDataError.invalidResponse }
         let response = try JSONDecoder().decode(Pools.self, from: data)
         guard response.data.count <= 100, (response.included?.count ?? 0) <= 200 else { throw MarketDataError.invalidResponse }
@@ -78,7 +78,7 @@ enum TokenPoolChart {
         guard tokens.count == 1, let token = tokens.first, token.type == "token",
               matchesID(token.id, network: network, address: token.attributes.address),
               token.attributes.decimals == asset.decimals else { throw MarketDataError.invalidResponse }
-        var best: (depth: Decimal, selection: Selection)?
+        var candidates: [(depth: Decimal, selection: Selection)] = []
         var seen = Set<String>()
         for pool in response.data {
             guard pool.type == "pool", poolReference(pool.attributes.address),
@@ -91,13 +91,13 @@ enum TokenPoolChart {
             let baseAddress = String(base.id.dropFirst(network.count + 1)), quoteAddress = String(quote.id.dropFirst(network.count + 1))
             guard address(baseAddress), address(quoteAddress), baseAddress.lowercased() != quoteAddress.lowercased(),
                   asset.matches(baseAddress) || asset.matches(quoteAddress) else { throw MarketDataError.invalidResponse }
-            // Avoid dust-pool charts and request only one bounded candidate.
+            // Exclude dust pools before ranking eligible markets.
             guard let depth = ContractPriceDecoding.positive(pool.attributes.reserve_in_usd), depth >= 10_000 else { continue }
             let selection = Selection(network: network, pool: pool.attributes.address, base: baseAddress, quote: quoteAddress)
-            if best == nil || depth > best!.depth { best = (depth, selection) }
+            candidates.append((depth, selection))
         }
-        guard let best else { throw MarketDataError.notListed }
-        return best.selection
+        guard !candidates.isEmpty else { throw MarketDataError.notListed }
+        return candidates.sorted { $0.depth > $1.depth }.prefix(2).map(\.selection)
     }
 
     private struct Candles: Decodable {

@@ -4,7 +4,7 @@ import Observation
 import OathDatabase
 import OathExchangeRates
 
-@MainActor @Observable private final class OathCurrencyModel {
+@MainActor @Observable final class OathCurrencyModel {
     var snapshot: USDExchangeRates?
     var loading = true
     var refreshing = false

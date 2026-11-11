@@ -31,20 +31,25 @@ extension AnkrTransport {
 }
 public struct AnkrHTTPTransport: AnkrTransport {
     private let session: URLSession
+    private let marketRequests: PublicMarketRequests
     public init(maximumConnectionsPerHost: Int = 4) {
         let config = URLSessionConfiguration.ephemeral
         config.urlCache = nil; config.httpCookieStorage = nil; config.urlCredentialStorage = nil
         config.timeoutIntervalForRequest = 30; config.timeoutIntervalForResource = 60
         config.httpMaximumConnectionsPerHost = min(64, max(1, maximumConnectionsPerHost))
         session = URLSession(configuration: config)
+        marketRequests = .shared
     }
-    init(session: URLSession) { self.session = session }
+    init(session: URLSession, marketRequests: PublicMarketRequests = .shared) {
+        self.session = session
+        self.marketRequests = marketRequests
+    }
     public func send(_ request: URLRequest) async throws -> (Data, Int) {
         let response = try await sendResponse(request)
         return (response.data, response.status)
     }
     public func sendResponse(_ request: URLRequest) async throws -> AnkrHTTPResponse {
-        let response = try await PublicMarketRequests.shared.send(request) { try await raw(request) }
+        let response = try await marketRequests.send(request) { try await raw(request) }
         return .init(data: response.data, status: response.status, retryAfter: response.retryAfter)
     }
     public func sendPreservingTransportError(_ request: URLRequest) async throws -> (Data, Int) {
@@ -54,7 +59,7 @@ public struct AnkrHTTPTransport: AnkrTransport {
     public func sendResponsePreservingTransportError(_ request: URLRequest) async throws -> AnkrHTTPResponse {
         // Keep anonymous market coalescing/cooldowns and Retry-After headers.
         // The owning read client reports and classifies the original native error.
-        let response = try await PublicMarketRequests.shared.send(request) {
+        let response = try await marketRequests.send(request) {
             try await raw(request, preserveTransportError: true)
         }
         return .init(data: response.data, status: response.status, retryAfter: response.retryAfter)

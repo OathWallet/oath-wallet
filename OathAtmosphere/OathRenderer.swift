@@ -18,6 +18,13 @@ final class OathRenderer: NSObject {
     private var reduceMotion = false
     private var active = false
     private var foreground = false
+    private var appActive = false
+    private weak var suspendedScene: UIScene?
+
+    private var maySubmitFrames: Bool {
+        guard appActive, let scene = surface?.window?.windowScene else { return false }
+        return scene !== suspendedScene && scene.activationState == .foregroundActive
+    }
     private var stopped = false
     private var attached = false
     private var energyPolicy = OathArtworkEnergyPolicy(
@@ -32,6 +39,13 @@ final class OathRenderer: NSObject {
 
     func configure(_ view: OathArtworkView, dark: Bool) {
         surface = view
+        let center = NotificationCenter.default
+        appActive = UIApplication.shared.applicationState == .active
+        center.addObserver(self, selector: #selector(appSuspending(_:)), name: UIApplication.willResignActiveNotification, object: nil)
+        center.addObserver(self, selector: #selector(appSuspending(_:)), name: UIApplication.didEnterBackgroundNotification, object: nil)
+        center.addObserver(self, selector: #selector(appResumed(_:)), name: UIApplication.didBecomeActiveNotification, object: nil)
+        center.addObserver(self, selector: #selector(sceneSuspending(_:)), name: UIScene.willDeactivateNotification, object: nil)
+        center.addObserver(self, selector: #selector(sceneResumed(_:)), name: UIScene.didActivateNotification, object: nil)
         appearance = dark ? 1 : 0
         targetAppearance = appearance
         let target = DisplayLinkTarget(renderer: self)
@@ -52,6 +66,30 @@ final class OathRenderer: NSObject {
             self?.energyStateChanged()
         }
         energyStateChanged()
+    }
+
+    @objc private func appSuspending(_ note: Notification) {
+        appActive = false
+        worker.suspend()
+        updateDrawingMode()
+    }
+
+    @objc private func appResumed(_ note: Notification) {
+        appActive = true
+        requestFrame()
+    }
+
+    @objc private func sceneSuspending(_ note: Notification) {
+        guard let scene = note.object as? UIScene, scene === surface?.window?.windowScene else { return }
+        suspendedScene = scene
+        worker.suspend()
+        updateDrawingMode()
+    }
+
+    @objc private func sceneResumed(_ note: Notification) {
+        guard let scene = note.object as? UIScene, scene === surface?.window?.windowScene else { return }
+        suspendedScene = nil
+        requestFrame()
     }
 
     func update(_ view: OathArtworkView, dark: Bool, reduceMotion: Bool, active: Bool,
@@ -111,7 +149,7 @@ final class OathRenderer: NSObject {
     }
 
     private func updateDrawingMode() {
-        let canDraw = !stopped && foreground && attached && resources != nil
+        let canDraw = !stopped && foreground && maySubmitFrames && attached && resources != nil
             && recovery == nil && !playback.recoveryExhausted && energyPolicy.rendersFrames
         // Restore the native layer before asking it for a drawable. Waiting for
         // a successful frame to unhide a suspended layer creates a dependency
@@ -186,7 +224,7 @@ final class OathRenderer: NSObject {
     }
 
     private func draw() {
-        guard !stopped, foreground, recovery == nil, !playback.recoveryExhausted,
+        guard !stopped, foreground, maySubmitFrames, recovery == nil, !playback.recoveryExhausted,
               energyPolicy.rendersFrames, let view = surface?.metal, view.window != nil,
               view.bounds.width > 0, view.bounds.height > 0, let resources else { return }
         let scale = min(energyPolicy.maximumScale,
@@ -253,7 +291,8 @@ final class OathRenderer: NSObject {
         preparation?.cancel()
         recovery?.cancel()
         recovery = nil
-        worker.gate.setEnabled(false)
+        NotificationCenter.default.removeObserver(self)
+        worker.suspend()
         displayLink?.invalidate()
         displayLink = nil
         surface?.onLayout = nil

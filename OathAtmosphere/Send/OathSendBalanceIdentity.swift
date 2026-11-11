@@ -11,6 +11,7 @@ struct OathSendBalanceIdentity: Hashable, Sendable {
     let decimals: Int
     let sender: String
     let publicPolicy: String
-    let observation: Double?
+    /// Polling may observe the same balance again while a quote is in flight.
+    let amountAtomic: String?
     let pending: Int
 }

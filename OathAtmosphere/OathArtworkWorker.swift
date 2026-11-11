@@ -1,6 +1,36 @@
 import OathDiagnostics
 import MetalKit
 
+/// Serializes only the final commit with lifecycle revocation. Drawable acquisition
+/// and encoding stay outside the lock, so suspension never waits for a drawable.
+final class OathArtworkSubmissionFence: @unchecked Sendable {
+    private let lock = NSLock()
+    private var last: MTLCommandBuffer?
+
+    func commit(_ command: MTLCommandBuffer, gate: OathArtworkFrameGate,
+                ticket: OathArtworkFrameGate.Ticket) -> Bool {
+        lock.withLock {
+            guard gate.isCurrent(ticket) else { return false }
+            command.commit()
+            last = command
+            return true
+        }
+    }
+
+    func suspend(_ gate: OathArtworkFrameGate) {
+        gate.setEnabled(false)
+        let submitted = lock.withLock { let command = last; last = nil; return command }
+        // iOS requires committed work to be scheduled before backgrounding.
+        // All commands for this surface share a queue. Waiting for the last
+        // one covers its predecessors without waiting for GPU completion.
+        submitted?.waitUntilScheduled()
+    }
+
+    func completed(_ command: MTLCommandBuffer) {
+        lock.withLock { if last === command { last = nil } }
+    }
+}
+
 /// Drawable waits are isolated per surface: a covered Home canvas cannot stall
 /// the visible Customize/Welcome canvas. Encoding shares one queue to preserve
 /// logo preparation ordering, with one outstanding frame per surface.
@@ -9,6 +39,9 @@ final class OathArtworkWorker: Sendable {
     static let queue = DispatchQueue(label: "org.oathwallet.artwork", qos: .userInteractive)
     private let drawableQueue = DispatchQueue(label: "org.oathwallet.artwork.drawable", qos: .userInteractive)
     let gate = OathArtworkFrameGate()
+    private let submissions = OathArtworkSubmissionFence()
+
+    func suspend() { submissions.suspend(gate) }
 
     // CAMetalLayer is designed for background drawable acquisition. UIKit alone
     // changes its geometry/device; this reference never exposes the UIView.
@@ -32,7 +65,7 @@ final class OathArtworkWorker: Sendable {
                 completion(result)
             }
         }
-        drawableQueue.async { [gate] in
+        drawableQueue.async { [gate, submissions] in
             autoreleasepool {
                 guard gate.isCurrent(ticket), let drawable = target.layer.nextDrawable(), gate.isCurrent(ticket) else {
                     finish(.unavailable)
@@ -65,11 +98,12 @@ final class OathArtworkWorker: Sendable {
                         encoder.endEncoding()
                         guard gate.isCurrent(ticket) else { finish(.unavailable); return }
                         command.addCompletedHandler { command in
+                            submissions.completed(command)
                             finish(command.status == .completed ? .presented
                                    : .failed(command.error?.localizedDescription ?? "Metal command failed"))
                         }
                         command.present(retained.value)
-                        command.commit()
+                        guard submissions.commit(command, gate: gate, ticket: ticket) else { finish(.unavailable); return }
                         resources.didSubmit()
                     }
                 }

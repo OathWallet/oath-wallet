@@ -10,6 +10,13 @@ public actor StablecoinRestrictionCheck {
         self.endpoints = endpoints; self.transport = transport
     }
     enum Failure: Error { case configuration, malformed, wrongNetwork, http(Int), rpc(Int), provider }
+    private enum IdentityReplyError: String, Error {
+        case versionMismatch = "rpc_version_mismatch"
+        case idMismatch = "rpc_id_mismatch"
+        case invalidError = "rpc_error_malformed"
+        case missingResult = "rpc_result_missing"
+        case invalidQuantity = "chain_id_malformed"
+    }
     typealias JSON = SolanaJSON
 
     public func check(_ account: StablecoinRestrictionAccount,
@@ -18,13 +25,15 @@ public actor StablecoinRestrictionCheck {
             await OathDiagnostics.$chain.withValue(account.network) {
                 do {
                     guard tokens.allSatisfy({ $0.network == account.network && StablecoinRestrictionRegistry.tokens.contains($0) }),
-                          let endpoint = endpoints[account.network], endpoint.scheme == "https" else { throw Failure.configuration }
-                    try await verify(account, endpoint)
+                          let primary = endpoints[account.network], primary.scheme == "https" else { throw Failure.configuration }
+                    let owner = try Self.policyOwner(account)
+                    let endpoint = try await verifiedEndpoint(owner, primary)
+                    try Task.checkCancellation()
                     return await withTaskGroup(of: StablecoinRestrictionResult.self) { group in
                         for token in tokens {
                             group.addTask {
                                 do {
-                                    let blocked = try await self.probeWithRecovery(account, token, endpoint)
+                                    let blocked = try await self.probeWithRecovery(owner, token, endpoint)
                                     return .init(token: token, outcome: blocked ? .restricted : .notDetected)
                                 } catch {
                                     OathDiagnostics.record(error, component: "stablecoin_security", operation: "restriction_probe",
@@ -38,12 +47,71 @@ public actor StablecoinRestrictionCheck {
                         return results.sorted { $0.token.id < $1.token.id }
                     }
                 } catch {
-                    OathDiagnostics.record(error, component: "stablecoin_security", operation: "network_identity",
-                                           context: ["chain": account.network, "stage": "network_check"])
+                    let invalidOwner = (error as? AnkrError) == .invalidAddress && account.network == "ethereum"
+                    OathDiagnostics.record(error, component: "stablecoin_security",
+                                           operation: invalidOwner ? "account_identity" : "network_identity",
+                                           context: ["chain": account.network, "stage": invalidOwner ? "owner_validation" : "network_check"])
                     return tokens.map { .init(token: $0, outcome: .unavailable) }
                 }
             }
         }
+    }
+
+    private static func policyOwner(_ account: StablecoinRestrictionAccount) throws -> StablecoinRestrictionAccount {
+        guard account.network == "ethereum" else { return account }
+        // Normalize only the read argument. Keep persisted addresses and their check IDs intact.
+        var value = account.address.trimmingCharacters(in: .whitespacesAndNewlines)
+        if value.hasPrefix("0X") { value = "0x" + value.dropFirst(2) }
+        return .init(network: account.network, address: try EVMSendIdentity.address(value))
+    }
+
+    private func verifiedEndpoint(_ account: StablecoinRestrictionAccount, _ primary: URL) async throws -> URL {
+        if account.network != "ethereum" {
+            try await verify(account, primary)
+            return primary
+        }
+        do {
+            try await verify(account, primary)
+            return primary
+        } catch {
+            try Task.checkCancellation()
+            let recoverable: Bool
+            switch error {
+            case Failure.malformed, is IdentityReplyError, is DecodingError: recoverable = true
+            case Failure.rpc(let code): recoverable = AnkrReadRetry.gatewayRecoveryCodes.contains(code) || Self.isTransientPolicyRead(error)
+            default: recoverable = Self.isTransientPolicyRead(error)
+            }
+            // Recover only an unusable identity reply or transient read on the app's ANKR route.
+            // A positive identification of a different network must remain unavailable.
+            guard primary.host == "rpc.ankr.com", primary.pathComponents.dropFirst().first == "eth",
+                  recoverable, let alternate = Self.publicMainnetEndpoints["ethereum"] else {
+                throw OathDiagnostics.recordedForPropagation(error, component: "stablecoin_security", operation: "network_identity",
+                    context: Self.identityFailureContext(error, host: primary.host ?? ""))
+            }
+            OathDiagnostics.record(error, component: "stablecoin_security", operation: "network_identity_fallback",
+                context: Self.identityFailureContext(error, host: "rpc.ankr.com"))
+            do {
+                try Task.checkCancellation()
+                try await verify(account, alternate)
+                return alternate
+            } catch {
+                throw OathDiagnostics.recordedForPropagation(error, component: "stablecoin_security", operation: "network_identity",
+                    context: Self.identityFailureContext(error, host: alternate.host ?? ""))
+            }
+        }
+    }
+
+    private static func identityFailureContext(_ error: Error, host: String) -> [String: String] {
+        var context = ["chain": "ethereum", "stage": "network_check", "method": "eth_chainId", "host": host]
+        switch error {
+        case let invalid as IdentityReplyError: context["reason"] = invalid.rawValue
+        case is DecodingError: context["reason"] = "invalid_json"
+        case Failure.wrongNetwork: context["reason"] = "unexpected_chain_id"
+        case Failure.rpc(let code): context["rpc_code"] = String(code)
+        case Failure.http(let status): context["http_status"] = String(status)
+        default: break
+        }
+        return context
     }
 
     private func probeWithRecovery(_ account: StablecoinRestrictionAccount,
@@ -87,6 +155,9 @@ public actor StablecoinRestrictionCheck {
     func request(_ url: URL, _ body: JSON? = nil) async throws -> JSON {
         var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 12)
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        if url.host == "ethereum-rpc.publicnode.com" {
+            request.setValue("OathWallet/1.0", forHTTPHeaderField: "User-Agent")
+        }
         if let body {
             request.httpMethod = "POST"; request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpBody = try JSONEncoder().encode(body)
@@ -106,9 +177,12 @@ public actor StablecoinRestrictionCheck {
         }
         return try JSONDecoder().decode(JSON.self, from: data)
     }
+    private func rpcReply(_ url: URL, _ method: String, _ params: JSON) async throws -> JSON {
+        try await request(url, .object(["jsonrpc": .string("2.0"), "id": .number("1"),
+                                        "method": .string(method), "params": params]))
+    }
     func rpc(_ url: URL, _ method: String, _ params: JSON = .array([])) async throws -> JSON {
-        let json = try await request(url, .object(["jsonrpc": .string("2.0"), "id": .number("1"),
-                                                 "method": .string(method), "params": params]))
+        let json = try await rpcReply(url, method, params)
         // TON Center v2 returns its documented {ok,result} envelope even on
         // /jsonRPC. Accept this only for that provider; chain/result validation
         // remains identical to the existing Ankr TON adapter.
@@ -133,8 +207,23 @@ public actor StablecoinRestrictionCheck {
         let address = account.address
         if let chainID = StablecoinRestrictionRegistry.evmIDs[account.network] {
             guard address.count == 42, address.hasPrefix("0x"), address.dropFirst(2).allSatisfy(\.isHexDigit) else { throw Failure.malformed }
+            if account.network == "ethereum" {
+                let reply = try await rpcReply(url, "eth_chainId", .array([]))
+                guard reply["jsonrpc"] == .string("2.0") else { throw IdentityReplyError.versionMismatch }
+                guard reply["id"].text == "1" else { throw IdentityReplyError.idMismatch }
+                if !reply["error"].isNull {
+                    guard let code = reply["error"]["code"].text.flatMap(Int.init) else { throw IdentityReplyError.invalidError }
+                    throw Failure.rpc(code)
+                }
+                guard !reply["result"].isNull else { throw IdentityReplyError.missingResult }
+                guard let raw = reply["result"].string, raw.hasPrefix("0x"),
+                      let value = try? AnkrQuantity.decimal(raw) else { throw IdentityReplyError.invalidQuantity }
+                guard value == String(chainID) else { throw Failure.wrongNetwork }
+                return
+            }
             let result = try await rpc(url, "eth_chainId")
-            guard let raw = result.string, raw.hasPrefix("0x"), UInt64(raw.dropFirst(2), radix: 16) == chainID else { throw Failure.wrongNetwork }
+            guard let raw = result.string, raw.hasPrefix("0x"), let value = try? AnkrQuantity.decimal(raw) else { throw Failure.malformed }
+            guard value == String(chainID) else { throw Failure.wrongNetwork }
             return
         }
         switch account.network {

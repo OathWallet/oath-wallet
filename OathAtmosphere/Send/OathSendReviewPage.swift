@@ -296,17 +296,35 @@ struct OathSendReviewPage: View {
         }
     }
 
-    private var reviewFailureKey: OathStringKey {
-        evm.failureMessage ?? arc.failureMessage ?? ton.failureMessage ?? solana.failureMessage ?? aptos.failureMessage ?? thorchain.failureMessage ?? polkadot.failureMessage ?? near.failureMessage ?? tron.failureMessage ?? stellar.failureMessage ?? xrpl.failureMessage ?? sui.failureMessage ?? (bitcoin.needsMessageChange ? .sendMessageDoesNotFit : needsAmountChange ? .sendAdjustAmount : .sendRefreshNeeded)
+    private var reviewFailure: OathSendFailure? {
+        if model.supportsEVMSend { return evm.failureMessage }
+        if model.supportsArcSend { return arc.failureMessage }
+        if model.supportsTonSend { return ton.failureMessage }
+        if model.supportsSolanaSend { return solana.failureMessage }
+        if model.supportsAptosSend { return aptos.failureMessage }
+        if model.supportsThorchainSend { return thorchain.failureMessage }
+        if model.supportsPolkadotSend { return polkadot.failureMessage }
+        if model.supportsNearSend { return near.failureMessage }
+        if model.supportsTronSend { return tron.failureMessage }
+        if model.supportsStellarSend { return stellar.failureMessage }
+        if model.supportsXrplSend { return xrpl.failureMessage }
+        if model.supportsSuiSend { return sui.failureMessage }
+        return bitcoin.failureMessage
     }
+
+    private var reviewFailureKey: OathStringKey {
+        if model.supportsBitcoinSend, bitcoin.needsMessageChange { return .sendMessageDoesNotFit }
+        return reviewFailure?.key ?? (needsAmountChange ? .sendAdjustAmount : .sendPreparationFailed)
+    }
+
     private var reviewFailureMessage: String {
         let key = reviewFailureKey
         if key == .sendNativeFeeRequired {
-            // Use network metadata, never the transferred token's symbol or a
-            // cached balance. Fee shortages are identified by the send client.
             return strings.format(key, strings.invariant(model.chain?.ticker ?? ""))
         }
-        return strings.text(key)
+        let message = strings.text(key)
+        guard let code = reviewFailure?.code else { return message }
+        return message + " (" + strings.invariant(code) + ")"
     }
 
     private var busy: Bool { model.supportsEVMSend ? evm.busy : model.supportsArcSend ? arc.busy : model.supportsTonSend ? ton.busy : model.supportsSolanaSend ? solana.busy : model.supportsAptosSend ? aptos.busy : model.supportsThorchainSend ? thorchain.busy : model.supportsPolkadotSend ? polkadot.busy : model.supportsNearSend ? near.busy : model.supportsTronSend ? tron.busy : model.supportsStellarSend ? stellar.busy : model.supportsXrplSend ? xrpl.busy : model.supportsSuiSend ? sui.busy : bitcoin.busy }
@@ -487,7 +505,7 @@ struct OathSendReviewPage: View {
             if !state.busy {
                 if state.needsRefresh && state.failure == .sendNativeFeeRequired {
                     recoveringFeeIntent = state.intent
-                } else if state.hasQuote || (state.needsRefresh && state.failure != .sendRefreshNeeded) {
+                } else if state.hasQuote || (state.needsRefresh && !OathSendFailure.canRetryFeeCheck(after: state.failure)) {
                     recoveringFeeIntent = nil
                 }
             }
@@ -709,7 +727,7 @@ struct OathSendReviewPage: View {
                             } else {
                                 Text(reviewFailureMessage).oathFont(.footnote).foregroundStyle(.red)
                                     .fixedSize(horizontal: false, vertical: true)
-                                OathActionButton(title: strings.text((thorchain.needsRecipientChange || aptos.needsRecipientChange || xrpl.needsRecipientChange) ? .sendChangeAddress : needsAmountChange ? .sendEditAmount : .sendRefreshQuote), appearance: .secondary) {
+                                OathActionButton(title: strings.text((thorchain.needsRecipientChange || aptos.needsRecipientChange || xrpl.needsRecipientChange) ? .sendChangeAddress : needsAmountChange ? .sendEditAmount : .tryAgain), appearance: .secondary) {
                                     if thorchain.needsRecipientChange || aptos.needsRecipientChange || xrpl.needsRecipientChange { model.path = [.recipient] }
                                     else if needsAmountChange { model.path = [.recipient, .amount] }
                                     else { prepare() }
@@ -739,6 +757,7 @@ struct OathSendReviewPage: View {
 
     private func result(_ submission: OathBitcoinSubmission) -> some View {
         let recipient = recipientAddress
+        let fiatAmount = fiat
         // CashAddr's network prefix stays in the transfer; omit it only from
         // this receipt's visible and spoken address before shortening it.
         let cashPrefix = "bitcoincash:"
@@ -756,7 +775,15 @@ struct OathSendReviewPage: View {
                         .accessibilityAddTraits(.isHeader)
                         .id(receiptTitle).transition(receiptTransition)
                 }
-                Text(fiat ?? native).oathFont(.largeTitle, weight: .medium).multilineTextAlignment(.center)
+                VStack(spacing: 4) {
+                    Text(fiatAmount ?? native).oathFont(.largeTitle, weight: .medium)
+                    if fiatAmount != nil {
+                        Text(native).oathFont(.subheadline).foregroundStyle(.secondary)
+                    }
+                }
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityElement(children: .combine)
                 ZStack {
                     if showsRecipientReceipt {
                         Text(receiptMessage(compactAddress: compactAddress))

@@ -183,68 +183,117 @@ struct OathAssetRoute: Hashable {
     private(set) var items: [ChainHistoryItem] = []
     private(set) var displayCurrency = "USD"
     private(set) var loading = true
+    private(set) var hasCurrentPage = false
     private(set) var failed = false
     private(set) var hasMore = false
-    private(set) var limit = 50
+    private(set) var limit = OathHomeHistorySnapshot.pageSize
     private(set) var attempt = 0
+    private let firstPageTimeout: Duration
     private var requestID = UUID()
     private var scope: String?
     private var contentScope: String?
     private var filterScope: HistoryFilter?
 
-    init(seed: OathHomeHistorySnapshot? = nil) {
+    init(seed: OathHomeHistorySnapshot? = nil, firstPageTimeout: Duration = OathHomeHistorySnapshot.readTimeout) {
+        self.firstPageTimeout = firstPageTimeout
         guard let seed else { return }
-        items = Array(seed.items.prefix(limit)); hasMore = seed.items.count > limit
-        displayCurrency = seed.currency; loading = false
+        accept(seed.items, currency: seed.currency, limit: limit)
         contentScope = "\(seed.walletID):all:all:all"
         scope = "\(seed.walletID):all:all:all:\(seed.currency)::\(seed.localeIdentifier)"
         filterScope = .init()
     }
 
+    private func accept(_ page: [ChainHistoryItem], currency: String, limit: Int) {
+        items = Array(page.prefix(limit))
+        displayCurrency = currency
+        hasMore = page.count > limit
+        hasCurrentPage = true
+        failed = false
+        loading = false
+    }
+
     func loadMoreOrRetry() {
         guard !loading, failed || hasMore else { return }
+        requestID = UUID()
         loading = true
-        if failed { attempt += 1 }
-        else if hasMore { limit += 50 }
+        if failed {
+            failed = false
+            attempt += 1
+        } else {
+            limit += OathHomeHistorySnapshot.pageSize
+        }
     }
 
     func observe(walletID: String, networkID: String?, accountID: String?, assetID: String?,
-                 currency: String, query: String, filter: HistoryFilter, localeIdentifier: String) async {
+                 currency: String, query: String, filter: HistoryFilter, localeIdentifier: String,
+                 seed: OathHomeHistorySnapshot? = nil,
+                 database: () async throws -> OathDatabase,
+                 remember: (OathHomeHistorySnapshot) -> Void = { _ in }) async {
+        guard !Task.isCancelled else { return }
         let request = UUID()
         requestID = request
         let nextContentScope = "\(walletID):\(networkID ?? "all"):\(accountID ?? "all"):\(assetID ?? "all")"
-        let nextScope = "\(walletID):\(networkID ?? "all"):\(accountID ?? "all"):\(assetID ?? "all"):\(currency):\(query):\(localeIdentifier)"
-        // A filter/search refresh keeps its last complete page until the local
-        // index delivers the replacement. Clearing here destroys row identity
-        // and makes a native List animate two unrelated lists through empty.
-        // Never carry rows across wallet/account/asset boundaries.
+        let nextScope = "\(nextContentScope):\(currency):\(query):\(localeIdentifier)"
+        // Retain rows during filter and paging requests within one wallet and asset scope.
         if contentScope != nextContentScope {
-            items = []; contentScope = nextContentScope
+            items = []
+            contentScope = nextContentScope
         }
         if scope != nextScope || filterScope != filter {
-            hasMore = false; failed = false; limit = 50; scope = nextScope
+            hasMore = false
+            hasCurrentPage = false
+            limit = OathHomeHistorySnapshot.pageSize
+            scope = nextScope
             filterScope = filter
         }
-        loading = true
-        defer { if requestID == request { loading = false } }
-        do {
-            let db = try await OathDataEnvironment.shared.database()
-            if !query.isEmpty { try await Task.sleep(for: .milliseconds(180)) }
-            try Task.checkCancellation()
-            async let _: Void = OathSwapHistoryEnrichment.shared.observe(walletID: walletID)
-            let visibleLimit = limit
-            for try await page in db.observeChainHistory(walletID: walletID, networkID: networkID,
-                                                         accountID: accountID, assetID: assetID,
-                                                         currency: currency, limit: visibleLimit + 1,
-                                                         search: query, filter: filter, localeIdentifier: localeIdentifier) {
-                guard !Task.isCancelled, requestID == request else { return }
-                items = Array(page.prefix(visibleLimit))
-                displayCurrency = currency
-                hasMore = page.count > visibleLimit
-                failed = false; loading = false
+        let visibleLimit = limit
+        let wholeWallet = networkID == nil && accountID == nil && assetID == nil && query.isEmpty && filter == .init()
+        if wholeWallet, let seed, seed.walletID == walletID, seed.currency == currency {
+            let firstPage = seed.items.prefix(OathHomeHistorySnapshot.pageSize)
+            // Keep a paged list in place on re-entry. If the front of the list
+            // changed off-tab, use the saved first page until SQL replaces the full window.
+            if visibleLimit == OathHomeHistorySnapshot.pageSize || !items.starts(with: firstPage)
+                || (seed.items.count <= OathHomeHistorySnapshot.pageSize && items.count != seed.items.count) {
+                accept(seed.items, currency: currency, limit: OathHomeHistorySnapshot.pageSize)
             }
-        } catch { OathDiagnostics.record(error, component: "history", operation: "observe");
-            if !Task.isCancelled, requestID == request { failed = true }
+        }
+        failed = false
+        loading = true
+        let deadline = Task {
+            try await Task.sleep(for: firstPageTimeout)
+            guard !Task.isCancelled, requestID == request else { return }
+            OathDiagnostics.record(DiagnosticFailure("history_first_page_timeout"), component: "history", operation: "observe")
+            failed = true
+            loading = false
+        }
+        // Leaving the tab disarms the deadline even if database acquisition is still suspended.
+        defer {
+            deadline.cancel()
+            if requestID == request { loading = false }
+        }
+        await withTaskCancellationHandler {
+            do {
+                if !query.isEmpty { try await Task.sleep(for: .milliseconds(180)) }
+                let db = try await database()
+                guard !Task.isCancelled, requestID == request else { return }
+                for try await page in db.observeChainHistory(walletID: walletID, networkID: networkID,
+                    accountID: accountID, assetID: assetID, currency: currency, limit: visibleLimit + 1,
+                    search: query, filter: filter, localeIdentifier: localeIdentifier) {
+                    guard !Task.isCancelled, requestID == request else { return }
+                    deadline.cancel()
+                    accept(page, currency: currency, limit: visibleLimit)
+                    if wholeWallet {
+                        remember(.init(walletID: walletID, currency: currency, localeIdentifier: localeIdentifier,
+                                       items: Array(page.prefix(OathHomeHistorySnapshot.pageSize + 1))))
+                    }
+                }
+            } catch {
+                guard !Task.isCancelled, requestID == request else { return }
+                OathDiagnostics.record(error, component: "history", operation: "observe")
+                failed = true
+            }
+        } onCancel: {
+            deadline.cancel()
         }
     }
 }

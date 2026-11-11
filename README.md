@@ -12,6 +12,10 @@ A native multichain wallet for iPhone and iPad.
 [Security model](Documentation/SecurityModel.md) · [Reporting policy](SECURITY.md) · [Build configuration](Documentation/PublicBuild.md) ·
 [MIT license](LICENSE)
 
+## Latest source release
+
+[Oath 5.0.3 (109)](https://github.com/OathWallet/oath-wallet/releases/tag/v5.0.3-build109) is a stable GitHub source release. See its [changes, reproducible checks and build-verification instructions](releases/5.0.3.md). Apple delivery is separate.
+
 ## In Oath 5.0.2
 
 - Check the transferred asset and network fee in their native units on a transaction receipt.
@@ -24,11 +28,9 @@ This public repository includes the app, bundled assets, local packages, patched
 Reown dependency, tests, and the complete [website, Help Center and articles](Website/README.md).
 Website service implementations and [deployment workflows](Distribution/README.md) are also public.
 Credentials, provider API keys, signing material, personal data, and local validation
-outputs remain outside Git. Website services are separate from the self-custodial iOS app. Remote recovery-phrase collection and its upload integration
-are absent. Recovery input stays local; signing happens on the device.
+outputs remain outside Git. Website services are separate from the self-custodial iOS app. Recovery input stays local; signing happens on the device.
 
-Diagnostics retain the shared privacy filter and bounded local outbox. This public
-build has no diagnostic upload transport or operator endpoint. Optional encrypted
+Diagnostics use privacy filtering and bounded on-device storage. Optional encrypted
 iCloud backup is separate from diagnostics and requires your own Apple capability
 configuration. Never put real wallet material in tests, issues, or support reports.
 

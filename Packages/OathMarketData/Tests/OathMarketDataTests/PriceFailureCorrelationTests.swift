@@ -32,7 +32,7 @@ private struct AllPriceProvidersMalformed: MarketTransport {
         XCTAssertEqual(Set(providers.compactMap { $0.context["stage"] }).count, providers.count)
         let json = String(decoding: try JSONEncoder().encode(events), as: UTF8.self)
         XCTAssertFalse(json.contains("https://"))
-        XCTAssertFalse(json.contains(GnosisNativePrice.wrapped.reference))
+        XCTAssertFalse(json.contains(WrappedNativePrice.gnosis.reference))
         let saved = try await db.latestPrice(assetID: target.id, currency: "USD")
         XCTAssertNil(saved)
     }

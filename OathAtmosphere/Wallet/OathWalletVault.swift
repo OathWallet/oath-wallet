@@ -2106,13 +2106,16 @@ actor OathWalletVault: OathRecoveryPhraseReading, OathPrivateKeyReading {
 
     /// Freshly verifies entry to Security without granting permission to change
     /// credentials. Each sensitive change keeps its own existing authorization.
-    func authenticateSecurityAccess(digits: [UInt8]? = nil, reason: String) async throws {
+    func authenticateSecurityAccess(digits: [UInt8]? = nil, reason: String,
+                                    whenPasscodeDisabled: (@Sendable (String) async throws -> Void)? = nil) async throws {
         guard !resetting, encryptionKey != nil, profile != nil, walletMutation == nil,
               let envelope else { throw OathWalletError.locked }
         let token = authenticationGeneration
         if envelope.passcodeEnabled {
             if let digits { _ = try openWithPasscode(digits, now: .now) }
             else { _ = try await openWithBiometrics(reason: reason) }
+        } else if let whenPasscodeDisabled {
+            try await whenPasscodeDisabled(reason)
         }
         try checkAuthentication(token)
     }

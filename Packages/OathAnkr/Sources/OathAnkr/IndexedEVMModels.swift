@@ -80,6 +80,12 @@ public struct IndexedEVMHolding: Codable, Sendable {
     public let amount: String?
 }
 public struct IndexedEVMInventory: Codable, Sendable {
+    public enum IncompleteReason: String, Codable, Sendable {
+        case indexRateLimited = "index_rate_limited"
+        case indexUnavailable = "index_unavailable"
+        case metadataUnverified = "metadata_unverified"
+        case balanceUnavailable = "balance_unavailable"
+    }
     public let chain: IndexedEVMChain
     public let owner: String
     public let block: Int64
@@ -87,6 +93,7 @@ public struct IndexedEVMInventory: Codable, Sendable {
     public let observedAt: Date
     public let holdings: [IndexedEVMHolding]
     public let complete: Bool
+    public internal(set) var incompleteReason: IncompleteReason? = nil
     /// Original index and RPC response bytes; request credentials are excluded.
     public let raw: Data
 }

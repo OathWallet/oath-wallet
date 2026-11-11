@@ -59,20 +59,20 @@ import OathAnkr
             var changed = attributes; changed[key] = value
             var token = original; token["attributes"] = changed
             let data = try JSONSerialization.data(withJSONObject: ["data": token])
-            XCTAssertThrowsError(try GnosisNativePrice.decode(data, for: asset, fetchedAt: .now), key)
+            XCTAssertThrowsError(try WrappedNativePrice.decode(data, for: asset, fetchedAt: .now), key)
         }
-        var token = original; token["id"] = "eth_" + GnosisNativePrice.wrapped.reference
-        XCTAssertThrowsError(try GnosisNativePrice.decode(JSONSerialization.data(withJSONObject: ["data": token]), for: asset, fetchedAt: .now))
+        var token = original; token["id"] = "eth_" + WrappedNativePrice.gnosis.reference
+        XCTAssertThrowsError(try WrappedNativePrice.decode(JSONSerialization.data(withJSONObject: ["data": token]), for: asset, fetchedAt: .now))
         var changed = attributes; changed["decimals"] = 6
         token = original; token["attributes"] = changed
-        XCTAssertThrowsError(try GnosisNativePrice.decode(JSONSerialization.data(withJSONObject: ["data": token]), for: asset, fetchedAt: .now))
+        XCTAssertThrowsError(try WrappedNativePrice.decode(JSONSerialization.data(withJSONObject: ["data": token]), for: asset, fetchedAt: .now))
         changed = attributes; changed["volume_usd"] = ["h24": "999"]
         token = original; token["attributes"] = changed
-        XCTAssertThrowsError(try GnosisNativePrice.decode(JSONSerialization.data(withJSONObject: ["data": token]), for: asset, fetchedAt: .now))
-        for invalid in [GnosisNativePrice.wrapped,
+        XCTAssertThrowsError(try WrappedNativePrice.decode(JSONSerialization.data(withJSONObject: ["data": token]), for: asset, fetchedAt: .now))
+        for invalid in [WrappedNativePrice.gnosis,
                         MarketAsset(id: "gnosis:native", networkID: "gnosis", reference: "native", decimals: 6),
                         MarketAsset(id: "ethereum:native", networkID: "ethereum", reference: "native", decimals: 18)] {
-            XCTAssertNil(GnosisNativePrice.request(for: invalid))
+            XCTAssertNil(WrappedNativePrice.request(for: invalid))
         }
     }
 
@@ -118,7 +118,7 @@ private actor GnosisPriceTransport: MarketTransport {
 private struct GnosisPriceLiveTransport: MarketTransport {
     let base = URLSessionMarketTransport()
     func data(from url: URL) async throws -> Data {
-        guard url == GnosisNativePrice.request(for: .init(id: "gnosis:native", networkID: "gnosis", reference: "native", decimals: 18))?.url else { throw MarketDataError.unavailable }
+        guard url == WrappedNativePrice.request(for: .init(id: "gnosis:native", networkID: "gnosis", reference: "native", decimals: 18))?.url else { throw MarketDataError.unavailable }
         return try await base.data(from: url)
     }
 }
@@ -133,7 +133,7 @@ private actor GnosisLifiOnlyTransport: MarketTransport {
     func setOffline() { offline = true }
     func data(from url: URL) async throws -> Data {
         guard !offline else { throw URLError(.notConnectedToInternet) }
-        guard url == LifiTokenMetadata.url(network: "gnosis", reference: GnosisNativePrice.wrapped.reference) else { throw MarketDataError.rateLimited }
+        guard url == LifiTokenMetadata.url(network: "gnosis", reference: WrappedNativePrice.gnosis.reference) else { throw MarketDataError.rateLimited }
         calls += 1
         return live ? try await base.data(from: url) : Self.payload
     }
@@ -174,9 +174,9 @@ extension GnosisNativePriceRecoveryTests {
         let url = folder.appendingPathComponent("test.sqlite"), db = try await database(url)
         let transport = GnosisLifiOnlyTransport(live: true)
         let quote = try await MarketDataService(database: db, transport: transport).quote(for: asset)
-        let request = try XCTUnwrap(GnosisNativePrice.request(for: asset))
+        let request = try XCTUnwrap(WrappedNativePrice.request(for: asset))
         let data = try await URLSessionMarketTransport().data(from: request.url)
-        let comparison = try GnosisNativePrice.decode(data, for: asset, fetchedAt: .now)
+        let comparison = try WrappedNativePrice.decode(data, for: asset, fetchedAt: .now)
         let actual = try XCTUnwrap(quote.value.decimal), expected = try XCTUnwrap(comparison.quote.decimal)
         XCTAssertLessThan(abs(actual - expected) / expected, Decimal(string: "0.03")!)
         await transport.setOffline()
@@ -195,14 +195,14 @@ extension GnosisNativePriceRecoveryTests {
         for (key, bad) in [("chainId", 1 as Any), ("address", "0x0000000000000000000000000000000000000001"),
                            ("decimals", 6), ("priceUSD", "0"), ("priceUSD", "-1"), ("priceUSD", "NaN"), ("priceUSD", NSNull())] {
             var value = original; value[key] = bad
-            XCTAssertThrowsError(try GnosisNativePrice.decodeLifi(JSONSerialization.data(withJSONObject: value), for: asset, fetchedAt: .now), key)
+            XCTAssertThrowsError(try WrappedNativePrice.decodeLifi(JSONSerialization.data(withJSONObject: value), for: asset, fetchedAt: .now), key)
         }
-        for invalid in [GnosisNativePrice.wrapped,
+        for invalid in [WrappedNativePrice.gnosis,
                         MarketAsset(id: "gnosis:native", networkID: "gnosis", reference: "native", decimals: 6),
                         MarketAsset(id: "ethereum:native", networkID: "ethereum", reference: "native", decimals: 18)] {
-            XCTAssertNil(GnosisNativePrice.lifiURL(for: invalid))
-            XCTAssertThrowsError(try GnosisNativePrice.decodeLifi(GnosisLifiOnlyTransport.payload, for: invalid, fetchedAt: .now))
+            XCTAssertNil(WrappedNativePrice.lifiURL(for: invalid))
+            XCTAssertThrowsError(try WrappedNativePrice.decodeLifi(GnosisLifiOnlyTransport.payload, for: invalid, fetchedAt: .now))
         }
-        XCTAssertTrue(PublicMarketRequests.accepts(URLRequest(url: try XCTUnwrap(GnosisNativePrice.lifiURL(for: asset)))))
+        XCTAssertTrue(PublicMarketRequests.accepts(URLRequest(url: try XCTUnwrap(WrappedNativePrice.lifiURL(for: asset)))))
     }
 }

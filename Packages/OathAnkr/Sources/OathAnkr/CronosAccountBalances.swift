@@ -20,7 +20,7 @@ extension EVMSendClient {
                   (0...255).contains(decimals) else { throw EVMSendError.metadataChanged }
         }
         return try await OathDiagnostics.withChain(network.rawValue) {
-            let head = try await rpc("eth_getBlockByNumber", [.string("latest"), .bool(false)], requireFreshHead: true)
+            let head = try await block(.string("latest"), requireFresh: true)
             let height = try Self.uint(head["number"])
             guard height <= UInt64(Int64.max), let hash = head["hash"].string, AnkrQuantity.hash(hash) else { throw EVMSendError.malformed }
             let tag = SolanaJSON.string("0x" + String(height, radix: 16))

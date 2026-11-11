@@ -9,10 +9,17 @@ struct RefreshPullGesture {
     /// idle/decelerating offsets too: UIKit can move content before the first
     /// `.began` callback, so that callback must use the preceding position.
     mutating func observe(position: Double, isPanning: Bool) {
-        if isPanning && !wasPanning {
-            allowsRefresh = previousPosition.map { $0.isFinite && $0 <= 1 } ?? false
-        }
-        if !isPanning { previousPosition = position }
-        wasPanning = isPanning
+        if isPanning { beginPan() } else { endPan(at: position) }
+    }
+
+    mutating func beginPan() {
+        guard !wasPanning else { return }
+        allowsRefresh = previousPosition.map { $0.isFinite && $0 <= 1 } ?? false
+        wasPanning = true
+    }
+
+    mutating func endPan(at position: Double) {
+        previousPosition = position
+        wasPanning = false
     }
 }

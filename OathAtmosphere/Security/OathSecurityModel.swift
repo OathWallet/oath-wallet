@@ -1,6 +1,7 @@
 import OathDiagnostics
 import Foundation
 import Observation
+import LocalAuthentication
 
 @MainActor @Observable final class OathSecurityModel {
     enum Action { case disablePasscode, changePasscode }
@@ -129,6 +130,23 @@ import Observation
     }
 }
 
+/// The prompt is configured once. Only cancellation can race with evaluation;
+/// LAContext.invalidate() is the documented way to end a pending prompt.
+private final class OathDeviceOwnerPrompt: @unchecked Sendable {
+    private let context = LAContext()
+
+    func authenticate(reason: String) async throws {
+        defer { context.invalidate() }
+        try await withTaskCancellationHandler {
+            try Task.checkCancellation()
+            guard try await context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) else {
+                throw CancellationError()
+            }
+            try Task.checkCancellation()
+        } onCancel: { self.context.invalidate() }
+    }
+}
+
 /// A visit-scoped gate, independent of the authorization for changing a PIN.
 /// Leaving Security, backgrounding, or locking invalidates even late OS replies.
 @MainActor @Observable final class OathSecurityAccessModel {
@@ -140,7 +158,16 @@ import Observation
     @ObservationIgnored private var work: Task<Void, Never>?
     @ObservationIgnored private var generation = UUID()
 
-    init(session: OathWalletSession) { self.session = session }
+    private let whenPasscodeDisabled: (@Sendable (String) async throws -> Void)?
+
+    init(session: OathWalletSession, whenPasscodeDisabled: (@Sendable (String) async throws -> Void)? = nil) {
+        self.session = session
+        self.whenPasscodeDisabled = whenPasscodeDisabled
+    }
+
+    static func authenticateDeviceOwner(reason: String) async throws {
+        try await OathDeviceOwnerPrompt().authenticate(reason: reason)
+    }
 
     var isAuthorized: Bool { phase == .authorized && session.isUnlocked }
 
@@ -160,24 +187,28 @@ import Observation
         guard session.isUnlocked, !busy else { return }
         busy = true; notice = nil
         let token = generation
-        work = Task { [weak self, session] in
+        work = Task { [weak self, session, whenPasscodeDisabled] in
             await OathDiagnostics.$operationID.withValue(UUID()) {
                 var digits = digits
                 defer { if digits != nil { _ = digits!.withUnsafeMutableBytes { $0.initializeMemory(as: UInt8.self, repeating: 0) } } }
                 do {
-                    try await session.vault.authenticateSecurityAccess(digits: digits, reason: reason)
+                    try await session.vault.authenticateSecurityAccess(digits: digits, reason: reason,
+                                                                      whenPasscodeDisabled: whenPasscodeDisabled)
                     guard let self, self.generation == token, !Task.isCancelled, session.isUnlocked else { return }
                     self.busy = false; self.work = nil; self.phase = .authorized
                 } catch {
                     // Missing/declined/unavailable biometrics intentionally offer the
                     // app PIN. Corrupt credentials and unexpected OS failures still report.
                     let rejectedInput = digits != nil && error as? OathWalletError == .wrongPasscode
-                    if !rejectedInput && (error as? OathBiometricCredentialError)?.isExpectedAuthenticationOutcome != true {
+                    let cancelled = error is CancellationError || (error as? LAError).map {
+                        [.userCancel, .systemCancel, .appCancel].contains($0.code)
+                    } == true
+                    if !rejectedInput && !cancelled && (error as? OathBiometricCredentialError)?.isExpectedAuthenticationOutcome != true {
                         OathDiagnostics.record(error, operation: "authorize_access", context: ["stage": digits == nil ? "biometric" : "passcode"])
                     }
                     guard let self, self.generation == token, !Task.isCancelled else { return }
                     self.busy = false; self.work = nil
-                    if error is CancellationError {
+                    if cancelled {
                         self.cancel()
                     } else if error is OathBiometricCredentialError {
                         self.phase = .passcode

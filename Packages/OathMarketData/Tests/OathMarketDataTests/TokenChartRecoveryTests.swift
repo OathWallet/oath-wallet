@@ -146,7 +146,7 @@ enum TokenChartFixtures {
             text.replacingOccurrences(of: "\"decimals\":18", with: "\"decimals\":true")]
         for mutated in mutations {
             XCTAssertNotEqual(mutated, text)
-            XCTAssertThrowsError(try TokenPoolChart.select(Data(mutated.utf8), for: asset))
+            XCTAssertThrowsError(try TokenPoolChart.rankedPools(Data(mutated.utf8), for: asset))
         }
     }
     func testDeepestPoolIsSelectedAndDustPoolsAreRejected() throws {
@@ -157,10 +157,10 @@ enum TokenChartFixtures {
         deep["id"] = "bsc_0x5555555555555555555555555555555555555555"
         deep["attributes"] = ["address": "0x5555555555555555555555555555555555555555", "reserve_in_usd": "2000000"]
         root["data"] = [first, deep]
-        let selection = try TokenPoolChart.select(JSONSerialization.data(withJSONObject: root), for: asset)
-        XCTAssertEqual(selection.pool, "0x5555555555555555555555555555555555555555")
+        let selection = try TokenPoolChart.rankedPools(JSONSerialization.data(withJSONObject: root), for: asset)
+        XCTAssertEqual(selection[0].pool, "0x5555555555555555555555555555555555555555")
         let dust = String(decoding: try TokenChartFixtures.pools(asset, network: "bsc"), as: UTF8.self).replacingOccurrences(of: "1000000", with: "50")
-        XCTAssertThrowsError(try TokenPoolChart.select(Data(dust.utf8), for: asset)) { XCTAssertEqual($0 as? MarketDataError, .notListed) }
+        XCTAssertThrowsError(try TokenPoolChart.rankedPools(Data(dust.utf8), for: asset)) { XCTAssertEqual($0 as? MarketDataError, .notListed) }
     }
     func testNativeAndUnsupportedAddressesCannotUseTokenPoolFallback() throws {
         for item in [MarketAsset(id: "native", networkID: "bnb", reference: "native", decimals: 18),
@@ -174,13 +174,13 @@ enum TokenChartFixtures {
         let poolID = "0x" + String(repeating: "a", count: 64)
         let fixture = String(decoding: try TokenChartFixtures.pools(asset, network: "bsc"), as: UTF8.self)
             .replacingOccurrences(of: TokenChartFixtures.pool, with: poolID)
-        let selection = try TokenPoolChart.select(Data(fixture.utf8), for: asset)
-        XCTAssertEqual(selection.pool, poolID)
-        XCTAssertTrue(try TokenPoolChart.candlesURL(for: asset, selection: selection, at: date).path.contains(poolID))
+        let selection = try TokenPoolChart.rankedPools(Data(fixture.utf8), for: asset)
+        XCTAssertEqual(selection[0].pool, poolID)
+        XCTAssertTrue(try TokenPoolChart.candlesURL(for: asset, selection: selection[0], at: date).path.contains(poolID))
         XCTAssertNil(TokenPoolChart.network(for: MarketAsset(id: "invalid-token", networkID: "bnb", reference: poolID, decimals: 18)))
     }
     func testCandlesRejectWrongSideFutureDuplicateMalformedAndStaleData() throws {
-        let selection = try TokenPoolChart.select(TokenChartFixtures.pools(asset, network: "bsc"), for: asset)
+        let selection = try TokenPoolChart.rankedPools(TokenChartFixtures.pools(asset, network: "bsc"), for: asset)
         let original = try JSONSerialization.jsonObject(with: TokenChartFixtures.candles(asset, at: date)) as! [String: Any]
         for kind in ["wrong-side", "future", "duplicate", "negative", "ohlc", "boolean", "stale"] {
             var root = original, body = root["data"] as! [String: Any], attributes = body["attributes"] as! [String: Any]
@@ -195,16 +195,16 @@ enum TokenChartFixtures {
             default: rows = rows.map { var row = $0; row[0] = (row[0] as! Double) - 86_400; return row }
             }
             attributes["ohlcv_list"] = rows; body["attributes"] = attributes; root["data"] = body
-            XCTAssertThrowsError(try TokenPoolChart.decode(JSONSerialization.data(withJSONObject: root), for: asset, selection: selection, at: date), kind)
+            XCTAssertThrowsError(try TokenPoolChart.decode(JSONSerialization.data(withJSONObject: root), for: asset, selection: selection[0], at: date), kind)
         }
     }
     func testSparseChartDoesNotInventTwentyFourHourPercentage() throws {
-        let selection = try TokenPoolChart.select(TokenChartFixtures.pools(asset, network: "bsc"), for: asset)
+        let selection = try TokenPoolChart.rankedPools(TokenChartFixtures.pools(asset, network: "bsc"), for: asset)
         var root = try JSONSerialization.jsonObject(with: TokenChartFixtures.candles(asset, at: date)) as! [String: Any]
         var body = root["data"] as! [String: Any], attributes = body["attributes"] as! [String: Any]
         var rows = attributes["ohlcv_list"] as! [[Double]]
         rows.remove(at: 5); attributes["ohlcv_list"] = rows; body["attributes"] = attributes; root["data"] = body
-        let chart = try TokenPoolChart.decode(JSONSerialization.data(withJSONObject: root), for: asset, selection: selection, at: date)
+        let chart = try TokenPoolChart.decode(JSONSerialization.data(withJSONObject: root), for: asset, selection: selection[0], at: date)
         XCTAssertEqual(chart.points.count, 23)
         XCTAssertNil(chart.changePercent)
     }

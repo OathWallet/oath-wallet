@@ -24,6 +24,14 @@ struct ContractPriceRequest: Sendable {
     static let dexNetworks = ["zerog":"0g","sei":"seiv2","bnb":"bsc", "avalanche":"avalanche", "gnosis":"gnosischain", "xlayer":"xlayer"]
     static let llamaNetworks = ["zerog":"0g","bnb":"bsc", "avalanche":"avax", "gnosis":"xdai", "polygon":"polygon", "near":"near"]
 
+    static func nativeGeckoURL(coinIDs: [String]) -> URL {
+        var url = URLComponents(string: "https://api.coingecko.com/api/v3/simple/price")!
+        url.queryItems = [.init(name: "ids", value: coinIDs.joined(separator: ",")),
+                          .init(name: "vs_currencies", value: "usd"),
+                          .init(name: "include_last_updated_at", value: "true")]
+        return url.url!
+    }
+
     static func requests(for asset: MarketAsset) -> [Self] {
         guard (0...255).contains(asset.decimals), !asset.reference.isEmpty, asset.reference.utf8.count <= 512 else { return [] }
         func endpoint(_ base: String, _ path: String, query: [URLQueryItem] = []) -> URL {
@@ -38,9 +46,7 @@ struct ContractPriceRequest: Sendable {
         let bankProject = asset.networkID == "thorchain" ? MarketIdentity.thorchainProjects[asset.reference] : nil
         if asset.isNative || bankProject != nil {
             guard let coin = asset.isNative ? MarketIdentity.native[asset.networkID]?.gecko : bankProject else { return [] }
-            var url = URLComponents(string: "https://api.coingecko.com/api/v3/simple/price")!
-            url.queryItems = [.init(name:"ids",value:coin), .init(name:"vs_currencies",value:"usd"), .init(name:"include_last_updated_at",value:"true")]
-            return [.init(provider:.gecko,url:url.url!,key:coin,network:asset.networkID),
+            return [.init(provider:.gecko,url:nativeGeckoURL(coinIDs: [coin]),key:coin,network:asset.networkID),
                 .init(provider:.llama,url:endpoint("https://coins.llama.fi/prices/current", "coingecko:"+coin),key:"coingecko:"+coin,network:asset.networkID)]
         }
         guard let terminal = terminalNetworks[asset.networkID] else { return [] }

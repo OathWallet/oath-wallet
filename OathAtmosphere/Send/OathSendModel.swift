@@ -63,18 +63,6 @@ final class OathSendModel {
     private(set) var failed = false
     private(set) var recipients: [SendRecipient] = []
     private(set) var contactsFailed = false
-    /// The balance used for amount validation and Max is spendable, not gross
-    /// holdings. An entered/previously reviewed amount is never enlarged here.
-    var validatedBalance: String? {
-        guard let holding, let value = senderSnapshot, let identity = senderSnapshotIdentity,
-              identity.wallet == walletID, identity.account == holding.accountID,
-              identity.asset == holding.assetID, identity.reference == holding.reference,
-              identity.decimals == holding.decimals,
-              identity.observation == holding.balanceObservedAt,
-              identity.pending == holding.pendingTransactionCount else { return holding?.amountAtomic }
-        return value.spendable
-    }
-
     @ObservationIgnored let balancePreparation = OathSendBalancePreparation<OathSendBalanceIdentity, SendSenderSnapshot>()
     var balancePreparationGeneration = UUID()
     var senderSnapshot: SendSenderSnapshot?

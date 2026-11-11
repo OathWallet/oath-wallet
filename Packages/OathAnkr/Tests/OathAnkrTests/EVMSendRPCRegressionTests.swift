@@ -171,10 +171,10 @@ actor EVMSendFixtureTransport:AnkrTransport {
         let counts=await transport.counts();XCTAssertEqual(counts.0,1)
     }
     func testPendingPredecessorAllowsAnotherNativeAndTokenSend() async throws {
-        for network in EVMSendNetwork.allCases where network != .hyperevm {
+        for network in EVMSendNetwork.allCases {
             for token in [false,true] {
                 let (client,next)=try await quote(EVMSendFixtureTransport("pending",network:network),token:token)
-                XCTAssertEqual(next.nonce,8,network.rawValue)
+                XCTAssertEqual(next.nonce, network.isHyperEVM ? 7 : 8, network.rawValue)
                 try await client.preflight(next)
             }
         }

@@ -54,10 +54,11 @@ extension View {
     func oathNativeLocalization(navigationTint: UIColor? = nil, onArtwork: Bool = false,
                                 navigationBackground: Visibility = .automatic,
                                 navigationMaterial: Material? = .regular,
-                                systemNavigationAppearance: Bool = false,
+                                systemNavigationAppearance: Bool = false, systemBackButton: Bool = false,
                                 file: StaticString = #fileID, line: UInt = #line) -> some View {
         background { OathNativeLocalizationChrome(
-            navigationTint: systemNavigationAppearance ? nil : navigationTint ?? (onArtwork ? .white : .label)) }
+            navigationTint: systemNavigationAppearance ? nil : navigationTint ?? (onArtwork ? .white : .label),
+            systemBackButton: systemBackButton) }
             // Native symbol-only buttons read SwiftUI tint, while UIKit back
             // items read the bar tint. Set both to avoid a blue inherited accent
             // reappearing when navigation/Face ID rebuilds the native toolbar.
@@ -91,9 +92,7 @@ private struct OathNativeNavigationAppearance: ViewModifier {
 
     @ViewBuilder private func navigationAppearance(_ content: Content) -> some View {
         if systemAppearance {
-            // The shared artwork app bar owns its native contrast preference.
-            // A second nil preference here also participates in SwiftUI's
-            // toolbar preference resolution; it is not an absence of styling.
+            // Leave navigation contrast to the system.
             navigationContent(content)
         } else {
             navigationContent(content)
@@ -136,17 +135,20 @@ private struct OathNativeNavigationAppearance: ViewModifier {
 private struct OathNativeLocalizationChrome: UIViewControllerRepresentable {
     @Environment(\.oathLanguage) private var language
     let navigationTint: UIColor?
+    let systemBackButton: Bool
 
     func makeUIViewController(context: Context) -> Controller { Controller() }
     func updateUIViewController(_ controller: Controller, context: Context) {
         controller.language = language
         controller.navigationTint = navigationTint
+        controller.systemBackButton = systemBackButton
         controller.apply()
     }
 
     final class Controller: UIViewController {
         var language = OathLanguage.english
         var navigationTint: UIColor?
+        var systemBackButton = false
         override func loadView() {
             view = UIView()
             view.isUserInteractionEnabled = false
@@ -169,15 +171,19 @@ private struct OathNativeLocalizationChrome: UIViewControllerRepresentable {
             if bar.tintColor != navigationTint { bar.tintColor = navigationTint }
             for controller in navigation.viewControllers {
                 OathLayoutDirection.apply(language, to: controller)
-                // Keep UIKit's native back indicator and swipe gestures, with
-                // no visible title on this or the next navigation destination.
-                if controller.navigationItem.backButtonDisplayMode != .minimal {
-                    controller.navigationItem.backButtonDisplayMode = .minimal
-                }
-                let backTitle = OathLocalizer(language).text(.back)
-                if controller.navigationItem.backButtonTitle != backTitle {
-                    controller.navigationItem.backButtonTitle = backTitle
-                }
+            }
+            // The source item's configuration controls Back on the *next*
+            // destination. Style only our own item; a pushed screen must never
+            // rewrite Home's or Asset Detail's native Back presentation.
+            var owner = parent
+            while let candidate = owner, !navigation.viewControllers.contains(where: { $0 === candidate }) {
+                owner = candidate.parent
+            }
+            if let item = owner?.navigationItem {
+                let displayMode: UINavigationItem.BackButtonDisplayMode = systemBackButton ? .default : .minimal
+                let backTitle = systemBackButton ? nil : OathLocalizer(language).text(.back)
+                if item.backButtonDisplayMode != displayMode { item.backButtonDisplayMode = displayMode }
+                if item.backButtonTitle != backTitle { item.backButtonTitle = backTitle }
             }
             if let searchBar = navigation.topViewController?.navigationItem.searchController?.searchBar {
                 OathLayoutDirection.apply(language, to: searchBar)

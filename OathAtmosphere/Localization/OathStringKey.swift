@@ -303,6 +303,18 @@ enum OathStringKey: String, CaseIterable, Sendable {
     case sendRemaining = "send.remaining"
     case sendFeeAdjusted = "send.fee_adjusted"
     case sendPreparing = "send.preparing"
+    case sendInvalidTransaction
+    case sendNodeRejected
+    case sendSigningFailed
+    case sendFeeEstimateFailed
+    case sendTransactionTooLarge
+    case sendAssetFrozen
+    case sendPreparationFailed
+    case sendInvalidResponse
+    case sendSubmitFailed
+    case sendInvalidInputs
+    case sendDuplicateInputs
+    case sendWrongAccount
     case sendRefreshNeeded = "send.refresh_needed"
     case sendAdjustAmount = "send.adjust_amount"
     case sendRefreshQuote = "send.refresh_quote"
@@ -460,6 +472,7 @@ enum OathStringKey: String, CaseIterable, Sendable {
     case transactionNetworkFee = "transaction.network_fee"
     case transactionFrom = "transaction.from"
     case transactionTo = "transaction.to"
+    case bitcoinCombinedFeeRate, bitcoinReplaces, bitcoinPaysForParent, bitcoinPaidByChild, bitcoinPackageMember
     case transactionReplacement = "transaction.replacement"
     case transactionCurrentValue = "transaction.current_value"
     case transactionViewExplorer = "transaction.view_explorer"
@@ -761,6 +774,12 @@ enum OathStringKey: String, CaseIterable, Sendable {
     case indexedWalletName = "wallet.default_name.indexed"
     case passphraseWalletName = "wallet.default_name.passphrase"
     case currentWallet = "wallet.current"
+    case sidebarSupportWarning = "sidebar.support_warning"
+    case sidebarSupportAccept = "sidebar.support_accept"
+    case sidebarSecurity = "sidebar.security"
+    case sidebarResort = "sidebar.resort"
+    case sidebarRevealKey = "sidebar.reveal_key"
+    case sidebarRevealPhrase = "sidebar.reveal_phrase"
     case walletDetails = "wallet.settings"
     case walletName = "wallet.name"
     case walletNameHint = "wallet.name_hint"

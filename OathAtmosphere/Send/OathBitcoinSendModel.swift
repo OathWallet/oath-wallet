@@ -9,6 +9,7 @@ import OathAnkr
     private(set) var busy = false
     private(set) var needsRefresh = false
     private(set) var needsAmountChange = false
+    private(set) var failureMessage: OathSendFailure?
     private(set) var needsMessageChange = false
     private(set) var passcode = false
     private(set) var submission: OathBitcoinSubmission?
@@ -20,7 +21,7 @@ import OathAnkr
         guard !busy, submission == nil, session.isUnlocked,
               model.supportsBitcoinSend, let atomic = model.reviewAtomic, let amount = Int64(atomic),
               let chain = model.chain, let network = UTXONetwork(rawValue: chain.rawValue) else { return }
-        cancel(); busy = true; needsRefresh = false; needsAmountChange = false; needsMessageChange = false; quote = nil
+        cancel(); failureMessage = nil; busy = true; needsRefresh = false; needsAmountChange = false; needsMessageChange = false; quote = nil
         let token = generation, wallet = model.walletID, recipient = model.address
         let options = model.reviewOptions
         let sessionGeneration = session.sendSessionGeneration
@@ -39,6 +40,7 @@ import OathAnkr
             } catch { OathDiagnostics.record(error, component: "send", operation: "prepare", context: ["chain": network.rawValue, "stage": "quote"]);
                 guard generation == token, !Task.isCancelled else { return }
                 busy = false; needsRefresh = true
+                failureMessage = OathSendFailure.reason(error, fallback: .sendPreparationFailed)
                 if let failure = error as? BitcoinSendError {
                     needsMessageChange = !options.message.isEmpty && [.tooLarge, .messageTooLarge].contains(failure)
                     needsAmountChange = [.invalidAmount, .insufficientFunds, .feeTooHigh, .tooLarge, .messageTooLarge, .invalidOptions].contains(failure)
@@ -71,7 +73,7 @@ import OathAnkr
                 if error is OathBiometricCredentialError { passcode = true }
                 else if error as? OathWalletError == .wrongPasscode { passcode = true; notice = .unlockIncorrect }
                 else if case OathWalletError.throttled = error { passcode = true; notice = .unlockWait }
-                else if !(error is CancellationError) { passcode = false; needsRefresh = true; self.quote = nil; OathHaptics.shared.play(.warning) }
+                else if !(error is CancellationError) { passcode = false; needsRefresh = true; failureMessage = OathSendFailure.reason(error, fallback: .sendSubmitFailed); self.quote = nil; OathHaptics.shared.play(.warning) }
             }
         }
     }

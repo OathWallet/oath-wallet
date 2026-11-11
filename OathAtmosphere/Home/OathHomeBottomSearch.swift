@@ -121,6 +121,7 @@ struct OathSearchTabTransition: UIViewControllerRepresentable {
 
 /// Own only native tab icon colors; retain the system's glass and selection pill.
 @MainActor enum OathTabBarStyle {
+    static let walletSymbol = UIImage(systemName: "wallet.bifold") == nil ? "wallet.pass" : "wallet.bifold"
     static let selectedColor = UIColor.label
     static let unselectedColor = makeUnselectedColor()
 

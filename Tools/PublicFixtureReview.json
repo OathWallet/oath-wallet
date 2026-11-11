@@ -563,10 +563,10 @@
     },
     {
       "path": "Packages/OathDatabase/Sources/OathDatabase/TransactionDetails.swift",
-      "sha256": "fd08a8086bd9b3dda34018601bff1743c0ce57c16b4a497d2a88fba19eafd006",
+      "sha256": "1b851ee8bbb62492273aa3c522b479295177043f28eeccd9b23c586699c378b3",
       "reason": "SQL excluded.conflictKeys assignment text falsely matches generic API key detection; no credential.",
       "fingerprints": [
-        "Packages/OathDatabase/Sources/OathDatabase/TransactionDetails.swift:generic-api-key:402"
+        "Packages/OathDatabase/Sources/OathDatabase/TransactionDetails.swift:generic-api-key:412"
       ]
     },
     {

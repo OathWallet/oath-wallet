@@ -1,6 +1,7 @@
 import OathDiagnostics
 import SwiftUI
 import OathNativeRefresh
+import OathSidebar
 import OathDatabase
 import OathAnkr
 
@@ -12,6 +13,17 @@ struct OathHomeScreen: View {
     let session: OathWalletSession
     let settings: OathAppSettings
     let lockCoverHidden: Bool
+    @State private var sidebarRemoval: OathWalletRemovalModel
+
+    init(profile: OathWalletProfile?, session: OathWalletSession, settings: OathAppSettings, lockCoverHidden: Bool) {
+        self.profile = profile
+        self.session = session
+        self.settings = settings
+        self.lockCoverHidden = lockCoverHidden
+        _sidebarRemoval = State(initialValue: OathWalletRemovalModel(session: session))
+    }
+
+    private var sidebarRemovalActive: Bool { sidebarRemoval.action != nil || sidebarRemoval.notice != nil }
     // A committed offer waits here if another sheet takes priority before presentation.
     @State private var claimedBackupOffers: [UUID: WalletBackupOffer] = [:]
     @State private var backupStatus: (walletID: UUID, cloud: WalletCloudBackupStatus)?
@@ -28,6 +40,8 @@ struct OathHomeScreen: View {
     }
     @Environment(\.oathLocalizer) private var strings
     @Environment(\.colorScheme) private var colorScheme
+    @State private var sidebar = OathWalletSidebarModel()
+    @State private var sidebarBalances = OathWalletListBalances()
     @State private var sheet: Sheet?
     @State private var multisigFindings: [PublicMultisigEvidence] = []
     @State private var multisigFindingsWalletID: UUID?
@@ -35,13 +49,13 @@ struct OathHomeScreen: View {
     @State private var showsScanner = false
     @State private var scannedRecipient: OathScannedRecipient?
     @State private var paymentLinkActive = false
+    @Environment(\.openURL) private var openURL
     @Environment(\.scenePhase) private var scenePhase
     @State private var assetPath: [OathAssetRoute] = []
-    @State private var settingsDestination: SettingsDestination?
+    @State private var showsAppSettings = false
     @State private var scanError: OathRecoveryScanError?
     @State private var pendingScanError: OathRecoveryScanError?
-    @State private var walletFlow: OathAdditionalWalletDestination?
-    @State private var pendingWalletDestination: WalletSwitcherDestination?
+    @State private var pendingWalletDestination: WalletDestination?
     @State private var scrollEffects = OathHomeScrollEffects()
     @State private var query = ""
     @State private var searchScope: OathAssetSearchScope = .all
@@ -67,8 +81,8 @@ struct OathHomeScreen: View {
         return request
     }
     private var balancesHidden: Bool { session.balancesHidden }
-    private var searchRows: [OathHomeAssetPresentation] {
-        portfolioPresentation.searchRows.filter { searchScope.includes(networkID: $0.holding.networkID) }
+    private var searchRows: [OathHomeRowLayout] {
+        portfolioPresentation.searchLayout.filter { searchScope.includes(networkID: $0.chain.id) }
     }
     private var currentWallet: WalletRecord? {
         session.wallets.first(where: { $0.id == profile?.id.uuidString })
@@ -80,6 +94,7 @@ struct OathHomeScreen: View {
 
     private enum Sheet: Identifiable {
         case wallets, send, receive, address(OathWalletAddress), assetFilters, tronMultisigSetup(String), evmMultisigSetup(String), solanaMultisigSetup(String), xrplMultisigSetup(String), stellarMultisigSetup(String)
+        case wallet(WalletDestination)
         case backup(UUID, WalletBackupOffer)
         case multisig(UUID, [PublicMultisigEvidence])
         case stablecoin(UUID, [StablecoinRestrictionToken])
@@ -87,6 +102,8 @@ struct OathHomeScreen: View {
         var id: String {
             switch self {
             case .wallets: "wallets"
+            case .wallet(.add(let start)): "additionalWallet-" + start.id
+            case .wallet(.settings(let destination)): "walletSettings-" + destination.id
             case .send: "send"
             case .receive: "receive"
             case .assetFilters: "assetFilters"
@@ -106,19 +123,9 @@ struct OathHomeScreen: View {
 
     private typealias SettingsDestination = OathWalletSettingsScreen.Destination
 
-    private enum WalletSwitcherDestination {
+    private enum WalletDestination {
         case add(OathAdditionalWalletDestination)
         case settings(SettingsDestination)
-    }
-
-    private func holdings(searching: Bool) -> [Holding] {
-        let query = searching ? query.trimmingCharacters(in: .whitespacesAndNewlines) : ""
-        return (session.portfolio?.holdings ?? []).filter {
-            query.isEmpty || ($0.name + " " + $0.symbol + " " + $0.networkID).localizedStandardContains(query)
-                || ($0.networkID == "arc" && $0.reference == "native" && query.lowercased() == "0x3600000000000000000000000000000000000000")
-                || ($0.reference != "native" && ($0.reference == query
-                    || (OathImportChain(rawValue: $0.networkID)?.isEVM == true && $0.reference.lowercased() == query.lowercased())))
-        }
     }
 
     private var searchBinding: Binding<String> {
@@ -133,21 +140,21 @@ struct OathHomeScreen: View {
     }
     private var balanceHistoryVisible: Bool {
         shouldPreparePortfolio && !session.changingWallet && !session.resetting &&
-        selectedTab == .wallet && assetPath.isEmpty && settingsDestination == nil &&
-        sheet == nil && !showsScanner && walletFlow == nil && !OathWalletConnectService.shared.presentationOpen &&
+        selectedTab == .wallet && assetPath.isEmpty && !showsAppSettings && !sidebarRemovalActive &&
+        sheet == nil && !sidebar.isVisible && !showsScanner && !OathWalletConnectService.shared.presentationOpen &&
         profile?.id.uuidString == portfolioPresentation.walletID
     }
 
     private var canPresentVaultImport: Bool {
-        session.isUnlocked && !session.changingWallet && !session.resetting &&
-        !showsScanner && scannedRecipient == nil && sheet == nil && settingsDestination == nil && walletFlow == nil && !OathWalletConnectService.shared.presentationOpen
+        session.isUnlocked && !session.changingWallet && !session.resetting && !sidebarRemovalActive &&
+        !sidebar.isVisible && !showsScanner && scannedRecipient == nil && sheet == nil && !showsAppSettings && !OathWalletConnectService.shared.presentationOpen
     }
 
     private var canPresentWalletLink: Bool {
-        OathVaultImportInbox.shared.pending == nil && OathVaultImportInbox.shared.active == nil &&
+        !sidebarRemovalActive && OathVaultImportInbox.shared.pending == nil && OathVaultImportInbox.shared.active == nil &&
         (OathWalletLinkInbox.shared.pending != nil && !OathWalletLinkInbox.shared.hasWalletConnectRequest) &&
         session.isUnlocked && scenePhase == .active && !session.changingWallet && !session.resetting &&
-        !showsScanner && scannedRecipient == nil && sheet == nil && settingsDestination == nil && walletFlow == nil && !OathWalletConnectService.shared.presentationOpen
+        !sidebar.isVisible && !showsScanner && scannedRecipient == nil && sheet == nil && !showsAppSettings && !OathWalletConnectService.shared.presentationOpen
     }
     private var multisigAccounts: [PublicMultisigAccount] {
         Array(Set((profile?.addresses ?? []).compactMap { item in
@@ -216,15 +223,43 @@ struct OathHomeScreen: View {
             sheet = .stablecoin(next.walletID, state.restricted)
         }
     }
+    @ViewBuilder private var savedHistoryUpdates: some View {
+        if shouldPreparePortfolio, selectedTab != .history, let walletID = profile?.id.uuidString {
+            let currency = assetFilterCurrency
+            let locale = strings.language.locale.identifier
+            Color.clear.task(id: "\(walletID):\(currency):\(locale)") {
+                await session.observeHomeHistory(walletID: walletID, currency: currency, localeIdentifier: locale)
+            }
+        }
+    }
+
     var body: some View {
-        tabs
+        sidebarContainer
+        .disabled(sidebarRemovalActive)
+        .allowsHitTesting(!sidebarRemovalActive)
+        .modifier(OathSidebarRemovalPresentation(session: session, removal: sidebarRemoval))
         .tint(Color(uiColor: .label))
         .background {
             // This narrow observation boundary consumes checkpoint/timestamp
             // updates without rebuilding tabs, navigation and the scroll host.
             OathHomePortfolioUpdates(session: session, query: query, active: shouldPreparePortfolio)
+                .background { savedHistoryUpdates }
         }
         .environment(\.oathScanSession, session)
+        .task(id: sidebarBalances.scope(session: session).joined(separator: "|") + assetFilterCurrency) {
+            await sidebarBalances.observe(session: session)
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .background { sidebar.invalidate(); sidebarRemoval.cancel() }
+            else if phase == .inactive && !sidebarRemovalActive { sidebar.invalidate() }
+        }
+        .onChange(of: sidebarEnabled) { _, enabled in
+            if !enabled { sidebar.invalidate() }
+        }
+        .onChange(of: session.resetting) { _, resetting in
+            if resetting { sidebar.invalidate(); sidebarRemoval.cancel() }
+        }
+        .onDisappear { sidebar.invalidate(); sidebarRemoval.cancel() }
         .task(id: backupStatusWalletID) {
             let id = backupStatusWalletID
             backupStatus = nil
@@ -252,40 +287,7 @@ struct OathHomeScreen: View {
         }
         // A separate asynchronous read of public metadata. Neither initial
         // rendering, wallet import, unlock nor navigation awaits this task.
-        .task(id: multisigScope) {
-            let scope = multisigScope
-            guard !scope.isEmpty, let walletID = profile?.id else { return }
-            let noticeState = await OathDiagnostics.$operationID.withValue(UUID()) {
-                await OathDiagnostics.attempt("load_multisig_notice_acknowledgement") {
-                    try await session.loadMultisigNoticeState(walletID: walletID)
-                }
-            }
-            guard let noticeState, !Task.isCancelled, scope == multisigScope else { return }
-            guard !noticeState.acknowledged else { return }
-            let accounts = multisigAccounts
-            var findings: [PublicMultisigEvidence] = []
-            // At most four concurrent checks, including restored wallets with
-            // many public accounts. No request on every balance refresh/frame.
-            for start in stride(from: 0, to: accounts.count, by: 4) {
-                guard !Task.isCancelled else { return }
-                let batch = Array(accounts[start..<min(start + 4, accounts.count)])
-                findings += await withTaskGroup(of: PublicMultisigEvidence?.self) { group in
-                    for account in batch {
-                        group.addTask {
-                            if case .confirmed(let evidence) = await Self.multisigCheck.check(account) { return evidence }
-                            return nil
-                        }
-                    }
-                    var result: [PublicMultisigEvidence] = []
-                    for await item in group { if let item { result.append(item) } }
-                    return result
-                }
-            }
-            guard !Task.isCancelled, scope == multisigScope else { return }
-            multisigFindingsWalletID = walletID
-            multisigFindings = findings
-                .sorted { ($0.account.chain.rawValue, $0.account.address) < ($1.account.chain.rawValue, $1.account.address) }
-        }
+        .task(id: multisigScope) { await loadMultisigNotice() }
         .task(id: scenePhase == .active && session.isUnlocked) {
             guard scenePhase == .active, session.isUnlocked else { return }
             OathWalletConnectService.shared.configure(session: session)
@@ -324,10 +326,6 @@ struct OathHomeScreen: View {
                 if tab == .wallet || tab == .history { searchContext = tab }
             }
         }
-        .task(id: tokenSearchRequest) {
-            let request = tokenSearchRequest
-            await tokenSearch.search(request)
-        }
         .task(id: session.isUnlocked) {
             guard session.isUnlocked else { return }
             // Let the first Home frame and wallet navigation settle. Catalog
@@ -339,7 +337,10 @@ struct OathHomeScreen: View {
         .onChange(of: session.changingWallet) { _, changing in
             if changing, case .backup = sheet { sheet = nil }
         }
-        .onChange(of: profile?.id) { _, _ in
+        .onChange(of: profile?.id) { previous, id in
+            sidebar.walletChanged(to: id?.uuidString, previousWalletIsInTrash:
+                session.recentlyDeletedWallets.contains { $0.id == previous?.uuidString })
+            searchPresented = false
             if case .backup = sheet { sheet = nil }
             multisigFindings = []
             if sheet?.id == "multisig" { sheet = nil }
@@ -381,10 +382,17 @@ struct OathHomeScreen: View {
                         }
                     }
                 case .wallets:
-                    OathWalletSwitcherSheet(session: session,
+                    OathWalletSwitcherSheet(session: session, startsAtAddWallet: true,
+                        onCreate: { continueFromWalletSwitcher(.add(.create($0))) },
                         onCreated: { continueFromWalletSwitcher(.add(.customize($0))) },
                         onCustomize: { continueFromWalletSwitcher(.settings(.customize($0))) })
                         .environment(settings)
+                        .presentationCompactAdaptation(.sheet)
+                case .wallet(let destination):
+                    walletContent(destination)
+                        .presentationDetents([.large])
+                        .presentationDragIndicator(.visible)
+                        .presentationCompactAdaptation(.sheet)
                 case .send: OathSendFlow(session: session, scannedRecipient: scannedRecipient)
                 case .receive: OathReceivePicker(addresses: profile?.addresses ?? [], session: session)
                 case .assetFilters:
@@ -401,24 +409,14 @@ struct OathHomeScreen: View {
             .oathLanguage(strings.language)
             .environment(\.oathScanSession, session)
         }
-        .fullScreenCover(item: $settingsDestination, onDismiss: resumeCustomization) { destination in
-            OathWalletSettingsScreen(session: session, destination: destination)
-                // iOS-on-Mac can create a separate presentation environment.
-                // Settings and its alert/navigation children require the SAME
-                // scene-owned preferences, not a newly created fallback model.
-                .environment(settings)
-                .oathLanguage(strings.language)
-                .environment(\.oathScanSession, session)
-        }
-        .fullScreenCover(item: $walletFlow, onDismiss: resumeCustomization) { start in
-            OathAdditionalWalletFlow(session: session, start: start)
-                .environment(settings)
-                .oathLanguage(strings.language)
-                .environment(\.oathScanSession, session)
+        .fullScreenCover(isPresented: $showsAppSettings, onDismiss: resumeCustomization) {
+            walletContent(.settings(.app))
         }
         .onChange(of: session.isUnlocked, initial: true) { _, unlocked in
             if unlocked { resumeCustomization(); OathWalletConnectService.shared.resumeRequests() }
             else {
+                sidebar.invalidate()
+                sidebarRemoval.cancel()
                 pendingWalletDestination = nil
                 if case .backup = sheet { sheet = nil }
                 multisigFindings = []
@@ -466,6 +464,41 @@ struct OathHomeScreen: View {
         }
     }
 
+    private func loadMultisigNotice() async {
+        let scope = multisigScope
+        guard !scope.isEmpty, let walletID = profile?.id else { return }
+        let noticeState: MultisigNoticeState? = await OathDiagnostics.$operationID.withValue(UUID()) {
+            await OathDiagnostics.attempt("load_multisig_notice_acknowledgement") {
+                try await session.loadMultisigNoticeState(walletID: walletID)
+            }
+        }
+        guard let noticeState, !Task.isCancelled, scope == multisigScope else { return }
+        guard !noticeState.acknowledged else { return }
+        let accounts = multisigAccounts
+        var findings: [PublicMultisigEvidence] = []
+        // At most four concurrent checks, including restored wallets with
+        // many public accounts. No request on every balance refresh/frame.
+        for start in stride(from: 0, to: accounts.count, by: 4) {
+            guard !Task.isCancelled else { return }
+            let batch = Array(accounts[start..<min(start + 4, accounts.count)])
+            findings += await withTaskGroup(of: PublicMultisigEvidence?.self) { group in
+                for account in batch {
+                    group.addTask {
+                        if case .confirmed(let evidence) = await Self.multisigCheck.check(account) { return evidence }
+                        return nil
+                    }
+                }
+                var result: [PublicMultisigEvidence] = []
+                for await item in group { if let item { result.append(item) } }
+                return result
+            }
+        }
+        guard !Task.isCancelled, scope == multisigScope else { return }
+        multisigFindingsWalletID = walletID
+        multisigFindings = findings
+            .sorted { ($0.account.chain.rawValue, $0.account.address) < ($1.account.chain.rawValue, $1.account.address) }
+    }
+
     private func finishSheetDismissal() {
         // One slot for both warnings. Acknowledging either must not allow
         // the other to race the outgoing sheet's native animation.
@@ -478,7 +511,7 @@ struct OathHomeScreen: View {
             OathWalletLinkInbox.shared.didDismiss()
         }
         // Present the next native flow only after the switcher has finished
-        // dismissing. Presenting a cover from inside the sheet races UIKit.
+        // dismissing so UIKit can start the next sheet presentation.
         finishWalletSwitcherDismissal()
     }
 
@@ -506,11 +539,12 @@ struct OathHomeScreen: View {
         if #available(iOS 18, *) {
             TabView(selection: $selectedTab) {
                 Tab(value: .wallet) { walletNavigation } label: {
-                    Image(systemName: "wallet.bifold")
+                    tabLabel(.walletTab, symbol: OathTabBarStyle.walletSymbol)
+                        .environment(\.symbolVariants, .none)
                 }
                 .accessibilityLabel(strings.text(.walletTab))
                 Tab(value: .history) { historyNavigation } label: {
-                    Image(systemName: "clock.arrow.circlepath")
+                    tabLabel(.historyTab, symbol: "clock.arrow.circlepath")
                 }
                 .accessibilityLabel(strings.text(.historyTab))
                 Tab(value: .browser) { OathBrowserScreen(session: session, tabs: browserTabs, selected: selectedTab == .browser) } label: {
@@ -518,7 +552,7 @@ struct OathHomeScreen: View {
                 }
                 .accessibilityLabel(strings.text(.browserTitle))
                 Tab(value: .search, role: .search) { searchNavigation } label: {
-                    Image(systemName: "magnifyingglass")
+                    tabLabel(.searchTitle, symbol: "magnifyingglass")
                 }
                 .accessibilityLabel(strings.text(.searchTitle))
             }
@@ -526,18 +560,26 @@ struct OathHomeScreen: View {
         } else {
             TabView(selection: $selectedTab) {
                 walletNavigation.tabItem {
-                    Image(systemName: "wallet.bifold").accessibilityLabel(strings.text(.walletTab))
+                    Label(strings.text(.walletTab), systemImage: OathTabBarStyle.walletSymbol)
                 }.tag(OathHomeTab.wallet)
                 historyNavigation.tabItem {
-                    Image(systemName: "clock.arrow.circlepath").accessibilityLabel(strings.text(.historyTab))
+                    Label(strings.text(.historyTab), systemImage: "clock.arrow.circlepath")
                 }.tag(OathHomeTab.history)
                 OathBrowserScreen(session: session, tabs: browserTabs, selected: selectedTab == .browser).tabItem {
                     Image(systemName: "globe").accessibilityLabel(strings.text(.browserTitle))
                 }.tag(OathHomeTab.browser)
                 searchNavigation.tabItem {
-                    Image(systemName: "magnifyingglass").accessibilityLabel(strings.text(.searchTitle))
+                    Label(strings.text(.searchTitle), systemImage: "magnifyingglass")
                 }.tag(OathHomeTab.search)
             }
+        }
+    }
+
+    @ViewBuilder private func tabLabel(_ title: OathStringKey, symbol: String) -> some View {
+        if #available(iOS 26, *) {
+            Image(systemName: symbol)
+        } else {
+            Label(strings.text(title), systemImage: symbol)
         }
     }
 
@@ -560,24 +602,22 @@ struct OathHomeScreen: View {
                 // pop transition, before Home's viewport sizes its header.
                 .toolbar(.visible, for: .tabBar)
                 .toolbar { homeToolbar }
-                // Native bars own both contrast and scroll-edge transitions.
-                // Artwork white must not follow the bar over the Assets canvas.
-                .oathArtworkAppBar()
+                .oathNativeAppBar()
                 .navigationDestination(for: OathAssetRoute.self) { route in
                     OathAssetDetailScreen(route: route, session: session).oathLanguage(strings.language)
                 }
         }
-        .tint(Color(uiColor: .label))
+        .tint(nil)
     }
 
     private var historyNavigation: some View {
         NavigationStack {
-            walletHistory(query: "", visible: selectedTab == .history)
+            walletHistory(query: "", visible: selectedTab == .history, showsWalletSidebar: true)
         }
         // The stack owns pushed receipts even when this tab is inactive.
         // Replacing only its root list leaves the previous wallet's receipt open.
         .id(profile?.id)
-        .tint(Color(uiColor: .label))
+        .tint(nil)
     }
 
     private var searchNavigation: some View {
@@ -586,15 +626,19 @@ struct OathHomeScreen: View {
                 if searchContext == .history {
                     walletHistory(query: historyQuery, visible: selectedTab == .search)
                 } else {
-                    OathEmptyStateScrollView(centersContent: searchRows.isEmpty && tokenSearch.results.isEmpty) {
-                        assetList(searching: true)
-                            .padding(.horizontal, 20).padding(.bottom, 20)
-                            .frame(maxWidth: 700).frame(maxWidth: .infinity)
+                    Group {
+                        if selectedTab == .search {
+                            let request = tokenSearchRequest
+                            let rows = searchRows
+                            OathEmptyStateScrollView(centersContent: rows.isEmpty && tokenSearch.results.isEmpty) {
+                                assetList(searching: true, values: rows, request: request)
+                                    .padding(.horizontal, 20).padding(.bottom, 20)
+                                    .frame(maxWidth: 700).frame(maxWidth: .infinity)
+                            }
+                            .task(id: request) { await tokenSearch.search(request) }
+                            .id(searchScope)
+                        } else { Color.clear }
                     }
-                    // A new chain starts at its first asset, not the previous
-                    // chain's scroll offset. Keep the search toolbar outside
-                    // this identity so keyboard/focus and the query survive.
-                    .id(searchScope)
                     .background(Color(uiColor: OathSurfaceColors.groupedCanvas).ignoresSafeArea())
                     .navigationTitle(strings.text(.assets))
                     .navigationBarTitleDisplayMode(.inline)
@@ -610,17 +654,17 @@ struct OathHomeScreen: View {
         .modifier(OathHomeSearchField(query: searchBinding, isPresented: $searchPresented, prompt: searchPrompt, isEnabled: searchContext == .history))
     }
 
-    @ViewBuilder private func walletHistory(query: String, visible: Bool) -> some View {
+    @ViewBuilder private func walletHistory(query: String, visible: Bool, showsWalletSidebar: Bool = false) -> some View {
         if let walletID = profile?.id.uuidString {
             OathChainActivityScreen(walletID: walletID, session: session, query: query, isVisible: visible,
-                                    filterSelection: $historyFilters)
+                                    filterSelection: $historyFilters, showsWalletSidebar: showsWalletSidebar)
                 .id(walletID)
         }
     }
 
     private var homeContent: some View {
         GeometryReader { geometry in
-            let visibleHoldings = portfolioPresentation.rows
+            let visibleHoldings = portfolioPresentation.layout
             // The native bars own the safe area. The scroll viewport starts
             // below navigation, without a second inset or a toolbar spacer.
             NativeRefreshScroll(identifier: "home.scroll", tint: .white,
@@ -648,7 +692,7 @@ struct OathHomeScreen: View {
                     }
                 }) {
                 OathHeaderScrollContent(viewportHeight: geometry.size.height, fillsViewport: visibleHoldings.isEmpty) {
-                    summary(viewportHeight: geometry.size.height, bottomSafeAreaInset: geometry.safeAreaInsets.bottom)
+                    summary()
                 } content: {
                     OathEmptyStateLayout(centersContent: visibleHoldings.isEmpty) {
                         if currentWallet?.kind == "tronMultisig", let walletID = currentWallet?.id {
@@ -667,18 +711,6 @@ struct OathHomeScreen: View {
                             OathButton { sheet = .xrplMultisigSetup(walletID) } label: {
                                 OathSettingsRow(title: strings.text(.multisigXrplSetup), icon: "signature",
                                     subtitle: strings.text(.multisigXrplHomeDetail))
-                            }.buttonStyle(OathSettingsRowButtonStyle())
-                        }
-                        if currentWallet?.kind == "evmMultisig", let walletID = currentWallet?.id {
-                            OathButton { sheet = .evmMultisigSetup(walletID) } label: {
-                                OathSettingsRow(title: strings.text(.multisigEVMSetup), icon: "signature",
-                                    subtitle: strings.text(.multisigEVMHomeDetail))
-                            }.buttonStyle(OathSettingsRowButtonStyle())
-                        }
-                        if currentWallet?.kind == "solanaMultisig", let walletID = currentWallet?.id {
-                            OathButton { sheet = .solanaMultisigSetup(walletID) } label: {
-                                OathSettingsRow(title: strings.text(.multisigSolanaSetup), icon: "signature",
-                                    subtitle: strings.text(.multisigSolanaHomeDetail))
                             }.buttonStyle(OathSettingsRowButtonStyle())
                         }
                         assetsHeader.padding(.bottom, 16)
@@ -705,25 +737,35 @@ struct OathHomeScreen: View {
             .id(strings.language.isRightToLeft)
             .id(profile?.id)
             .modifier(OathWalletHeaderBackground(
-                animates: session.isUnlocked && settingsDestination == nil && sheet == nil && !showsScanner
-                        && !OathWalletConnectService.shared.presentationOpen && walletFlow == nil && assetPath.isEmpty && selectedTab == .wallet,
+                animates: session.isUnlocked && !sidebar.isVisible && !showsAppSettings && sheet == nil && !showsScanner
+                        && !OathWalletConnectService.shared.presentationOpen && assetPath.isEmpty && selectedTab == .wallet,
                 colorHex: walletColorHex, effects: scrollEffects))
         }
         .background(Color(uiColor: OathSurfaceColors.groupedCanvas).ignoresSafeArea())
-        .tint(Color(uiColor: .label))
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("wallet.home")
     }
 
-    private func resumeCustomization() {
-        guard session.isUnlocked, settingsDestination == nil, walletFlow == nil,
-              let id = session.pendingCustomizationID else { return }
-        if sheet == nil {
-            walletFlow = .customize(id)
+    private func walletContent(_ destination: WalletDestination) -> some View {
+        Group {
+            switch destination {
+            case .settings(let start): OathWalletSettingsScreen(session: session, destination: start)
+            case .add(let start): OathAdditionalWalletFlow(session: session, start: start)
+            }
         }
+        // The native presenter can have a separate environment on iOS-on-Mac.
+        .environment(settings)
+        .oathLanguage(strings.language)
+        .environment(\.oathScanSession, session)
     }
 
-    private func continueFromWalletSwitcher(_ destination: WalletSwitcherDestination) {
+    private func resumeCustomization() {
+        guard session.isUnlocked, !sidebar.isVisible, !sidebarRemovalActive, !showsAppSettings,
+              sheet == nil, pendingWalletDestination == nil, let id = session.pendingCustomizationID else { return }
+        sheet = .wallet(.add(.customize(id)))
+    }
+
+    private func continueFromWalletSwitcher(_ destination: WalletDestination) {
         guard session.isUnlocked, case .wallets = sheet,
               pendingWalletDestination == nil else { return }
         pendingWalletDestination = destination
@@ -731,38 +773,104 @@ struct OathHomeScreen: View {
     }
 
     private func finishWalletSwitcherDismissal() {
-        let next = pendingWalletDestination
+        guard let destination = pendingWalletDestination else { resumeCustomization(); return }
         pendingWalletDestination = nil
-        guard session.isUnlocked, settingsDestination == nil, walletFlow == nil else { return }
-        switch next {
-        case .add(let destination):
-            walletFlow = destination
-        case .settings(let destination):
-            // Recheck after dismissal: locking or removing a wallet can invalidate
-            // a menu selection while the native sheet is animating out.
-            guard let id = destination.walletID,
-                  session.wallets.contains(where: { $0.id == id }) else { return }
-            settingsDestination = destination
-        case nil:
-            resumeCustomization()
+        guard session.isUnlocked, !showsAppSettings, sheet == nil else { return }
+        if case .settings(let start) = destination {
+            // A wallet can be removed while the switcher is dismissing.
+            guard let id = start.walletID, session.wallets.contains(where: { $0.id == id }) else { return }
+        }
+        sheet = .wallet(destination)
+    }
+
+    private var sidebarEnabled: Bool {
+        // A system authentication prompt may temporarily make an open scene inactive.
+        session.isUnlocked && !session.resetting && scenePhase != .background &&
+        (sidebar.isPresented || (scenePhase == .active && !sidebarRemovalActive)) &&
+        sheet == nil && !showsAppSettings && !showsScanner &&
+        !OathWalletConnectService.shared.presentationOpen
+    }
+
+    private var sidebarContainer: some View {
+        SidebarContainer(isPresented: Binding(get: { sidebar.isPresented }, set: { sidebar.setPresented($0) }),
+            isEnabled: sidebarEnabled, allowsOpeningSwipe: !session.changingWallet && assetPath.isEmpty,
+            closeLabel: strings.text(.close), onWillOpen: sidebarWillOpen, onFeedback: { feedback in
+                guard sidebarEnabled else { return }
+                switch feedback {
+                case .prepare(let open): OathHaptics.shared.prepare(open ? .expand : .collapse)
+                case .impact(let open):
+                    if sidebar.isVisible { OathHaptics.shared.play(open ? .expand : .collapse) }
+                }
+            }, onDismiss: sidebarDidDismiss) {
+            tabs
+                .environment(\.oathWalletSidebar, sidebarContext)
+                .environment(\.oathScanSession, session)
+                .environment(\.oathLanguage, strings.language)
+                .environment(settings)
+        } sidebar: {
+            OathWalletSidebar(session: session, model: sidebar, balances: sidebarBalances, onSelect: selectSidebarWallet,
+                onConfirmRemoval: { id in
+                    guard sidebar.isPresented, sidebarEnabled, scenePhase == .active, !sidebarRemovalActive else { return }
+                    sidebarRemoval.moveConfirmedWalletToRecentlyDeleted(id, reason: strings.text(.walletRemovalAuthentication))
+                })
+                .environment(\.oathLanguage, strings.language)
+                .environment(settings)
         }
     }
 
-    private var homeToolbar: some ToolbarContent {
-        OathHomeToolbar(
-            walletName: currentWallet == nil ? strings.text(.wallets) : session.walletName(currentWallet, strings: strings),
-            canSwitchWallet: session.isUnlocked && !session.changingWallet,
-            onSwitchWallet: {
-                guard session.isUnlocked, !session.changingWallet else { return }
-                sheet = .wallets
-            },
-            onScan: {
-                guard session.isUnlocked, !session.changingWallet else { return }
-                scannedRecipient = nil; showsScanner = true
-            }, onSettings: {
-                guard session.isUnlocked, !session.changingWallet else { return }
-                settingsDestination = .app
+    private var sidebarContext: OathWalletSidebarContext {
+        // The mounted toolbar observes wallet availability directly. Interruption
+        // and modal state only decide whether Home can present the drawer now.
+        OathWalletSidebarContext(session: session, walletName: session.walletName(currentWallet, strings: strings),
+            isVisible: sidebar.isVisible,
+            open: {
+                guard sidebarEnabled, !session.changingWallet else { return }
+                sidebar.open(walletID: profile?.id.uuidString, searchFocused: selectedTab == .search && searchPresented)
+                searchPresented = false
             })
+    }
+
+    private func sidebarWillOpen() {
+        sidebar.willOpen(walletID: profile?.id.uuidString, searchFocused: selectedTab == .search && searchPresented)
+        searchPresented = false
+    }
+
+    private func sidebarDidDismiss() {
+        switch sidebar.didDismiss(walletID: session.displayedProfile?.id.uuidString,
+            searchStillSelected: selectedTab == .search, isUnlocked: sidebarEnabled) {
+        case .restoreSearch: searchPresented = true
+        case .navigate(.wallet(let action, let id)):
+            guard !session.changingWallet, session.wallets.contains(where: { $0.id == id }) else { return }
+            sheet = .wallet(.settings(.sidebar(action, id)))
+        case .navigate(.recentlyDeleted): sheet = .wallet(.settings(.recentlyDeleted))
+        case .navigate(.addWallet): sheet = .wallets
+        case .navigate(.security): sheet = .wallet(.settings(.sidebarSecurity))
+        case .navigate(.settings): showsAppSettings = true
+        case .navigate(.support): openURL(OathSupportLinks.help)
+        case .navigate(.contactSupport): openURL(OathSupportLinks.contact)
+        case .none: break
+        }
+    }
+
+    private func selectSidebarWallet(_ id: String) {
+        sidebar.select(id, currentID: session.displayedProfile?.id.uuidString,
+            isValid: { id in session.isUnlocked && !session.resetting && session.wallets.contains { $0.id == id } },
+            actualID: { session.displayedProfile?.id.uuidString }, operation: { id in
+                guard let uuid = UUID(uuidString: id) else { throw CancellationError() }
+                try await OathDiagnostics.$operationID.withValue(UUID()) {
+                    try await session.selectWallet(uuid)
+                }
+            }, report: { _ in
+                // selectWallet/changeWallet already reports the original failure
+                // and reconciles committed selection.
+            })
+    }
+
+    private var homeToolbar: some ToolbarContent {
+        OathHomeToolbar(onScan: {
+            guard session.isUnlocked, !session.changingWallet else { return }
+            scannedRecipient = nil; showsScanner = true
+        })
     }
 
     private var totalBalance: String {
@@ -772,13 +880,10 @@ struct OathHomeScreen: View {
         return String(OathAssetAmountFormat(locale: strings.language.locale, selectedCurrencyCode: currency).fiat(amount).characters)
     }
 
-    private func summary(viewportHeight: CGFloat, bottomSafeAreaInset: CGFloat) -> some View {
-        OathWalletSummary(viewportHeight: viewportHeight, bottomSafeAreaInset: bottomSafeAreaInset) {
+    private func summary() -> some View {
+        OathWalletSummary {
             OathButton(action: toggleBalancesHidden) {
-                OathWalletBalance(value: totalBalance, concealed: balancesHidden) {
-                    Text(strings.text(.totalBalance))
-                        .accessibilityIdentifier("home.balanceTitle")
-                }
+                OathWalletBalance(value: totalBalance, concealed: balancesHidden, title: strings.text(.totalBalance))
             }
             .buttonStyle(.plain)
             .accessibilityElement(children: .ignore)
@@ -819,18 +924,19 @@ struct OathHomeScreen: View {
     }
 
     private var assetsHeader: some View {
-        OathAssetsToolbar(activeCount: assetFilters.activeCount,
-            isEnabled: session.isUnlocked && !session.changingWallet && profile != nil) {
-                sheet = .assetFilters
-            }
-            // UIKit retains 16-point content insets independently of
-            // layoutMargins. Cancel those; the panel supplies 20 points.
-            .padding(.horizontal, -16)
+        HStack {
+            Text(strings.text(.assets))
+                .font(.headline)
+                .accessibilityAddTraits(.isHeader)
+            OathAssetsToolbar(activeCount: assetFilters.activeCount,
+                isEnabled: session.isUnlocked && !session.changingWallet && profile != nil) {
+                    sheet = .assetFilters
+                }
+        }
     }
 
-    private func assetList(searching: Bool, values: [OathHomeAssetPresentation]? = nil) -> some View {
-        // Sort/filter once per content change, not once again for every divider.
-        let visibleHoldings = values ?? (searching ? searchRows : portfolioPresentation.rows)
+    private func assetList(searching: Bool, values visibleHoldings: [OathHomeRowLayout],
+                           request: OathTokenSearchRequest? = nil) -> some View {
         return VStack(alignment: .leading, spacing: 0) {
             if !portfolioPresentation.hasPrepared {
                 ProgressView().tint(.secondary).frame(maxWidth: .infinity)
@@ -858,7 +964,7 @@ struct OathHomeScreen: View {
                             .accessibilityIdentifier("home.assetFilters.reset")
                     }
                 }
-            } else if searching && visibleHoldings.isEmpty && !tokenSearchRequest.showsCatalogResults {
+            } else if searching && visibleHoldings.isEmpty && request?.showsCatalogResults != true {
                 OathEmptyState(strings.text(.noSearchResults), systemImage: "magnifyingglass",
                                description: strings.format(.noSearchResultsDetail, query))
             } else {
@@ -867,10 +973,10 @@ struct OathHomeScreen: View {
                 }
                 .padding(.horizontal, -20)
             }
-            if searching && tokenSearchRequest.showsCatalogResults {
-                OathTokenSearchResults(model: tokenSearch, session: session, walletID: tokenSearchRequest.walletID,
-                    active: tokenSearchRequest.active, hasSavedMatches: !visibleHoldings.isEmpty,
-                    balancesHidden: balancesHidden, permittedNetworks: tokenSearchRequest.networks, onSelected: { holding, snapshot in
+            if let request, request.showsCatalogResults {
+                OathTokenSearchResults(model: tokenSearch, session: session, walletID: request.walletID,
+                    active: request.active, hasSavedMatches: !visibleHoldings.isEmpty,
+                    balancesHidden: balancesHidden, permittedNetworks: request.networks, onSelected: { holding, snapshot in
                         searchPresented = false
                         query = ""
                         assetPath = [OathAssetRoute(walletID: snapshot.wallet.id, holding: holding)]
@@ -882,87 +988,88 @@ struct OathHomeScreen: View {
         }
     }
 
-    @ViewBuilder private func assetRows(searching: Bool, values: [OathHomeAssetPresentation]) -> some View {
-        if !searching && !portfolioPresentation.treeRows.isEmpty {
-            ForEach(portfolioPresentation.treeRows) { entry in
-                if let presentation = entry.presentation {
-                    assetRow(searching: false, presentation: presentation,
-                             showsSeparator: !entry.isChild && entry.id != portfolioPresentation.treeRows.first?.id,
-                             tree: entry)
-                } else if let chain = OathImportChain(rawValue: entry.networkID) {
-                    OathAssetTreeRow(entry: entry) {
-                        OathAssetTreeHeading(chain: chain)
-                    }
-                    .frame(maxWidth: 700).frame(maxWidth: .infinity)
+    private func assetRows(searching: Bool, values: [OathHomeRowLayout]) -> some View {
+        let firstID = values.first?.id
+        return ForEach(values) { entry in
+            // Exactly one concrete List child, including synthetic network headings.
+            OathHomeListCell {
+                if entry.heading {
+                    OathAssetTreeRow(entry: entry) { OathAssetTreeHeading(chain: entry.chain) }
+                        .frame(maxWidth: 700).frame(maxWidth: .infinity)
+                } else if let cell = portfolioPresentation.cell(entry.id) {
+                    assetRow(searching: searching, presentation: cell.value,
+                             showsSeparator: !entry.isChild && entry.id != firstID, entry: entry)
                 }
             }
-        } else {
-            ForEach(values) { presentation in
-                assetRow(searching: searching, presentation: presentation,
-                         showsSeparator: presentation.id != values.first?.id)
+            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                if !searching && !entry.heading {
+                    OathButton(feedback: nil) {
+                        guard let snapshot = session.portfolio, snapshot.wallet.id == portfolioPresentation.walletID,
+                              let item = portfolioPresentation.latestHolding(entry.id) else { return }
+                        let walletID = snapshot.wallet.id
+                        Task {
+                            await OathDiagnostics.$chain.withValue(item.networkID) {
+                                await OathDiagnostics.$operationID.withValue(UUID()) {
+                                    do { try await session.setAssetHidden(true, assetID: item.assetID, walletID: walletID) }
+                                    catch is CancellationError { /* Wallet switch or lock. */ }
+                                    catch {
+                                        OathDiagnostics.record(error, component: "asset_visibility", operation: "hide")
+                                        walletActionFailed = true
+                                    }
+                                }
+                            }
+                        }
+                    } label: {
+                        Label(strings.text(.hideAsset), systemImage: "eye.slash")
+                    }
+                    .buttonStyle(.automatic)
+                    .tint(.gray)
+                    .accessibilityIdentifier("home.asset.hide")
+                }
             }
         }
     }
 
-    @ViewBuilder private func assetRow(searching: Bool, presentation: OathHomeAssetPresentation,
-                                      showsSeparator: Bool, tree: OathHomeAssetTreeEntry? = nil) -> some View {
-            let item = presentation.holding
-            if let chain = OathImportChain(rawValue: item.networkID) {
-                OathButton(feedback: nil) {
-                    guard let walletID = session.portfolio?.wallet.id else { return }
-                    let current = session.portfolio?.holdings.first { $0.id == item.id } ?? item
-                    let route = OathAssetRoute(walletID: walletID, holding: current)
-                    if searching {
-                        // End the native search session, not just keyboard focus.
-                        // Home owns the detail so both Back and interactive pop
-                        // return to normal browsing, never the search controller.
-                        searchPresented = false
-                        query = ""
-                        assetPath = [route]
-                        silentAssetTabSelection = selectedTab != .wallet
-                        selectedTab = .wallet
-                    } else {
-                        assetPath.append(route)
-                    }
-                } label: {
-                    OathAssetTreeRow(entry: tree) {
-                        OathHomeAssetRow(chain: chain, presentation: presentation,
-                            balancesHidden: balancesHidden, showsSeparator: showsSeparator, isSearchResult: searching)
-                            .equatable()
-                    }
-                }
-                .buttonStyle(OathSettingsRowButtonStyle())
-                .accessibilityIdentifier(item.reference == "native" ? "home.network.\(item.networkID)" : "home.token.\(item.assetID)")
-                .oathUntrackedPriceAction { sheet = .priceUntracked }
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    if !searching {
-                        OathButton(feedback: nil) {
-                            guard let walletID = session.portfolio?.wallet.id else { return }
-                            Task {
-                                await OathDiagnostics.$chain.withValue(item.networkID) {
-                                    await OathDiagnostics.$operationID.withValue(UUID()) {
-                                        do { try await session.setAssetHidden(true, assetID: item.assetID, walletID: walletID) }
-                                        catch is CancellationError { /* Wallet switch or lock. */ }
-                                        catch {
-                                            OathDiagnostics.record(error, component: "asset_visibility", operation: "hide")
-                                            walletActionFailed = true
-                                        }
-                                    }
-                                }
-                            }
-                        } label: {
-                            Label(strings.text(.hideAsset), systemImage: "eye.slash")
-                        }
-                        .buttonStyle(.automatic)
-                        .tint(.gray)
-                        .accessibilityIdentifier("home.asset.hide")
-                    }
-                }
-                .frame(maxWidth: searching ? .infinity : 700)
-                .frame(maxWidth: .infinity)
-                .background(Color.clear)
+    private func assetRow(searching: Bool, presentation: OathHomeAssetPresentation,
+                          showsSeparator: Bool, entry: OathHomeRowLayout) -> some View {
+        let item = presentation.holding
+        let chain = entry.chain
+        return OathButton(feedback: nil) {
+            guard let snapshot = session.portfolio, snapshot.wallet.id == profile?.id.uuidString,
+                  let current = snapshot.holdings.first(where: { $0.id == item.id }) else { return }
+            let walletID = snapshot.wallet.id
+            let route = OathAssetRoute(walletID: walletID, holding: current)
+            if searching {
+                // End the native search session, not just keyboard focus.
+                // Home owns the detail so both Back and interactive pop
+                // return to normal browsing, never the search controller.
+                searchPresented = false
+                query = ""
+                assetPath = [route]
+                silentAssetTabSelection = selectedTab != .wallet
+                selectedTab = .wallet
+            } else {
+                assetPath.append(route)
             }
+        } label: {
+            OathAssetTreeRow(entry: entry) {
+                OathHomeAssetRow(chain: chain, presentation: presentation,
+                    balancesHidden: balancesHidden, showsSeparator: showsSeparator, isSearchResult: searching)
+                    .equatable()
+            }
+        }
+        .buttonStyle(OathSettingsRowButtonStyle())
+        .accessibilityIdentifier(item.reference == "native" ? "home.network.\(item.networkID)" : "home.token.\(item.assetID)")
+        .oathUntrackedPriceAction(enabled: !searching && presentation.unitPrice == nil) { sheet = .priceUntracked }
+        .frame(maxWidth: searching ? .infinity : 700)
+        .frame(maxWidth: .infinity)
+        .background(Color.clear)
     }
+}
+
+private struct OathHomeListCell<Content: View>: View {
+    @ViewBuilder let content: () -> Content
+    var body: some View { VStack(spacing: 0, content: content) }
 }
 
 /// Observe raw database snapshots here, outside the expensive Home hierarchy.
@@ -973,6 +1080,13 @@ private struct OathHomePortfolioUpdates: View {
     let query: String
     let active: Bool
     @Environment(\.oathLocalizer) private var strings
+
+    private struct Trigger: Equatable {
+        let revision: UInt64
+        let query: String
+        let locale: String
+        let active: Bool
+    }
 
     private var input: OathHomePortfolioInput {
         let snapshot = session.portfolio
@@ -986,10 +1100,8 @@ private struct OathHomePortfolioUpdates: View {
 
     var body: some View {
         Color.clear.frame(width: 0, height: 0).accessibilityHidden(true)
-            .onChange(of: input) { _, value in
-                if active { session.homePortfolio.update(value) }
-            }
-            .onChange(of: active, initial: true) { _, active in
+            .onChange(of: Trigger(revision: session.portfolioRevision, query: query,
+                                  locale: strings.language.locale.identifier, active: active), initial: true) {
                 if active { session.homePortfolio.update(input) }
             }
     }

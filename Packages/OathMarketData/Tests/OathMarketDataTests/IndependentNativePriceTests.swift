@@ -4,7 +4,8 @@ import OathDiagnostics
 @testable import OathMarketData
 
 @MainActor final class IndependentNativePriceTests: XCTestCase {
-    private let chains = ["fantom", "bitcoin", "bitcoincash", "litecoin", "dogecoin"]
+    // Opera pricing is bound to its canonical wrapper; covered by FantomNativePriceRecoveryTests.
+    private let chains = ["bitcoin", "bitcoincash", "litecoin", "dogecoin"]
 
     private func seed(_ db: OathDatabase) async throws {
         try await db.seed(networks: chains.enumerated().map { index, chain in
