@@ -6,7 +6,7 @@ Oath Wallet is a free, open-source Bitcoin and crypto wallet for iPhone and iPad
 
 ## Is Oath right for me?
 
-Oath is a self-custody wallet for iPhone and iPad running iOS or iPadOS 17 or later. It is free to download. You authorize transactions on your device and review network fees before sending. Android users need a different wallet. [Check the official App Store listing](https://apps.apple.com/app/id6780187283).
+Oath is a self-custody wallet for iPhone and iPad running iOS or iPadOS 17 or later. It is free to download. You authorize transactions on your device and review network fees before sending. Android users need a different wallet. If you want a service to hold your funds or reset access for you, choose a custodial provider. [Check the official App Store listing](https://apps.apple.com/app/id6780187283).
 
 ### I want a wallet without an account
 
@@ -26,7 +26,7 @@ Use WalletConnect to review the website, accounts and networks it requests. Chec
 
 ### I want to use my own language
 
-The app offers 57 localization choices, including Arabic, English, Japanese, and Brazilian and European Portuguese. The choices include regional variants. [See how to change language in Oath](https://help.oathwallet.org/articles/language).
+The app offers 57 localization choices, including Arabic, English, Japanese, and Brazilian and European Portuguese. The choices include regional variants. [Check the complete list for 5.0.2](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/Design/Localization/languages.json) or [change the app language](https://help.oathwallet.org/articles/language).
 
 ## What Oath does
 
