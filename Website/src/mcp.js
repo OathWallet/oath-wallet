@@ -122,10 +122,11 @@ async function handle(message, env) {
 export async function handleMCP(request, env) {
   const origin = request.headers.get('origin');
   const allowedOrigins = new Set([base, 'https://www.oathwallet.org', new URL(request.url).origin]);
+  const allowedMethods = 'POST, GET, HEAD, OPTIONS, DELETE';
   const headers = new Headers({
     'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store',
     'X-Content-Type-Options': 'nosniff', 'Vary': 'Origin',
-    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, DELETE',
+    'Access-Control-Allow-Methods': allowedMethods,
     'Access-Control-Allow-Headers': 'Content-Type, Accept, Mcp-Session-Id, Mcp-Protocol-Version, Last-Event-ID',
     'Access-Control-Expose-Headers': 'Mcp-Protocol-Version'
   });
@@ -133,11 +134,12 @@ export async function handleMCP(request, env) {
   if (origin && !allowedOrigins.has(origin)) return respond(fail(null, -32600, 'Origin not allowed'), 403);
   if (origin) headers.set('Access-Control-Allow-Origin', origin);
   if (request.method === 'OPTIONS' || request.method === 'DELETE') return respond(null, 204);
-  if (request.method === 'GET' && !request.headers.get('accept')?.includes('text/event-stream')) {
+  if (['GET','HEAD'].includes(request.method) && !request.headers.get('accept')?.includes('text/event-stream')) {
+    if (request.method === 'HEAD') return respond(null);
     return respond({ name: 'Oath Wallet', mcp: `${base}/mcp`, transport: 'streamable-http', method: 'POST JSON-RPC 2.0', docs: `${base}/llms.txt` });
   }
   if (request.method !== 'POST') {
-    headers.set('Allow', 'POST, GET, OPTIONS, DELETE');
+    headers.set('Allow', allowedMethods);
     return respond(null, 405);
   }
   const version = request.headers.get('mcp-protocol-version') || '2025-03-26';

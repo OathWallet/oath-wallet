@@ -6,6 +6,19 @@ import {documents,documentText,guide,wantsMarkdown,currentStatus} from '../src/a
 import help from '../src/help/content.json' with {type:'json'};
 const env={ASSETS:{async fetch(req){const path=new URL(req.url).pathname;try{return new Response(await readFile(new URL('../public'+path,import.meta.url)),{headers:{'Content-Type':path.endsWith('.html')?'text/html':path.endsWith('.md')?'text/markdown':'text/plain'}});}catch{return new Response(null,{status:404});}}}};
 const call=async(name,args={})=>(await(await worker.fetch(new Request('https://oathwallet.org/mcp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/call',params:{name,arguments:args}})}),env)).json()).result;
+test('HEAD reads public MCP discovery metadata without opening a stream',async()=>{
+ const url='https://oathwallet.org/mcp';
+ const get=await worker.fetch(new Request(url),env);
+ const head=await worker.fetch(new Request(url,{method:'HEAD'}),env);
+ assert.equal(head.status,200);
+ assert.equal(head.headers.get('Content-Type'),get.headers.get('Content-Type'));
+ assert.equal(await head.text(),'');
+ for (const method of ['GET','HEAD']) {
+  const stream=await worker.fetch(new Request(url,{method,headers:{Accept:'text/event-stream'}}),env);
+  assert.equal(stream.status,405);
+  assert.match(stream.headers.get('Allow'),/HEAD/);
+ }
+});
 test('every document supports discoverable HTML and identical explicit/negotiated Markdown',async()=>{
  for(const d of documents){
   const md=await worker.fetch(new Request(d.markdown_url),env), negotiated=await worker.fetch(new Request(d.url,{headers:{Accept:'text/markdown'}}),env),html=await worker.fetch(new Request(d.url),env);

@@ -7,6 +7,24 @@ import {articleRoutes} from '../src/article-routes.js';
 const publicURL=new URL('../public/',import.meta.url);
 const env={ASSETS:{async fetch(req){try {return new Response(await readFile(new URL('.'+new URL(req.url).pathname,publicURL)),{headers:{'Content-Type':'text/html'}})} catch{return new Response('Missing',{status:404})}}}};
 const request=path=>worker.fetch(new Request('https://oathwallet.org'+path),env);
+test('the Articles archive serves the manifest it advertises, with its original MIME type', async () => {
+ const origin='https://articles.oathwallet.org';
+ const archive=await (await worker.fetch(new Request(origin),env)).text();
+ const path=archive.match(/<link rel="manifest" href="([^"?#]+)/)[1];
+ for (const method of ['GET','HEAD']) {
+  const assets={fetch:async req=>{
+   assert.equal(new URL(req.url).pathname,path);
+   assert.equal(req.method,method);
+   const body=method==='GET'?await readFile(new URL('.'+path,publicURL)):null;
+   return new Response(body,{headers:{'Content-Type':'application/manifest+json'}});
+  }};
+  const response=await worker.fetch(new Request(origin+path,{method}),{ASSETS:assets});
+  assert.equal(response.status,200);
+  assert.equal(response.headers.get('Content-Type'),'application/manifest+json');
+  if (method==='GET') assert.ok((await response.json()).icons.length);
+  else assert.equal(await response.text(),'');
+ }
+});
 test('all published editions have clean routes, metadata, and only Oath branding',async()=>{
  const paths=Object.entries(articleRoutes).filter(([,v])=>typeof v==='string');assert.ok(paths.length >= 30);
  for(const [path] of paths){

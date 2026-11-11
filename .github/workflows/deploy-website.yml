@@ -61,5 +61,7 @@ jobs:
         run: python3 scripts/check-search-crawlers.py
       - name: Verify every public document and agent workflow
         run: node scripts/check-agent-access.mjs
+      - name: Verify public files, token discovery and redirects with a default HTTP client
+        run: python3 scripts/check-public-reads.py
       - name: Notify IndexNow about changes on all three verified hosts
         run: npm run notify:search
