@@ -48,6 +48,13 @@
             "base",
             "arbitrum",
             "polygon"
+          ],
+          "lookupTerms": [
+            "evm",
+            "ethereum",
+            "base",
+            "arbitrum",
+            "polygon"
           ]
         },
         {
@@ -55,6 +62,12 @@
           "detail": "Supported token and collectible permissions use the TRON removal flow. Account-control keys have a different scope and are not ordinary token allowances.",
           "links": [
             "tron"
+          ],
+          "lookupTerms": [
+            "tron",
+            "trx",
+            "trc20",
+            "trc-20"
           ]
         },
         {
@@ -62,6 +75,10 @@
           "detail": "Supported token-account delegate revocations. Permanent delegates and other token restrictions are not interchangeable with removable account delegates.",
           "links": [
             "solana"
+          ],
+          "lookupTerms": [
+            "solana",
+            "spl"
           ]
         }
       ],
@@ -130,6 +147,21 @@
           "path": "Packages/OathAnkr/Sources/OathAnkr/PermissionDiscovery.swift",
           "sha256": "b9056f439d0d22b16cf3b71fc341c5af1c54993b524d9627b528958800b66255"
         }
+      ],
+      "legacyIds": [
+        "evm-access"
+      ],
+      "lookupTerms": [
+        "approval",
+        "token approvals",
+        "revoke approval",
+        "revoke token approvals",
+        "permissions",
+        "token allowance",
+        "revoke token access",
+        "token access",
+        "revoke permissions",
+        "revoke allowance"
       ]
     },
     {
@@ -170,17 +202,25 @@
         {
           "label": "Eligible active wallets",
           "detail": "The backup flow exports supported wallet material and creates a separate encrypted file for each eligible wallet. Restore all-wallet backups one file at a time.",
-          "links": []
+          "links": [],
+          "lookupTerms": []
         },
         {
           "label": "Electrum and aezeed",
           "detail": "These recovery formats are excluded from iCloud backup in this release. Retain their original recovery material and any required password or seed extension.",
-          "links": []
+          "links": [],
+          "lookupTerms": [
+            "electrum",
+            "aezeed"
+          ]
         },
         {
           "label": "Recently Deleted wallets",
           "detail": "The all-wallet backup flow uses active wallets and excludes Recently Deleted wallets. A successful backup of one wallet does not establish that another was saved.",
-          "links": []
+          "links": [],
+          "lookupTerms": [
+            "recently deleted"
+          ]
         }
       ],
       "stepsTitle": "Create it. Confirm it. Keep a recovery route.",
@@ -258,6 +298,18 @@
           "path": "Packages/OathCloudBackup/Sources/OathCloudBackup/BackupDocument.swift",
           "sha256": "fb791336a451172f0f66bf10000cda2aef7dd43f613493a8113619ab5c61bf72"
         }
+      ],
+      "legacyIds": [
+        "passkey-restore"
+      ],
+      "lookupTerms": [
+        "icloud",
+        "backup",
+        "icloud backup",
+        "restore encrypted backup",
+        "icloud restore",
+        "backup password",
+        "encrypted backup"
       ]
     },
     {
@@ -303,6 +355,14 @@
             "base",
             "arbitrum",
             "polygon"
+          ],
+          "lookupTerms": [
+            "evm",
+            "ethereum",
+            "base",
+            "arbitrum",
+            "polygon",
+            "arc"
           ]
         },
         {
@@ -315,12 +375,28 @@
             "near",
             "polkadot",
             "gram"
+          ],
+          "lookupTerms": [
+            "bitcoin",
+            "solana",
+            "thorchain",
+            "xrp ledger",
+            "stellar",
+            "near",
+            "sui",
+            "polkadot",
+            "tron",
+            "gram",
+            "ton"
           ]
         },
         {
           "label": "dApp and protocol limits",
           "detail": "The dApp must offer a compatible mobile WalletConnect connection. WalletConnect is separate from TON Connect and browser-extension-only connections. Unsupported required methods or networks can prevent a session.",
-          "links": []
+          "links": [],
+          "lookupTerms": [
+            "ton connect"
+          ]
         }
       ],
       "stepsTitle": "Connect with the details in view.",
@@ -384,6 +460,79 @@
           "path": "OathAtmosphere/Scanner/OathWalletConnectConnections.swift",
           "sha256": "d74ff884ab46153800c96867d9fe8a4287d389dedc657260d945914809563d52"
         }
+      ],
+      "legacyIds": [],
+      "lookupTerms": [
+        "wallet connect",
+        "dapp",
+        "connect dapp",
+        "dapp connection",
+        "connect to dapps"
+      ]
+    }
+  ],
+  "otherFeatures": [
+    {
+      "id": "own-entropy",
+      "name": "Create and import recovery formats",
+      "summary": "Create a new BIP39 wallet or import supported BIP39, Electrum and aezeed recovery material. Validation and signing happen on the device. Electrum and aezeed imports are Bitcoin-only and need manual recovery backups.",
+      "url": "https://help.oathwallet.org/articles/import-recovery-phrase",
+      "lookupTerms": [
+        "recovery phrase",
+        "import wallet",
+        "seed phrase"
+      ]
+    },
+    {
+      "id": "every-language",
+      "name": "57 app localizations",
+      "summary": "Oath is available in 57 app localizations, with right-to-left layouts, local number formats and BIP39 word lists.",
+      "url": "https://help.oathwallet.org/articles/language",
+      "lookupTerms": [
+        "language",
+        "languages",
+        "localizations"
+      ]
+    },
+    {
+      "id": "open-source",
+      "name": "Open source, with a documented review scope",
+      "summary": "The full source code is public on GitHub at https://github.com/OathWallet/oath-wallet. The published release includes its security model, verification record and reporting policy. Public source is available for review; it does not establish an independent audit or a verified match to the App Store binary.",
+      "url": "https://oathwallet.org/security",
+      "lookupTerms": [
+        "source code",
+        "open source"
+      ]
+    },
+    {
+      "id": "bitcoin-address-types",
+      "name": "Bitcoin address options",
+      "summary": "Compatible Bitcoin wallets support Taproot, Native SegWit, nested SegWit and Legacy, depending on the imported material. Capabilities vary by network. Oath 5.0.2 does not support Silent Payments receiving or discovery; see the Silent Payments guide before relying on that feature.",
+      "url": "https://help.oathwallet.org/articles/bitcoin-address-types",
+      "lookupTerms": [
+        "bitcoin address",
+        "bitcoin address types"
+      ]
+    },
+    {
+      "id": "local-currencies",
+      "name": "Your display currency",
+      "summary": "Choose from the app’s supported display currencies. Values are estimates based on available exchange-rate data.",
+      "url": "https://help.oathwallet.org/articles/currency",
+      "lookupTerms": [
+        "currency",
+        "display currency"
+      ]
+    },
+    {
+      "id": "real-time-prices",
+      "name": "Available market prices",
+      "summary": "See available price quotes for supported assets. Quotes can be delayed or unavailable; displayed fiat values are estimates.",
+      "url": "https://help.oathwallet.org/articles/prices-chart",
+      "lookupTerms": [
+        "prices",
+        "price",
+        "market prices"
       ]
     }
   ]

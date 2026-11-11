@@ -1,46 +1,22 @@
-# Oath Wallet 5.0.3
+# Oath Wallet
 
 A native multichain wallet for iPhone and iPad.
 
-**Release: 5.0.3 (110).** Faster send preparation, clearer transaction totals, Manage Tokens, improved asset filtering and artwork performance, and updated wallet setup. This is a regular GitHub source release prepared for a separate App Store upload and review submission. The Apple-approved release record remains [5.0.2 (104)](releases/5.0.2.md) until delivery of a newer build is confirmed.
+**Available on the App Store:** [Oath 5.0.2 (104)](https://apps.apple.com/app/id6780187283) for iPhone and iPad, iOS/iPadOS 17 or later. [Distribution evidence](releases/5.0.2-distribution.json).
+
+[Is Oath right for me?](https://oathwallet.org/about#wallet-fit) · [Dated wallet compatibility results](https://oathwallet.org/compatibility/2026-11-09)
 
 [Published security review and remaining scope](https://github.com/OathWallet/oath-wallet-security-review) · [Current release metadata](https://oathwallet.org/release-status.json)
 
-[Release notes and verification](releases/5.0.3.md) · [Website](https://oathwallet.org) ·
+[Release notes and verification](releases/5.0.2.md) · [Website](https://oathwallet.org) ·
 [Security model](Documentation/SecurityModel.md) · [Reporting policy](SECURITY.md) · [Build configuration](Documentation/PublicBuild.md) ·
 [MIT license](LICENSE)
 
-## What's new
+## In Oath 5.0.2
 
-- Send begins preparing the selected asset's balance early and safely reuses fresh results across supported networks. Wallet, account, chain and asset changes cancel obsolete work.
-- Send Review separates the native amount, transfer charges and network fee, retaining exact signing amounts and final authorization checks.
-- Manage Tokens and asset filters make saved assets easier to find, track and organize. Reset restores the full asset list.
-- Token and collectible artwork loads with bounded background work, downsampling and caching while preserving original export data.
-- Wallet setup has refreshed welcome artwork and layout; Receive QR presentation retains its original export encoding.
-- Monad account classification requires independent provider confirmation, and interrupted unsigned TRON sends can recover without altering signed or broadcast transactions.
-
-Earlier improvements included in this release:
-
-- Scanned addresses show their validated networks and logos, with clearer review actions and left-to-right address presentation.
-- EVM send quotes can recover from a stale provider using a fresh, chain-verified fallback; broadcast retry rules remain unchanged.
-- EVM quote preparation preserves insufficient-balance guidance without duplicate error records, and discards cancelled or stale completion results.
-- Unichain and HyperEVM portfolio synchronization uses the configured ANKR RPC with each chain's existing indexer, without depending on Alchemy configuration.
-- Story uses its dedicated RPC and explorer history path. Celo history uses smaller pages and individual receipt checks.
-- NEAR history handles repeated indexed transaction versions without double-counting fees, and respects bounded rate-limit retry delays.
-- XRP recovers an advancing recent-history window; THORChain refreshes finish cancelling earlier history work before starting a new generation.
-- Restored wallets retain legacy passphrase metadata even when their passphrase is empty. Existing encrypted wallet formats remain readable.
-- Retains the Solana WalletConnect delegate-approval review fix, including explicit allowance and unlimited-approval warnings.
-- Solana WalletConnect rejects missing nonce-account values as malformed provider responses, preserving the distinction between an unavailable response and an explicitly closed account.
-- Improves optional token artwork, native status-bar handling and expected authentication-error classification.
-- Refresh completion and selection checkmarks keep their native shape in every language; directional layout follows the app’s selected language.
-- Tiny fiat balances and fees preserve the mathematical meaning of their comparison signs in both left-to-right and right-to-left text.
-- Tiny native balances, signed transaction amounts and below-cent send previews also preserve their comparison signs in right-to-left text, without changing editable amounts or signing.
-- Wallet setup, settings, history and WalletConnect review use directional symbols and layout while keeping addresses and raw transaction data left-to-right.
-- Asset rows show a unit price alongside the wallet’s fiat value and native quantity. Missing price coverage has a localized “Price Untracked” explanation. Public unit prices stay visible when balances are concealed.
-- Switching wallets returns Home to the selected wallet’s balance header; updates to the same wallet preserve its scroll position.
-- WalletConnect connection errors explain the cause and next step in all 57 supported languages, including expired codes, offline connections and unsupported requests. Price-coverage and Polkadot import/receive guidance is also updated.
-
-Cronos infrastructure is included for compatibility testing but remains disabled in the app. It is not advertised as an enabled network.
+- Check the transferred asset and network fee in their native units on a transaction receipt.
+- Identify an asset by its symbol, full name and network before selecting it.
+- Review [WalletConnect requests](https://oathwallet.org/features/walletconnect) and [token permissions](https://oathwallet.org/features/revoke-token-approvals) for the networks each tool supports.
 
 ## Public source boundaries
 
@@ -57,10 +33,6 @@ iCloud backup is separate from diagnostics and requires your own Apple capabilit
 configuration. Never put real wallet material in tests, issues, or support reports.
 
 ## Release verification
-
-The [5.0.3 (110) release](https://github.com/OathWallet/oath-wallet/releases/tag/v5.0.3-build110) pins this version's source and build settings. Its [verification record](releases/5.0.3.md) provides reproducible commands, validation results, limitations, and the exact GitHub workflow inputs for later upload. Creating this release does not upload to Apple or submit it for review.
-
-[Build 105's prerelease evidence](releases/5.0.3-build105.md) remains historical and is not evidence of build 110 delivery.
 
 The [5.0.2 (104) release record](releases/5.0.2.md) retains its Apple approval status and original validation evidence.
 

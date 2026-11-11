@@ -4,6 +4,30 @@ Oath Wallet is a free, open-source Bitcoin and crypto wallet for iPhone and iPad
 
 
 
+## Is Oath right for me?
+
+Oath is a self-custody wallet for iPhone and iPad running iOS or iPadOS 17 or later. It is free to download. You authorize transactions on your device and review network fees before sending. Android users need a different wallet. [Check the official App Store listing](https://apps.apple.com/app/id6780187283).
+
+### I want a wallet without an account
+
+You can create a wallet without providing an email, phone number or identity document. Keep a recovery copy you control. For eligible wallets, an encrypted iCloud restore requires both the backup file and its separate password. Electrum and aezeed wallets require their original recovery material. [Read the backup requirements](https://oathwallet.org/features/icloud-wallet-backup).
+
+### I already use Electrum for Bitcoin
+
+Oath can restore supported Electrum seed formats. Identify the original account type and seed extension, then compare a known receiving address before using the restored wallet. The dated lab edition shows which receive and change addresses were checked using public fixtures. [See the Electrum guide](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone) and [review the compatibility results](https://oathwallet.org/compatibility/2026-11-09).
+
+### I want to receive USDT on TRON
+
+Choose USDT on TRON in Oath and share your wallet’s TRON receiving address. Choose the matching TRON (TRC-20) network in the sending app. The token contract identifies the asset. Use the address on your own Receive screen as the destination. An outgoing transfer uses TRON resources and may require TRX. [Check the token and fee details](https://oathwallet.org/tokens/usdt/tron).
+
+### I want to connect a dApp or review an approval
+
+Use WalletConnect to review the website, accounts and networks it requests. Check existing token permissions separately. On TRON, the removal flow covers supported token and collectible permissions. Account-control keys have a different scope. [See supported connections](https://oathwallet.org/features/walletconnect) and [check approval limits by network](https://oathwallet.org/features/revoke-token-approvals).
+
+### I want to use my own language
+
+The app offers 57 localization choices, including Arabic, English, Japanese, and Brazilian and European Portuguese. The choices include regional variants. [See how to change language in Oath](https://help.oathwallet.org/articles/language).
+
 ## What Oath does
 
 Oath is a self-custody wallet: you control the recovery credentials and authorize transactions on your device. It brings supported wallet imports, Bitcoin address choices, network-fee review, WalletConnect and optional encrypted iCloud backup into one app. Supported features depend on the network, wallet type and release.
@@ -57,4 +81,4 @@ Never send a recovery phrase, private key, passphrase, backup credential or pass
 
 
 
-[Download Oath Wallet](https://apps.apple.com/us/app/oath-bitcoin-crypto-wallet/id6780187283)
+[Download Oath Wallet](https://apps.apple.com/app/id6780187283)

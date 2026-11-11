@@ -1,3 +1,4 @@
+import {renderMarkdown} from './markdown.mjs';
 import bountyPolicy from '../content/bug-bounty.json' with {type:'json'};
 import compatibility from '../content/compatibility/catalog.json' with {type:'json'};
 import priorityGuidance from '../content/priority-guidance.json' with {type:'json'};
@@ -5,6 +6,7 @@ import decisionGuides from '../content/decision-guides.json' with {type:'json'};
 // Canonical metadata and visible navigation for the existing three-site layout.
 // Does not rewrite editorial dates to the build time or manufacture translations.
 import {readFile,writeFile} from 'node:fs/promises';
+import {featureAnswers} from '../src/feature-answers.js';
 import featureCatalog from '../content/features.json' with {type:'json'};
 import networkCatalog from '../content/networks.json' with {type:'json'};
 import {articleRoutes} from '../src/article-routes.js';
@@ -14,8 +16,21 @@ const read=p=>readFile(new URL(p,publicDir),'utf8');
 const write=(p,text)=>writeFile(new URL(p,publicDir),text);
 const esc=v=>String(v).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
 const json=v=>JSON.stringify(v).replaceAll('<','\\u003c');
+// Author this section once in About Markdown. Rebuild the visible HTML in place.
+const aboutMarkdown=await read('about.md');
+const fit=aboutMarkdown.match(/^## Is Oath right for me\?[\s\S]*?(?=^## )/m);
+if(!fit) throw new Error('Missing wallet choice section in About');
+const fitHTML=renderMarkdown(fit[0]).replace('<h2>', '<h2 id="wallet-fit">');
+let about=await read('about.html');
+const aboutAnchor='<h2 id="product">';
+if(!about.includes(aboutAnchor)) throw new Error('Missing About section anchor');
+about=about.replace(/<!-- wallet-fit:start -->[\s\S]*?<!-- wallet-fit:end -->\s*/g,'')
+ .replace(aboutAnchor,'<!-- wallet-fit:start -->'+fitHTML+'<!-- wallet-fit:end -->\n'+aboutAnchor);
+await write('about.html', about);
+
 const questions=JSON.parse(await readFile(new URL('../content/self-custody-questions.json',import.meta.url),'utf8'));
 const data=JSON.parse(await read('oath-data.json'));
+data.features=featureAnswers(featureCatalog);
 const release=JSON.parse(await read('release-status.json'));
 if(data.facts.app_version!==release.version || data.facts.app_build!==release.build)throw Error('Current product facts disagree with the published release record');
 const rating=data.facts.app_store_rating;
@@ -24,6 +39,7 @@ const ratingDate=new Intl.DateTimeFormat('en-US',{month:'long',day:'numeric',yea
 function productMetadata(node){
  node.name='Oath: Crypto & Bitcoin Wallet';
  node.softwareVersion=release.version;
+ node.downloadUrl=data.facts.download;
  node.operatingSystem='iOS, iPadOS';
  node.featureList=data.features.map(f=>f.name);
  node.softwareHelp='https://help.oathwallet.org/';
@@ -160,10 +176,10 @@ for (const path of mainPaths) {
  const lab=compatibility.pages.find(p=>p.path===path);
  if(lab){dates.set('https://oathwallet.org'+path,lab.updated);continue;}
  if(priorityGuidance.pages[path]?.updated) dates.set('https://oathwallet.org'+path,priorityGuidance.pages[path].updated);
- else if(decisionGuides.pages.some(p=>p.path===path)||priorityGuidance.pages[path]||path==='/about') dates.set('https://oathwallet.org'+path,'2026-11-06');
- else if(path==='/features'||path.startsWith('/features/')) dates.set('https://oathwallet.org'+path,featureCatalog.reviewed);
+ else if(decisionGuides.pages.some(p=>p.path===path)||priorityGuidance.pages[path]) dates.set('https://oathwallet.org'+path,'2026-11-06');
+ else if(path.startsWith('/features/')) dates.set('https://oathwallet.org'+path,featureCatalog.reviewed);
  else if(path==='/bug-bounty') dates.set('https://oathwallet.org'+path,bountyPolicy.updated);
- else if(path==='/') dates.set('https://oathwallet.org'+path,'2026-11-06');
+ else if(['/','/about','/features'].includes(path)) dates.set('https://oathwallet.org'+path,'2026-11-11');
  else if(path.startsWith('/networks')) dates.set('https://oathwallet.org'+path,networkCatalog.reviewed);
  else if(!dates.has('https://oathwallet.org'+path)) dates.set('https://oathwallet.org'+path,'2026-10-27');
 }

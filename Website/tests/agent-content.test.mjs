@@ -79,3 +79,33 @@ test('release status stays consistent across all hosts, generated files and MCP'
  const card=JSON.parse(await readFile(new URL('../public/.well-known/mcp.json',import.meta.url),'utf8'));
  for(const name of ['get_release_status','get_security_review'])assert.ok(card.tools.includes(name));
 });
+
+test('MCP answers cite the same released feature scope as the public guides', async () => {
+ const {features} = await import('../content/features.json', {with:{type:'json'}}).then(m => m.default);
+ const listed = (await call('list_features')).structuredContent.features;
+ for (const f of features) {
+   const row = listed.find(x => x.id === f.slug);
+   assert.equal(row.url, 'https://oathwallet.org' + f.path);
+   assert.equal(row.summary, f.description);
+   assert.deepEqual(row.scope.map(s => s.detail), f.scope.map(s => s.detail));
+   assert.equal(row.app_version, currentStatus.version);
+ }
+ for (const [query, scope, pattern] of [
+   ['How do I revoke token approvals on TRON in Oath?', 'TRON', /collectible permissions/],
+   ['Solana approval', 'Solana', /Permanent delegates/],
+   ['WalletConnect on Arc', 'Compatible EVM requests', /Arc connections are not supported/],
+   ['Electrum iCloud backup', 'Electrum and aezeed', /excluded/],
+ ]) {
+   const answer = await call('get_feature',{feature:query});
+   assert.equal(answer.structuredContent.matched_scope,scope);
+   assert.match(answer.structuredContent.answer,pattern);
+   assert.match(answer.content[0].text,pattern);
+ }
+ for(const [query,id] of [['WalletConnect','walletconnect'],['passkey-restore','icloud-wallet-backup'],['evm-access','revoke-token-approvals']]){
+   const row=(await call('get_feature',{feature:query})).structuredContent;
+   assert.equal(row.canonical_id || row.id,id);
+ }
+ for(const feature of ['Bitcoin approval','Android WalletConnect','revoke Sui approvals','']){
+   assert.equal((await call('get_feature',{feature})).isError,true,feature);
+ }
+});

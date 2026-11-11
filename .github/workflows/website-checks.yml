@@ -22,7 +22,7 @@ jobs:
           cache-dependency-path: Website/package-lock.json
       - run: npm ci && npm run predeploy && npm run test:unit
         working-directory: Website
-      - run: python3 Website/scripts/verify-source-excerpts.py .
+      - run: python3 Website/scripts/verify-source-excerpts.py . --verify-release-tag
       - run: python3 -m unittest discover -s Distribution/tests -v
       - run: python3 Tools/ValidatePublicRelease.py
       - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2

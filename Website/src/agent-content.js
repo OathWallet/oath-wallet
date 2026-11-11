@@ -32,7 +32,7 @@ export const evidenceScope={version:evidence.version,build:evidence.build,review
 // Release identity, excerpt verification and review coverage are separate facts.
 export const currentStatus={schema_version:1,checked_on:distribution.confirmed_on,name:facts.name,
  version:facts.facts.app_version,build:facts.facts.app_build,distribution_status:distribution.status,
- release_url:facts.security.release_record,source_commit:facts.security.release_source_commit,
+ release_url:facts.security.release_record,source_commit:distribution.source_commit,
  distribution_evidence_url:`https://github.com/OathWallet/oath-wallet/blob/main/releases/${facts.facts.app_version}-distribution.json`,
  review:facts.security.published_review,source_evidence:evidenceScope};
 export const statusText=()=>`Current release: Oath Wallet ${currentStatus.version} (${currentStatus.build}). Release facts checked ${currentStatus.checked_on}.\nRelease and verification record: ${currentStatus.release_url}\nCurrent release metadata: ${main}/release-status.json\nPublished security review: ${currentStatus.review.url}\nReview status: ${currentStatus.review.kind}; in progress. ${currentStatus.review.limitations}\nEach review result retains its tested source revision. Older articles, tags and directory snapshots describe their recorded versions.\n`;

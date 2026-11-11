@@ -22,6 +22,6 @@ Older help screenshots retain the version in which they were captured. An older 
 
 ## How we maintain this record
 
-Oath Wallet maintains this page from the repository's release and distribution records. We add an App Store release only when distribution evidence is recorded; we keep source checks, runtime checks and independent security review distinct. This page was reviewed on November 6, 2026.
+Oath Wallet maintains this page from the repository's release and distribution records. We add an App Store release only when distribution evidence is recorded; we keep source checks, runtime checks and independent security review distinct. This page was reviewed on November 11, 2026.
 
 For a correction, send the page URL and a description through [Oath support](https://help.oathwallet.org/). Do not send recovery words, keys or backup passwords. See [our product-documentation policy](https://oathwallet.org/about#editorial).
