@@ -7,6 +7,817 @@ Each review result retains its tested source revision. Older articles, tags and 
 
 ---
 
+Canonical: https://oathwallet.org/compatibility
+Updated: 2026-11-09
+
+[Home](https://oathwallet.org/) / Compatibility Lab
+
+Oath Wallet Compatibility Lab · 2026-11-09
+
+# Same keys. Different accounts?
+
+Compare Trust Wallet, MetaMask and Electrum account recovery with Oath. Explore versioned derivation results, Bitcoin address types, methods and limitations.
+
+[Compatibility matrix](https://oathwallet.org/compatibility)[Results · 2026-11-09](https://oathwallet.org/compatibility/2026-11-09)[Methods & reproduction](https://oathwallet.org/compatibility/methodology)
+
+**Reviewed release**
+
+Oath 5.0.2 (104)
+
+**Reference-library checks**
+
+14 + 4 source assertions
+
+**Oath core host tests**
+
+14 passed · 1 skipped
+
+**Installed-app / funded tests**
+
+Not performed
+
+Keep your recovery material private. This is a reference, not an import tool. It never asks for a recovery phrase or private key. Use the installed wallet’s recovery flow; never send recovery material with a correction or support request.12 scoped comparisons · edition 2026-11-09
+
+## Start with the account you have.
+
+A wallet name alone cannot establish compatibility. Read the account type, path and limitation together. Each result links to its dated evidence.
+
+Account restoration scope against Oath 5.0.2; not a blanket wallet certification
+
+Wallet / account
+
+Finding
+
+Evidence
+
+Key limitation
+
+Trust Wallet[First ordinary EVM account](https://oathwallet.org/compatibility/2026-11-09#trust-evm)
+
+Default path aligns
+
+Reference-library checks
+
+Covers the first ordinary BIP39 account. It does not establish every Trust Wallet app version, account index, token discovery result or smart account.
+
+Trust Wallet[Bitcoin native SegWit, account 0](https://oathwallet.org/compatibility/2026-11-09#trust-bitcoin)
+
+Default path aligns
+
+Oath core host tests
+
+Other address types have separate core checks below. This is not a balance-discovery or funded-transfer test of Trust Wallet.
+
+Trust Wallet[First TRON account](https://oathwallet.org/compatibility/2026-11-09#trust-tron)
+
+Default path aligns
+
+Reference-library checks
+
+A matching address does not verify every TRC-20 contract, available TRX/resources or sending behavior.
+
+Trust Wallet[Solana account convention](https://oathwallet.org/compatibility/2026-11-09#trust-solana)
+
+Different defaults; compare the address
+
+Reference-library checks
+
+Use the matching account convention in Oath and compare its public address with the original wallet. An automatic match or full historical-account discovery was not tested.
+
+MetaMask[First ordinary EVM account](https://oathwallet.org/compatibility/2026-11-09#metamask-first)
+
+First-account derivation agrees
+
+Reference-library checks
+
+Only ordinary phrase-derived EVM accounts are covered. Social-login recovery, hardware wallets, smart accounts and non-EVM/Snap accounts are outside this result.
+
+MetaMask[Later or separately imported EVM account](https://oathwallet.org/compatibility/2026-11-09#metamask-later)
+
+A different account needs its own key or matching path
+
+Reference-library checks
+
+This does not show that phrase import automatically restores all accounts. An individual key covers one account, not the other accounts derived from the phrase or a separately imported key.
+
+Electrum[Electrum-generated standard seed](https://oathwallet.org/compatibility/2026-11-09#electrum-standard)
+
+Legacy derivation fixtures pass
+
+Oath core host tests
+
+This is Electrum’s own versioned seed format, not a BIP39 phrase merely used inside Electrum. No installed Electrum app or funded migration was exercised.
+
+Electrum[Electrum-generated SegWit seed](https://oathwallet.org/compatibility/2026-11-09#electrum-segwit)
+
+Native SegWit derivation fixtures pass
+
+Oath core host tests
+
+Do not infer the seed format from the address prefix alone. Multisig and Lightning state are outside this ordinary single-wallet result.
+
+Electrum[Old Electrum seed encoding](https://oathwallet.org/compatibility/2026-11-09#electrum-old)
+
+Old-format fixtures pass
+
+Oath core host tests
+
+Old seeds do not support an extra seed extension in this implementation. An encrypted wallet-file password is not the same as a seed extension.
+
+Electrum[Standard or SegWit seed with extension](https://oathwallet.org/compatibility/2026-11-09#electrum-extension)
+
+Normalization and account isolation checks pass
+
+Oath core host tests
+
+The website cannot recover a forgotten extension. Oath 5.0.2 excludes Electrum-derived wallets from its encrypted iCloud export; retain the original seed and extension backup privately.
+
+Electrum[2FA / TrustedCoin or custom multisig](https://oathwallet.org/compatibility/2026-11-09#electrum-two-factor)
+
+Outside this migration scope
+
+Limited checks; migration unverified
+
+Do not use this row as a supported migration procedure. TrustedCoin interaction, original 2FA protection and custom multisig recovery were not validated end to end.
+
+Other account types[Hardware, smart accounts, social login, custom scripts](https://oathwallet.org/compatibility/2026-11-09#other-accounts)
+
+Not evaluated
+
+Not evaluated
+
+No installed-app compatibility claim is made for hardware pairing, smart-account deployment/owners, social login, Snap accounts or custom scripts. Consult the original wallet’s recovery method.
+
+No comparisons match both filters. Reset the filters to see every result.
+
+[Download comparison CSV](https://oathwallet.org/compatibility/2026-11-09.csv) · [Download full evidence JSON](https://oathwallet.org/compatibility/2026-11-09.json)
+
+Why an address can change
+
+## The phrase is only part of the map.
+
+A recovery phrase is used with a seed format, any additional passphrase, a derivation path and an account/address index. Bitcoin also needs the right script type. Change one of those inputs and the visible account may change.
+
+### Different account index
+
+For ordinary MetaMask EVM accounts, the leaf ending in `/0` is different from `/1`. Restoring the first account is not proof that a later or separately imported account was restored.
+
+### Different Solana convention
+
+The reviewed Trust Wallet convention ends at `m/44'/501'/0'`. Oath’s default ends at `m/44'/501'/0'/0'`. Our reference check produced distinct addresses.
+
+### Different Bitcoin format
+
+A BIP39 native SegWit account and an Electrum-generated SegWit account can both show `bc1q` addresses while using different seed and path rules. A prefix is not a recovery recipe.
+
+### Same address, missing balance?
+
+First compare the public address, exact network and asset identifier with the original wallet and a suitable explorer. A network not being displayed, token-discovery limits, an address gap or an account beyond the checked range can hide history without changing the keys. The Lab has not tested live balance discovery for every wallet.
+
+[Check the token’s network](https://oathwallet.org/networks/choose-token-network) · [Review Oath’s refresh guidance](https://help.oathwallet.org/articles/refresh-balances)
+
+## Import keys. Don’t expect a cloned app.
+
+### Access that can carry over
+
+Matching keys and account rules can restore control of the corresponding on-chain account. Its assets stay on their original networks. Importing does not send funds or move them to a new address.
+
+The original wallet can still use the same keys. On-chain approvals, delegations or restrictions are not revoked by an import.
+
+### Settings that do not follow the phrase
+
+Local labels, contacts, saved RPC endpoints, custom-token lists, app preferences, dApp sessions and hardware pairing are app-specific. They are not encoded in a recovery phrase.
+
+Lightning channel state, smart-account policies and multisig cosigner arrangements need their own recovery procedures. A matching address alone does not establish that these are preserved.
+
+### What to compare before relying on it
+
+- Identify the original account type and recovery method.
+- Compare the expected public address on the exact network.
+- Review receive and change history where applicable.
+- Keep the original backup until the relevant accounts are independently checked.
+
+Never paste recovery material into this website, an explorer, a support message or a search engine.
+
+## Bitcoin: four address types checked in core code.
+
+These tests execute OathBitcoin on macOS. They do not demonstrate an installed wallet migration or a funded spend. A Bitcoin address beginning with 3 or bc1 can represent other scripts outside this single-key scope.
+
+### Legacy
+
+P2PKH · starts with 1
+
+`m/44'/0'/0'/change/index`Account 0: initial receiving address matches a fixed published expectation; seed and mnemonic-derived branches agree for receive/change indexes 0–19.
+
+### Nested SegWit
+
+P2SH-P2WPKH · starts with 3
+
+`m/49'/0'/0'/change/index`Account 0: initial receiving address matches a fixed published expectation; seed and mnemonic-derived branches agree for receive/change indexes 0–19.
+
+### Native SegWit
+
+P2WPKH · starts with bc1q
+
+`m/84'/0'/0'/change/index`Account 0: initial receiving address matches a fixed published expectation; seed and mnemonic-derived branches agree for receive/change indexes 0–19.
+
+### Taproot
+
+Single-key P2TR · starts with bc1p
+
+`m/86'/0'/0'/change/index`Account 0: initial receiving address matches a fixed published expectation; seed and mnemonic-derived branches agree for receive/change indexes 0–19.
+
+Here, `change` is 0 for receiving and 1 for change. Additional tests cover compressed versus uncompressed single keys, extended-key version families and rejection of invalid inputs. These helper tests do not establish a watch-only public-key import feature in the app.
+
+[Inspect the exact test inventory](https://oathwallet.org/compatibility/2026-11-09#test-inventory)
+
+## Ready to check your starting wallet?
+
+[
+
+### Trust Wallet to Oath
+
+Read the recovery steps, supported scope and backup limitations.
+
+](https://articles.oathwallet.org/move-from-trust-wallet-to-oath)[
+
+### MetaMask to Oath
+
+Read the recovery steps, supported scope and backup limitations.
+
+](https://articles.oathwallet.org/use-metamask-wallet-in-oath)[
+
+### Electrum to Oath
+
+Read the recovery steps, supported scope and backup limitations.
+
+](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone)
+
+## Keep a result you can cite.
+
+[Edition 2026-11-09](https://oathwallet.org/compatibility/2026-11-09) includes every result, the exact versions, test inventory and limits. [Read the methods and reproduce the run.](https://oathwallet.org/compatibility/methodology)
+
+---
+
+Canonical: https://oathwallet.org/compatibility/2026-11-09
+Updated: 2026-11-10
+
+[Home](https://oathwallet.org/) / [Compatibility Lab](https://oathwallet.org/compatibility) / 2026-11-09
+
+Oath Wallet Compatibility Lab · 2026-11-09
+
+# The first edition. Every result in view.
+
+Oath 5.0.2 compatibility evidence: 14 reference-library checks, four source assertions and 14 passing Bitcoin host tests, with exact scope and skipped tests.
+
+[Compatibility matrix](https://oathwallet.org/compatibility)[Results · 2026-11-09](https://oathwallet.org/compatibility/2026-11-09)[Methods & reproduction](https://oathwallet.org/compatibility/methodology)
+
+**Reviewed release**
+
+Oath 5.0.2 (104)
+
+**Reference-library checks**
+
+14 + 4 source assertions
+
+**Oath core host tests**
+
+14 passed · 1 skipped
+
+**Installed-app / funded tests**
+
+Not performed
+
+## Cite this edition
+
+Oath team. Wallet Compatibility Lab — November 9, 2026. Edition 2026-11-09. [Permanent edition link](https://oathwallet.org/compatibility/2026-11-09).
+
+Trust Wallet, MetaMask and Electrum account conventions compared with Oath 5.0.2 (104). Source review, reference-library vectors and Oath core host tests; no installed third-party app or funded-transfer testing.
+
+Accepted run completed 2026-11-09T20:43:42.773Z. Published by the Oath team; this is a first-party engineering reference, not an independent certification.
+
+[Full evidence JSON](https://oathwallet.org/compatibility/2026-11-09.json) · [Comparison CSV](https://oathwallet.org/compatibility/2026-11-09.csv) · [Reproduce the checks](https://oathwallet.org/compatibility/methodology#reproduce)
+
+Keep your recovery material private. This is a reference, not an import tool. It never asks for a recovery phrase or private key. Use the installed wallet’s recovery flow; never send recovery material with a correction or support request.
+
+## Exactly what was tested
+
+**Released source**
+
+Oath 5.0.2 (104) · [`d039b009d8c81b0497f2ac7e6abebfdf54ff8612`](https://github.com/OathWallet/oath-wallet/tree/d039b009d8c81b0497f2ac7e6abebfdf54ff8612)
+
+**Reference engine**
+
+Wallet Core 4.8.4 WASM
+
+**Oath Bitcoin dependency**
+
+BitcoinDevKit 3.1.1
+
+**Host environment**
+
+Apple Swift version 6.4.2 (swiftlang-6.4.2.1.9 clang-2100.4.1.1) · macOS 27.0 · arm64 · Node v26.5.0
+
+**Trust Wallet app version**
+
+Not installed or executed for this edition. No tested app version is claimed.
+
+**MetaMask app version**
+
+Not installed or executed for this edition. No tested app version is claimed.
+
+**Electrum app version**
+
+Not installed or executed for this edition. No tested app version is claimed.
+
+The Electrum fixture bundle contains 22 cases and 132 address expectations across 2fa, 2fa_segwit, old, segwit, standard. Those expectations run inside one host test; they are not 132 separate app tests. The bundle is pinned to Oath’s source and file hash. A single upstream Electrum app version was not established for the entire bundle.
+
+## Read the evidence, not just the result.
+
+### Source reviewed
+
+Read or asserted against the pinned released source. This does not run an importer.
+
+### Reference-library checks
+
+Public fixtures executed in Wallet Core 4.8.4 WASM, with Oath path declarations checked separately. This does not execute the Oath app importer.
+
+### Oath core host tests
+
+Actual released OathBitcoin Swift code executed on a Mac, using public fixtures and mocked discovery where specified. This does not launch the iPhone app.
+
+### Limited checks; migration unverified
+
+Some cryptographic fixtures pass, but the original account policy or full restoration workflow is not established.
+
+### Not evaluated
+
+No compatibility result is asserted. A missing check is not a passing result.
+
+## Individual findings
+
+Trust Wallet · Reference-library checks
+
+### First ordinary EVM account
+
+Default path aligns
+
+`m/44'/60'/0'/0/0`The reviewed Oath default and Wallet Core 4.8.4 registry agree. The reference library reproduced the first address with the explicit path.
+
+Limit: Covers the first ordinary BIP39 account. It does not establish every Trust Wallet app version, account index, token discovery result or smart account.
+
+Evidence references (4)
+- [`reference-01`](#reference-01)
+- [`reference-02`](#reference-02)
+- [`reference-03`](#reference-03)
+- [`reference-04`](#reference-04)
+
+[Read the migration guide](https://articles.oathwallet.org/move-from-trust-wallet-to-oath)
+
+Trust Wallet · Oath core host tests
+
+### Bitcoin native SegWit, account 0
+
+Default path aligns
+
+`m/84'/0'/0'/0/0`The reviewed default matches the Wallet Core Bitcoin registry. Oath core also reproduced the published native SegWit address.
+
+Limit: Other address types have separate core checks below. This is not a balance-discovery or funded-transfer test of Trust Wallet.
+
+Evidence references (3)
+- [`reference-05`](#reference-05)
+- [`reference-06`](#reference-06)
+- [`BitcoinKeysTests.testPublishedBIPAddresses`](#BitcoinKeysTests.testPublishedBIPAddresses)
+
+[Read the migration guide](https://articles.oathwallet.org/move-from-trust-wallet-to-oath)
+
+Trust Wallet · Reference-library checks
+
+### First TRON account
+
+Default path aligns
+
+`m/44'/195'/0'/0/0`Explicit-path and default-address derivation agree in Wallet Core. Public passphrase vectors and account isolation checks passed.
+
+Limit: A matching address does not verify every TRC-20 contract, available TRX/resources or sending behavior.
+
+Evidence references (4)
+- [`reference-09`](#reference-09)
+- [`reference-10`](#reference-10)
+- [`reference-11`](#reference-11)
+- [`reference-12`](#reference-12)
+
+[Read the migration guide](https://articles.oathwallet.org/move-from-trust-wallet-to-oath)
+
+Trust Wallet · Reference-library checks
+
+### Solana account convention
+
+Different defaults; compare the address
+
+`Trust: m/44'/501'/0'; Oath default: m/44'/501'/0'/0'`The released source exposes Trust Wallet and Phantom account conventions. The reference library produced different addresses for the same public fixture.
+
+Limit: Use the matching account convention in Oath and compare its public address with the original wallet. An automatic match or full historical-account discovery was not tested.
+
+Evidence references (3)
+- [`reference-16`](#reference-16)
+- [`reference-17`](#reference-17)
+- [`reference-18`](#reference-18)
+
+[Read the migration guide](https://articles.oathwallet.org/move-from-trust-wallet-to-oath)
+
+MetaMask · Reference-library checks
+
+### First ordinary EVM account
+
+First-account derivation agrees
+
+`m/44'/60'/0'/0/0`The MetaMask-documented default account branch and Oath’s first account align. Wallet Core reproduced the known first-account address.
+
+Limit: Only ordinary phrase-derived EVM accounts are covered. Social-login recovery, hardware wallets, smart accounts and non-EVM/Snap accounts are outside this result.
+
+Evidence references (2)
+- [`reference-01`](#reference-01)
+- [`reference-13`](#reference-13)
+
+[Read the migration guide](https://articles.oathwallet.org/use-metamask-wallet-in-oath)
+
+MetaMask · Reference-library checks
+
+### Later or separately imported EVM account
+
+A different account needs its own key or matching path
+
+`Example later leaf: m/44'/60'/0'/0/1`The second account is distinct from the first. A reference-library test reproduced that second address from its individual public-fixture private key. Oath’s ordinary EVM private-key import is source reviewed.
+
+Limit: This does not show that phrase import automatically restores all accounts. An individual key covers one account, not the other accounts derived from the phrase or a separately imported key.
+
+Evidence references (2)
+- [`reference-14`](#reference-14)
+- [`reference-15`](#reference-15)
+
+[Read the migration guide](https://articles.oathwallet.org/use-metamask-wallet-in-oath)
+
+Electrum · Oath core host tests
+
+### Electrum-generated standard seed
+
+Legacy derivation fixtures pass
+
+`Root m; receive /0/i; change /1/i`Released Oath core reproduced standard Electrum fixture addresses and key results, including receive and change branches.
+
+Limit: This is Electrum’s own versioned seed format, not a BIP39 phrase merely used inside Electrum. No installed Electrum app or funded migration was exercised.
+
+Evidence references (1)
+- [`ElectrumMnemonicTests.testUpstreamAddressesAndPrivateKeys`](#ElectrumMnemonicTests.testUpstreamAddressesAndPrivateKeys)
+
+[Read the migration guide](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone)
+
+Electrum · Oath core host tests
+
+### Electrum-generated SegWit seed
+
+Native SegWit derivation fixtures pass
+
+`Root m/0'; receive /0/i; change /1/i`Released Oath core reproduced SegWit fixture addresses and key results. The root differs from a BIP84 wallet even though both can produce bc1q addresses.
+
+Limit: Do not infer the seed format from the address prefix alone. Multisig and Lightning state are outside this ordinary single-wallet result.
+
+Evidence references (1)
+- [`ElectrumMnemonicTests.testUpstreamAddressesAndPrivateKeys`](#ElectrumMnemonicTests.testUpstreamAddressesAndPrivateKeys)
+
+[Read the migration guide](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone)
+
+Electrum · Oath core host tests
+
+### Old Electrum seed encoding
+
+Old-format fixtures pass
+
+`Legacy Electrum derivation`The pinned fixture set includes old-format seed decoding and legacy address/key expectations, exercised by Oath core.
+
+Limit: Old seeds do not support an extra seed extension in this implementation. An encrypted wallet-file password is not the same as a seed extension.
+
+Evidence references (2)
+- [`ElectrumMnemonicTests.testUpstreamAddressesAndPrivateKeys`](#ElectrumMnemonicTests.testUpstreamAddressesAndPrivateKeys)
+- [`ElectrumMnemonicTests.testExtensionsNormalizationAndIsolation`](#ElectrumMnemonicTests.testExtensionsNormalizationAndIsolation)
+
+[Read the migration guide](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone)
+
+Electrum · Oath core host tests
+
+### Standard or SegWit seed with extension
+
+Normalization and account isolation checks pass
+
+`Same seed format and exact extension`Oath core tests check extension normalization and distinct account results. Restoring the original wallet requires the same extension used to create it.
+
+Limit: The website cannot recover a forgotten extension. Oath 5.0.2 excludes Electrum-derived wallets from its encrypted iCloud export; retain the original seed and extension backup privately.
+
+Evidence references (1)
+- [`ElectrumMnemonicTests.testExtensionsNormalizationAndIsolation`](#ElectrumMnemonicTests.testExtensionsNormalizationAndIsolation)
+
+[Read the migration guide](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone)
+
+Electrum · Limited checks; migration unverified
+
+### 2FA / TrustedCoin or custom multisig
+
+Outside this migration scope
+
+`Policy-specific scripts and cosigners`The core suite contains 2FA address/key and CJK normalization fixtures. Those are cryptographic checks, not proof that a migration preserves the original cosigning or security policy.
+
+Limit: Do not use this row as a supported migration procedure. TrustedCoin interaction, original 2FA protection and custom multisig recovery were not validated end to end.
+
+Evidence references (2)
+- [`ElectrumMnemonicTests.testUpstreamAddressesAndPrivateKeys`](#ElectrumMnemonicTests.testUpstreamAddressesAndPrivateKeys)
+- [`ElectrumMnemonicTests.testTwoFactorCJKSeedBoundaries`](#ElectrumMnemonicTests.testTwoFactorCJKSeedBoundaries)
+
+[Read the migration guide](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone)
+
+Other account types · Not evaluated
+
+### Hardware, smart accounts, social login, custom scripts
+
+Not evaluated
+
+`Account-specific`A phrase or an ordinary private key is not a universal export of every account and authorization model.
+
+Limit: No installed-app compatibility claim is made for hardware pairing, smart-account deployment/owners, social login, Snap accounts or custom scripts. Consult the original wallet’s recovery method.
+
+No passing test is assigned to this row.
+
+## Bitcoin: four address types checked in core code.
+
+These tests execute OathBitcoin on macOS. They do not demonstrate an installed wallet migration or a funded spend. A Bitcoin address beginning with 3 or bc1 can represent other scripts outside this single-key scope.
+
+### Legacy
+
+P2PKH · starts with 1
+
+`m/44'/0'/0'/change/index`Account 0: initial receiving address matches a fixed published expectation; seed and mnemonic-derived branches agree for receive/change indexes 0–19.
+
+### Nested SegWit
+
+P2SH-P2WPKH · starts with 3
+
+`m/49'/0'/0'/change/index`Account 0: initial receiving address matches a fixed published expectation; seed and mnemonic-derived branches agree for receive/change indexes 0–19.
+
+### Native SegWit
+
+P2WPKH · starts with bc1q
+
+`m/84'/0'/0'/change/index`Account 0: initial receiving address matches a fixed published expectation; seed and mnemonic-derived branches agree for receive/change indexes 0–19.
+
+### Taproot
+
+Single-key P2TR · starts with bc1p
+
+`m/86'/0'/0'/change/index`Account 0: initial receiving address matches a fixed published expectation; seed and mnemonic-derived branches agree for receive/change indexes 0–19.
+
+Here, `change` is 0 for receiving and 1 for change. Additional tests cover compressed versus uncompressed single keys, extended-key version families and rejection of invalid inputs. These helper tests do not establish a watch-only public-key import feature in the app.
+
+[Inspect the exact test inventory](https://oathwallet.org/compatibility/2026-11-09#test-inventory)
+
+## Run inventory
+
+### Reference checks and source assertions
+
+- ethereum: released default matches upstream registrySource assertion · passed`reference-01`
+- ethereum: explicit path reproduces default addressReference-library vector · passed`reference-02`
+- ethereum: published passphrase vectorReference-library vector · passed`reference-03`
+- ethereum: additional passphrase isolates the accountReference-library vector · passed`reference-04`
+- bitcoin: released default matches upstream registrySource assertion · passed`reference-05`
+- bitcoin: explicit path reproduces default addressReference-library vector · passed`reference-06`
+- bitcoin: published passphrase vectorReference-library vector · passed`reference-07`
+- bitcoin: additional passphrase isolates the accountReference-library vector · passed`reference-08`
+- tron: released default matches upstream registrySource assertion · passed`reference-09`
+- tron: explicit path reproduces default addressReference-library vector · passed`reference-10`
+- tron: published passphrase vectorReference-library vector · passed`reference-11`
+- tron: additional passphrase isolates the accountReference-library vector · passed`reference-12`
+- MetaMask: first ordinary EVM addressReference-library vector · passed`reference-13`
+- MetaMask: second account is distinctReference-library vector · passed`reference-14`
+- MetaMask: individual key reproduces second accountReference-library vector · passed`reference-15`
+- Solana: released app exposes both explicit account conventionsSource assertion · passed`reference-16`
+- Solana: Trust Wallet path reproduces upstream defaultReference-library vector · passed`reference-17`
+- Solana: Phantom and Trust Wallet paths are distinctReference-library vector · passed`reference-18`
+
+### Released Oath core host tests
+
+14 passed, 1 skipped, 0 failed. The discovery test uses a mocked provider. The funded Bitcoin Core integration test was deliberately skipped.
+
+- `BitcoinKeysTests.testBIP39SeedMatchesAllPublishedAddresses`passed · 0.056 seconds
+- `BitcoinKeysTests.testCompressedKeyHasAllFourTypes`passed · 0.001 seconds
+- `BitcoinKeysTests.testExtendedPrivateAndPublicVersionFamiliesRoundTrip`passed · 0.128 seconds
+- `BitcoinKeysTests.testFinalNormalChildMatchesIndependentBIP44ScriptsAndExports`passed · 0.027 seconds
+- `BitcoinKeysTests.testFinalNormalChildStillRejectsHardenedAndFixedKeys`passed · 0.003 seconds
+- `BitcoinKeysTests.testInvalidKeysAndUnsupportedNetworksFailClosed`passed · 0.004 seconds
+- `BitcoinKeysTests.testLegacyImportOwnershipPublicKeyMatchesPublishedBIP84Address`passed · 0.004 seconds
+- `BitcoinKeysTests.testPublishedBIPAddresses`passed · 0.004 seconds
+- `BitcoinKeysTests.testUncompressedKeyIsFiniteLegacyOnly`passed · 0.001 seconds
+- `ElectrumMnemonicTests.testCoreFundedRecoveryAndTransfersForEverySeedType`skipped · 0.001 seconds
+- `ElectrumMnemonicTests.testDiscoveryKeepsReceiveChangeAndSpentHistory`passed · 0.718 seconds
+- `ElectrumMnemonicTests.testExtensionsNormalizationAndIsolation`passed · 0.009 seconds
+- `ElectrumMnemonicTests.testFinalNormalChildElectrumLeafExport`passed · 0.005 seconds
+- `ElectrumMnemonicTests.testTwoFactorCJKSeedBoundaries`passed · 0.006 seconds
+- `ElectrumMnemonicTests.testUpstreamAddressesAndPrivateKeys`passed · 0.361 seconds
+
+### Not performed
+
+- Installed Trust Wallet, MetaMask or Electrum app testing
+- Oath iPhone or simulator importer testing
+- Live-provider balance discovery
+- Funded transfers
+- Every account index, historical wallet or custom script
+
+Source file checksums (18)SHA-256 hashes of files at the pinned Oath source revision. The JSON download preserves every hash.
+
+**[OathAtmosphere/Wallet/OathWalletEngine.swift](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Wallet/OathWalletEngine.swift)**
+
+`cdd37ba5790ca3c09eab2b0b03e5a5e83d6b47cc3ea66293de02c2b1376ea946`
+
+**[OathAtmosphere/Wallet/OathPrivateKeyImport.swift](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Wallet/OathPrivateKeyImport.swift)**
+
+`2a51be5e62564f51edc7a45d6c7ed1ad4323ea94b502b1f05842ddab6d4c6297`
+
+**[OathAtmosphere/Wallet/OathSolanaWallet.swift](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Wallet/OathSolanaWallet.swift)**
+
+`4a2fc4bd1431eb8a8419bb797a1b9132dcb88c3ce79215d83002f0ac2092a685`
+
+**[OathAtmosphere/Wallet/OathBitcoinWallet.swift](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Wallet/OathBitcoinWallet.swift)**
+
+`0dabdeaddc025a7bf95281f293151ec16f4885a398a763bd3c7a3b43789bddf9`
+
+**[OathAtmosphere/Import/OathRecoveryPhraseScreen.swift](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Import/OathRecoveryPhraseScreen.swift)**
+
+`6dc77cd30deafb02fe9aac2ea3a739e30ff9103f371ae09ecd33f2b234f0fdc4`
+
+**[OathAtmosphere/Home/OathWalletSheets.swift](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Home/OathWalletSheets.swift)**
+
+`5c1d734ec239965415dbdf62bdc80fbb59b888c06ac93d9314a168b6783c4e0d`
+
+**[OathAtmosphere/Wallet/OathPassphraseWalletModel.swift](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Wallet/OathPassphraseWalletModel.swift)**
+
+`8892486ce68d12ddcd8b500847ce5d9fb9038dc728ba827552191985a629e881`
+
+**[Packages/OathDatabase/Sources/OathDatabase/SolanaReceive.swift](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/Packages/OathDatabase/Sources/OathDatabase/SolanaReceive.swift)**
+
+`b70d4d1920fb40726e82d31edd2a1f94cc9ef09c88017d104bd3ebbb5ec64672`
+
+**[Packages/WalletCore/registry-4.8.4.json](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/Packages/WalletCore/registry-4.8.4.json)**
+
+`9b6d3202e009dc5634531b84b4590d3d3fe6d08f1205f93f8eaae98444017240`
+
+**[Packages/OathBitcoin/Sources/OathBitcoin/ElectrumBitcoin.swift](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/Packages/OathBitcoin/Sources/OathBitcoin/ElectrumBitcoin.swift)**
+
+`00691116e5c22730202ce9195cb2a2799f633b0c632ba0b8c58c4d0f36fd3f9e`
+
+**[Packages/OathBitcoin/Sources/OathBitcoin/BitcoinKeys.swift](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/Packages/OathBitcoin/Sources/OathBitcoin/BitcoinKeys.swift)**
+
+`46409993aff29ae73145be05008d33d921fd378acba8f0fd39f69fe9afd57697`
+
+**[Packages/OathBitcoin/Sources/OathBitcoin/ElectrumMnemonic.swift](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/Packages/OathBitcoin/Sources/OathBitcoin/ElectrumMnemonic.swift)**
+
+`9d7fc824e7321e6e8ad48f152950ed2fbe9900766b8550311181cf41d9bda64a`
+
+**[Packages/OathBitcoin/Tests/OathBitcoinTests/ElectrumMnemonicTests.swift](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/Packages/OathBitcoin/Tests/OathBitcoinTests/ElectrumMnemonicTests.swift)**
+
+`aed75b8bbd9f33af2c608c661a1b3d77342934a579a54e750d1eb49d98219c2d`
+
+**[Packages/OathBitcoin/Tests/OathBitcoinTests/Fixtures/electrum-reference.json](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/Packages/OathBitcoin/Tests/OathBitcoinTests/Fixtures/electrum-reference.json)**
+
+`333205bec2cd51c50551f5ea266eac5590be54d9dbe6f2ca558ba62deafb2427`
+
+**[LocalizationTests/OathWalletEngineTests.swift](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/LocalizationTests/OathWalletEngineTests.swift)**
+
+`602ec5342539e380af743b7a6a2e683c635963a0ad1bb8cb2e6e42544b751321`
+
+**[Packages/OathBitcoin/Tests/OathBitcoinTests/BitcoinKeysTests.swift](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/Packages/OathBitcoin/Tests/OathBitcoinTests/BitcoinKeysTests.swift)**
+
+`1d55e1e5d6c5242e2dc78978bfa444286effc8f294bfc8613587ef689cd359b5`
+
+**[Packages/OathBitcoin/Package.swift](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/Packages/OathBitcoin/Package.swift)**
+
+`f4d76cb230d0ee4eb0a3105717ead0456cd14c7bb2938416a3b8db9b16025c8b`
+
+**[Packages/OathBitcoin/Package.resolved](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/Packages/OathBitcoin/Package.resolved)**
+
+`87ad0b68516b908d0573fcbc8d559963f6db31a69c210ae7c4c1ab98df5f7223`
+
+## Primary sources
+
+External guidance was reviewed on 2026-11-09. External pages can change; the Oath code and Wallet Core registry links are pinned to exact revisions.
+
+- [Oath 5.0.2 (104) reviewed source](https://github.com/OathWallet/oath-wallet/tree/d039b009d8c81b0497f2ac7e6abebfdf54ff8612)
+- [Pinned Oath Bitcoin host tests and public fixtures](https://github.com/OathWallet/oath-wallet/tree/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/Packages/OathBitcoin/Tests/OathBitcoinTests)
+- [Wallet Core 4.8.4 account registry](https://github.com/trustwallet/wallet-core/blob/4.8.4/registry.json)
+- [MetaMask: default derivation path and imported wallets](https://support.metamask.io/configure/wallet/importing-a-seed-phrase-from-another-wallet-software-derivation-path/)
+- [MetaMask: accounts after recovery](https://support.metamask.io/configure/accounts/how-to-add-missing-accounts-after-restoring-with-secret-recovery-phrase/)
+- [Electrum: versioned seed phrases](https://electrum.readthedocs.io/en/latest/seedphrase.html)
+- [BIP 44: account hierarchy](https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki)
+- [BIP 49: nested SegWit](https://github.com/bitcoin/bips/blob/master/bip-0049.mediawiki)
+- [BIP 84: native SegWit](https://github.com/bitcoin/bips/blob/master/bip-0084.mediawiki)
+- [BIP 86: single-key Taproot](https://github.com/bitcoin/bips/blob/master/bip-0086.mediawiki)
+
+## Edition history
+
+- First edition. Pinned source and reusable public-fixture checks published; no prior edition to compare.
+
+Future tested releases get a new dated edition. This URL keeps its recorded scope. Corrections to a published finding will be dated and explained here.
+
+---
+
+Canonical: https://oathwallet.org/compatibility/methodology
+Updated: 2026-11-11
+
+[Home](https://oathwallet.org/) / [Compatibility Lab](https://oathwallet.org/compatibility) / Methods
+
+Oath Wallet Compatibility Lab · 2026-11-11
+
+# A result is only as useful as its evidence.
+
+How Oath reviews wallet recovery: pinned versions, public fixtures, reproducible checks and clear boundaries between source, core tests and observed behavior.
+
+[Compatibility matrix](https://oathwallet.org/compatibility)[Results · 2026-11-09](https://oathwallet.org/compatibility/2026-11-09)[Methods & reproduction](https://oathwallet.org/compatibility/methodology)
+
+Keep your recovery material private. This is a reference, not an import tool. It never asks for a recovery phrase or private key. Use the installed wallet’s recovery flow; never send recovery material with a correction or support request.
+
+## Five questions behind each result
+
+- What exact code? Pin Oath’s released source, dependency versions and relevant file hashes. Do not use an unreleased branch to describe an App Store release.
+- Which account convention? Record the seed format, derivation path, script type and account range. Compare public addresses, not just symbols, wallet brands or the number of phrase words.
+- Which execution layer? Label a source assertion, reference-library vector and actual Oath core test separately. Installed-app checks need their own app version, OS, steps and observed result.
+- What could the check miss? List account-discovery, script-policy, extension, provider and transfer limits next to the result. Skipped tests stay visible.
+- Can another person inspect it? Publish the input revision, test names, run metadata, source hashes and a reproduction runner. Use repository-owned public fixtures, never a visitor’s wallet.
+
+## Read the evidence, not just the result.
+
+### Source reviewed
+
+Read or asserted against the pinned released source. This does not run an importer.
+
+### Reference-library checks
+
+Public fixtures executed in Wallet Core 4.8.4 WASM, with Oath path declarations checked separately. This does not execute the Oath app importer.
+
+### Oath core host tests
+
+Actual released OathBitcoin Swift code executed on a Mac, using public fixtures and mocked discovery where specified. This does not launch the iPhone app.
+
+### Limited checks; migration unverified
+
+Some cryptographic fixtures pass, but the original account policy or full restoration workflow is not established.
+
+### Not evaluated
+
+No compatibility result is asserted. A missing check is not a passing result.
+
+## Reproduce this edition on a Mac
+
+The accepted run used macOS 27.0, Apple Swift version 6.4.2 (swiftlang-6.4.2.1.9 clang-2100.4.1.1), Node v26.5.0, Wallet Core 4.8.4 and BitcoinDevKit 3.1.1. Use a current Xcode command-line toolchain compatible with the pinned package. Different host versions should be recorded as a new run.
+
+The runner uses only public fixtures already in the repository. Package installation may access the network. It does not launch a simulator, connect a wallet or broadcast a transaction. The funded-test environment switch is explicitly removed.
+
+```sh
+git clone https://github.com/OathWallet/oath-wallet.git oath-lab
+cd oath-lab
+git worktree add --detach ../oath-5.0.2 d039b009d8c81b0497f2ac7e6abebfdf54ff8612
+npm ci --prefix Website/compatibility --ignore-scripts
+node Website/compatibility/run.mjs ../oath-5.0.2 ../oath-lab-results
+```
+[Runner, pinned npm lockfile and reproduction notes](https://github.com/OathWallet/oath-wallet/tree/main/Website/compatibility). The runner accepts only the recorded clean source revision and refuses to overwrite an existing successful result. For an exact reproduction, use the tooling commit recorded in that folder’s history.
+
+### Interpret the output
+
+`reference.json` records the 18 reference/source checks. `host-tests.log` records the Swift run. `results.json` is written only after the expected test inventory passes, including the explicitly skipped funded test. Compare test IDs, statuses, versions and source hashes; timestamps and durations will differ.
+
+A failing or incomplete run is not evidence of compatibility. Review the error and retain the original result. Do not change expected addresses merely to make a test pass. Results from a reference engine do not substitute for executing Oath’s importer.
+
+## Check an Electrum restore in the installed apps
+
+This is a procedure for reviewers. The November 9 edition records core tests and public fixtures. Installed-app observations belong in a separately dated result.
+
+- Record the Electrum version and OS, the Oath App Store version and the iOS version. Create a new, unfunded single-signature Standard or SegWit Electrum test wallet. Record its account type and whether a seed extension was used.
+- In Electrum’s Addresses view, record receiving addresses at indexes 0 and 1 and the first change address. Use only this disposable wallet throughout.
+- Restore the same test wallet inside Oath using its Electrum import and the matching extension. Compare the same Bitcoin address type, branch and index. Mark an address unavailable if the installed UI cannot show it. A matching balance is insufficient evidence.
+- Publish versions, steps, public test addresses, and a match, mismatch or unobserved result for each row. Include any unexpected behavior. Keep all seed words, extensions, private keys and wallet files out of the report. No transfer is needed.
+
+[Read the Electrum restoration guide](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone) and compare your observations with the [dated core results](https://oathwallet.org/compatibility/2026-11-09).
+
+## Version and correction policy
+
+The current comparison links to dated results. A newly reviewed Oath release, added account format or new installed-app test gets a new edition with its own source revision and changes. Older editions retain the versions they actually checked.
+
+If a published statement is wrong, correct it with a dated note on that edition; do not quietly upgrade the evidence level. Source and machine-readable result changes remain reviewable in GitHub. The website build validates references and test statuses before publishing.
+
+### Report a mismatch safely
+
+[Open a public issue](https://github.com/OathWallet/oath-wallet/issues) or [contact Oath support](mailto:care@oathwallet.org) with the edition, wallet/app versions, account type and the result ID. Describe the mismatch using public documentation or synthetic fixtures. Do not include a phrase, private key, passphrase, wallet file, personal address history or screenshots containing secrets.
+
+For a vulnerability, use the [security reporting guidance](https://oathwallet.org/security). This Lab is maintained by Oath; references to other wallets are for interoperability research and do not imply endorsement.
+
+---
+
 Canonical: https://oathwallet.org/networks/choose-token-network
 Updated: 2026-11-06
 
@@ -1870,6 +2681,7 @@ No. These receiving instructions cover Oath’s Bitcoin on-chain flow. A Lightni
 
 No. Screenshots contain public examples and mock data. Copy the address from your own selected wallet in Oath, then compare it at the sending service.
 
+- [Withdraw Bitcoin from Kraken to Oath on iPhone](https://articles.oathwallet.org/withdraw-bitcoin-kraken-to-oath-iphone)
 - [Understand Bitcoin address types](https://help.oathwallet.org/articles/bitcoin-address-types)
 - [Restore a compatible Electrum Bitcoin wallet](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone)
 - [Bitcoin Cash receiving guide](https://oathwallet.org/networks/bitcoin-cash)
@@ -2851,9 +3663,24 @@ Features depend on the app version, network, wallet type and the service you con
 [Get Oath for iPhone and iPad](https://apps.apple.com/app/id6780187283) · [All networks](https://oathwallet.org/networks)
 
 
-![Use TRON in Oath](https://oathwallet.org/help/assets/guide-chain-tron.webp)
+## Receiving TRX or USDT on TRON?
 
-Oath 4.0.3. Existing app capture with sample data. Appearance can differ in newer releases; this image is not a completed transfer.
+For native TRX, open Receive and choose TRON. For a USDT withdrawal, select USDT on TRON in Oath and confirm that the sending service uses TRON (TRC20). Compare the destination before submitting.
+
+- **TRX:** TRX is the native asset. The first screenshot shows its own Send, Receive and activity controls.
+- **USDT on TRON:** USDT is a TRC-20 token. An ordinary outgoing token transfer uses TRON resources and can consume TRX when resources are insufficient. Read the estimate for the selected account.
+
+### Withdrawing from Binance
+
+Choose USDT as the asset and match the TRON network on the withdrawal screen. Review the current withdrawal fee and the amount that will arrive.
+
+![Native TRX asset screen in Oath showing Send, Receive and example TRX activity](https://oathwallet.org/assets/guides/2026-11-10/trx.webp)
+
+Oath 5.0.2 (104) · Mac simulator. The native TRX screen labels amounts in TRX. Balances, prices and activity are mock data.
+
+![Oath USDT on TRON asset screen with mock balance and sample sent and received activity](https://oathwallet.org/assets/guides/2026-11-09/usdt-tron.webp)
+
+Oath 5.0.2 (104) · Mac simulator. Real app capture with mock balances, prices and transfer history. No live transfers were made. Always use your own receiving details; never send funds to an example address.
 
 
 
@@ -2875,13 +3702,14 @@ Ask for the public transaction ID and the exact network. Check the destination a
 
 Stop and check the original transaction before sending again. A matching address is not proof of recovery. Contact the receiving service for its supported recovery process; never provide recovery credentials to support.
 
+- [Withdraw USDT from Binance using TRON](https://articles.oathwallet.org/withdraw-usdt-binance-to-oath-tron)
 - [Find the fee asset for your network](https://oathwallet.org/networks/fees)
 - [Choose a network for USDT or USDC](https://oathwallet.org/networks/choose-token-network)
 - [Check pending, confirmed or failed activity](https://help.oathwallet.org/articles/transaction-status)
 - [Follow the receiving instructions](https://help.oathwallet.org/articles/receive-crypto)
 - [TRON account and resource guidance](https://help.oathwallet.org/articles/use-tron)
 
-Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-06. [How we review guides](https://oathwallet.org/about#editorial).
+Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-10. [How we review guides](https://oathwallet.org/about#editorial).
 
 <!-- token-catalog:start -->
 ## Tokens on TRON
@@ -3113,6 +3941,41 @@ Features depend on the app version, network, wallet type and the service you con
 [Network catalog](https://github.com/OathWallet/oath-wallet/blob/6ff671b3e8f2ca8b8388ddebbf95f783a6ea0c7a/OathAtmosphere/Import/OathImportCatalog.swift) · Updated 2026-10-31. Source review is not confirmation of App Store availability.
 
 [Get Oath for iPhone and iPad](https://apps.apple.com/app/id6780187283) · [All networks](https://oathwallet.org/networks)
+
+
+## How to receive SUI on iPhone
+
+Open the wallet you want to receive into, tap Receive and choose Sui Network. On the Receive Sui Network screen, tap Copy address or let the sender scan your QR code. Ask them to select Sui Mainnet for the transfer.
+
+- **When you receive:** Showing your address or QR code does not submit a transaction. The outgoing transaction needs a gas payer. A sending exchange may also charge its own withdrawal fee.
+- **When you send later:** For an ordinary send from Oath, keep SUI in the same Sui account for gas and review the estimate before confirming.
+
+### The sender only sees another network
+
+Stop at the network selection. Ask whether the sending service supports withdrawals on Sui Mainnet. Address appearance alone cannot confirm the network.
+
+![Oath Receive Sui Network screen with a demo QR, Copy address and Share buttons](https://oathwallet.org/assets/guides/2026-11-10/sui.webp)
+
+Oath 5.0.2 (104) · Mac simulator. This real app screen uses an invalid demonstration address. Use Copy address in your own wallet or show its QR code to your sender.
+
+
+
+## Before the sender confirms
+
+### How can I check a pending withdrawal?
+
+Ask the sender for the transaction digest and check the destination on Sui Mainnet. An exchange withdrawal can still be processing before it has an on-chain transaction.
+
+- [Check network fees in Oath](https://oathwallet.org/networks/fees)
+
+### Sources and review
+
+App steps checked against the linked release source; token identities and network requirements checked against the sources below. Screenshots show the actual app interface with mock data, not completed live transfers.
+
+- [Sui documentation on wallets and gas](https://www.docs.sui.io/onchain-finance/asset-custody/wallets/what-is-a-wallet)
+- [Oath 5.0.2 release source](https://github.com/OathWallet/oath-wallet/tree/d039b009d8c81b0497f2ac7e6abebfdf54ff8612)
+
+Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-10. [How we review guides](https://oathwallet.org/about#editorial).
 
 <!-- token-catalog:start -->
 ## Tokens on Sui Network
@@ -3500,10 +4363,6 @@ Open Oath, select your wallet and choose Bitcoin Cash in Receive. Copy the recei
 
 BCH is the native fee asset for this network account. Review the BCH amount, destination and network fee. A familiar address format does not make a Bitcoin transfer compatible.
 
-### Can I connect Bitcoin Cash dApps?
-
-Bitcoin Cash send and receive support does not include a supported dApp connection route in this guide. Use Oath for transfers; do not import your recovery phrase into a website to connect.
-
 ### Can I send to the same address on another network?
 
 Only send using the network the recipient explicitly supports. A matching address or ticker does not bridge assets or make different chains interchangeable.
@@ -3569,7 +4428,7 @@ App steps checked against the linked release source; token identities and networ
 - [Oath 5.0.2: asset details and activity](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Assets/OathAssetDetailScreen.swift)
 - [Oath 5.0.2: supported send flows](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Send/OathSendModel.swift)
 
-Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-09. [How we review guides](https://oathwallet.org/about#editorial).
+Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-10. [How we review guides](https://oathwallet.org/about#editorial).
 
 ---
 
@@ -5169,7 +6028,7 @@ Canonical: https://oathwallet.org/
 
 Oath is a self-custody Bitcoin and crypto wallet for iPhone and iPad. You control your wallet credentials, review fees before confirming, and manage supported assets without a trading marketplace.
 
-- [Download Oath on the App Store](https://apps.apple.com/us/app/oath-bitcoin-crypto-wallet/id6780187283) — free, for iPhone and iPad
+- [Download Oath on the App Store](https://apps.apple.com/app/id6780187283) — free, for iPhone and iPad
 - [Features](https://oathwallet.org/features) · [Support](https://oathwallet.org/support) · [Press kit](https://oathwallet.org/press)
 
 ## Why Oath
@@ -5179,6 +6038,8 @@ Oath is a self-custody Bitcoin and crypto wallet for iPhone and iPad. You contro
 - **You choose what to approve.** Review the accounts and networks a dApp requests before connecting. When it asks you to sign, you can review the request and decline it.
 - **Trace a release to its source.** Match the version and build number to the release record on GitHub, then inspect the linked source. A build record alone can’t verify an exact copy of the binary on your phone. [View the release record](https://github.com/OathWallet/oath-wallet/blob/main/releases/5.0.2-distribution.json).
 - **A wallet in your language.** Oath supports more than 50 languages. Read the prompts, check an address and review a transfer in the language you know best.
+
+[Is Oath right for me?](https://oathwallet.org/about#wallet-fit)
 
 ## What Oath supports
 
@@ -5205,7 +6066,7 @@ Rated **4.9 out of 5** from 37 ratings in the US App Store · checked November 6
 
 - **What it is:** Self-custody (non-custodial) crypto wallet
 - **Platform:** iPhone and iPad (iOS / iPadOS), distributed on the Apple App Store
-- **Price:** Free to download; users pay only blockchain network fees
+- **Price:** Free to download. Review the network fee in Oath before sending. A sending exchange or other service may charge a separate fee.
 - **Custody:** Oath never holds, controls or has access to user funds, private keys, recovery phrases or passkeys. It cannot recover, reverse or freeze transactions.
 - **Accounts:** No account, email, phone number or KYC is required to use Oath.
 - **Source code:** https://github.com/OathWallet/oath-wallet
@@ -5317,6 +6178,8 @@ Everything you need. Nothing you don’t.
 
 ## Wallet migration and compatibility
 
+[Wallet Compatibility Lab](https://oathwallet.org/compatibility): compare account paths, tested formats and versioned evidence.
+
 - [Move from Trust Wallet to Oath](https://articles.oathwallet.org/move-from-trust-wallet-to-oath): Check the first EVM, Bitcoin and TRON accounts, and choose the matching Solana path.
 - [Use an Existing MetaMask Wallet in Oath](https://articles.oathwallet.org/use-metamask-wallet-in-oath): Restore the first phrase-derived EVM account or an individual software account key.
 - [Restore an Electrum Bitcoin Wallet on iPhone](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone): Identify the Electrum seed format, extension and Bitcoin recovery scope.
@@ -5343,9 +6206,9 @@ The full source code is public on GitHub at https://github.com/OathWallet/oath-w
 
 Compatible Bitcoin wallets support Taproot, Native SegWit, nested SegWit and Legacy, depending on the imported material. Capabilities vary by network. Oath 5.0.2 does not support Silent Payments receiving or discovery; see the Silent Payments guide before relying on that feature.
 
-## 06. EVM Access
+## 06. Token approvals
 
-A tool that shows discovered token approvals (web3 permissions) on supported EVM networks and lets the user submit supported revocation transactions. Revoking is an on-chain transaction with a network fee shown before confirming.
+Check discovered token approvals in Oath for iPhone. Review supported EVM, TRON and Solana access, estimate network fees and verify supported revocations.
 
 ## 07. Your display currency
 
@@ -5355,7 +6218,7 @@ Choose from the app’s supported display currencies. Values are estimates based
 
 See available price quotes for supported assets. Quotes can be delayed or unavailable; displayed fiat values are estimates.
 
-[Download Oath on the App Store](https://apps.apple.com/us/app/oath-bitcoin-crypto-wallet/id6780187283)
+[Download Oath on the App Store](https://apps.apple.com/app/id6780187283)
 
 ## Practical guides
 
@@ -5379,6 +6242,30 @@ Canonical: https://oathwallet.org/about
 Oath Wallet is a free, open-source Bitcoin and crypto wallet for iPhone and iPad.
 
 
+
+## Is Oath right for me?
+
+Oath is a self-custody wallet for iPhone and iPad running iOS or iPadOS 17 or later. It is free to download. You authorize transactions on your device and review network fees before sending. Android users need a different wallet. [Check the official App Store listing](https://apps.apple.com/app/id6780187283).
+
+### I want a wallet without an account
+
+You can create a wallet without providing an email, phone number or identity document. Keep a recovery copy you control. For eligible wallets, an encrypted iCloud restore requires both the backup file and its separate password. Electrum and aezeed wallets require their original recovery material. [Read the backup requirements](https://oathwallet.org/features/icloud-wallet-backup).
+
+### I already use Electrum for Bitcoin
+
+Oath can restore supported Electrum seed formats. Identify the original account type and seed extension, then compare a known receiving address before using the restored wallet. The dated lab edition shows which receive and change addresses were checked using public fixtures. [See the Electrum guide](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone) and [review the compatibility results](https://oathwallet.org/compatibility/2026-11-09).
+
+### I want to receive USDT on TRON
+
+Choose USDT on TRON in Oath and share your wallet’s TRON receiving address. Choose the matching TRON (TRC-20) network in the sending app. The token contract identifies the asset. Use the address on your own Receive screen as the destination. An outgoing transfer uses TRON resources and may require TRX. [Check the token and fee details](https://oathwallet.org/tokens/usdt/tron).
+
+### I want to connect a dApp or review an approval
+
+Use WalletConnect to review the website, accounts and networks it requests. Check existing token permissions separately. On TRON, the removal flow covers supported token and collectible permissions. Account-control keys have a different scope. [See supported connections](https://oathwallet.org/features/walletconnect) and [check approval limits by network](https://oathwallet.org/features/revoke-token-approvals).
+
+### I want to use my own language
+
+The app offers 57 localization choices, including Arabic, English, Japanese, and Brazilian and European Portuguese. The choices include regional variants. [See how to change language in Oath](https://help.oathwallet.org/articles/language).
 
 ## What Oath does
 
@@ -5433,7 +6320,7 @@ Never send a recovery phrase, private key, passphrase, backup credential or pass
 
 
 
-[Download Oath Wallet](https://apps.apple.com/us/app/oath-bitcoin-crypto-wallet/id6780187283)
+[Download Oath Wallet](https://apps.apple.com/app/id6780187283)
 
 ---
 
@@ -10633,29 +11520,47 @@ Canonical: https://articles.oathwallet.org/
 
 Current product guidance and dated editorial archives.
 
+## [Send USDC from Coinbase to Oath on Base](https://articles.oathwallet.org/send-usdc-coinbase-to-oath-base)
+
+Send native USDC from Coinbase to Oath on Base. Match the network, review the fee, check the transaction and troubleshoot a pending withdrawal.
+
+English · Published 2026-11-09 · Updated 2026-11-09
+
+## [Withdraw Bitcoin from Kraken to Oath on iPhone](https://articles.oathwallet.org/withdraw-bitcoin-kraken-to-oath-iphone)
+
+Withdraw BTC from Kraken to your Oath Bitcoin wallet on iPhone. Check the on-chain network, address, fee, confirmations and withdrawal holds.
+
+English · Published 2026-11-09 · Updated 2026-11-09
+
+## [Withdraw USDT from Binance to Oath on TRON](https://articles.oathwallet.org/withdraw-usdt-binance-to-oath-tron)
+
+Move USDT from the Binance app to Oath on TRON. Match TRC20, check the withdrawal fee and recipient amount, then follow the transaction if it is pending.
+
+English · Published 2026-11-09 · Updated 2026-11-09
+
 ## [Oath Wallet release history and current version](https://articles.oathwallet.org/oath-wallet-release-history)
 
 Read the confirmed Oath release record, what changed in version 5.0.2 and where to find version-specific wallet guides.
 
-English · Published 2026-11-06 · Updated 2026-11-06
+English · Published 2026-11-06 · Updated 2026-11-11
 
 ## [Move from Trust Wallet to Oath](https://articles.oathwallet.org/move-from-trust-wallet-to-oath)
 
 Import compatible Trust Wallet accounts on iPhone. Check EVM, Bitcoin, TRON and Solana paths, supported assets and recovery limits before you switch.
 
-English · Published 2026-11-06 · Updated 2026-11-06
+English · Published 2026-11-06 · Updated 2026-11-10
 
 ## [Restore an Electrum Bitcoin Wallet on iPhone](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone)
 
 Restore supported Electrum Bitcoin seeds in Oath. Check Standard, SegWit and old seed formats, extensions, change addresses and recovery limits.
 
-English · Published 2026-11-06 · Updated 2026-11-06
+English · Published 2026-11-06 · Updated 2026-11-10
 
 ## [Use an Existing MetaMask Wallet in Oath](https://articles.oathwallet.org/use-metamask-wallet-in-oath)
 
 Use a compatible MetaMask EVM account in Oath on iPhone. Compare phrase and private-key imports, additional accounts, networks and asset compatibility.
 
-English · Published 2026-11-06 · Updated 2026-11-06
+English · Published 2026-11-06 · Updated 2026-11-10
 
 ## [Binance Lost $6.3 Billion. Who Signed the Withdrawals?](https://articles.oathwallet.org/binance-withdrawals-who-signed)
 
@@ -15669,8 +16574,248 @@ A balance is reassuring. The authority to use it is what makes it yours in pract
 
 ---
 
+Canonical: https://articles.oathwallet.org/send-usdc-coinbase-to-oath-base
+Updated: 2026-11-09T20:14:02Z
+
+# Send USDC from Coinbase to Oath on Base
+
+Send native USDC from Coinbase to Oath on Base. Match the network, review the fee, check the transaction and troubleshoot a pending withdrawal.
+
+To send USDC from your Coinbase account to Oath using Base, select **USDC on Base** in Oath’s Receive screen. In Coinbase, make an on-chain send to that address and explicitly choose **Base**. Check the amount, recipient and fee in Coinbase’s preview before authorizing the send.
+
+## Match native USDC and the Base network
+
+| Check | Coinbase side | Oath side |
+| --- | --- | --- |
+| Asset | USDC | USD Coin / USDC |
+| Network | Base | Base |
+| Recipient | External crypto address | Your selected wallet’s receiving address |
+| Token | Native USDC withdrawn on Base | Circle’s native Base USDC contract |
+
+Circle’s Base USDC contract is `0x833589fcd6edb6e08f4c7c32d4f71b54bda02913`. It identifies the asset and **must not be used as the receiving address**. Check [Circle’s contract list](https://developers.circle.com/stablecoins/usdc-contract-addresses) and [Oath’s Base USDC page](https://oathwallet.org/tokens/usdc/base).
+
+Coinbase’s [USDbC guidance](https://help.coinbase.com/en/coinbase/getting-started/crypto-education/usd-base-coin) distinguishes bridged USDbC from native USDC and says Coinbase withdrawals use native USDC. This guide covers a regular **Coinbase account**, not the self-custody Base app, Coinbase Prime or Coinbase International Exchange. Their screens and fee policies are separate.
+
+The route must appear in your Coinbase send screen. Coinbase’s [multiple-network guidance](https://help.coinbase.com/en/coinbase/trading-and-funding/sending-or-receiving-cryptocurrency/assets-on-multiple-networks) notes regional restrictions, including that multi-network support is not available in New York. If Base is absent or unavailable, do not proceed using a different network under these instructions.
+
+## 1. Copy the destination from Oath
+
+Open the wallet that should receive the funds. Select **USD Coin (USDC) on Base**, then open **Receive**. Confirm the Base network label and copy the address from the app. An Ethereum address and a Base address can look identical; the network selection still determines where the funds arrive.
+
+![Oath Receive USD Coin screen with the Base network warning and an example QR code](https://articles.oathwallet.org/assets/articles/editorials/send-usdc-coinbase-to-oath-base/oath-receive.webp)
+
+Actual Oath 5.0.2 (104) simulator capture with a mock address. Never send to the example address or QR code. Use the receiving details inside your own Oath wallet.
+
+Keep the address available while you review Coinbase’s final destination. Do not use an address from an old message, a search result or a screenshot simply because it begins with `0x`.
+
+## 2. Send from the Coinbase app or website
+
+Coinbase documents both paths in [Steps to send crypto](https://help.coinbase.com/en/coinbase/trading-and-funding/cryptocurrency-trading-pairs/steps-to-send-crypto).
+
+**In the Coinbase mobile app:** open **Pay**, select **USDC**, enter the amount and continue with **Pay**. Enter the Oath crypto address, choose **Base** in the network selector, review the details, then use **Pay now** only after they match. Complete two-step verification if prompted.
+
+**On Coinbase.com:** choose **Send crypto** from the dashboard, select USDC and the amount, then use **To** to choose the network and add the address. Select **Base**, review **Preview Send**, and confirm with **Send now** when correct.
+
+This journey uses a blockchain address. A Coinbase-to-Coinbase send to a phone number or email is a different flow and will not deposit USDC into the Oath address. Do not substitute an email for the wallet destination.
+
+## 3. Read the fee preview before confirming
+
+Check the selected network, the amount sent, any fee and the total deducted. Coinbase’s [fee disclosures](https://help.coinbase.com/en/coinbase/trading-and-funding/pricing-and-fees/fees) say transaction fees are shown at the time of the transaction and can vary. A fee policy for another Coinbase product, region or promotion is not a quote for your send.
+
+If your preview shows zero, that is the displayed fee for that send; this guide does not promise that every Base withdrawal is free. Buying or converting an asset before withdrawing can also involve separate charges. A test send should fit your available balance and any displayed minimum.
+
+Once USDC is in Oath, a later ordinary outgoing Base transaction needs **ETH on Base** for gas. ETH on Ethereum does not pay that Base fee. You do not need to send ETH to the sender to receive a normal incoming USDC transfer. See [Base’s fee model](https://docs.base.org/specifications/transactions/network-fees).
+
+## 4. Check that the payment arrived on Base
+
+Open the send in Coinbase’s activity and use its transaction hash to view the blockchain record. On [BaseScan](https://basescan.org/), check the transaction result and the **USDC token transfer**: recipient, contract and amount. A token payment may show a zero ETH value in the transaction summary; the token-transfer section is the relevant amount.
+
+In Oath, open the same wallet and USDC-on-Base entry, then refresh after confirmation. If you accidentally selected Ethereum in Coinbase, check the actual network of that transaction before looking for a Base balance. Switching networks in the wallet does not bridge the funds.
+
+## If Coinbase says Pending
+
+First separate an exchange delay from an on-chain transaction:
+
+- **No transaction hash yet:** check Coinbase’s activity details, account notices and [service status](https://status.coinbase.com/). Oath cannot release funds still awaiting Coinbase processing.
+- **A hash exists:** inspect the network and confirmation result. Coinbase’s [pending-transaction guide](https://help.coinbase.com/en/coinbase/trading-and-funding/sending-or-receiving-cryptocurrency/why-is-my-transaction-pending) identifies confirmation delays, network congestion and other processing causes.
+- **The correct Base USDC transfer succeeded:** confirm the recipient belongs to the selected Oath wallet, refresh that asset and keep the public hash if support is needed.
+- **You used an email or phone recipient:** check that separate Coinbase payment. Its acceptance or cancellation rules are not a way to cancel a broadcast blockchain transfer.
+
+Avoid sending again to “unstick” the first withdrawal. A second successful send would be another payment. Do not send an extra payment to someone claiming they must unlock or validate your incoming funds.
+
+## Review and next steps
+
+Reviewed **November 9, 2026** against Coinbase’s consumer-account documentation, Circle’s token identity and [Oath 5.0.2 (104) receiving code](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Home/OathReceiveSheet.swift). The screenshot uses mock data in the real app. This was a documentation and released-source review, not a funded Coinbase withdrawal or an individual account eligibility test.
+
+This is Oath’s independent guide, not a Coinbase endorsement. Use official support for exchange account restrictions. Never share a recovery phrase, private key, password or two-factor code with support or this website.
+
+[Get Oath for iPhone](https://apps.apple.com/us/app/oath-bitcoin-crypto-wallet/id6780187283) · [USDC on Base](https://oathwallet.org/tokens/usdc/base) · [Compare USDC networks](https://oathwallet.org/tokens/usdc) · [Check the network fee asset](https://oathwallet.org/networks/fees)
+
+---
+
+Canonical: https://articles.oathwallet.org/withdraw-bitcoin-kraken-to-oath-iphone
+Updated: 2026-11-09T20:14:02Z
+
+# Withdraw Bitcoin from Kraken to Oath on iPhone
+
+Withdraw BTC from Kraken to your Oath Bitcoin wallet on iPhone. Check the on-chain network, address, fee, confirmations and withdrawal holds.
+
+To withdraw Bitcoin from Kraken to Oath on iPhone, open **Bitcoin Receive** in Oath and copy your address. In Kraken, withdraw **BTC** using the **Bitcoin on-chain network**, paste that address and review the amount and fee. A Lightning withdrawal requires a different payment request and is outside this route.
+
+## Choose Bitcoin on-chain at both ends
+
+| Check | Kraken side | Oath side |
+| --- | --- | --- |
+| Asset | Bitcoin / BTC | Bitcoin / BTC |
+| Network | Bitcoin on-chain | Bitcoin |
+| Destination | A Bitcoin withdrawal address | Your own Bitcoin Receive address |
+| Separate route | Lightning requires a Lightning request | These steps use an ordinary on-chain address |
+
+Kraken’s [Bitcoin Lightning instructions](https://support.kraken.com/articles/5068216131988-how-do-i-send-bitcoin-on-the-lightning-network-) explicitly select Lightning and a Lightning request. That is not interchangeable with the address in this guide. Likewise, Bitcoin Cash and wrapped BTC on another chain do not become Bitcoin by using a similar name.
+
+These steps cover the **Kraken interface at kraken.com**. Kraken Pro and the Krak app have separate navigation. Asset and network availability can depend on your account and location. Check Kraken’s withdrawal screen and [service status](https://status.kraken.com/) before starting.
+
+## 1. Prepare your Bitcoin address in Oath
+
+Open the intended Oath wallet, choose **Bitcoin**, and open **Receive**. Wait for the address to be ready. If that wallet offers address types, use one accepted by Kraken and copy it directly from Oath; do not rewrite an address to make it look like another type.
+
+Keep your recovery method available before receiving funds. You are transferring BTC into a wallet you control, not importing your Kraken login or transferring an exchange account. The [Oath Bitcoin guide](https://oathwallet.org/networks/bitcoin) explains the receiving flow and account checks.
+
+## 2. Create the withdrawal in Kraken
+
+Kraken’s [current web instructions](https://support.kraken.com/articles/360000672763-how-to-withdraw-cryptocurrencies-from-your-kraken-account) use **Portfolio → Withdraw**:
+
+1. Select **Bitcoin / BTC**, then choose the **Bitcoin** on-chain network.
+2. Add or select your own Oath receiving address. Compare the full pasted destination with the app.
+3. Enter an amount that meets Kraken’s displayed minimum and leaves room for the fee.
+4. Review the network, destination, recipient amount and total deduction. Confirm only after they match.
+5. Complete any requested security verification. Kraken notes that funding 2FA, when enabled, can differ from sign-in 2FA.
+
+The linked walkthrough includes Kraken’s screenshots. Track the withdrawal in recent activity and follow the prompts shown in your interface.
+
+## 3. Check the withdrawal fee, minimum and available balance
+
+Kraken has a [withdrawal-fee and minimum guide](https://support.kraken.com/articles/360000767986-cryptocurrency-withdrawal-fees-and-minimums), but says the confirmation screen provides the final fee and that amounts can change. Use that screen rather than a fixed number copied from an older article. If it shows separate requested and recipient amounts, distinguish them before confirming.
+
+Some deposits or purchases cause [withdrawal holds](https://support.kraken.com/articles/360000672763-how-to-withdraw-cryptocurrencies-from-your-kraken-account). Check your account’s available withdrawal balance and release time. Oath cannot remove an exchange hold.
+
+For a first transfer, choose a small amount that still meets the minimum after applying the form’s fee rules. A later withdrawal can incur another fee. Sending BTC onward from Oath is also a separate transaction with its own Bitcoin network fee.
+
+## 4. Follow the transaction after broadcast
+
+Open Kraken’s withdrawal details. When a transaction ID is available, follow its explorer link or use a Bitcoin explorer such as [mempool.space](https://mempool.space/). Check that it is on Bitcoin mainnet, identify the output paying your Oath address and compare its BTC amount. An exchange transaction can contain payments to several recipients; the total transaction value is not necessarily your withdrawal amount.
+
+A broadcast transaction may initially have no confirmations. Inclusion in a block and later confirmations are separate stages. Check the transaction’s current status, then refresh the intended Bitcoin wallet in Oath. See the [Bitcoin developer payment guide](https://developer.bitcoin.org/devguide/payment_processing.html) for the distinction between an unconfirmed payment and a confirmed one.
+
+![Oath Bitcoin asset screen with a mock balance and sample received and sent activity](https://articles.oathwallet.org/assets/articles/editorials/withdraw-bitcoin-kraken-to-oath-iphone/oath-bitcoin.webp)
+
+Actual Oath 5.0.2 (104) simulator capture with mock balances, prices and activity. This is an illustration of the receiving wallet’s asset screen, not a completed Kraken withdrawal. Never send funds using an address from an example image.
+
+## If Kraken shows Pending, On hold or Failed
+
+Kraken’s [withdrawal-status reference](https://support.kraken.com/articles/360000674046-cryptocurrency-withdrawal-statuses) is specifically labelled for **Kraken Classic**. If those labels appear in your withdrawal record, interpret them as follows:
+
+| Status | What to check next |
+| --- | --- |
+| Initiated / Pending | Kraken is performing checks or processing the request. Look for account notices and a transaction ID; it may not be on-chain yet. |
+| Sending | The transaction has been broadcast and is waiting for a blockchain confirmation. Inspect the transaction ID. |
+| Success | Kraken’s reference says it has one network confirmation. Verify your destination output and Oath account. |
+| On hold | Contact Kraken through official support for its manual review. |
+| Failed | Open the withdrawal details and read the error before retrying. |
+
+Other interfaces may use different wording. Read the actual withdrawal details instead of translating a label by guesswork. Kraken documents limited cancellation requests before broadcast in its Classic flow; a pending cancellation request is not a guarantee. Do not assume a confirmed on-chain withdrawal can be cancelled.
+
+If the correct output is confirmed but Oath is not showing it, refresh the selected Bitcoin wallet and keep the public transaction ID for support. If the network or destination is wrong, stop and ask the relevant service about its recovery options. Do not delete a wallet, reveal recovery material or repeat a payment to fix a display delay.
+
+## Review and next steps
+
+Reviewed **November 9, 2026** against the linked Kraken documentation and [Oath 5.0.2 (104) receiving implementation](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Home/OathReceiveSheet.swift). The screenshot is an actual simulator capture with mock data. We did not execute a funded Kraken withdrawal or test an individual Kraken account’s eligibility.
+
+Oath publishes this independent guide without implying a Kraken partnership. Share only the public transaction information needed for a support investigation; keep recovery credentials and exchange authentication codes private.
+
+[Get Oath for iPhone](https://apps.apple.com/us/app/oath-bitcoin-crypto-wallet/id6780187283) · [Bitcoin on Oath](https://oathwallet.org/networks/bitcoin) · [Choose the right network](https://oathwallet.org/networks/choose-token-network) · [Understand pending and confirmed activity](https://help.oathwallet.org/articles/transaction-status)
+
+---
+
+Canonical: https://articles.oathwallet.org/withdraw-usdt-binance-to-oath-tron
+Updated: 2026-11-09T20:14:02Z
+
+# Withdraw USDT from Binance to Oath on TRON
+
+Move USDT from the Binance app to Oath on TRON. Match TRC20, check the withdrawal fee and recipient amount, then follow the transaction if it is pending.
+
+To withdraw USDT from Binance to Oath on TRON, get your **USDT on TRON** receiving address in Oath, then choose **USDT** and the **TRON / TRC20** network in Binance. Review the destination, withdrawal fee and amount the recipient will receive before confirming. This route is an on-chain withdrawal to your own wallet.
+
+## Check that this is your route
+
+| Check | Binance side | Oath side |
+| --- | --- | --- |
+| Asset | USDT | Tether (USDT) |
+| Network | TRON / TRC20; TRX in Binance’s network-status list | TRON |
+| Destination | Your external wallet address | The address from your own Receive screen |
+| Token identity | USDT supported on that network | Tether’s TRON contract below |
+
+Tether identifies TRON USDT by the contract `TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t`. **That contract is not your receiving address.** Compare it with [Tether’s supported protocols](https://tether.to/en/supported-protocols/) and [Oath’s USDT on TRON guide](https://oathwallet.org/tokens/usdt/tron).
+
+This guide covers the Binance exchange app, not Binance.US or Binance Wallet. Binance’s [withdrawal announcement](https://www.binance.com/en/square/post/383446817991353) includes USDT on TRX/TRON, but eligibility and availability can change. Check the USDT withdrawal screen and [network-status page](https://www.binance.com/en/network). If this route is suspended or unavailable for your account, stop; selecting an unrelated network is not a substitute.
+
+## 1. Prepare the receiving side in Oath
+
+Open the intended wallet in Oath. Find **Tether (USDT) on TRON**, open **Receive**, and check the network warning beneath the QR code. Use **Copy address** to obtain your personal destination. If you have several wallets, compare the selected wallet before returning to Binance.
+
+![Oath Receive Tether screen showing USDT on TRON and an example QR code](https://articles.oathwallet.org/assets/articles/editorials/withdraw-usdt-binance-to-oath-tron/oath-receive.webp)
+
+Actual Oath 5.0.2 (104) simulator capture with a mock address. Never send funds to the address or QR code in this screenshot. Copy from your own wallet inside Oath.
+
+A regular Binance exchange balance cannot be imported into Oath with an exchange password. Withdrawal moves assets to the receiving wallet; it does not transfer your Binance account, trading history or security settings. Have access to your Oath wallet’s recovery method before using it for funds you need to keep.
+
+## 2. Set up the withdrawal in Binance
+
+The [current Binance app instructions](https://www.binance.com/en/support/faq/detail/115003670492) use this sequence:
+
+1. Open **Assets → Overview → Send → Withdraw Asset**.
+2. Choose the funding account and **USDT**.
+3. Paste your Oath address and select **TRON / TRC20**. Check the network yourself even if Binance selects it automatically.
+4. Enter the amount and check the displayed withdrawal fee and recipient amount. Choose a one-time withdrawal for this journey.
+5. Compare the complete address with Oath, then review and complete Binance’s requested passkey or two-factor verification only when every detail matches.
+
+The linked Binance guide includes its own interface screenshots. Labels can differ by app version and region. You are sending to an external address, not to another Binance user by email, phone number or ID.
+
+## 3. Understand the amount and the two different fees
+
+Binance’s form can calculate from either **Receive amount** or **Withdrawal amount**. One starts from what the recipient should get; the other starts from the total deducted. Read both totals rather than assuming that entering “100” always delivers 100 USDT.
+
+Binance publishes [withdrawal-fee information](https://www.binance.com/en/fee/cryptoFee), but the fee and minimum shown for your asset and network at confirmation are the values to use. This guide does not quote a fixed USDT fee. A small first withdrawal should meet the displayed minimum and leave a useful amount after any fee; another withdrawal may incur another charge.
+
+That exchange withdrawal fee is separate from sending USDT later **from Oath**. TRON uses Energy and Bandwidth; insufficient resources can require TRX. Receiving USDT does not guarantee you have enough resources for a later send. Review Oath’s estimate for that later transaction. See [TRON’s resource model](https://developers.tron.network/docs/resource-model).
+
+## 4. Confirm the transfer on TRON and in Oath
+
+Open the withdrawal record in Binance. Once it supplies a **TxID**, use its explorer link or [TRONSCAN](https://tronscan.org/) to inspect the transfer. Check the network, transaction result, recipient, USDT contract and amount. A TxID identifies a transaction; its existence alone does not establish a successful token transfer.
+
+Return to the same Oath wallet and USDT-on-TRON asset. Refresh the balance and activity after the chain confirms the transfer. Compare the amount received with Binance’s final recipient amount, not just the original amount you entered.
+
+## If the withdrawal is pending or missing
+
+- **Processing in Binance, with no TxID:** the withdrawal may still be with the exchange. Check Binance’s status and account notices. Oath cannot broadcast or speed up a withdrawal held by Binance.
+- **A TxID exists but the transaction is not confirmed:** follow its network status. Do not repeat the withdrawal merely because the first payment is still pending.
+- **Binance says Completed:** inspect the TxID, then verify the recipient and token transfer. If those match and Oath has not refreshed, keep the public transaction ID for Oath support.
+- **Wrong network, destination or token:** stop before another payment. Contact the relevant service about the actual transaction. Recovery is not guaranteed.
+
+Binance describes these stages in [Why hasn’t my withdrawal arrived?](https://www.binance.com/en/support/faq/detail/115003743192). A Binance status label and Oath’s displayed balance are different observations; checking the chain helps locate where the delay is.
+
+## Review and next steps
+
+Reviewed **November 9, 2026** against the linked exchange documentation, token issuer information and [Oath 5.0.2 (104) receiving implementation](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Home/OathReceiveSheet.swift). The image shows the real app with mock data. We did not perform a funded Binance withdrawal for this guide or verify availability inside an individual Binance account.
+
+Oath publishes this guide independently; it does not imply a Binance partnership. Use the exchange’s official app or support links for account verification. Neither this page nor an Oath support conversation needs your recovery phrase, private key or exchange authentication code.
+
+[Get Oath for iPhone](https://apps.apple.com/us/app/oath-bitcoin-crypto-wallet/id6780187283) · [USDT on TRON](https://oathwallet.org/tokens/usdt/tron) · [Choose the right token network](https://oathwallet.org/networks/choose-token-network) · [Understand transaction status](https://help.oathwallet.org/articles/transaction-status)
+
+---
+
 Canonical: https://articles.oathwallet.org/oath-wallet-release-history
-Updated: 2026-11-06T11:11:26Z
+Updated: 2026-11-11T12:30:00Z
 
 # Oath Wallet release history and current version
 
@@ -15700,14 +16845,14 @@ Older help screenshots retain the version in which they were captured. An older 
 
 ## How we maintain this record
 
-Oath Wallet maintains this page from the repository's release and distribution records. We add an App Store release only when distribution evidence is recorded; we keep source checks, runtime checks and independent security review distinct. This page was reviewed on November 6, 2026.
+Oath Wallet maintains this page from the repository's release and distribution records. We add an App Store release only when distribution evidence is recorded; we keep source checks, runtime checks and independent security review distinct. This page was reviewed on November 11, 2026.
 
 For a correction, send the page URL and a description through [Oath support](https://help.oathwallet.org/). Do not send recovery words, keys or backup passwords. See [our product-documentation policy](https://oathwallet.org/about#editorial).
 
 ---
 
 Canonical: https://articles.oathwallet.org/move-from-trust-wallet-to-oath
-Updated: 2026-11-06T11:11:26Z
+Updated: 2026-11-10T09:50:00Z
 
 # Move from Trust Wallet to Oath
 
@@ -15786,10 +16931,17 @@ Oath 4.0.3 app screenshot with sample data. Compare the network and full receivi
 - [Find the network fee asset](https://oathwallet.org/networks/fees)
 - [Read current release information](https://articles.oathwallet.org/oath-wallet-release-history)
 
+
+## Compare the versioned evidence
+
+The [Wallet Compatibility Lab](https://oathwallet.org/compatibility) separates source review, reference-library checks and tests of Oath’s released Bitcoin core. [Read the November 9, 2026 results](https://oathwallet.org/compatibility/2026-11-09) for the exact account types, source revision, passing checks and limitations. Installed third-party apps and funded migrations were not tested in that edition.
+
+[First ordinary Trust Wallet EVM account in the dated lab results](https://oathwallet.org/compatibility/2026-11-09#trust-evm).
+
 ---
 
 Canonical: https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone
-Updated: 2026-11-06T11:11:26Z
+Updated: 2026-11-10T09:50:00Z
 
 # Restore an Electrum Bitcoin Wallet on iPhone
 
@@ -15864,10 +17016,17 @@ Oath 4.0.3 app screenshot with sample data. The address options depend on the im
 - [Find the network fee asset](https://oathwallet.org/networks/fees)
 - [Read current release information](https://articles.oathwallet.org/oath-wallet-release-history)
 
+
+## Compare the versioned evidence
+
+The [Wallet Compatibility Lab](https://oathwallet.org/compatibility) separates source review, reference-library checks and tests of Oath’s released Bitcoin core. [Read the November 9, 2026 results](https://oathwallet.org/compatibility/2026-11-09) for the exact account types, source revision, passing checks and limitations. Installed third-party apps and funded migrations were not tested in that edition.
+
+[Electrum native SegWit seed findings in the dated lab results](https://oathwallet.org/compatibility/2026-11-09#electrum-segwit).
+
 ---
 
 Canonical: https://articles.oathwallet.org/use-metamask-wallet-in-oath
-Updated: 2026-11-06T11:11:26Z
+Updated: 2026-11-10T09:50:00Z
 
 # Use an Existing MetaMask Wallet in Oath
 
@@ -15941,6 +17100,13 @@ Oath 4.0.3 app screenshot with sample data. Check the exact network as well as t
 - [Review existing token approvals](https://oathwallet.org/features/revoke-token-approvals)
 - [Find the network fee asset](https://oathwallet.org/networks/fees)
 - [Read current release information](https://articles.oathwallet.org/oath-wallet-release-history)
+
+
+## Compare the versioned evidence
+
+The [Wallet Compatibility Lab](https://oathwallet.org/compatibility) separates source review, reference-library checks and tests of Oath’s released Bitcoin core. [Read the November 9, 2026 results](https://oathwallet.org/compatibility/2026-11-09) for the exact account types, source revision, passing checks and limitations. Installed third-party apps and funded migrations were not tested in that edition.
+
+[Later MetaMask accounts and indexes in the dated lab results](https://oathwallet.org/compatibility/2026-11-09#metamask-later).
 
 ---
 

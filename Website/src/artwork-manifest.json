@@ -1,9 +1,9 @@
 {
   "format": 1,
-  "version": "c5585255fe186465",
-  "prefix": "/token-artwork-data/c5585255fe186465",
-  "entries": 31793,
-  "reviewed": "2026-11-06",
+  "version": "fbd534029641ab1a",
+  "prefix": "/token-artwork-data/fbd534029641ab1a",
+  "entries": 31798,
+  "reviewed": "2026-11-11",
   "networks": {
     "aptos": 61,
     "arbitrum": 3139,
@@ -41,7 +41,7 @@
     "tron": 94,
     "unichain": 39,
     "xlayer": 762,
-    "xrpl": 21,
+    "xrpl": 26,
     "zerog": 8
   }
 }

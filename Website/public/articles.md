@@ -2,29 +2,47 @@
 
 Current product guidance and dated editorial archives.
 
+## [Send USDC from Coinbase to Oath on Base](https://articles.oathwallet.org/send-usdc-coinbase-to-oath-base)
+
+Send native USDC from Coinbase to Oath on Base. Match the network, review the fee, check the transaction and troubleshoot a pending withdrawal.
+
+English · Published 2026-11-09 · Updated 2026-11-09
+
+## [Withdraw Bitcoin from Kraken to Oath on iPhone](https://articles.oathwallet.org/withdraw-bitcoin-kraken-to-oath-iphone)
+
+Withdraw BTC from Kraken to your Oath Bitcoin wallet on iPhone. Check the on-chain network, address, fee, confirmations and withdrawal holds.
+
+English · Published 2026-11-09 · Updated 2026-11-09
+
+## [Withdraw USDT from Binance to Oath on TRON](https://articles.oathwallet.org/withdraw-usdt-binance-to-oath-tron)
+
+Move USDT from the Binance app to Oath on TRON. Match TRC20, check the withdrawal fee and recipient amount, then follow the transaction if it is pending.
+
+English · Published 2026-11-09 · Updated 2026-11-09
+
 ## [Oath Wallet release history and current version](https://articles.oathwallet.org/oath-wallet-release-history)
 
 Read the confirmed Oath release record, what changed in version 5.0.2 and where to find version-specific wallet guides.
 
-English · Published 2026-11-06 · Updated 2026-11-06
+English · Published 2026-11-06 · Updated 2026-11-11
 
 ## [Move from Trust Wallet to Oath](https://articles.oathwallet.org/move-from-trust-wallet-to-oath)
 
 Import compatible Trust Wallet accounts on iPhone. Check EVM, Bitcoin, TRON and Solana paths, supported assets and recovery limits before you switch.
 
-English · Published 2026-11-06 · Updated 2026-11-06
+English · Published 2026-11-06 · Updated 2026-11-10
 
 ## [Restore an Electrum Bitcoin Wallet on iPhone](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone)
 
 Restore supported Electrum Bitcoin seeds in Oath. Check Standard, SegWit and old seed formats, extensions, change addresses and recovery limits.
 
-English · Published 2026-11-06 · Updated 2026-11-06
+English · Published 2026-11-06 · Updated 2026-11-10
 
 ## [Use an Existing MetaMask Wallet in Oath](https://articles.oathwallet.org/use-metamask-wallet-in-oath)
 
 Use a compatible MetaMask EVM account in Oath on iPhone. Compare phrase and private-key imports, additional accounts, networks and asset compatibility.
 
-English · Published 2026-11-06 · Updated 2026-11-06
+English · Published 2026-11-06 · Updated 2026-11-10
 
 ## [Binance Lost $6.3 Billion. Who Signed the Withdrawals?](https://articles.oathwallet.org/binance-withdrawals-who-signed)
 

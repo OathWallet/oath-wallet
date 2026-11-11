@@ -26,7 +26,7 @@
       "reviewed_on": "2026-11-05",
       "source_url": "https://github.com/OathWallet/oath-wallet/tree/d039b009d8c81b0497f2ac7e6abebfdf54ff8612",
       "scope": "Pinned source excerpts, not an independent audit or confirmation of the current App Store version.",
-      "app_store_url": "https://apps.apple.com/us/app/oath-bitcoin-crypto-wallet/id6780187283"
+      "app_store_url": "https://apps.apple.com/app/id6780187283"
     }
   },
   "source_evidence": {
@@ -35,7 +35,7 @@
     "reviewed_on": "2026-11-05",
     "source_url": "https://github.com/OathWallet/oath-wallet/tree/d039b009d8c81b0497f2ac7e6abebfdf54ff8612",
     "scope": "Pinned source excerpts, not an independent audit or confirmation of the current App Store version.",
-    "app_store_url": "https://apps.apple.com/us/app/oath-bitcoin-crypto-wallet/id6780187283"
+    "app_store_url": "https://apps.apple.com/app/id6780187283"
   },
   "token_catalog": {
     "url": "https://oathwallet.org/tokens",
@@ -44,6 +44,30 @@
     "scope": "Released discovery catalog; inclusion is not issuer verification or tested sending."
   },
   "documents": [
+    {
+      "url": "https://oathwallet.org/compatibility",
+      "markdown_url": "https://oathwallet.org/compatibility.md",
+      "title": "Wallet Compatibility Lab: Import & Recovery Evidence | Oath",
+      "summary": "Compare Trust Wallet, MetaMask and Electrum account recovery with Oath. Explore versioned derivation results, Bitcoin address types, methods and limitations.",
+      "kind": "compatibility",
+      "updated_at": "2026-11-09"
+    },
+    {
+      "url": "https://oathwallet.org/compatibility/2026-11-09",
+      "markdown_url": "https://oathwallet.org/compatibility/2026-11-09.md",
+      "title": "Wallet Compatibility Results — November 2026 | Oath",
+      "summary": "Oath 5.0.2 compatibility evidence: 14 reference-library checks, four source assertions and 14 passing Bitcoin host tests, with exact scope and skipped tests.",
+      "kind": "compatibility",
+      "updated_at": "2026-11-10"
+    },
+    {
+      "url": "https://oathwallet.org/compatibility/methodology",
+      "markdown_url": "https://oathwallet.org/compatibility/methodology.md",
+      "title": "Wallet Compatibility Lab: Methods & Reproduction | Oath",
+      "summary": "How Oath reviews wallet recovery: pinned versions, public fixtures, reproducible checks and clear boundaries between source, core tests and observed behavior.",
+      "kind": "compatibility",
+      "updated_at": "2026-11-11"
+    },
     {
       "url": "https://oathwallet.org/networks/choose-token-network",
       "markdown_url": "https://oathwallet.org/networks/choose-token-network.md",
@@ -2133,11 +2157,38 @@
       "kind": "article"
     },
     {
+      "url": "https://articles.oathwallet.org/send-usdc-coinbase-to-oath-base",
+      "markdown_url": "https://articles.oathwallet.org/send-usdc-coinbase-to-oath-base.md",
+      "title": "Send USDC from Coinbase to Oath on Base",
+      "summary": "",
+      "updated_at": "2026-11-09T20:14:02Z",
+      "published_at": "2026-11-09T20:14:02Z",
+      "kind": "article"
+    },
+    {
+      "url": "https://articles.oathwallet.org/withdraw-bitcoin-kraken-to-oath-iphone",
+      "markdown_url": "https://articles.oathwallet.org/withdraw-bitcoin-kraken-to-oath-iphone.md",
+      "title": "Withdraw Bitcoin from Kraken to Oath on iPhone",
+      "summary": "",
+      "updated_at": "2026-11-09T20:14:02Z",
+      "published_at": "2026-11-09T20:14:02Z",
+      "kind": "article"
+    },
+    {
+      "url": "https://articles.oathwallet.org/withdraw-usdt-binance-to-oath-tron",
+      "markdown_url": "https://articles.oathwallet.org/withdraw-usdt-binance-to-oath-tron.md",
+      "title": "Withdraw USDT from Binance to Oath on TRON",
+      "summary": "",
+      "updated_at": "2026-11-09T20:14:02Z",
+      "published_at": "2026-11-09T20:14:02Z",
+      "kind": "article"
+    },
+    {
       "url": "https://articles.oathwallet.org/oath-wallet-release-history",
       "markdown_url": "https://articles.oathwallet.org/oath-wallet-release-history.md",
       "title": "Oath Wallet release history and current version",
       "summary": "",
-      "updated_at": "2026-11-06T11:11:26Z",
+      "updated_at": "2026-11-11T12:30:00Z",
       "published_at": "2026-11-06T11:11:26Z",
       "kind": "article"
     },
@@ -2146,7 +2197,7 @@
       "markdown_url": "https://articles.oathwallet.org/move-from-trust-wallet-to-oath.md",
       "title": "Move from Trust Wallet to Oath",
       "summary": "",
-      "updated_at": "2026-11-06T11:11:26Z",
+      "updated_at": "2026-11-10T09:50:00Z",
       "published_at": "2026-11-06T10:29:34Z",
       "kind": "article"
     },
@@ -2155,7 +2206,7 @@
       "markdown_url": "https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone.md",
       "title": "Restore an Electrum Bitcoin Wallet on iPhone",
       "summary": "",
-      "updated_at": "2026-11-06T11:11:26Z",
+      "updated_at": "2026-11-10T09:50:00Z",
       "published_at": "2026-11-06T10:29:34Z",
       "kind": "article"
     },
@@ -2164,7 +2215,7 @@
       "markdown_url": "https://articles.oathwallet.org/use-metamask-wallet-in-oath.md",
       "title": "Use an Existing MetaMask Wallet in Oath",
       "summary": "",
-      "updated_at": "2026-11-06T11:11:26Z",
+      "updated_at": "2026-11-10T09:50:00Z",
       "published_at": "2026-11-06T10:29:34Z",
       "kind": "article"
     },

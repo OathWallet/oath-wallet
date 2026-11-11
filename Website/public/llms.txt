@@ -6,7 +6,7 @@ Read-only MCP: https://oathwallet.org/mcp
 Document index: https://oathwallet.org/agent-documents.json
 Token catalog: https://oathwallet.org/tokens
 Paginated token documents: https://oathwallet.org/tokens/documents.json
-App Store: https://apps.apple.com/us/app/oath-bitcoin-crypto-wallet/id6780187283
+App Store: https://apps.apple.com/app/id6780187283
 Public source and releases: https://github.com/OathWallet/oath-wallet
 
 Current release: Oath Wallet 5.0.2 (104). Release facts checked 2026-11-05.
@@ -18,6 +18,9 @@ Each review result retains its tested source revision. Older articles, tags and 
 
 Help instructions carry their applicable app version and authored update dates. Source excerpts cover 5.0.2 (104), reviewed 2026-11-05; this is not an independent audit or proof of App Store availability.
 
+- [Wallet Compatibility Lab: Import & Recovery Evidence | Oath](https://oathwallet.org/compatibility.md): Compare Trust Wallet, MetaMask and Electrum account recovery with Oath. Explore versioned derivation results, Bitcoin address types, methods and limitations.
+- [Wallet Compatibility Results — November 2026 | Oath](https://oathwallet.org/compatibility/2026-11-09.md): Oath 5.0.2 compatibility evidence: 14 reference-library checks, four source assertions and 14 passing Bitcoin host tests, with exact scope and skipped tests.
+- [Wallet Compatibility Lab: Methods & Reproduction | Oath](https://oathwallet.org/compatibility/methodology.md): How Oath reviews wallet recovery: pinned versions, public fixtures, reproducible checks and clear boundaries between source, core tests and observed behavior.
 - [Prepare a Crypto Transfer | Token, Network & Fees | Oath](https://oathwallet.org/networks/choose-token-network.md): Prepare a token transfer with Oath. Start with USDT or USDC, or open any catalog token’s checklist to compare its exact identity, receiving network and fee requirements.
 - [Which Coin Pays My Crypto Network Fee? | Oath Wallet](https://oathwallet.org/networks/fees.md): Find the fee asset and account requirements for Oath’s supported networks. Understand TRX, ETH, SOL and Bitcoin fees before sending.
 - [Check and revoke token approvals](https://oathwallet.org/features/revoke-token-approvals.md): Check discovered token approvals in Oath for iPhone. Review supported EVM, TRON and Solana access, estimate network fees and verify supported revocations.
@@ -246,6 +249,9 @@ Help instructions carry their applicable app version and authored update dates. 
 - [أزمة البذور الضعيفة في Coldcard: التعقيد ليس مرادفًا للأمن](https://articles.oathwallet.org/ar/coldcard-weak-seed-crisis-complexity-verifiable-wallet-security.md)
 - [Khủng hoảng seed yếu của Coldcard: Phức tạp không đồng nghĩa với bảo mật](https://articles.oathwallet.org/vi/coldcard-weak-seed-crisis-complexity-verifiable-wallet-security.md)
 - [Your Crypto, Their Permission: The $388 Million Bitget Wake-Up Call](https://articles.oathwallet.org/bitget-388-million-hack-self-custody.md)
+- [Send USDC from Coinbase to Oath on Base](https://articles.oathwallet.org/send-usdc-coinbase-to-oath-base.md)
+- [Withdraw Bitcoin from Kraken to Oath on iPhone](https://articles.oathwallet.org/withdraw-bitcoin-kraken-to-oath-iphone.md)
+- [Withdraw USDT from Binance to Oath on TRON](https://articles.oathwallet.org/withdraw-usdt-binance-to-oath-tron.md)
 - [Oath Wallet release history and current version](https://articles.oathwallet.org/oath-wallet-release-history.md)
 - [Move from Trust Wallet to Oath](https://articles.oathwallet.org/move-from-trust-wallet-to-oath.md)
 - [Restore an Electrum Bitcoin Wallet on iPhone](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone.md)

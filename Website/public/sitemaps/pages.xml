@@ -1,15 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://oathwallet.org/compatibility</loc><lastmod>2026-11-09</lastmod></url>
+  <url><loc>https://oathwallet.org/compatibility/2026-11-09</loc><lastmod>2026-11-10</lastmod></url>
+  <url><loc>https://oathwallet.org/compatibility/methodology</loc><lastmod>2026-11-11</lastmod></url>
   <url><loc>https://oathwallet.org/networks/choose-token-network</loc><lastmod>2026-11-06</lastmod></url>
   <url><loc>https://oathwallet.org/networks/fees</loc><lastmod>2026-11-06</lastmod></url>
-  <url><loc>https://oathwallet.org/</loc><lastmod>2026-11-06</lastmod></url>
-  <url><loc>https://oathwallet.org/features</loc><lastmod>2026-11-06</lastmod></url>
+  <url><loc>https://oathwallet.org/</loc><lastmod>2026-11-11</lastmod></url>
+  <url><loc>https://oathwallet.org/features</loc><lastmod>2026-11-11</lastmod></url>
   <url><loc>https://oathwallet.org/press</loc><lastmod>2026-10-31</lastmod></url>
   <url><loc>https://oathwallet.org/terms</loc><lastmod>2026-10-27</lastmod></url>
   <url><loc>https://oathwallet.org/privacy</loc><lastmod>2026-10-27</lastmod></url>
   <url><loc>https://oathwallet.org/security</loc><lastmod>2026-10-27</lastmod></url>
   <url><loc>https://oathwallet.org/bug-bounty</loc><lastmod>2026-11-10</lastmod></url>
-  <url><loc>https://oathwallet.org/about</loc><lastmod>2026-11-06</lastmod></url>
+  <url><loc>https://oathwallet.org/about</loc><lastmod>2026-11-11</lastmod></url>
   <url><loc>https://oathwallet.org/networks</loc><lastmod>2026-10-31</lastmod></url>
   <url><loc>https://oathwallet.org/networks/bitcoin</loc><lastmod>2026-11-09</lastmod></url>
   <url><loc>https://oathwallet.org/networks/ethereum</loc><lastmod>2026-11-09</lastmod></url>
@@ -22,16 +25,16 @@
   <url><loc>https://oathwallet.org/networks/base</loc><lastmod>2026-11-06</lastmod></url>
   <url><loc>https://oathwallet.org/networks/optimism</loc><lastmod>2026-11-06</lastmod></url>
   <url><loc>https://oathwallet.org/networks/avalanche</loc><lastmod>2026-11-06</lastmod></url>
-  <url><loc>https://oathwallet.org/networks/tron</loc><lastmod>2026-11-06</lastmod></url>
+  <url><loc>https://oathwallet.org/networks/tron</loc><lastmod>2026-11-10</lastmod></url>
   <url><loc>https://oathwallet.org/networks/xrp-ledger</loc><lastmod>2026-11-06</lastmod></url>
   <url><loc>https://oathwallet.org/networks/near</loc><lastmod>2026-11-06</lastmod></url>
-  <url><loc>https://oathwallet.org/networks/sui</loc><lastmod>2026-11-06</lastmod></url>
+  <url><loc>https://oathwallet.org/networks/sui</loc><lastmod>2026-11-10</lastmod></url>
   <url><loc>https://oathwallet.org/networks/aptos</loc><lastmod>2026-11-06</lastmod></url>
   <url><loc>https://oathwallet.org/networks/polkadot</loc><lastmod>2026-11-06</lastmod></url>
   <url><loc>https://oathwallet.org/networks/stellar</loc><lastmod>2026-11-06</lastmod></url>
   <url><loc>https://oathwallet.org/networks/litecoin</loc><lastmod>2026-10-31</lastmod></url>
   <url><loc>https://oathwallet.org/networks/dogecoin</loc><lastmod>2026-10-31</lastmod></url>
-  <url><loc>https://oathwallet.org/networks/bitcoin-cash</loc><lastmod>2026-11-09</lastmod></url>
+  <url><loc>https://oathwallet.org/networks/bitcoin-cash</loc><lastmod>2026-11-10</lastmod></url>
   <url><loc>https://oathwallet.org/networks/arc</loc><lastmod>2026-11-06</lastmod></url>
   <url><loc>https://oathwallet.org/networks/fantom</loc><lastmod>2026-11-06</lastmod></url>
   <url><loc>https://oathwallet.org/networks/flare</loc><lastmod>2026-11-06</lastmod></url>

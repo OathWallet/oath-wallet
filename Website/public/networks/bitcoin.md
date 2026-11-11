@@ -88,6 +88,7 @@ No. These receiving instructions cover Oath’s Bitcoin on-chain flow. A Lightni
 
 No. Screenshots contain public examples and mock data. Copy the address from your own selected wallet in Oath, then compare it at the sending service.
 
+- [Withdraw Bitcoin from Kraken to Oath on iPhone](https://articles.oathwallet.org/withdraw-bitcoin-kraken-to-oath-iphone)
 - [Understand Bitcoin address types](https://help.oathwallet.org/articles/bitcoin-address-types)
 - [Restore a compatible Electrum Bitcoin wallet](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone)
 - [Bitcoin Cash receiving guide](https://oathwallet.org/networks/bitcoin-cash)
