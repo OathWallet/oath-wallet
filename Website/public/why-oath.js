@@ -17,6 +17,8 @@
   function mount(section) {
     const heading = section.querySelector('h2');
     const letters = [...heading.querySelectorAll('span > span, em > span')];
+    const track = section.querySelector('.why-track');
+    const stack = section.querySelector('.why-stack');
     const cards = [...section.querySelectorAll('.why-card')];
     const greeting = section.querySelector('.why-greetings span');
     const motion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -43,21 +45,38 @@
       timer = setTimeout(type, delay);
     }
 
+    const pinTop = 92;
+    let step = 0;
+
+    function revealFocusedCard(event) {
+      const index = cards.indexOf(event.target.closest('.why-card'));
+      if (index >= 0 && !cards[index].hasAttribute('data-current')) {
+        window.scrollBy({ top: track.getBoundingClientRect().top - pinTop + index * step + 1, behavior: 'instant' });
+        update();
+      }
+    }
+
     function update() {
       frame = 0;
       const animated = !motion.matches;
-      section.toggleAttribute('data-animated', animated);
+      section.setAttribute('data-deck', '');
       const height = window.innerHeight;
       const top = heading.getBoundingClientRect().top;
       const count = Math.floor((height * .92 - top) / (height * .24) * letters.length);
       letters.forEach((letter, i) => letter.toggleAttribute('data-pending', animated && i >= count));
-      let showGreeting = false;
-      cards.forEach((card, i) => {
-        const rect = card.getBoundingClientRect();
-        const reveal = count < letters.length ? 0 : Math.max(0, Math.min(1, (height * .72 - rect.top) / (height * .18)));
-        card.style.setProperty('--reveal', reveal.toFixed(3));
-        if (i === cards.length - 1) showGreeting = reveal > .15 && rect.bottom > 0;
-      });
+      // Every card occupies the same grid cell. Scroll distance selects one card
+      // and lets a card taller than the viewport pass completely into view.
+      const overflow = Math.max(0, stack.offsetHeight + pinTop + 16 - height);
+      step = Math.round(Math.max(180, Math.min(340, height * .38)) + overflow);
+      track.style.setProperty('--travel', ((cards.length - 1) * step + overflow) + 'px');
+      const trackTop = track.getBoundingClientRect().top;
+      const distance = Math.max(0, pinTop - trackTop);
+      const index = Math.min(cards.length - 1, Math.floor(distance / step));
+      const withinCard = distance - index * step;
+      stack.style.setProperty('--pin', (pinTop - Math.min(overflow, withinCard)) + 'px');
+      const entered = !animated || (count >= letters.length && trackTop <= height * .72);
+      cards.forEach((card, i) => card.toggleAttribute('data-current', entered && i === index));
+      const showGreeting = entered && index === cards.length - 1 && stack.getBoundingClientRect().bottom > 0;
       if (animated && words.length && showGreeting && !document.hidden) {
         if (!timer) type();
       } else {
@@ -76,6 +95,9 @@
       if (!frame) frame = requestAnimationFrame(update);
     }
     update();
+    const observer = new ResizeObserver(schedule);
+    observer.observe(stack);
+    stack.addEventListener('focusin', revealFocusedCard);
     window.addEventListener('scroll', schedule, { passive: true });
     window.addEventListener('resize', schedule);
     motion.addEventListener('change', schedule);
@@ -85,6 +107,8 @@
       window.removeEventListener('resize', schedule);
       motion.removeEventListener('change', schedule);
       document.removeEventListener('visibilitychange', schedule);
+      stack.removeEventListener('focusin', revealFocusedCard);
+      observer.disconnect();
       cancelAnimationFrame(frame);
       clearTimeout(timer);
     };

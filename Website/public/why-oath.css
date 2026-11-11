@@ -15,7 +15,6 @@
 .why-section h2 em {color: var(--oath-c-8e8c86)}
 .why-stack {display: grid; gap: 20px; min-width: 0}
 .why-card {
-  --step: 0;
   color: var(--oath-card-ink);
   background: var(--oath-card);
   border: 0;
@@ -27,10 +26,6 @@
   align-items: center;
   gap: clamp(20px, 3vw, 48px);
 }
-.why-card:nth-child(2) {--step: 1}
-.why-card:nth-child(3) {--step: 2}
-.why-card:nth-child(4) {--step: 3}
-.why-card:nth-child(5) {--step: 4}
 .why-card h3 {font-size: clamp(38px, 4.3vw, 66px); text-wrap: balance}
 .why-label, .why-release span, .why-request > span {font: 500 .75rem/1.5 'IBM Plex Mono', monospace}
 .why-label {display: block; margin-bottom: 1.2rem; text-transform: uppercase; letter-spacing: .06em}
@@ -48,14 +43,16 @@
 .why-release small {font-size: .57em}
 .why-greetings {display: grid; width: 100%; align-items: center; justify-items: center; font: italic 400 clamp(24px, 3.3vw, 52px)/1.4 'Instrument Serif', Georgia, serif}
 .why-greetings {min-height: 1.5em; overflow-wrap: anywhere}
-@media (prefers-reduced-motion: no-preference) and (min-height: 660px) {
-  .why-card {position: sticky; top: calc(92px + var(--step) * 12px)}
-}
+.why-track {min-width: 0}
+.why-section[data-deck] .why-track::after {content: ""; display: block; height: var(--travel)}
+.why-section[data-deck] .why-stack {position: sticky; top: var(--pin); gap: 0}
+.why-section[data-deck] .why-card {grid-area: 1 / 1}
+.why-section[data-deck] .why-card:not([data-current]) {opacity: 0; pointer-events: none}
+.why-section[data-deck] .why-card[data-current] {z-index: 1}
 @media (prefers-reduced-motion: no-preference) {
-  .why-section[data-animated] .why-card {opacity: var(--reveal, 0)}
-  .why-section[data-animated] .why-card > div {transform: translateY(calc((1 - var(--reveal, 0)) * 22px))}
-  .why-section[data-animated] .why-card:focus-within {opacity: 1}
-  .why-section[data-animated] h2 [data-pending] {visibility: hidden}
+  .why-section[data-deck] .why-card[data-current] > div {animation: why-card-enter .25s ease-out}
+  .why-section[data-deck] h2 [data-pending] {visibility: hidden}
+  @keyframes why-card-enter {from {opacity: 0; transform: translateY(8px)}}
 }
 @media (max-width: 760px) {
   .why-section {grid-template-columns: 1fr}
