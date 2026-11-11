@@ -1,0 +1,5 @@
+A new wallet sidebar brings switching, organization and settings together. Asset lists update individual balances more efficiently, and recent activity stays ready as you move through your wallet.
+
+Sending has clearer, translated recovery guidance and reuses balance preparation when the selected balance has not changed. Bitcoin receipts can show replacement and child-pays-for-parent fee relationships.
+
+This update improves wallet naming, price recovery, token artwork, refresh reliability and accessibility. Existing wallet and encrypted backup formats remain compatible.
