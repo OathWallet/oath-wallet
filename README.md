@@ -14,7 +14,7 @@ A native multichain wallet for iPhone and iPad.
 
 ## Latest source release
 
-[Oath 5.0.3 (109)](https://github.com/OathWallet/oath-wallet/releases/tag/v5.0.3-build109) is a stable GitHub source release. See its [changes, reproducible checks and build-verification instructions](releases/5.0.3.md). Apple delivery is separate.
+[Oath 5.1.0 (110)](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.0-build110) identifies the current release source. See its [changes and build-verification record](releases/5.1.0.md). Apple upload, processing and public availability are recorded separately.
 
 ## In Oath 5.0.2
 
