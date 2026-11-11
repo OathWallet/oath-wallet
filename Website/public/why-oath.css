@@ -1,9 +1,8 @@
 .why-section {
-  max-width: 1320px;
+  max-width: 1060px;
   margin: auto;
   padding: clamp(80px, 10vw, 150px) clamp(20px, 5vw, 32px);
   display: grid;
-  grid-template-columns: 1fr 2.3fr;
   gap: clamp(24px, 5vw, 80px);
   align-items: start;
 }
@@ -12,13 +11,14 @@
   font: 400 clamp(48px, 6vw, 88px)/.98 'Instrument Serif', Georgia, serif;
   letter-spacing: -.035em;
 }
+.why-section h2 {text-align: center}
 .why-section h2 em {color: var(--oath-c-8e8c86)}
 .why-stack {display: grid; gap: 20px; min-width: 0}
 .why-card {
   --step: 0;
   color: var(--oath-card-ink);
   background: var(--oath-card);
-  border: 1px solid color-mix(in srgb, currentColor 13%, transparent);
+  border: 0;
   border-radius: clamp(24px, 3vw, 40px);
   padding: clamp(24px, 4vw, 56px);
   display: grid;
@@ -47,26 +47,15 @@
 .why-release strong {font: 400 clamp(25px, 3vw, 46px)/1.1 'Instrument Serif', Georgia, serif}
 .why-release small {font-size: .57em}
 .why-greetings {display: grid; width: 100%; align-items: center; justify-items: center; font: italic 400 clamp(24px, 3.3vw, 52px)/1.4 'Instrument Serif', Georgia, serif}
-.why-greetings span {grid-area: 1 / 1; opacity: 0}
-.why-greetings span:first-child {opacity: 1}
-@media (min-width: 761px) and (min-height: 620px) {
-  .why-section h2 {position: sticky; top: 110px}
-}
+.why-greetings {min-height: 1.5em; overflow-wrap: anywhere}
 @media (prefers-reduced-motion: no-preference) and (min-height: 660px) {
   .why-card {position: sticky; top: calc(92px + var(--step) * 12px)}
 }
 @media (prefers-reduced-motion: no-preference) {
-  .why-greetings span {animation: why-hello 12.5s linear infinite}
-  .why-greetings span:nth-child(2) {animation-delay: 2.5s}
-  .why-greetings span:nth-child(3) {animation-delay: 5s}
-  .why-greetings span:nth-child(4) {animation-delay: 7.5s}
-  .why-greetings span:nth-child(5) {animation-delay: 10s}
-  @keyframes why-hello {
-    0%, 17% {opacity: 1; transform: translateY(0)}
-    20% {opacity: 0; transform: translateY(-.16em)}
-    21%, 97% {opacity: 0; transform: translateY(.16em)}
-    100% {opacity: 1; transform: translateY(0)}
-  }
+  .why-section[data-animated] .why-card {opacity: var(--reveal, 0)}
+  .why-section[data-animated] .why-card > div {transform: translateY(calc((1 - var(--reveal, 0)) * 22px))}
+  .why-section[data-animated] .why-card:focus-within {opacity: 1}
+  .why-section[data-animated] h2 [data-pending] {visibility: hidden}
 }
 @media (max-width: 760px) {
   .why-section {grid-template-columns: 1fr}
@@ -74,13 +63,4 @@
   .why-art {order: -1; justify-items: start; text-align: start}
   .why-key, .why-release, .why-request {width: 154px}
   .why-greetings {justify-items: start; font-size: 36px}
-}
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    .why-art {animation: why-arrive linear both; animation-timeline: view(); animation-range: entry 0% entry 100%}
-    @keyframes why-arrive {
-      from {opacity: .35; transform: translateY(18px) scale(.95)}
-      to {opacity: 1; transform: none}
-    }
-  }
 }
