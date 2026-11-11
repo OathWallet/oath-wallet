@@ -2,7 +2,7 @@
 
 Oath is a self-custody Bitcoin and crypto wallet for iPhone and iPad. You control your wallet credentials, review fees before confirming, and manage supported assets without a trading marketplace.
 
-- [Download Oath on the App Store](https://apps.apple.com/us/app/oath-bitcoin-crypto-wallet/id6780187283) — free, for iPhone and iPad
+- [Download Oath on the App Store](https://apps.apple.com/app/id6780187283) — free, for iPhone and iPad
 - [Features](https://oathwallet.org/features) · [Support](https://oathwallet.org/support) · [Press kit](https://oathwallet.org/press)
 
 ## Why Oath
@@ -12,6 +12,8 @@ Oath is a self-custody Bitcoin and crypto wallet for iPhone and iPad. You contro
 - **You choose what to approve.** Review the accounts and networks a dApp requests before connecting. When it asks you to sign, you can review the request and decline it.
 - **Trace a release to its source.** Match the version and build number to the release record on GitHub, then inspect the linked source. A build record alone can’t verify an exact copy of the binary on your phone. [View the release record](https://github.com/OathWallet/oath-wallet/blob/main/releases/5.0.2-distribution.json).
 - **A wallet in your language.** Oath supports more than 50 languages. Read the prompts, check an address and review a transfer in the language you know best.
+
+[Is Oath right for me?](https://oathwallet.org/about#wallet-fit)
 
 ## What Oath supports
 
@@ -38,7 +40,7 @@ Rated **4.9 out of 5** from 37 ratings in the US App Store · checked November 6
 
 - **What it is:** Self-custody (non-custodial) crypto wallet
 - **Platform:** iPhone and iPad (iOS / iPadOS), distributed on the Apple App Store
-- **Price:** Free to download; users pay only blockchain network fees
+- **Price:** Free to download. Review the network fee in Oath before sending. A sending exchange or other service may charge a separate fee.
 - **Custody:** Oath never holds, controls or has access to user funds, private keys, recovery phrases or passkeys. It cannot recover, reverse or freeze transactions.
 - **Accounts:** No account, email, phone number or KYC is required to use Oath.
 - **Source code:** https://github.com/OathWallet/oath-wallet

@@ -37,9 +37,9 @@ The full source code is public on GitHub at https://github.com/OathWallet/oath-w
 
 Compatible Bitcoin wallets support Taproot, Native SegWit, nested SegWit and Legacy, depending on the imported material. Capabilities vary by network. Oath 5.0.2 does not support Silent Payments receiving or discovery; see the Silent Payments guide before relying on that feature.
 
-## 06. EVM Access
+## 06. Token approvals
 
-A tool that shows discovered token approvals (web3 permissions) on supported EVM networks and lets the user submit supported revocation transactions. Revoking is an on-chain transaction with a network fee shown before confirming.
+Check discovered token approvals in Oath for iPhone. Review supported EVM, TRON and Solana access, estimate network fees and verify supported revocations.
 
 ## 07. Your display currency
 
@@ -49,7 +49,7 @@ Choose from the app’s supported display currencies. Values are estimates based
 
 See available price quotes for supported assets. Quotes can be delayed or unavailable; displayed fiat values are estimates.
 
-[Download Oath on the App Store](https://apps.apple.com/us/app/oath-bitcoin-crypto-wallet/id6780187283)
+[Download Oath on the App Store](https://apps.apple.com/app/id6780187283)
 
 ## Practical guides
 

@@ -1,4 +1,5 @@
 import { documents, publicDocument, documentText, searchHelp, evidenceScope, currentStatus, statusText, tokenDiscovery } from './agent-content.js';
+import {findFeature} from './feature-answers.js';
 import {handleTokens} from './tokens.js';
 import { migrateArticleLinks } from './article-host.js';
 // Cloudflare implementation of the supplied read-only PHP MCP endpoint.
@@ -31,7 +32,6 @@ const text = value => ({ content: [{ type: 'text', text: value }] });
 const structured = (value, summary) => ({ ...text(`${summary}\n\n${JSON.stringify(value, null, 2)}`), structuredContent: value });
 const toolError = message => ({ ...text(message), isError: true });
 const fail = (id, code, message) => ({ jsonrpc: '2.0', id, error: { code, message } });
-const normalized = value => value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 async function readAsset(env, file) {
@@ -67,12 +67,9 @@ async function callTool(name, args, env) {
   switch (name) {
     case 'list_features': return structured({ features: data.features }, 'Oath features:');
     case 'get_feature': {
-      const query = normalized(args.feature);
-      if (!query) return toolError('Provide a feature id or keywords.');
-      const exact = data.features.find(f => normalized(f.id) === query);
-      const matches = data.features.map(feature => ({ feature, score: query.split(' ').filter(w => normalized(`${feature.id} ${feature.name} ${feature.summary}`).includes(w)).length })).sort((a, b) => b.score - a.score);
-      const result = exact || (matches[0]?.score > 0 ? matches[0].feature : null);
-      return result ? structured(result, `${result.name} — ${result.summary}`) : toolError('No matching feature. Call list_features to see all ids.');
+      const result = findFeature(data.features, args.feature);
+      if (!result) return toolError('No verified match for that feature and scope. Browse https://oathwallet.org/features or call list_features.');
+      return structured(result, result.answer || result.summary);
     }
     case 'search_help': {
       if (!args.query.trim() || args.query.length>500) return toolError('Provide a query of 1–500 characters.');

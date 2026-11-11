@@ -1,13 +1,13 @@
 {
   "name": "Oath Wallet",
-  "updated": "2026-11-08",
+  "updated": "2026-11-11",
   "facts": {
     "name": "Oath Wallet",
     "slogan": "Made for your independence.",
     "category": "Self-custody (non-custodial) crypto wallet",
     "platform": "iPhone and iPad; Apple App Store",
-    "price": "Free to download; users pay only blockchain network fees",
-    "download": "https://apps.apple.com/us/app/oath-bitcoin-crypto-wallet/id6780187283",
+    "price": "Free to download. Review the network fee in Oath before sending. A sending exchange or other service may charge a separate fee.",
+    "download": "https://apps.apple.com/app/id6780187283",
     "source_code": "https://github.com/OathWallet/oath-wallet",
     "website": "https://oathwallet.org",
     "email": "care@oathwallet.org",
@@ -35,44 +35,295 @@
   },
   "features": [
     {
-      "id": "own-entropy",
-      "name": "Create and import recovery formats",
-      "summary": "Create a new BIP39 wallet or import supported BIP39, Electrum and aezeed recovery material. Validation and signing happen on the device. Electrum and aezeed imports are Bitcoin-only and need manual recovery backups."
+      "id": "revoke-token-approvals",
+      "name": "Check and revoke token approvals",
+      "summary": "Check discovered token approvals in Oath for iPhone. Review supported EVM, TRON and Solana access, estimate network fees and verify supported revocations.",
+      "url": "https://oathwallet.org/features/revoke-token-approvals",
+      "guide": "https://help.oathwallet.org/articles/revoke-token-access",
+      "app_version": "5.0.2",
+      "build": 104,
+      "reviewed_on": "2026-11-06",
+      "legacyIds": [
+        "evm-access"
+      ],
+      "lookupTerms": [
+        "approval",
+        "token approvals",
+        "revoke approval",
+        "revoke token approvals",
+        "permissions",
+        "token allowance",
+        "revoke token access",
+        "token access",
+        "revoke permissions",
+        "revoke allowance"
+      ],
+      "scope": [
+        {
+          "label": "EVM networks",
+          "detail": "Supported token allowances, NFT approvals and Permit2 operations. Review the exact permission and network; not every contract or account-control entry can be removed.",
+          "lookupTerms": [
+            "evm",
+            "ethereum",
+            "base",
+            "arbitrum",
+            "polygon"
+          ]
+        },
+        {
+          "label": "TRON",
+          "detail": "Supported token and collectible permissions use the TRON removal flow. Account-control keys have a different scope and are not ordinary token allowances.",
+          "lookupTerms": [
+            "tron",
+            "trx",
+            "trc20",
+            "trc-20"
+          ]
+        },
+        {
+          "label": "Solana",
+          "detail": "Supported token-account delegate revocations. Permanent delegates and other token restrictions are not interchangeable with removable account delegates.",
+          "lookupTerms": [
+            "solana",
+            "spl"
+          ]
+        }
+      ],
+      "limitations": "The released app can discover and prepare supported removals on these network families. Coverage depends on providers, the account and the permission type.",
+      "steps": [
+        "Open Settings → Permissions → Token access. Wait for the scan and read its coverage status.",
+        "Match the network, asset and approved address. Open a removable entry and review what the removal will change.",
+        "Check the fee, confirm in Oath and follow Recent changes. Refresh the scan after confirmation before treating access as removed."
+      ],
+      "questions": [
+        {
+          "q": "Does disconnecting a dApp revoke its token approvals?",
+          "a": "No. A WalletConnect session and an on-chain allowance are different permissions. Disconnect the session when needed, and review token access separately."
+        },
+        {
+          "q": "Does an empty scan mean my wallet has no approvals?",
+          "a": "No. Read whether coverage is checked, partial, unavailable or unsupported. An unavailable provider or incomplete discovery must not be treated as proof that no permissions exist."
+        },
+        {
+          "q": "Can revoking an approval recover stolen funds?",
+          "a": "No. Revocation can remove supported future access after it is confirmed; it does not reverse completed transfers or cancel every possible off-chain signature."
+        },
+        {
+          "q": "Do I need a network fee balance?",
+          "a": "Yes, supported revocations require the relevant network fee asset. Review the actual estimate in Oath before confirming."
+        }
+      ]
     },
     {
-      "id": "passkey-restore",
-      "name": "Password-encrypted iCloud backup",
-      "summary": "Back up eligible wallets as encrypted .oathbackup files. Restore with the file and its separate backup password. Electrum and aezeed require manual recovery backups."
+      "id": "icloud-wallet-backup",
+      "name": "Encrypted iCloud wallet backup",
+      "summary": "Back up eligible Oath wallets to iCloud Drive with password encryption. Learn what is supported, how to confirm uploads and what you need to restore.",
+      "url": "https://oathwallet.org/features/icloud-wallet-backup",
+      "guide": "https://help.oathwallet.org/articles/backup-all-wallets",
+      "app_version": "5.0.2",
+      "build": 104,
+      "reviewed_on": "2026-11-06",
+      "legacyIds": [
+        "passkey-restore"
+      ],
+      "lookupTerms": [
+        "icloud",
+        "backup",
+        "icloud backup",
+        "restore encrypted backup",
+        "icloud restore",
+        "backup password",
+        "encrypted backup"
+      ],
+      "scope": [
+        {
+          "label": "Eligible active wallets",
+          "detail": "The backup flow exports supported wallet material and creates a separate encrypted file for each eligible wallet. Restore all-wallet backups one file at a time.",
+          "lookupTerms": []
+        },
+        {
+          "label": "Electrum and aezeed",
+          "detail": "These recovery formats are excluded from iCloud backup in this release. Retain their original recovery material and any required password or seed extension.",
+          "lookupTerms": [
+            "electrum",
+            "aezeed"
+          ]
+        },
+        {
+          "label": "Recently Deleted wallets",
+          "detail": "The all-wallet backup flow uses active wallets and excludes Recently Deleted wallets. A successful backup of one wallet does not establish that another was saved.",
+          "lookupTerms": [
+            "recently deleted"
+          ]
+        }
+      ],
+      "limitations": "Backup availability depends on the wallet type, app version and iCloud Drive access. This page describes Oath 5.0.2 (104).",
+      "steps": [
+        "Use the Apple Account that will hold the backup, enable iCloud Drive and check available storage. Open Settings → Backup in Oath.",
+        "Start Back Up All Wallets and choose a strong password of at least eight characters. Keep it somewhere you can reach without this phone.",
+        "Keep Oath open while it prepares the files. Review each wallet’s status and resolve failed or unavailable uploads before relying on the backup."
+      ],
+      "questions": [
+        {
+          "q": "How does Oath encrypt the backup?",
+          "a": "The reviewed release uses AES-256-GCM. A password-derived key uses PBKDF2-HMAC-SHA256 with 600,000 rounds and a fresh salt. A strong, recoverable password remains essential."
+        },
+        {
+          "q": "Is this the same as an iPhone device backup?",
+          "a": "No. This feature creates Oath encrypted wallet files in iCloud Drive. Do not assume an ordinary device backup or Apple Account sign-in replaces an Oath backup file and its password."
+        },
+        {
+          "q": "What if I forget the backup password?",
+          "a": "Oath cannot reset it or decrypt the old file with a new password. If the wallet is still accessible, create a new backup with a password you can retain. Keep independent recovery material, including any required passphrase."
+        },
+        {
+          "q": "Does “uploading” mean my wallet is backed up?",
+          "a": "No. Wait for completion for the relevant wallet. Account, storage or network problems can leave an upload pending or failed."
+        }
+      ]
+    },
+    {
+      "id": "walletconnect",
+      "name": "Connect to dApps with WalletConnect",
+      "summary": "Use WalletConnect with Oath on iPhone. Review the dApp, wallet, networks and permissions, then approve supported requests individually.",
+      "url": "https://oathwallet.org/features/walletconnect",
+      "guide": "https://help.oathwallet.org/articles/connect-dapp",
+      "app_version": "5.0.2",
+      "build": 104,
+      "reviewed_on": "2026-11-06",
+      "legacyIds": [],
+      "lookupTerms": [
+        "wallet connect",
+        "dapp",
+        "connect dapp",
+        "dapp connection",
+        "connect to dapps"
+      ],
+      "scope": [
+        {
+          "label": "Compatible EVM requests",
+          "detail": "Supported mainnet EVM connections allow the signing and transaction requests implemented in Oath. Arc connections are not supported in this release.",
+          "lookupTerms": [
+            "evm",
+            "ethereum",
+            "base",
+            "arbitrum",
+            "polygon",
+            "arc"
+          ]
+        },
+        {
+          "label": "Other supported networks",
+          "detail": "Oath supports compatible requests for Bitcoin, Solana, THORChain, XRP Ledger, Stellar, NEAR, Sui, Polkadot, TRON and Gram/TON. Available actions differ by network and dApp.",
+          "lookupTerms": [
+            "bitcoin",
+            "solana",
+            "thorchain",
+            "xrp ledger",
+            "stellar",
+            "near",
+            "sui",
+            "polkadot",
+            "tron",
+            "gram",
+            "ton"
+          ]
+        },
+        {
+          "label": "dApp and protocol limits",
+          "detail": "The dApp must offer a compatible mobile WalletConnect connection. WalletConnect is separate from TON Connect and browser-extension-only connections. Unsupported required methods or networks can prevent a session.",
+          "lookupTerms": [
+            "ton connect"
+          ]
+        }
+      ],
+      "limitations": "A network in your portfolio does not guarantee every dApp or signing method works. The released app checks the requested network and method before proceeding.",
+      "steps": [
+        "Open the intended website and choose WalletConnect. On another screen, scan the QR with Oath; on the same device, use the Oath link offered by the dApp.",
+        "Unlock Oath if asked. Check the website, wallet, networks and requested permissions before connecting. Reject a proposal you cannot explain.",
+        "Return to the dApp, then inspect each signature or transaction in Oath. Check the network, destination, amount and fee where applicable."
+      ],
+      "questions": [
+        {
+          "q": "Does connecting share my recovery phrase?",
+          "a": "No. A connection shares the approved public accounts and permits supported requests. Never enter recovery words or private keys into a dApp, and never publish a WalletConnect pairing QR or URI."
+        },
+        {
+          "q": "Why can a connection be rejected?",
+          "a": "The proposal may be expired, or require a network, method or account the installed app cannot support. Read the message in Oath and start a fresh connection from the intended dApp if needed."
+        },
+        {
+          "q": "Is connecting the same as approving a token allowance?",
+          "a": "No. Session approval and on-chain token access are separate. Review each request, and use the token-access tools to inspect supported allowances."
+        },
+        {
+          "q": "Can every Oath network use every dApp?",
+          "a": "No. Compatibility depends on the network, wallet account and action requested by the dApp. Follow the relevant network guide and the options shown in your installed app."
+        }
+      ]
+    },
+    {
+      "id": "own-entropy",
+      "name": "Create and import recovery formats",
+      "summary": "Create a new BIP39 wallet or import supported BIP39, Electrum and aezeed recovery material. Validation and signing happen on the device. Electrum and aezeed imports are Bitcoin-only and need manual recovery backups.",
+      "url": "https://help.oathwallet.org/articles/import-recovery-phrase",
+      "lookupTerms": [
+        "recovery phrase",
+        "import wallet",
+        "seed phrase"
+      ]
     },
     {
       "id": "every-language",
       "name": "57 app localizations",
-      "summary": "Oath is available in 57 app localizations, with right-to-left layouts, local number formats and BIP39 word lists."
+      "summary": "Oath is available in 57 app localizations, with right-to-left layouts, local number formats and BIP39 word lists.",
+      "url": "https://help.oathwallet.org/articles/language",
+      "lookupTerms": [
+        "language",
+        "languages",
+        "localizations"
+      ]
     },
     {
       "id": "open-source",
       "name": "Open source, with a documented review scope",
-      "summary": "The full source code is public on GitHub at https://github.com/OathWallet/oath-wallet. The published release includes its security model, verification record and reporting policy. Public source is available for review; it does not establish an independent audit or a verified match to the App Store binary."
+      "summary": "The full source code is public on GitHub at https://github.com/OathWallet/oath-wallet. The published release includes its security model, verification record and reporting policy. Public source is available for review; it does not establish an independent audit or a verified match to the App Store binary.",
+      "url": "https://oathwallet.org/security",
+      "lookupTerms": [
+        "source code",
+        "open source"
+      ]
     },
     {
       "id": "bitcoin-address-types",
       "name": "Bitcoin address options",
-      "summary": "Compatible Bitcoin wallets support Taproot, Native SegWit, nested SegWit and Legacy, depending on the imported material. Capabilities vary by network. Oath 5.0.2 does not support Silent Payments receiving or discovery; see the Silent Payments guide before relying on that feature."
-    },
-    {
-      "id": "evm-access",
-      "name": "EVM Access",
-      "summary": "A tool that shows discovered token approvals (web3 permissions) on supported EVM networks and lets the user submit supported revocation transactions. Revoking is an on-chain transaction with a network fee shown before confirming."
+      "summary": "Compatible Bitcoin wallets support Taproot, Native SegWit, nested SegWit and Legacy, depending on the imported material. Capabilities vary by network. Oath 5.0.2 does not support Silent Payments receiving or discovery; see the Silent Payments guide before relying on that feature.",
+      "url": "https://help.oathwallet.org/articles/bitcoin-address-types",
+      "lookupTerms": [
+        "bitcoin address",
+        "bitcoin address types"
+      ]
     },
     {
       "id": "local-currencies",
       "name": "Your display currency",
-      "summary": "Choose from the app’s supported display currencies. Values are estimates based on available exchange-rate data."
+      "summary": "Choose from the app’s supported display currencies. Values are estimates based on available exchange-rate data.",
+      "url": "https://help.oathwallet.org/articles/currency",
+      "lookupTerms": [
+        "currency",
+        "display currency"
+      ]
     },
     {
       "id": "real-time-prices",
       "name": "Available market prices",
-      "summary": "See available price quotes for supported assets. Quotes can be delayed or unavailable; displayed fiat values are estimates."
+      "summary": "See available price quotes for supported assets. Quotes can be delayed or unavailable; displayed fiat values are estimates.",
+      "url": "https://help.oathwallet.org/articles/prices-chart",
+      "lookupTerms": [
+        "prices",
+        "price",
+        "market prices"
+      ]
     }
   ],
   "faq": [

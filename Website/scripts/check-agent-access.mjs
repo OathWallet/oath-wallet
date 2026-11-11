@@ -40,3 +40,16 @@ assert.match((await rpc('read_document',{url:origin+'/networks'})).structuredCon
 assert.match((await rpc('get_download')).structuredContent.url,/apps.apple.com/);
 assert.equal((await rpc('read_document',{url:'http://169.254.169.254/'})).isError,true);
 console.log(`Passed ${completed} live documents (Markdown, negotiated Markdown, HTML, default Python client); 3 default Python client probes; current release and review scope on all 3 hosts; MCP release/review/recovery/network/download and URL restrictions.`);
+
+const connection = (await rpc('get_feature',{feature:'WalletConnect'})).structuredContent;
+assert.equal(connection.url, origin+'/features/walletconnect');
+const tron = (await rpc('get_feature',{feature:'TRON approval'})).structuredContent;
+assert.equal(tron.matched_scope, 'TRON');
+const approvalGuide = await (await request(tron.url+'.md')).text();
+assert.ok(approvalGuide.includes(tron.answer));
+assert.equal((await rpc('get_feature',{feature:'Bitcoin approval'})).isError,true);
+for (const path of ['/about','/about.md']) {
+  assert.ok((await (await request(origin+path)).text()).includes('Is Oath right for me?'));
+}
+assert.equal((await rpc('get_download')).structuredContent.url,'https://apps.apple.com/app/id6780187283');
+console.log('Verified published wallet choice section, scoped feature answers and official international download.');
