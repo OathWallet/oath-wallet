@@ -30,7 +30,13 @@ for(const host of ['oathwallet.org','help.oathwallet.org','articles.oathwallet.o
  const hostIndex=await(await request(`https://${host}/agent-documents.json`,{headers:{'User-Agent':'Python-urllib/3.14'}})).json();
  assert.deepEqual(hostIndex.current_status,currentStatus);
 }
-const rpc=async(name,args={})=>(await(await request(origin+'/mcp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/call',params:{name,arguments:args}})})).json()).result;
+async function rpc(name, args={}, headers={}) {
+ const response=await request(origin+'/mcp',{
+  method:'POST', headers:{'Content-Type':'application/json',...headers},
+  body:JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/call',params:{name,arguments:args}})
+ });
+ return (await response.json()).result;
+}
 assert.equal((await rpc('list_documents')).structuredContent.documents.length,index.documents.length);
 assert.deepEqual(index.current_status,currentStatus);
 assert.deepEqual((await rpc('get_release_status')).structuredContent,currentStatus);
@@ -53,3 +59,11 @@ for (const path of ['/about','/about.md']) {
 }
 assert.equal((await rpc('get_download')).structuredContent.url,'https://apps.apple.com/app/id6780187283');
 console.log('Verified published wallet choice section, scoped feature answers and official international download.');
+
+for (const type of ['application/json','application/json; charset=utf-8']) {
+ const plainClient=await rpc('get_feature',{feature:'TRON approval'},{
+  'User-Agent':'Python-urllib/3.14','Content-Type':type
+ });
+ assert.deepEqual(plainClient.structuredContent,tron);
+}
+console.log('Confirmed JSON MCP POST with a default Python client header, with and without a charset.');

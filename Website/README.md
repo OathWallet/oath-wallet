@@ -357,6 +357,14 @@ only to GET/HEAD on its listed public hosts and paths; no other security setting
 was changed. New feature routes must be checked with both identified and default
 clients before declaring a deployment complete.
 
+On 2026-11-11 a default Python client could read the documents but received
+Cloudflare error 1010 when calling the public MCP endpoint. The separate
+configuration rule **Public MCP — JSON requests** disables Browser Integrity
+Check only for HTTPS POST requests to `oathwallet.org/mcp` with the
+`application/json` media type, including parameters such as a charset.
+The deployment audit checks the resulting response against the published TRON
+approval answer. The Worker still enforces its existing request validation.
+
 ### Shared website logo
 
 Edit `content/brand/oath-logo.svg` to update Oath's logo. `npm run build:brand`
