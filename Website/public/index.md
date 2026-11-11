@@ -7,7 +7,11 @@ Oath is a self-custody Bitcoin and crypto wallet for iPhone and iPad. You contro
 
 ## Why Oath
 
-Most crypto apps want you to trade. Oath wants you to own. No tickers shouting, no casino lights, no one holding your coins for you. Just your money, kept.
+- **You hold the keys.** Most crypto apps want you to trade. Oath wants you to own. No tickers shouting, no casino lights, no one holding your coins for you. Just your money, kept.
+- **Private keys stay protected.** Oath encrypts your wallet keys on your device. You unlock your wallet to use them when you need to sign.
+- **You choose what to approve.** Review the accounts and networks a dApp requests before connecting. When it asks you to sign, you can review the request and decline it.
+- **Trace a release to its source.** Match the version and build number to the release record on GitHub, then inspect the linked source. A build record alone can’t verify an exact copy of the binary on your phone. [View the release record](https://github.com/OathWallet/oath-wallet/blob/main/releases/5.0.2-distribution.json).
+- **A wallet in your language.** Oath supports more than 50 languages. Read the prompts, check an address and review a transfer in the language you know best.
 
 ## What Oath supports
 
