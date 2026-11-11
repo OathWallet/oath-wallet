@@ -3,6 +3,22 @@ import test from 'node:test';
 import { readFile } from 'node:fs/promises';
 import { handleNewsletter } from '../src/newsletter.js';
 const env={NEWSLETTER_GATEWAY_KEY:'unit-test-key',ASSETS:{fetch:async request=>new Response(await readFile(new URL('../public'+new URL(request.url).pathname,import.meta.url)),{headers:{'Content-Type':'text/html'}})}};
+test('newsletter crawl rules allow the signup screen and its linked assets',async()=>{
+ const base='https://news.oathwallet.org/';
+ const response=await handleNewsletter(new Request(base+'robots.txt'),env);
+ assert.equal(response.headers.get('Content-Type'),'text/plain; charset=utf-8');
+ const lines=(await response.text()).split('\n');
+ assert.ok(lines.includes('User-agent: *') && lines.includes('Disallow: /'));
+ assert.ok(lines.includes('Allow: /$'));
+ const allowed=lines.filter(line=>line.startsWith('Allow: ')).map(line=>line.slice(7));
+ const allows=path=>allowed.some(rule=>rule.endsWith('$')?path===rule.slice(0,-1):path.startsWith(rule));
+ const html=await (await handleNewsletter(new Request(base),env)).text();
+ for(const [,path] of html.matchAll(/<(?:script|img|link)\b[^>]*?\b(?:src|href)="(\/[^"]+)"/g)) assert.ok(allows(path),path);
+ for(const path of ['/admin','/api/login','/_newsletter/signup','/unsubscribe','/preferences','/confirm','/t/open/test','/news/preferences.js','/news/admin.html']) assert.equal(allows(path),false,path);
+ const head=await handleNewsletter(new Request(base+'robots.txt',{method:'HEAD'}),env);
+ assert.equal(head.status,200);
+ assert.equal(await head.text(),'');
+});
 test('admin page is available but protected APIs reject cross-origin requests',async()=>{
  const page=await handleNewsletter(new Request('https://news.oathwallet.org/admin'),env);
  assert.equal(page.status,200);assert.match(page.headers.get('Content-Security-Policy'),/frame-ancestors 'none'/);assert.equal(page.headers.get('X-Robots-Tag'),null);assert.match(await page.text(),/Admin password/);

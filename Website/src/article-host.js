@@ -56,6 +56,7 @@ export async function handleArticleHost(request,env) {
   if (url.pathname==='/') file='/articles.html';
   else if (url.pathname==='/index.md' || url.pathname==='/articles.md') file='/articles.md';
   else if (['/feed.xml','/feed.json'].includes(url.pathname)) file='/articles'+url.pathname;
+  else if (url.pathname==='/site.webmanifest') return env.ASSETS.fetch(request);
   else if (entry) file=clean.endsWith('.md')?oldPath:entry;
   else if (['/Oath%20Header.dc.html','/Oath%20Footer.dc.html'].includes(url.pathname)) file=url.pathname;
   else if (/\.(css|js|svg|png|jpe?g|webp|avif|woff2|ico|mp4|webm)$/.test(url.pathname) || ['/feed.xml','/feed.json','/oath-data.json','/data/security-model.json'].includes(url.pathname)) file=url.pathname;
