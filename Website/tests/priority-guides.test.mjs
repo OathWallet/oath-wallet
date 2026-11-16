@@ -82,3 +82,17 @@ test('Fantom opens with reviewed Opera funding steps in HTML and Markdown',async
  const schema=JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)[1])['@graph'][0];
  assert.equal(schema.dateModified,guide.updated);
 });
+
+test('Polkadot iPhone guide uses the Asset Hub send flow in both representations',async()=>{
+ const path='/networks/polkadot', guide=guidance.pages[path];
+ const html=await (await get(path)).text(), md=await (await get(path+'.md')).text();
+ assert.ok(html.includes('<title>'+guide.pageTitle+' | Oath</title>'));
+ assert.ok(html.includes('<a href="#send">'+guide.send.title+'</a>'));
+ for(const doc of [html,md]){
+  for(const text of [guide.receive.answer,guide.send.title,...guide.send.steps,'Polkadot Asset Hub mainnet','network fee in DOT','Polkadot-format SS58 address']){
+   assert.ok(doc.includes(text),text);
+  }
+  assert.doesNotMatch(doc,/any required memo or tag/);
+  for(const link of guide.links)assert.ok(doc.includes(link.url),link.url);
+ }
+});

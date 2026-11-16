@@ -12,6 +12,18 @@ const answers = new Map([
     sourceURL: 'https://www.clanker.world/clanker/0x820C5F0fB255a1D18fd0eBB0F1CCefbC4D546dA7',
     updated: '2026-11-16'
   }],
+  ['wagmi-5', {
+    network: 'base',
+    reference: '0x2ce1340f1d402ae75afeb55003d7491645db1857',
+    title: 'WAGMI by Virtuals on Base – Token Contract & How to Receive | Oath',
+    description: 'Find the Base contract for WAGMI by Virtuals, listed as WAGMI in Oath. Match the token before you receive it and check which address to share with the sender.',
+    heading: 'Which WAGMI token is this?',
+    answer: 'This is WAGMI by Virtuals, an ERC-20 token on Base. Its contract reports the symbol WAGMI and 18 decimals. Oath lists it as WAGMI. Match the full Base contract below to distinguish it from other tokens with the same ticker.',
+    receiving: 'To receive WAGMI, open Receive in Oath, choose Base and share your personal Base address with the sender. The contract above identifies the token. Keep ETH on Base for the fee if you send WAGMI later.',
+    sourceLabel: 'View the WAGMI contract on BaseScan',
+    sourceURL: 'https://basescan.org/token/0x2Ce1340F1d402aE75aFEb55003d7491645dB1857',
+    updated: '2026-11-16'
+  }],
   ['tetsuo-coin', {
     network: 'solana',
     reference: '8i51XNNpGaKaj4G4nDdmQh95v4FKAxw8mhtaRoKd9tE8',
