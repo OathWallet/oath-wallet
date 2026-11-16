@@ -1,3 +1,4 @@
+import {tokenAnswer} from '../src/token-answers.js';
 import {priorityUpdated} from '../src/seo-guidance.js';
 import {artworkSnapshot,attachArtwork} from './token-artwork.mjs';
 import {chainMark,rowContents} from '../src/catalog-ui.js';
@@ -18,7 +19,7 @@ let previous;
 try{previous=readLedger(JSON.parse(await readFile(ledgerFile)));}catch(e){if(e.code!=='ENOENT')throw e;}
 const {ledger,rows:baseRows}=assignRoutes(source,previous);
 const artwork=await artworkSnapshot(), rows=qualifyTokenTitles(attachArtwork(baseRows,artwork),source.networks);
-const template=await Promise.all(['scripts/build-tokens.mjs','src/brand.js','src/xstock-guides.js','content/reviewed-xstocks.json','src/token-titles.js','scripts/token-titles.mjs','src/artwork-manifest.json','src/token-artwork.js','public/token-artwork.css','src/tokens.js','src/catalog-ui.js','public/wallet-catalog.css','src/transfer-preparation.js','src/seo-guidance.js','content/priority-guidance.json','public/seo-guidance.css','public/tokens.css','public/Oath Header.dc.html','public/Oath Footer.dc.html'].map(p=>readFile(new URL(p,base),'utf8')));
+const template=await Promise.all(['scripts/build-tokens.mjs','src/brand.js','src/xstock-guides.js','content/reviewed-xstocks.json','src/token-titles.js','src/token-answers.js','scripts/token-titles.mjs','src/artwork-manifest.json','src/token-artwork.js','public/token-artwork.css','src/tokens.js','src/catalog-ui.js','public/wallet-catalog.css','src/transfer-preparation.js','src/seo-guidance.js','content/priority-guidance.json','public/seo-guidance.css','public/tokens.css','public/Oath Header.dc.html','public/Oath Footer.dc.html'].map(p=>readFile(new URL(p,base),'utf8')));
 const version=digest(JSON.stringify({source,ledger,template})).slice(0,16), prefix=`/token-data/${version}`;
 const stage=new URL('public/token-data-next/',base);
 await rm(stage,{recursive:true,force:true});await mkdir(stage,{recursive:true});
@@ -127,7 +128,10 @@ await writeFile(new URL('sitemaps/pages.xml',root),core);
 const maps=['https://oathwallet.org/sitemaps/pages.xml'];
 for(let offset=0;offset<allURLs.length;offset+=10000){
   const name=`tokens-${String(1+offset/10000).padStart(4,'0')}.xml`;
-  const xml=`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${allURLs.slice(offset,offset+10000).map(r=>`<url><loc>${xmlEscape('https://oathwallet.org'+r.path)}</loc>${priorityUpdated(r.path)?`<lastmod>${priorityUpdated(r.path)}</lastmod>`:''}</url>`).join('\n')}\n</urlset>\n`;
+  const xml=`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${allURLs.slice(offset,offset+10000).map(r=>{
+    const updated=tokenAnswer(byPath.get(r.path))?.updated||priorityUpdated(r.path);
+    return `<url><loc>${xmlEscape('https://oathwallet.org'+r.path)}</loc>${updated?`<lastmod>${updated}</lastmod>`:''}</url>`;
+  }).join('\n')}\n</urlset>\n`;
   await writeFile(new URL('sitemaps/'+name,root),xml);maps.push('https://oathwallet.org/sitemaps/'+name);
 }
 await writeFile(new URL('sitemap.xml',root),`<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${maps.map(url=>`<sitemap><loc>${url}</loc></sitemap>`).join('\n')}\n</sitemapindex>\n`);
