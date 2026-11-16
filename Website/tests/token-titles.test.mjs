@@ -64,7 +64,7 @@ test('every published detail and multi-network overview has a distinct identity-
 test('page titles, social previews and structured metadata agree across networks and title edge cases',async()=>{
   const rows=coins.flatMap(c=>c.assets),cases=new Map();
   for(const network of Object.keys(manifest.networks)){const a=rows.find(a=>a.network===network);cases.set(a.path,[a,manifest.networks[network]]);}
-  for(const a of [rows.find(a=>a.titleQualifier),rows.find(a=>a.name.length>70),rows.find(a=>a.name.includes('&')),rows.find(a=>a.path==='/tokens/usdt/aptos'),rows.find(a=>a.path==='/tokens/usdt/tron'),rows.find(a=>a.path==='/tokens/a0x/base'),rows.find(a=>a.path==='/tokens/tetsuo-coin/solana')])cases.set(a.path,[a,manifest.networks[a.network]]);
+  for(const a of [rows.find(a=>a.titleQualifier),rows.find(a=>a.name.length>70),rows.find(a=>a.name.includes('&')),rows.find(a=>a.path==='/tokens/usdt/aptos'),rows.find(a=>a.path==='/tokens/usdt/tron'),rows.find(a=>a.path==='/tokens/a0x/base'),rows.find(a=>a.path==='/tokens/wagmi-5/base'),rows.find(a=>a.path==='/tokens/tetsuo-coin/solana')])cases.set(a.path,[a,manifest.networks[a.network]]);
   for(const c of [coins.find(c=>c.slug==='usdt'),coins.find(c=>c.slug==='usdc'),coins.find(c=>c.titleQualifier)])cases.set('/tokens/'+c.slug,[c]);
   for(const [path,[asset,network]]of cases){
     const r=await worker.fetch(new Request(origin+path),env);assert.equal(r.status,200,path);
@@ -86,7 +86,7 @@ test('page titles, social previews and structured metadata agree across networks
 test('reviewed introductions, metadata and sitemap dates follow the exact project token identity',async()=>{
   const sitemaps=await readdir(new URL('sitemaps/',root));
   const xml=(await Promise.all(sitemaps.filter(name=>name.startsWith('tokens-')).map(name=>read('/sitemaps/'+name)))).join('');
-  for(const [slug,network] of [['a0x','base'],['tetsuo-coin','solana']]){
+  for(const [slug,network] of [['a0x','base'],['tetsuo-coin','solana'],['wagmi-5','base']]){
     const path='/tokens/'+slug+'/'+network;
     const asset=coins.find(c=>c.slug===slug).assets.find(a=>a.path===path);
     const answer=tokenAnswer(asset);
