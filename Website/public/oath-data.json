@@ -529,12 +529,12 @@
       "markdown_url": "https://oathwallet.org/articles/bitget-388-million-hack-self-custody.md"
     },
     {
-      "title": "Bitcoin Address Types and Recovery Scope in Oath",
-      "excerpt": "Match the address type and imported key scope; changing the visible format does not change the blockchain.",
+      "title": "Bitcoin Address Types: SegWit, Taproot and Address Indexes",
+      "excerpt": "Compare bc1q, bc1p, 3 and 1 Bitcoin addresses. Learn which receiving format to choose in Oath and how account, change and address indexes affect recovery.",
       "category": "Product",
       "author_name": "Oath Editorial",
       "published_at": "2026-09-11T05:44:15.57+00:00",
-      "updated_at": "2026-11-02T00:00:00Z",
+      "updated_at": "2026-11-16T00:00:00Z",
       "locale": "en",
       "language_name": "English",
       "reading_minutes": 3,

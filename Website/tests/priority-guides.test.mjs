@@ -68,3 +68,17 @@ test('priority stablecoin references match the accepted catalog snapshot',async(
   assert.equal(coin.assets.find(a=>a.path===path).reference,reference);const html=await(await get(path)).text();assert.ok(html.includes(reference));assert.match(html,/token identifier is not your receiving address/);
  }
 });
+
+test('Fantom opens with reviewed Opera funding steps in HTML and Markdown',async()=>{
+ const path='/networks/fantom', guide=guidance.pages[path];
+ const html=await (await get(path)).text(),md=await (await get(path+'.md')).text();
+ for(const doc of [html,md]){
+  assert.ok(doc.indexOf(guide.receive.answer)>=0 && doc.indexOf(guide.receive.answer)<doc.indexOf(guide.receive.steps[0]));
+  for(const step of guide.receive.steps)assert.ok(doc.includes(step));
+  for(const term of ['chain ID 250','chain ID 146','sender pays','June 23, 2026'])assert.ok(doc.includes(term));
+ }
+ assert.ok(html.includes('<title>'+guide.pageTitle+' | Oath</title>'));
+ assert.ok(html.includes(`<meta name="description" content="${guide.description}">`));
+ const schema=JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)[1])['@graph'][0];
+ assert.equal(schema.dateModified,guide.updated);
+});

@@ -1458,6 +1458,60 @@
           "caption": "Ethereum entry selected for this capture. TXNX is the released catalog spelling. The displayed balance, price and history are mock data, independent of the market price."
         }
       ]
+    },
+    "/networks/fantom": {
+      "updated": "2026-11-16",
+      "version": "5.0.2",
+      "build": 104,
+      "pageTitle": "How to Get FTM on Fantom Opera: Receive FTM in Oath",
+      "description": "Receive native FTM on Fantom Opera in Oath. Match chain ID 250 before withdrawing, check who pays gas and see what to do when a service only offers Sonic.",
+      "receive": {
+        "title": "How to get FTM on Fantom Opera",
+        "answer": "To get native FTM on Fantom, have someone send FTM from an Opera wallet, or withdraw FTM from a service that currently offers Fantom Opera. In Oath, copy your Fantom receiving address and make sure the sender uses Opera mainnet (chain ID 250).",
+        "steps": [
+          "Open the wallet you want to fund in Oath. Tap Receive, choose Fantom and copy the address shown, or show the sender its QR code.",
+          "In the sending wallet, select native FTM on Fantom Opera. At an exchange, open Withdraw, choose FTM and check that withdrawals on Fantom Opera are enabled. If you only see Sonic (S) or Ethereum, stop before confirming.",
+          "Compare the entire destination address, network, amount and any withdrawal fee. For a first transfer, send a small amount that meets the service’s minimum.",
+          "After broadcast, check the transaction hash on Opera and verify the recipient and amount. If a withdrawal is pending and the service has not provided a hash, check its withdrawal history before sending again."
+        ]
+      },
+      "title": "Fantom Opera transfer questions",
+      "questions": [
+        {
+          "q": "Do I need FTM already to receive it?",
+          "a": "For an ordinary transfer from another wallet, the sender pays the Opera network fee in FTM. Your receiving wallet needs no starting balance. An exchange may charge a withdrawal fee. Keep some FTM in your wallet for a later send."
+        },
+        {
+          "q": "Will sending S on Sonic give me FTM on Opera?",
+          "a": "No. Sonic mainnet uses S and chain ID 146. Opera uses FTM and chain ID 250. Both can display the same 0x address. Sending on Sonic leaves the funds on Sonic."
+        },
+        {
+          "q": "Is Fantom Opera still running?",
+          "a": "On June 23, 2026, Sonic Labs said Opera would stay live through at least the end of 2026. Oath checked chain ID 250 and a current Opera block on November 16. Check the sending service’s current network availability before each withdrawal."
+        }
+      ],
+      "links": [
+        {
+          "label": "Fantom Opera mainnet settings",
+          "url": "https://docs.fantom.foundation/build-on-opera/api/public-endpoints"
+        },
+        {
+          "label": "How Fantom Opera fees work",
+          "url": "https://docs.fantom.foundation/technology/transaction-fees"
+        },
+        {
+          "label": "Sonic mainnet settings",
+          "url": "https://docs.soniclabs.com/sonic/build-on-sonic/getting-started"
+        },
+        {
+          "label": "Sonic Labs’ June 23 Opera update",
+          "url": "https://www.soniclabs.com/blog/the-first-1"
+        },
+        {
+          "label": "Oath’s released Receive screen",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Home/OathReceiveSheet.swift"
+        }
+      ]
     }
   }
 }
