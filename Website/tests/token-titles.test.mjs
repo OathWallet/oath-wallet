@@ -13,6 +13,10 @@ const read=path=>readFile(new URL('.'+path,root),'utf8');
 const coins=[];
 for(const file of await readdir(new URL('.'+manifest.prefix+'/coins/',root)))coins.push(...Object.values(JSON.parse(await read(manifest.prefix+'/coins/'+file))));
 const env={ASSETS:{async fetch(request){try{return new Response(await read(new URL(request.url).pathname));}catch{return new Response(null,{status:404});}}}};
+const reviewedDetails=[
+  ['a0x','base'],['tetsuo-coin','solana'],['wagmi-5','base'],
+  ['aussie-dollar-token','ethereum'],['pump-fun','solana']
+];
 const normalize=text=>text.normalize('NFC').replace(/\s+/g,' ').toLocaleLowerCase('en');
 
 test('full names, symbols and bridge qualifiers stay readable while long titles shorten surrounding wording',()=>{
@@ -64,7 +68,7 @@ test('every published detail and multi-network overview has a distinct identity-
 test('page titles, social previews and structured metadata agree across networks and title edge cases',async()=>{
   const rows=coins.flatMap(c=>c.assets),cases=new Map();
   for(const network of Object.keys(manifest.networks)){const a=rows.find(a=>a.network===network);cases.set(a.path,[a,manifest.networks[network]]);}
-  for(const a of [rows.find(a=>a.titleQualifier),rows.find(a=>a.name.length>70),rows.find(a=>a.name.includes('&')),rows.find(a=>a.path==='/tokens/usdt/aptos'),rows.find(a=>a.path==='/tokens/usdt/tron'),rows.find(a=>a.path==='/tokens/a0x/base'),rows.find(a=>a.path==='/tokens/wagmi-5/base'),rows.find(a=>a.path==='/tokens/tetsuo-coin/solana')])cases.set(a.path,[a,manifest.networks[a.network]]);
+  for(const a of [rows.find(a=>a.titleQualifier),rows.find(a=>a.name.length>70),rows.find(a=>a.name.includes('&')),rows.find(a=>a.path==='/tokens/usdt/aptos'),rows.find(a=>a.path==='/tokens/usdt/tron'),...reviewedDetails.map(([slug,network])=>rows.find(a=>a.path==='/tokens/'+slug+'/'+network))])cases.set(a.path,[a,manifest.networks[a.network]]);
   for(const c of [coins.find(c=>c.slug==='usdt'),coins.find(c=>c.slug==='usdc'),coins.find(c=>c.titleQualifier)])cases.set('/tokens/'+c.slug,[c]);
   for(const [path,[asset,network]]of cases){
     const r=await worker.fetch(new Request(origin+path),env);assert.equal(r.status,200,path);
@@ -86,9 +90,10 @@ test('page titles, social previews and structured metadata agree across networks
 test('reviewed introductions, metadata and sitemap dates follow the exact project token identity',async()=>{
   const sitemaps=await readdir(new URL('sitemaps/',root));
   const xml=(await Promise.all(sitemaps.filter(name=>name.startsWith('tokens-')).map(name=>read('/sitemaps/'+name)))).join('');
-  for(const [slug,network] of [['a0x','base'],['tetsuo-coin','solana'],['wagmi-5','base']]){
+  for(const [slug,network] of reviewedDetails){
     const path='/tokens/'+slug+'/'+network;
-    const asset=coins.find(c=>c.slug===slug).assets.find(a=>a.path===path);
+    const coin=coins.find(c=>c.slug===slug);
+    const asset=coin.assets.find(a=>a.path===path);
     const answer=tokenAnswer(asset);
     assert.ok(answer,path);
     for(const mismatch of [{reference:asset.reference+'1'},{network:'other'},{coinID:'other'}]){
@@ -103,9 +108,10 @@ test('reviewed introductions, metadata and sitemap dates follow the exact projec
       const start=doc.indexOf(answer.heading),receive=doc.indexOf('Receive '+asset.symbol+' on ');
       const opening=doc.slice(start,receive);
       assert.ok(start>=0 && receive>start,path);
-      for(const value of [answer.answer,asset.reference,answer.receiving,answer.sourceURL]){
+      for(const value of [answer.answer,asset.reference,answer.receiving,...answer.sources.map(source=>source.url)]){
         assert.ok(opening.includes(value),path+' opening: '+value);
       }
+      for(const step of answer.receiveSteps||[])assert.ok(doc.slice(receive).includes(step),path+' receiving steps');
     }
     const page=JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)[1])['@graph'][0];
     assert.equal(page.description,answer.description);
@@ -113,7 +119,15 @@ test('reviewed introductions, metadata and sitemap dates follow the exact projec
     assert.ok(html.includes(`<meta name="description" content="${escapeHTML(answer.description)}">`));
     assert.ok(xml.includes(`<loc>${origin+path}</loc><lastmod>${answer.updated}</lastmod>`));
     const alias=await worker.fetch(new Request(origin+'/tokens/'+slug),env);
-    assert.equal(alias.status,308);
-    assert.equal(alias.headers.get('location'),origin+path);
+    if(coin.assets.length===1){
+      assert.equal(alias.status,308);
+      assert.equal(alias.headers.get('location'),origin+path);
+    }else{
+      assert.equal(alias.status,200);
+      const overview=await alias.text();
+      assert.ok(overview.includes('href="'+path+'"'));
+      assert.ok(!overview.includes(answer.heading));
+      for(const other of coin.assets.filter(row=>row.network!==network))assert.equal(tokenAnswer(other),undefined,other.path);
+    }
   }
 });
