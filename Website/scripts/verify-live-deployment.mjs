@@ -240,7 +240,11 @@ for(const path of ['/','/features']){
  }
 }
 const tokenEntry=await fetch('https://oathwallet.org/tokens/usdc/base',{signal:AbortSignal.timeout(20000)});
-assert.ok((await tokenEntry.text()).includes('choose-token-network?token=usdc&amp;network=base#prepare-transfer'));
+const transferEntryHTML=await tokenEntry.text();
+assert.ok(transferEntryHTML.includes('<form method="get" action="/networks/choose-token-network#prepare-transfer">'));
+assert.ok(transferEntryHTML.includes('<input type="hidden" name="token" value="usdc">'));
+assert.ok(transferEntryHTML.includes('<input type="hidden" name="network" value="base">'));
+assert.ok(!transferEntryHTML.includes('href="/networks/choose-token-network?'));
 console.log(`Verified transfer preparation across ${Object.keys(tokens.networks).length} networks, exact token links, current copy and published tool assets.`);
 
 for(const path of ['/assets/home-preview/wallet-motion.js','/assets/home-preview/cobalt.webp','/Oath App Home.dc.html']){

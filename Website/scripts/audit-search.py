@@ -60,7 +60,11 @@ def fetch(url, head=False):
     command=['curl','--silent','--show-error','--location','--max-time','30']
     if head: command+=['--head','--output','/dev/null']
     command+=['--write-out','\n%{http_code}\n%{url_effective}\n%header{x-robots-tag}\n%header{content-type}',url]
+    # Retry a transient TLS/connection reset with a fresh response. Keep HTTP
+    # failures and persistent transport errors visible to the deployment gate.
     result=subprocess.run(command,text=True,capture_output=True)
+    if result.returncode in (35, 56):
+        result=subprocess.run(command,text=True,capture_output=True)
     if result.returncode: raise RuntimeError('Fetch failed: '+url+' '+result.stderr[:120])
     body,status,final,robots,content_type=result.stdout.rsplit('\n',4)
     return int(status),final,robots,content_type,body

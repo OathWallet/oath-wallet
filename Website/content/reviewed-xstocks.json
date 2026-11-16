@@ -5,6 +5,7 @@
   "assets": {
     "texas-instruments-xstock": {
       "symbol": "TXNx",
+      "overviewAnswer": "TXNx is a tracker certificate issued by Backed Assets (JE) Limited. It tracks Texas Instruments stock (TXN). Use the sender’s network below to find the matching token identifier.",
       "underlying": "TXN",
       "name": "Texas Instruments xStock",
       "isin": "CH1564487408",
