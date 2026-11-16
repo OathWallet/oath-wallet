@@ -24,7 +24,9 @@ test('issuer evidence matches all 40 released entries and cannot verify replacem
       assert.equal(checkedIdentity(guide,entry),null);
       assert.match(productIdentity({coinID,slug:slugs.get(coinID)},entry,escapeHTML),/Catalog record only/);
     }
-    assert.equal(priorityUpdated('/tokens/'+slugs.get(coinID)),'2026-11-10');
+    const overview='/tokens/'+slugs.get(coinID);
+    assert.equal(priorityUpdated(overview),guide.symbol==='TXNx'?'2026-11-16':'2026-11-10');
+    assert.equal(priorityUpdated(overview+'/arbitrum'),'2026-11-10');
     assert.ok((await readPublic(guidePreview('/tokens/'+slugs.get(coinID)).slice(1))).length>0);
   }
 });
