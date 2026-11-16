@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile,readdir} from 'node:fs/promises';
+import {tokenAnswer} from '../src/token-answers.js';
 import {tokenLabel,tokenPageTitle} from '../src/token-titles.js';
 import {qualifyTokenTitles,qualifyOverviewTitles} from '../scripts/token-titles.mjs';
 import manifest from '../src/tokens-manifest.json' with {type:'json'};
@@ -63,7 +64,7 @@ test('every published detail and multi-network overview has a distinct identity-
 test('page titles, social previews and structured metadata agree across networks and title edge cases',async()=>{
   const rows=coins.flatMap(c=>c.assets),cases=new Map();
   for(const network of Object.keys(manifest.networks)){const a=rows.find(a=>a.network===network);cases.set(a.path,[a,manifest.networks[network]]);}
-  for(const a of [rows.find(a=>a.titleQualifier),rows.find(a=>a.name.length>70),rows.find(a=>a.name.includes('&')),rows.find(a=>a.path==='/tokens/usdt/aptos'),rows.find(a=>a.path==='/tokens/usdt/tron')])cases.set(a.path,[a,manifest.networks[a.network]]);
+  for(const a of [rows.find(a=>a.titleQualifier),rows.find(a=>a.name.length>70),rows.find(a=>a.name.includes('&')),rows.find(a=>a.path==='/tokens/usdt/aptos'),rows.find(a=>a.path==='/tokens/usdt/tron'),rows.find(a=>a.path==='/tokens/a0x/base'),rows.find(a=>a.path==='/tokens/tetsuo-coin/solana')])cases.set(a.path,[a,manifest.networks[a.network]]);
   for(const c of [coins.find(c=>c.slug==='usdt'),coins.find(c=>c.slug==='usdc'),coins.find(c=>c.titleQualifier)])cases.set('/tokens/'+c.slug,[c]);
   for(const [path,[asset,network]]of cases){
     const r=await worker.fetch(new Request(origin+path),env);assert.equal(r.status,200,path);
@@ -79,5 +80,40 @@ test('page titles, social previews and structured metadata agree across networks
     assert.ok(html.includes(escapeHTML(asset.name)),path+' full token name');
     if(network)assert.ok(html.includes(escapeHTML(network.symbol)),path+' fee asset');
     assert.ok(html.includes('does not mean issuer verification, safety approval or individually tested sending'));
+  }
+});
+
+test('reviewed introductions, metadata and sitemap dates follow the exact project token identity',async()=>{
+  const sitemaps=await readdir(new URL('sitemaps/',root));
+  const xml=(await Promise.all(sitemaps.filter(name=>name.startsWith('tokens-')).map(name=>read('/sitemaps/'+name)))).join('');
+  for(const [slug,network] of [['a0x','base'],['tetsuo-coin','solana']]){
+    const path='/tokens/'+slug+'/'+network;
+    const asset=coins.find(c=>c.slug===slug).assets.find(a=>a.path===path);
+    const answer=tokenAnswer(asset);
+    assert.ok(answer,path);
+    for(const mismatch of [{reference:asset.reference+'1'},{network:'other'},{coinID:'other'}]){
+      const other={...asset,...mismatch};
+      assert.equal(tokenAnswer(other),undefined);
+      assert.notEqual(tokenPageTitle(other,manifest.networks[network]),answer.title);
+    }
+    const fetchPage=suffix=>worker.fetch(new Request(origin+path+suffix),env);
+    const html=await (await fetchPage('')).text();
+    const md=await (await fetchPage('.md')).text();
+    for(const doc of [html,md]){
+      const start=doc.indexOf(answer.heading),receive=doc.indexOf('Receive '+asset.symbol+' on ');
+      const opening=doc.slice(start,receive);
+      assert.ok(start>=0 && receive>start,path);
+      for(const value of [answer.answer,asset.reference,answer.receiving,answer.sourceURL]){
+        assert.ok(opening.includes(value),path+' opening: '+value);
+      }
+    }
+    const page=JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)[1])['@graph'][0];
+    assert.equal(page.description,answer.description);
+    assert.equal(page.dateModified,answer.updated);
+    assert.ok(html.includes(`<meta name="description" content="${escapeHTML(answer.description)}">`));
+    assert.ok(xml.includes(`<loc>${origin+path}</loc><lastmod>${answer.updated}</lastmod>`));
+    const alias=await worker.fetch(new Request(origin+'/tokens/'+slug),env);
+    assert.equal(alias.status,308);
+    assert.equal(alias.headers.get('location'),origin+path);
   }
 });

@@ -1,3 +1,5 @@
+import {tokenAnswer} from './token-answers.js';
+
 // Shared by the published pages, catalog build and deployment verification.
 // Preserve the released name, including wrapped/bridged qualifiers. The title
 // describes the page's transfer guidance, not individually verified sending.
@@ -8,6 +10,8 @@ export function tokenLabel(asset) {
 }
 
 export function tokenPageTitle(asset,network) {
+  const answer=network && tokenAnswer(asset);
+  if(answer)return answer.title;
   const subject=tokenLabel(asset),location=network?` on ${network.name}`:'';
   const qualifier=asset.titleQualifier?` [${asset.titleQualifier}]`:'';
   const candidates=[
