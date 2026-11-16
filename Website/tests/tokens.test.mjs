@@ -98,12 +98,14 @@ test('every catalog identity and route is unique, pinned, escaped and in the sit
   assert.match(m.content,/not your receiving address/);
   assert.ok(m.title.includes(manifest.networks[a.network].name));
   for(const [,path]of m.content.matchAll(/href="(\/[^"#]*)"/g)){
-   if(path.startsWith(transferPath+'?'))assert.equal(path,escapeHTML(transferURL(a).split('#')[0]),a.path);
-   else if(path.startsWith('/assets/'))assert.ok((await readFile(new URL('.'+path,root))).length>0,a.path+' screenshot link must resolve to a real asset');
+   if(path.startsWith('/assets/'))assert.ok((await readFile(new URL('.'+path,root))).length>0,a.path+' screenshot link must resolve to a real asset');
    else assert.ok(all.has(path)||core.has(path),a.path+' links to '+path);
   }
-  assert.ok(m.content.includes(escapeHTML(transferURL(a))),a.path+' exact transfer link');
   const preparation=new URL(transferURL(a),main);
+  assert.ok(m.content.includes(`<form method="get" action="${transferPath}#prepare-transfer">`),a.path);
+  for(const [name,value] of preparation.searchParams)
+   assert.ok(m.content.includes(`<input type="hidden" name="${name}" value="${escapeHTML(value)}">`),a.path);
+  assert.ok(!m.content.includes('href="'+transferPath+'?'),a.path);
   assert.match(preparation.searchParams.get('token'),/^[a-z0-9-]{1,200}$/);
   assert.match(preparation.searchParams.get('network'),/^[a-z0-9-]{1,200}$/);
   if(a.decimals==null||a.network==='xrpl')assert.ok(!m.content.includes('Catalog decimals'));
@@ -245,4 +247,18 @@ test('ignored and ambiguous page parameters never create token HTML cache entrie
   await Promise.all(pending);assert.equal(stored.size,0);
   await cachedTokens(new Request(main+'/tokens?page=2'),env,ctx);await Promise.all(pending);assert.equal(stored.size,1);
  }finally{if(previous===undefined)delete globalThis.caches;else globalThis.caches=previous;}
+});
+
+test('a single-entry token breadcrumb skips its redirect and Markdown retains the selected checklist',async()=>{
+ const r=await get('/tokens/spinning-frog/solana');
+ const html=await r.text();
+ const graph=JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)[1]);
+ const trail=graph['@graph'].find(x=>x['@type']==='BreadcrumbList').itemListElement;
+ assert.deepEqual(trail.map(x=>x.item),[main+'/',main+'/tokens',main+'/tokens/spinning-frog/solana']);
+ assert.doesNotMatch(html,/href="\/tokens\/spinning-frog"/);
+ const md=await (await get('/tokens/spinning-frog/solana.md')).text();
+ assert.ok(md.includes(transferPath+'?token=spinning-frog&network=solana#prepare-transfer'));
+ const overview=await (await get('/tokens/texas-instruments-xstock')).text();
+ assert.ok(overview.includes('TXNx is a tracker certificate'));
+ assert.ok(overview.indexOf('TXNx is a tracker certificate')<overview.indexOf('<h2>Choose a network'));
 });

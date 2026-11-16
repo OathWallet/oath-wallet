@@ -5,7 +5,7 @@ import {tokenPageTitle} from './token-titles.js';
 import {tokenArtwork,stripTokenArtwork} from './token-artwork.js';
 import {reviewedAssets, checkedIdentity, productIdentity, guidePreview} from './xstock-guides.js';
 import {priorityHTML,priorityOverviewHTML,priorityUpdated,priorityDescription} from './seo-guidance.js';
-import {transferURL, identifierLabel} from './transfer-preparation.js';
+import {transferPath, transferSlug, transferKey, transferURL, identifierLabel} from './transfer-preparation.js';
 import manifest from './tokens-manifest.json' with {type:'json'};
 import {wantsMarkdown} from './agent-content.js';
 
@@ -116,7 +116,7 @@ function priorityText(c,a,n){
   const issuer=c.coinID==='tether'?['https://tether.to/en/supported-protocols/','Tether supported protocols']:['https://developers.circle.com/stablecoins/usdc-contract-addresses','Circle USDC contract addresses'];
   return `<section><h2>Choose the right ${name} network</h2><p>${h(specific)}</p><p>Compare the exact identifier with the sending service and the issuer’s current information. The catalog’s grouping is not proof that every version is directly issued or redeemable by the issuer. Wrapped and bridged assets have their own issuer or bridge risks.</p><p>${link(issuer[0],issuer[1])}</p></section>`;
 }
-export function detailContent(c,a){
+export function detailContent(c,a,{md=false}={}){
   const n=manifest.networks[a.network];
   const title=`${a.name} (${a.symbol}) on ${n.name}`;
   const fee=n.symbol;
@@ -124,6 +124,9 @@ export function detailContent(c,a){
   const reviewed = reviewedAssets[c.coinID];
   const identity = productIdentity(c,a,h);
   const needsReview = reviewed && !checkedIdentity(reviewed,a);
+  // Human readers can bookmark the resulting GET URL. Markdown readers get the same deep link.
+  const prepare = md ? link(transferURL(a),'Prepare a transfer') :
+    `<form method="get" action="${transferPath}#prepare-transfer"><input type="hidden" name="token" value="${h(transferSlug(a))}"><input type="hidden" name="network" value="${h(transferKey(a))}"><button class="token-button" type="submit">Prepare a transfer</button></form>`;
   const content=`${assetHeading(pairedMark(a,n),a.symbol+' on '+n.name,a.name+' · Fee asset: '+fee)}
   ${needsReview ? identity : ''}
   <div class="wallet-split">
@@ -131,7 +134,7 @@ export function detailContent(c,a){
   <section><h2>Sending and fees</h2><p>${h(n.send)}</p><p>The network’s fee asset is ${h(fee)}. Receiving an ordinary transfer does not mean you can send it without a fee balance. Account activation, reserves, storage or token-account creation can add requirements.</p><p>Select the exact asset in Oath, choose Send if available, and review the destination, amount and final fee. Token-specific restrictions, missing metadata or unsupported token extensions can prevent a transfer; catalog presence alone is not a sending test.</p></section></div>
 <aside><section class="token-identity"><h2>Check the identity</h2><dl><div><dt>Asset</dt><dd>${h(a.name)} (${h(a.symbol)})</dd></div><div><dt>Network</dt><dd>${link('/networks/'+n.slug,n.name)}${n.chainId?' · Chain ID '+n.chainId:''}</dd></div><div><dt>${identifierLabel(a.network)}</dt><dd><code dir="ltr">${h(a.reference)}</code></dd></div>${a.decimals!=null&&a.network!=='xrpl'?`<div><dt>Catalog decimals</dt><dd>${a.decimals}</dd></div>`:''}<div><dt>Catalog asset ID</dt><dd><code>${h(c.coinID)}</code></dd></div></dl><p><strong>This token identifier is not your receiving address.</strong> Copy your personal address from Receive in Oath. Never send funds to the contract, mint or issuer shown here.</p></section></aside></div>
   ${needsReview ? '' : identity}
-  <section class="token-preparation"><h2>Before you transfer</h2><p>Open the transfer checklist with this exact token and network selected. Check its identifier, receiving steps and fee requirements before using the sending service.</p><a class="token-button" rel="nofollow" href="${h(transferURL(a))}">Prepare a transfer</a></section>
+  <section class="token-preparation"><h2>Before you transfer</h2><p>Open the transfer checklist with this exact token and network selected. Check its identifier, receiving steps and fee requirements before using the sending service.</p>${prepare}</section>
   ${priorityText(c,a,n)}
   <section><h2>What this listing covers</h2><p>This entry is discoverable on ${h(n.name)} in the released catalog. Oath provides the network’s receive and supported-asset transfer flows. WalletConnect ${n.walletConnect?'is available for compatible '+h(n.name)+' requests; it does not guarantee a dApp supports this token.':'is not listed as available for this network in this guide.'}</p><p>Check issuer restrictions before using an asset. A token can be paused, frozen, transfer-restricted or subject to eligibility requirements. Bridged and wrapped tokens remain separate assets; a familiar name or symbol does not establish backing or redemption rights.</p>${listingNote}</section>
   ${priorityHTML(a.path)}
@@ -228,10 +231,17 @@ export async function handleTokens(request,env){
     for(const key of routeParams)params.delete(key);
     const target=!parts[2]&&c.assets.length===1?c.assets[0].path:path;
     if(target!==path||params.toString()!==u.searchParams.toString())return redirect(address(target,params));
-    if(a)return pageResponse(request,env,detailContent(c,a),path,{md,crumbs:[['/tokens/'+c.slug,c.name],[path,manifest.networks[a.network].name]]});
+    if(a){
+      const networkName = manifest.networks[a.network].name;
+      const crumbs = c.assets.length > 1
+        ? [['/tokens/'+c.slug,c.name],[path,networkName]]
+        : [[path,a.name+' on '+networkName]];
+      return pageResponse(request,env,detailContent(c,a,{md}),path,{md,crumbs});
+    }
     const reviewed = reviewedAssets[c.coinID];
     const description=reviewed ? `Identify ${reviewed.symbol}, the ${reviewed.name} tracker certificate. Compare its issuer, underlying ticker ${reviewed.underlying} and exact token identifiers across ${c.assets.length} networks.` : `Compare ${c.name} (${c.symbol}) on ${c.assets.length} networks in Oath. Choose the exact network to check its token identifier, receiving steps and fee requirements.`;
     return pageResponse(request,env,{title:tokenPageTitle(c),description,content:`${assetHeading(tokenArtwork(c,64,true),c.name,c.symbol+' · '+new Set(c.assets.map(a=>a.network)).size+' networks')}
+      ${reviewed?.overviewAnswer ? `<p>${h(reviewed.overviewAnswer)}</p>` : ''}
       <div class="wallet-split"><div>${networkChoices(c,reviewed)}</div><aside class="wallet-panel"><h2>Asset information</h2><dl><dt>Symbol</dt><dd>${h(c.symbol)}</dd><dt>Catalog asset ID</dt><dd><code>${h(c.coinID)}</code></dd></dl>${link(download,'Get Oath for iPhone','token-button')}</aside></div>
       ${productIdentity(c,null,h)}${priorityOverviewHTML(path)}${priorityHTML(path)}${listingNote}${sourceNote()}`},path,{md,crumbs:[[path,c.name]]});
   }catch{return new Response(request.method==='HEAD'?null:'The catalog is temporarily unavailable. Please try again shortly.',{status:503,headers:{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store','Retry-After':'60'}});}
