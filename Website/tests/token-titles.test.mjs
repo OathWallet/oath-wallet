@@ -15,7 +15,8 @@ for(const file of await readdir(new URL('.'+manifest.prefix+'/coins/',root)))coi
 const env={ASSETS:{async fetch(request){try{return new Response(await read(new URL(request.url).pathname));}catch{return new Response(null,{status:404});}}}};
 const reviewedDetails=[
   ['a0x','base'],['tetsuo-coin','solana'],['wagmi-2','base'],['wagmi-5','base'],
-  ['aussie-dollar-token','ethereum'],['pump-fun','solana']
+  ['aussie-dollar-token','ethereum'],['pump-fun','solana'],
+  ['uniswap','unichain'],['blackjack-fun','ethereum']
 ];
 const normalize=text=>text.normalize('NFC').replace(/\s+/g,' ').toLocaleLowerCase('en');
 
@@ -115,8 +116,9 @@ test('reviewed introductions, metadata and sitemap dates follow the exact projec
     const fetchPage=suffix=>worker.fetch(new Request(origin+path+suffix),env);
     const html=await (await fetchPage('')).text();
     const md=await (await fetchPage('.md')).text();
-    for(const doc of [html,md]){
-      const start=doc.indexOf(answer.heading),receive=doc.indexOf('Receive '+asset.symbol+' on ');
+    const receiveHeading='Receive '+asset.symbol+' on '+manifest.networks[network].name;
+    for(const [doc,heading] of [[html,t=>'<h2>'+escapeHTML(t)+'</h2>'],[md,t=>'\n## '+t+'\n']]){
+      const start=doc.indexOf(heading(answer.heading)),receive=doc.indexOf(heading(receiveHeading));
       const opening=doc.slice(start,receive);
       assert.ok(start>=0 && receive>start,path);
       for(const value of [answer.answer,asset.reference,answer.receiving,...answer.sources.map(source=>source.url)]){

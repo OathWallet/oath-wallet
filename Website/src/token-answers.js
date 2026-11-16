@@ -31,6 +31,25 @@ const answers = new Map([
     ],
     updated: '2026-11-16'
   }],
+  ['blackjack-fun', {
+    network: 'ethereum',
+    reference: '0xf434908dcf8206691bb99cae9232d4833ec257d4',
+    title: 'How to Receive Blackjack.fun (JACK) on Ethereum | Oath',
+    description: 'Find Blackjack.fun (JACK) in Oath on iPhone, check its Ethereum contract and copy your personal receiving address. See how to confirm a JACK transfer on Etherscan.',
+    heading: 'How do I receive Blackjack.fun (JACK) in Oath?',
+    answer: 'In Oath on iPhone, select the wallet you want to fund, tap Receive and search for JACK. Choose Blackjack.fun on Ethereum. Tap Copy address or show the QR code, then ask the sender to send JACK to that address on Ethereum mainnet.',
+    receiving: 'Oath lists this token as Blackjack.fun. Its Ethereum contract reports the name Blackjack.fun Coin, symbol JACK and 18 decimals. Use the contract above to identify the token and your personal Oath address as the destination.',
+    receiveSteps: [
+      'If several JACK results appear, paste the full token contract into the Receive search field and select the Ethereum result.',
+      'In the sending wallet, match the JACK contract, select Ethereum mainnet and paste or scan your Oath address. Compare the full recipient address and amount before confirming.',
+      'After broadcast, open the transaction hash on Etherscan. Check its status and the JACK token transfer for your address and amount. The sender pays gas for an ordinary transfer. Keep ETH on Ethereum if you send JACK later.'
+    ],
+    sources: [
+      {label: 'Blackjack.fun Coin (JACK) on Etherscan', url: 'https://etherscan.io/token/0xf434908dCf8206691bb99cae9232d4833ec257D4'},
+      {label: 'Oath’s released Receive screen', url: 'https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Home/OathReceiveSheet.swift'}
+    ],
+    updated: '2026-11-16'
+  }],
   ['pump-fun', {
     network: 'solana',
     reference: 'pumpCmXqMfrsAkQ5r49WcJnRayYRqmXz6ae8H7H9Dfn',
@@ -47,6 +66,26 @@ const answers = new Map([
     sources: [
       {label: 'PUMP mint on Pump.fun', url: 'https://pump.fun/coin/pumpCmXqMfrsAkQ5r49WcJnRayYRqmXz6ae8H7H9Dfn'},
       {label: 'Oath’s released Receive screen', url: 'https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Home/OathReceiveSheet.swift'}
+    ],
+    updated: '2026-11-16'
+  }],
+  ['uniswap', {
+    network: 'unichain',
+    reference: '0x8f187aa05619a017077f5308904739877ce9ea21',
+    title: 'How to Receive Uniswap (UNI) on Unichain | Oath',
+    description: 'Receive UNI on Unichain in Oath on iPhone. Find your personal receiving address, match the Unichain mainnet contract and check which network the sender uses.',
+    heading: 'How do I receive UNI on Unichain in Oath?',
+    answer: 'Open the wallet you want to fund in Oath on iPhone. Tap Receive, search for UNI and choose Uniswap (UNI) on Unichain. Tap Copy address or show the QR code. Give the sender that wallet address and ask them to select Unichain mainnet.',
+    receiving: 'Uniswap publishes the contract above for UNI on Unichain (chain ID 130). UNI also exists on Ethereum and other networks. Sending UNI on Ethereum mainnet delivers it there, even if the same wallet address appears on both networks.',
+    receiveSteps: [
+      'Check that the sending wallet holds UNI on Unichain, or that the exchange offers UNI withdrawals on Unichain. If the service only offers Ethereum, it cannot make this Unichain withdrawal.',
+      'Match the UNI contract above in the sending app. Paste your personal address from Oath into the recipient field and compare it with the address on your iPhone.',
+      'Once the sender has a transaction hash, look it up on the Unichain explorer and check the UNI transfer to your address. Ordinary transfers use ETH on Unichain for gas. The sender pays that fee when you receive.'
+    ],
+    sources: [
+      {label: 'Uniswap’s official Unichain token contracts', url: 'https://developers.uniswap.org/docs/unichain/technical-information/contract-addresses'},
+      {label: 'Unichain mainnet settings and fee currency', url: 'https://developers.uniswap.org/docs/unichain/technical-information/network-information'},
+      {label: 'UNI on the Unichain explorer', url: 'https://unichain.blockscout.com/token/0x8f187aA05619a017077f5308904739877ce9eA21'}
     ],
     updated: '2026-11-16'
   }],
