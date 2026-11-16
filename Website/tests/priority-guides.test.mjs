@@ -83,6 +83,17 @@ test('Fantom opens with reviewed Opera funding steps in HTML and Markdown',async
  assert.equal(schema.dateModified,guide.updated);
 });
 
+test('Aptos opens with native APT address selection in HTML and Markdown',async()=>{
+ const path='/networks/aptos',guide=guidance.pages[path];
+ const html=await (await get(path)).text(),md=await (await get(path+'.md')).text();
+ assert.ok(html.includes('<title>'+guide.pageTitle+' | Oath</title>'));
+ for(const doc of [html,md]){
+  const opening=doc.indexOf(guide.receive.answer);
+  assert.ok(opening>=0 && opening<doc.indexOf(guide.receive.steps[0]));
+  for(const text of [...guide.receive.steps,'Aptos Mainnet','Tap Copy address','sender pays the network fee in APT',...guide.links.map(link=>link.url)])assert.ok(doc.includes(text),text);
+ }
+});
+
 test('Polkadot iPhone guide uses the Asset Hub send flow in both representations',async()=>{
  const path='/networks/polkadot', guide=guidance.pages[path];
  const html=await (await get(path)).text(), md=await (await get(path+'.md')).text();
