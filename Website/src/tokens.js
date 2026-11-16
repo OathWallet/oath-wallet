@@ -127,7 +127,13 @@ export function detailContent(c,a,{md=false}={}){
   const answer = tokenAnswer(a);
   const opening = answer ? `<section><h2>${h(answer.heading)}</h2><p>${h(answer.answer)}</p>
     <p>${h(identifierLabel(a.network))} · <code dir="ltr">${h(a.reference)}</code></p>
-    <p>${h(answer.receiving)}</p><p>${link(answer.sourceURL,answer.sourceLabel)}</p></section>` : '';
+    <p>${h(answer.receiving)}</p><p>${answer.sources.map(source=>link(source.url,source.label)).join(' · ')}</p></section>` : '';
+  const receiveSteps = answer?.receiveSteps || [
+    'Open Oath, select your wallet and open Receive.',
+    `Choose ${n.name} and find ${a.name} (${a.symbol}). Match the full identifier on this page; symbols can be shared by unrelated assets.`,
+    'Use the receiving address or QR code shown in the app. Confirm the exact network with the sender and include any required memo or tag.',
+    'Check that the sender and your account support this token before transferring. For a first transfer, start with a small amount.'
+  ];
   const needsReview = reviewed && !checkedIdentity(reviewed,a);
   // Human readers can bookmark the resulting GET URL. Markdown readers get the same deep link.
   const prepare = md ? link(transferURL(a),'Prepare a transfer') :
@@ -135,7 +141,7 @@ export function detailContent(c,a,{md=false}={}){
   const content=`${assetHeading(pairedMark(a,n),a.symbol+' on '+n.name,a.name+' · Fee asset: '+fee)}
   ${needsReview ? identity : ''}
   <div class="wallet-split">
-<div class="wallet-reading">${opening}${priorityOverviewHTML(a.path)}<section><h2>Receive ${h(a.symbol)} on ${h(n.name)}</h2><ol><li>Open Oath, select your wallet and open Receive.</li><li>Choose ${h(n.name)} and find ${h(a.name)} (${h(a.symbol)}). Match the full identifier on this page; symbols can be shared by unrelated assets.</li><li>Use the receiving address or QR code shown in the app. Confirm the exact network with the sender and include any required memo or tag.</li><li>Check that the sender and your account support this token before transferring. For a first transfer, start with a small amount.</li></ol><p>${h(n.receive)}</p></section>
+<div class="wallet-reading">${opening}${priorityOverviewHTML(a.path)}<section><h2>Receive ${h(a.symbol)} on ${h(n.name)}</h2><ol>${receiveSteps.map(step=>'<li>'+h(step)+'</li>').join('')}</ol><p>${h(n.receive)}</p></section>
   <section><h2>Sending and fees</h2><p>${h(n.send)}</p><p>The network’s fee asset is ${h(fee)}. Receiving an ordinary transfer does not mean you can send it without a fee balance. Account activation, reserves, storage or token-account creation can add requirements.</p><p>Select the exact asset in Oath, choose Send if available, and review the destination, amount and final fee. Token-specific restrictions, missing metadata or unsupported token extensions can prevent a transfer; catalog presence alone is not a sending test.</p></section></div>
 <aside><section class="token-identity"><h2>Check the identity</h2><dl><div><dt>Asset</dt><dd>${h(a.name)} (${h(a.symbol)})</dd></div><div><dt>Network</dt><dd>${link('/networks/'+n.slug,n.name)}${n.chainId?' · Chain ID '+n.chainId:''}</dd></div><div><dt>${identifierLabel(a.network)}</dt><dd><code dir="ltr">${h(a.reference)}</code></dd></div>${a.decimals!=null&&a.network!=='xrpl'?`<div><dt>Catalog decimals</dt><dd>${a.decimals}</dd></div>`:''}<div><dt>Catalog asset ID</dt><dd><code>${h(c.coinID)}</code></dd></div></dl><p><strong>This token identifier is not your receiving address.</strong> Copy your personal address from Receive in Oath. Never send funds to the contract, mint or issuer shown here.</p></section></aside></div>
   ${needsReview ? '' : identity}
