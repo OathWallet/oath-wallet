@@ -14,7 +14,7 @@ const coins=[];
 for(const file of await readdir(new URL('.'+manifest.prefix+'/coins/',root)))coins.push(...Object.values(JSON.parse(await read(manifest.prefix+'/coins/'+file))));
 const env={ASSETS:{async fetch(request){try{return new Response(await read(new URL(request.url).pathname));}catch{return new Response(null,{status:404});}}}};
 const reviewedDetails=[
-  ['a0x','base'],['tetsuo-coin','solana'],['wagmi-5','base'],
+  ['a0x','base'],['tetsuo-coin','solana'],['wagmi-2','base'],['wagmi-5','base'],
   ['aussie-dollar-token','ethereum'],['pump-fun','solana']
 ];
 const normalize=text=>text.normalize('NFC').replace(/\s+/g,' ').toLocaleLowerCase('en');
@@ -85,6 +85,17 @@ test('page titles, social previews and structured metadata agree across networks
     if(network)assert.ok(html.includes(escapeHTML(network.symbol)),path+' fee asset');
     assert.ok(html.includes('does not mean issuer verification, safety approval or individually tested sending'));
   }
+});
+
+test('the Base WAGMI comparison points to two distinct released contracts',async()=>{
+  const record=slug=>coins.find(c=>c.slug===slug).assets.find(a=>a.network==='base');
+  const protocol=record('wagmi-2'),virtuals=record('wagmi-5');
+  assert.notEqual(protocol.reference,virtuals.reference);
+  const answer=tokenAnswer(protocol);
+  assert.ok(answer.receiving.toLowerCase().includes(virtuals.reference));
+  assert.ok(answer.sources.some(s=>s.url===origin+virtuals.path));
+  assert.equal(tokenAnswer({...protocol,reference:virtuals.reference}),undefined);
+  assert.equal(tokenAnswer({...virtuals,reference:protocol.reference}),undefined);
 });
 
 test('reviewed introductions, metadata and sitemap dates follow the exact project token identity',async()=>{

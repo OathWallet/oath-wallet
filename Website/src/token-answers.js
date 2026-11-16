@@ -50,6 +50,26 @@ const answers = new Map([
     ],
     updated: '2026-11-16'
   }],
+  ['wagmi-2', {
+    network: 'base',
+    reference: '0xaf20f5f19698f1d19351028cd7103b63d30de7d7',
+    title: 'Wagmi Protocol on Base – WAGMI Token Contract | Oath',
+    description: 'Identify the Wagmi protocol token on Base by its contract. Compare it with WAGMI by Virtuals and find the address to share when receiving Wagmi in Oath.',
+    heading: 'Which WAGMI on Base is the Wagmi protocol token?',
+    answer: 'The Wagmi protocol lists the Base contract below for its token. On Base mainnet it reports the name Wagmi, symbol WAGMI and 18 decimals.',
+    receiving: 'WAGMI by Virtuals uses the same ticker on Base. Its separate contract is 0x2Ce1340F1d402aE75aFEb55003d7491645dB1857. Match the full contract for the token the sender holds before choosing a search result.',
+    receiveSteps: [
+      'In Oath, open the wallet you want to fund and tap Receive. Paste the full Wagmi protocol contract (ending in DE7d7) into search and select its Base result.',
+      'Tap Copy address or show your QR code. Give the sender your personal Base address and confirm they selected the same WAGMI contract on Base mainnet.',
+      'The sender pays the network fee on an ordinary transfer. Keep ETH on Base for fees if you send the tokens later.'
+    ],
+    sources: [
+      {label: 'Wagmi’s published Base token entry', url: 'https://github.com/RealWagmi/tokenlists/blob/4f1ada470c991302bfc3659cb276cad20c5d489b/tokenlist.json#L1100-L1108'},
+      {label: 'View the Wagmi contract on BaseScan', url: 'https://basescan.org/address/0xaf20f5f19698f1D19351028cd7103B63D30DE7d7'},
+      {label: 'Compare WAGMI by Virtuals on Base', url: 'https://oathwallet.org/tokens/wagmi-5/base'}
+    ],
+    updated: '2026-11-16'
+  }],
   ['wagmi-5', {
     network: 'base',
     reference: '0x2ce1340f1d402ae75afeb55003d7491645db1857',

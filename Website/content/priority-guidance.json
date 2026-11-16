@@ -1513,6 +1513,55 @@
         }
       ]
     },
+    "/networks/aptos": {
+      "updated": "2026-11-16",
+      "version": "5.0.2",
+      "build": 104,
+      "pageTitle": "Aptos Wallet on iPhone – Find Your Address and Receive APT",
+      "description": "Find your Aptos address in Oath on iPhone, copy it or show its QR code, and receive native APT. Check the withdrawal network and look up the transfer on Aptos Mainnet.",
+      "receive": {
+        "title": "Where is my Aptos wallet address?",
+        "answer": "Open Oath on your iPhone and select the wallet you want to fund. Tap Receive, search for APT and choose Aptos (APT). Tap Copy address or show the QR code. Ask the sender to send native APT to that address on Aptos Mainnet.",
+        "steps": [
+          "In the Receive results, choose the native coin with the symbol APT. Other tokens can appear on Aptos too.",
+          "In the sending wallet or exchange, choose APT and the Aptos withdrawal network. Paste your copied address or scan the QR code, then compare the complete destination with the address on your iPhone before confirming.",
+          "After broadcast, look up the transaction hash in Aptos Explorer with Mainnet selected. Check the recipient, amount and status, then open the same wallet in Oath to see the deposit."
+        ]
+      },
+      "title": "Receiving APT on iPhone",
+      "questions": [
+        {
+          "q": "Do I need an Aptos RPC URL to receive APT?",
+          "a": "No. An RPC URL connects software to an Aptos node. The sender needs the public account address from your Receive screen. Aptos account addresses are 32 bytes and are commonly displayed as 0x followed by 64 hexadecimal characters. Copy the complete address as Oath shows it."
+        },
+        {
+          "q": "Who pays the fee when someone sends me APT?",
+          "a": "For an ordinary wallet transfer the sender pays the network fee in APT. An exchange may also charge a withdrawal fee. You can receive without an APT balance. Keep some APT for gas if you send funds later."
+        },
+        {
+          "q": "My withdrawal is pending. How do I check it?",
+          "a": "Look in the sending service’s withdrawal history for a transaction hash. If it has already broadcast the transfer, use that hash to check Aptos Mainnet. If it has not provided one, ask the sending service for the status before making another withdrawal."
+        }
+      ],
+      "links": [
+        {
+          "label": "Aptos account addresses",
+          "url": "https://aptos.dev/network/blockchain/accounts"
+        },
+        {
+          "label": "Aptos gas and storage fees",
+          "url": "https://aptos.dev/network/blockchain/gas-txn-fee"
+        },
+        {
+          "label": "Check a transaction in Aptos Explorer",
+          "url": "https://explorer.aptoslabs.com/?network=mainnet"
+        },
+        {
+          "label": "Oath’s released Receive screen",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Home/OathReceiveSheet.swift"
+        }
+      ]
+    },
     "/networks/polkadot": {
       "updated": "2026-11-16",
       "version": "5.0.2",
