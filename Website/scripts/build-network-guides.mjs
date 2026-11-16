@@ -49,14 +49,15 @@ homeMD=homeMD.replace(/\n{3,}/g,'\n\n');
 await write('index.md',homeMD);
 await mkdir(new URL('networks/',root),{recursive:true});
 for(const n of networks){
- const title=`${n.name} Wallet: Send & Receive ${n.symbol} on iPhone | Oath`;
+ const guide=priorityGuidance.pages['/networks/'+n.slug];
+ const title=guide?.pageTitle ? guide.pageTitle+' | Oath' : `${n.name} Wallet: Send & Receive ${n.symbol} on iPhone | Oath`;
  const description=`Learn how to receive ${n.name}, send ${n.symbol}, review network fees and check dApp connection support in Oath Wallet for iPhone and iPad.`;
- const receive=[`Open Oath, select your wallet and choose ${n.name} in Receive.`,`Copy the receiving address or show its QR code. Confirm the exact network with the sender.`,n.receive,'After the sender broadcasts the transfer, follow its status in Oath. Network confirmation can take time.'];
+ const receive=guide?.receive?.steps||[`Open Oath, select your wallet and choose ${n.name} in Receive.`,`Copy the receiving address or show its QR code. Confirm the exact network with the sender.`,n.receive,'After the sender broadcasts the transfer, follow its status in Oath. Network confirmation can take time.'];
  const send=[`Open Send and select the asset on ${n.name}. Paste the recipient’s address or scan their QR.`,n.send,'Enter the amount and any required memo or tag. Compare the complete destination with the recipient’s instructions.','Review the asset, network, amount and fee, then confirm in Oath. Follow the transaction status after broadcast.'];
  const connect=n.walletConnect?['Open a trusted dApp and choose Oath if it is listed, or choose WalletConnect.','On desktop, scan the connection QR with Oath. On iPhone or iPad, use a compatible app link or the connection option offered by the dApp.',`Review the website, selected wallet, ${n.name} network and requested permissions before approving.`,'Review each signing request separately. Disconnect the session from Oath when you are finished.']:[];
- const steps=(title,items,id)=>`<section id="${id}" class="wallet-steps"><h2>${esc(title)}</h2>${items.length?'<ol>'+items.map(s=>'<li>'+esc(s)+'</li>').join('')+'</ol>':'<p>'+esc(n.connection)+'</p>'}</section>`;
+ const steps=(title,items,id,intro)=>`<section id="${id}" class="wallet-steps"><h2>${esc(title)}</h2>${intro?'<p>'+esc(intro)+'</p>':''}${items.length?'<ol>'+items.map(s=>'<li>'+esc(s)+'</li>').join('')+'</ol>':'<p>'+esc(n.connection)+'</p>'}</section>`;
  const faq=[
- [`How do I receive ${n.name} in Oath?`,receive[0]+' '+receive[1]+' '+n.receive],
+ [`How do I receive ${n.name} in Oath?`,guide?.receive?.answer||receive[0]+' '+receive[1]+' '+n.receive],
  [`What pays the ${n.name} transaction fee?`,`${n.symbol} is the native fee asset for this network account. ${n.send}`],
  [`Can I connect ${n.name} dApps?`,n.connection],
  ['Can I send to the same address on another network?','Only send using the network the recipient explicitly supports. A matching address or ticker does not bridge assets or make different chains interchangeable.'],
@@ -65,7 +66,8 @@ for(const n of networks){
  if(n.id==='ton')faq.unshift(['Is Gram the same as TON?','Gram (GRAM) is the native coin formerly called Toncoin. The blockchain remains The Open Network (TON). Confirm you are selecting the native coin, not a similarly named jetton.']);
  const related=networks.filter(x=>x.id!==n.id&&x.group===n.group).slice(0,4);
  const overview=priorityOverviewHTML('/networks/'+n.slug);
- const receiving=steps('Receive '+n.name,receive,'receive');
+ const receiveHeading=guide?.receive?.title||'Receive '+n.name;
+ const receiving=steps(receiveHeading,receive,'receive',guide?.receive?.answer);
  const identity=`<aside class="wallet-panel"><h2>Network details</h2><dl><dt>Native asset</dt><dd>${esc(n.symbol)}</dd><dt>Network family</dt><dd>${esc(n.group)}</dd>${n.chainId?`<dt>Chain ID</dt><dd><code>${n.chainId}</code></dd>`:''}</dl><a class="token-button" href="${app}">Get Oath for iOS</a><!-- wallet-token-directory:start --><!-- wallet-token-directory:end --></aside>`;
  const body=`<nav class="network-crumbs" aria-label="Breadcrumb"><a href="/">Home</a><span>/</span><a href="/networks">Networks</a><span>/</span><span aria-current="page">${esc(n.name)}</span></nav>
  ${assetHeading(chainMark(n,64),n.name,n.symbol+' · '+n.group)}
@@ -81,7 +83,7 @@ for(const n of networks){
  <nav class="wallet-anchors" aria-label="Explore related guides">${related.map(x=>`<a href="/networks/${x.slug}">${esc(x.name)}</a>`).join('')}<a href="/networks">All networks</a><a href="/tokens">All tokens</a></nav>`;
  const breadcrumb={'@type':'BreadcrumbList',itemListElement:[{name:'Home',item:'https://oathwallet.org/'},{name:'Networks',item:'https://oathwallet.org/networks'},{name:n.name,item:`https://oathwallet.org/networks/${n.slug}`}].map((x,i)=>({'@type':'ListItem',position:i+1,...x}))};
  await write(`networks/${n.slug}.html`,page(title,description,`/networks/${n.slug}`,body,{graph:[breadcrumb]}));
- const md=`# ${n.name} wallet: send and receive ${n.symbol}\n\n${n.intro}\n\n## Receive ${n.name}\n\n${receive.map((x,i)=>`${i+1}. ${x}`).join('\n')}\n\n## Send ${n.symbol}\n\n${send.map((x,i)=>`${i+1}. ${x}`).join('\n')}\n\n## dApp connections\n\n${n.connection}\n\n${connect.map((x,i)=>`${i+1}. ${x}`).join('\n')}\n\n## Questions\n\n${faq.map(([q,a])=>`### ${q}\n\n${a}`).join('\n\n')}\n\n${scope}\n\n[Network catalog](${source}) · Updated ${reviewed}. Source review is not confirmation of App Store availability.\n\n[Get Oath for iPhone and iPad](${app}) · [All networks](https://oathwallet.org/networks)\n`;
+ const md=`# ${guide?.pageTitle||`${n.name} wallet: send and receive ${n.symbol}`}\n\n${guide?.receive?.answer||n.intro}\n\n## ${receiveHeading}\n\n${receive.map((x,i)=>`${i+1}. ${x}`).join('\n')}\n\n## Send ${n.symbol}\n\n${send.map((x,i)=>`${i+1}. ${x}`).join('\n')}\n\n## dApp connections\n\n${n.connection}\n\n${connect.map((x,i)=>`${i+1}. ${x}`).join('\n')}\n\n## Questions\n\n${faq.map(([q,a])=>`### ${q}\n\n${a}`).join('\n\n')}\n\n${scope}\n\n[Network catalog](${source}) · Updated ${reviewed}. Source review is not confirmation of App Store availability.\n\n[Get Oath for iPhone and iPad](${app}) · [All networks](https://oathwallet.org/networks)\n`;
  await write(`networks/${n.slug}.md`,md+priorityMarkdown("/networks/"+n.slug));
 }
 const groups=[...new Set(networks.map(n=>n.group))];

@@ -33,9 +33,13 @@ test('current guides agree across article text, HTML, feeds and modification dat
   const [html,md]=await Promise.all([read('public/articles/'+slug+'.html'),read('public/articles/'+slug+'.md')]);
   const a=data.articles.find(a=>a.url.endsWith('/'+slug));const item=feed.items.find(a=>a.url.endsWith('/'+slug));
   assert.ok(a&&item,slug);assert.equal(item.title,a.title);assert.equal(item.date_modified,a.updated_at);
-  assert.match(a.updated_at,/2026-11-02/);assert.match(html,/5\.0\.0/);assert.match(md,/5\.0\.0/);assert.match(item.content_html,/5\.0\.0/);
+  const bitcoin=slug==='bitcoin-settings-oath-address-types-indexes-complete-guide';
+  const checked=bitcoin?{date:'2026-11-16',version:'5.0.2',revision:evidence.source_commit}:
+    {date:'2026-11-02',version:'5.0.0',revision:'7eabd04a6f3273fa4ed7ce4108ac4ac683b2a108'};
+  assert.equal(a.updated_at.slice(0,10),checked.date);
+  for(const text of [html,md,item.content_html])assert.ok(text.includes(checked.version),slug);
   assert.match(html,/Guide source version/);
-  assert.ok(html.includes('7eabd04a6f3273fa4ed7ce4108ac4ac683b2a108'));
+  assert.ok(html.includes(checked.revision));
   assert.doesNotMatch(html,/580cf943|docs\/AUDIT_SCOPE\.md|4\.0\.0/,slug+' has no retired citations, including structured metadata');
   assert.ok(html.includes(a.reading_minutes+' min read'),slug+' reading time agrees with the listing');
  }
@@ -88,4 +92,21 @@ test('latest educational example wins when digest responses finish out of order'
  const older=subject.run(true,12);const newer=subject.run(true,24);
  finish[1](new Uint8Array(32).fill(2));await newer;finish[0](new Uint8Array(32).fill(1));await older;
  assert.equal(subject.state.n,24);assert.ok(subject.state.hash.every(n=>n===2));
+});
+
+test('Bitcoin search and sharing copy agree with the article and released receiving scope',async()=>{
+ const slug='bitcoin-settings-oath-address-types-indexes-complete-guide';
+ const [html,md]=await Promise.all(['html','md'].map(ext=>read('public/articles/'+slug+'.'+ext)));
+ const record=data.articles.find(row=>row.url.endsWith('/'+slug));
+ const schema=JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)[1]);
+ assert.equal(schema.headline,record.title);
+ assert.equal(schema.description,record.excerpt);
+ assert.equal(schema.dateModified,record.updated_at);
+ for(const tag of ['name="description"','property="og:description"','name="twitter:description"']){
+  assert.ok(html.includes(`<meta ${tag} content="${record.excerpt}">`));
+ }
+ for(const text of [html,md]){
+  for(const term of ['bc1q','bc1p','/0/1','/1/0','does not receive or discover Bitcoin Silent Payments'])assert.ok(text.includes(term));
+  assert.doesNotMatch(text,/use Silent Payments|5\.0\.0/);
+ }
 });
