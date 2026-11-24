@@ -7,7 +7,7 @@ import {article, searchResults, HELP_SOCIAL_IMAGE} from '../src/help/render.js';
 import {validateContent} from '../src/help/index.js';
 test('activation guide covers every checked chain and preserves existing publication identities',()=>{
  validateContent(data.categories,data.articles);
- assert.deepEqual(data.categories,baseline.categories);
+ assert.deepEqual(data.categories.map(({seo_description,...category})=>category),baseline.categories);
  for(const original of baseline.articles) {
   const current=data.articles.find(a=>a.slug===original.slug);assert.ok(current,original.slug);
   for(const key of ['slug','category_id','published_at']) assert.equal(current[key],original[key]);

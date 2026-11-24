@@ -37,7 +37,7 @@ test('all shared Help Center routes include the same image before JavaScript run
 });
 
 test('guide metadata stays specific and escapes content without affecting the image', () => {
-  const html = article(data, {...data.articles[0], title:'Wallet "A" & <B>', summary:'A "quoted" description <script>'});
+  const html = article(data, {...data.articles[0], title:'Wallet "A" & <B>', seo_description:'A "quoted" description <script>'});
   assert.equal(meta(html, 'twitter:title'), 'Wallet &quot;A&quot; &amp; &lt;B&gt;');
   assert.equal(meta(html, 'twitter:description'), 'A &quot;quoted&quot; description &lt;script&gt;');
   assert.equal(meta(html, 'twitter:image'), HELP_SOCIAL_IMAGE);
