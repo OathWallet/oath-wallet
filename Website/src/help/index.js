@@ -7,8 +7,8 @@ const strings = value => Array.isArray(value) && value.every(x => typeof x === '
 export function validateContent(categories, articles) {
   if (!Array.isArray(categories) || !Array.isArray(articles)) throw new Error('Invalid content');
   const ids = new Set(categories.map(c => c.id));
-  if (ids.size !== categories.length || categories.some(c => !slug.test(c.id) || !['title','description','icon'].every(k => typeof c[k] === 'string'))) throw new Error('Invalid collections');
-  if (new Set(articles.map(a => a.slug)).size !== articles.length || articles.some(a => !slug.test(a.slug) || !ids.has(a.category_id) || !['title','summary','route','note','app_version'].every(k => typeof a[k] === 'string') || !['steps','body','related','tags'].every(k => strings(a[k])) || (a.screenshot && !slug.test(a.screenshot)) || !Number.isFinite(Date.parse(a.updated_at)) || !Number.isFinite(Date.parse(a.published_at)))) throw new Error('Invalid articles');
+  if (ids.size !== categories.length || categories.some(c => !slug.test(c.id) || !['title','description','seo_description','icon'].every(k => typeof c[k] === 'string'))) throw new Error('Invalid collections');
+  if (new Set(articles.map(a => a.slug)).size !== articles.length || articles.some(a => !slug.test(a.slug) || !ids.has(a.category_id) || !['title','summary','seo_description','route','note','app_version'].every(k => typeof a[k] === 'string') || !['steps','body','related','tags'].every(k => strings(a[k])) || (a.screenshot && !slug.test(a.screenshot)) || !Number.isFinite(Date.parse(a.updated_at)) || !Number.isFinite(Date.parse(a.published_at)))) throw new Error('Invalid articles');
   return {categories, articles};
 }
 // Published help content is versioned and deployed with the website.

@@ -82,3 +82,20 @@ test('new help guides explain current navigation, scoped history and safety limi
  assert.match(text('prices-chart'),/chart control/);
  assert.doesNotMatch(text('restore-icloud'),/wallet switcher/);
 });
+
+test('help search descriptions are specific, unique and escaped independently of card summaries',()=>{
+ const items=[...data.categories,...data.articles];
+ assert.equal(new Set(items.map(x=>x.seo_description)).size,items.length);
+ for(const item of items){
+  assert.ok(item.seo_description.length>=120&&item.seo_description.length<=200,item.slug||item.id);
+  const html=item.slug?article(data,item):collection(data,item);
+  const escaped=item.seo_description.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
+  assert.ok(html.includes(`<meta name="description" content="${escaped}">`),item.slug||item.id);
+  assert.ok(html.includes(`<meta property="og:description" content="${escaped}">`));
+ }
+ const custom={...data.articles[0],seo_description:'A "quoted" description <without markup> & extra text.'};
+ const html=article(data,custom);
+ assert.match(html,/content="A &quot;quoted&quot; description &lt;without markup&gt; &amp; extra text\."/);
+ assert.ok(html.includes(`<p class="dek">${custom.summary}</p>`));
+ assert.throws(()=>validateContent(data.categories,[{...custom,seo_description:null}]),/Invalid articles/);
+});
