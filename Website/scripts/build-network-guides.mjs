@@ -8,7 +8,7 @@ import catalog from '../content/networks.json' with {type:'json'};
 const {networks,sourceCommit,reviewed}=catalog;
 const root=new URL('../public/',import.meta.url);
 const read=p=>readFile(new URL(p,root),'utf8');
-const write=(p,v)=>writeFile(new URL(p,root),v);
+const write=(p,v)=>writeFile(new URL(p,root),v.replace(/^[\t ]+$/gm,''));
 const esc=v=>String(v).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
 const json=v=>JSON.stringify(v).replaceAll('<','\\u003c');
 const app='https://apps.apple.com/app/id6780187283';

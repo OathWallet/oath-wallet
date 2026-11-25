@@ -1,4 +1,5 @@
 import {tokenAnswer} from '../src/token-answers.js';
+import {tokenPageTitle} from '../src/token-titles.js';
 import {priorityUpdated} from '../src/seo-guidance.js';
 import {artworkSnapshot,attachArtwork} from './token-artwork.mjs';
 import {chainMark,rowContents} from '../src/catalog-ui.js';
@@ -84,9 +85,19 @@ const manifest={format:1,version,prefix,pageSize,count:rows.length,coinCount:coi
 await put('manifest.json',manifest);
 await put('routes.json',allURLs);
 // Bounded discovery batches are useful to tools without inflating the existing document index.
+function documentMetadata(r){
+  const asset=byPath.get(r.path),network=networkInfo[r.network];
+  const coin=r.kind==='token-hub'?coins.get(r.path.split('/').at(-1)):null;
+  const page=Number(new URL(r.path,'https://oathwallet.org').searchParams.get('page')||1);
+  const answer=asset?tokenAnswer(asset):null;
+  const title=asset?tokenPageTitle(asset,network):coin?tokenPageTitle(coin):`${network?network.name+' tokens':'Token directory'}${page>1?' — page '+page:''} | Oath`;
+  const summary=answer?.description||(asset?`${asset.name} (${asset.symbol}) on ${network.name}: exact token identity, receiving steps, fee requirements and transfer limitations. Compare networks before sending.`:coin?`Compare ${coin.name} (${coin.symbol}) across ${coin.assets.length} networks. Choose the exact network to check its token identifier, receiving steps and fee requirements.`:`Browse page ${page} of ${network?network.name+' token entries':'the released Oath token catalog'}. Check exact networks and token identifiers; catalog inclusion is not issuer verification or individually tested sending.`);
+  const updated=answer?.updated||priorityUpdated(r.path);
+  return {title,summary,language:'en',app_version:source.version,source_date:source.sourceDate,...updated?{updated_at:updated}:{}};
+}
 for(let offset=0;offset<allURLs.length;offset+=100){
   const page=1+offset/100;
-  await put(`documents/${page}.json`,{documents:allURLs.slice(offset,offset+100).map(r=>({url:'https://oathwallet.org'+r.path,markdown_url:'https://oathwallet.org'+r.path.split('?')[0]+'.md'+(r.path.includes('?')?'?'+r.path.split('?')[1]:''),kind:r.kind})),next:offset+100<allURLs.length?`https://oathwallet.org/tokens/documents.json?page=${page+1}`:null});
+  await put(`documents/${page}.json`,{documents:allURLs.slice(offset,offset+100).map(r=>({url:'https://oathwallet.org'+r.path,markdown_url:'https://oathwallet.org'+r.path.split('?')[0]+'.md'+(r.path.includes('?')?'?'+r.path.split('?')[1]:''),kind:r.kind,...documentMetadata(r)})),next:offset+100<allURLs.length?`https://oathwallet.org/tokens/documents.json?page=${page+1}`:null});
 }
 manifest.documentPages=Math.ceil(allURLs.length/100);await put('manifest.json',manifest);
 const target=new URL(`token-data/${version}/`,root);await mkdir(new URL('token-data/',root),{recursive:true});

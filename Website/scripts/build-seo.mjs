@@ -1,3 +1,4 @@
+import {currentStatus as release} from '../src/agent-content.js';
 import {renderMarkdown} from './markdown.mjs';
 import bountyPolicy from '../content/bug-bounty.json' with {type:'json'};
 import compatibility from '../content/compatibility/catalog.json' with {type:'json'};
@@ -31,7 +32,7 @@ await write('about.html', about);
 const questions=JSON.parse(await readFile(new URL('../content/self-custody-questions.json',import.meta.url),'utf8'));
 const data=JSON.parse(await read('oath-data.json'));
 data.features=featureAnswers(featureCatalog);
-const release=JSON.parse(await read('release-status.json'));
+data.facts.app_version=release.version;data.facts.app_build=release.build;data.facts.published_source=release.published_source;data.facts.source_version_scope='Pinned source for the existing technical guides; see published_source for the separately published GitHub release.';
 if(data.facts.app_version!==release.version || data.facts.app_build!==release.build)throw Error('Current product facts disagree with the published release record');
 const rating=data.facts.app_store_rating;
 if(!Number.isFinite(rating.value)||rating.value<1||rating.value>5||!Number.isInteger(rating.count)||rating.count<1||!/^\d{4}-\d{2}-\d{2}$/.test(rating.checked_on))throw Error('Invalid attributed App Store rating snapshot');
@@ -169,11 +170,12 @@ await write('articles.html',archive);
 // The main sitemap must not retain moved support or article URLs.
 const currentSitemap=await read('sitemap.xml');
 const oldSitemap=currentSitemap.includes('<sitemapindex')?await read('sitemaps/pages.xml'):currentSitemap;
-const mainPaths=[...compatibility.pages.map(p=>p.path),...decisionGuides.pages.map(p=>p.path),'/','/features','/press','/terms','/privacy','/security','/bug-bounty','/about','/networks',...networkCatalog.networks.map(n=>'/networks/'+n.slug),...featureCatalog.features.map(f=>f.path)];
+const mainPaths=[...compatibility.pages.map(p=>p.path),...decisionGuides.pages.map(p=>p.path),'/','/ai','/features','/press','/terms','/privacy','/security','/bug-bounty','/about','/networks',...networkCatalog.networks.map(n=>'/networks/'+n.slug),...featureCatalog.features.map(f=>f.path)];
 const dates=new Map([...oldSitemap.matchAll(/<url>[\s\S]*?<loc>([^<]+)<\/loc>[\s\S]*?<lastmod>([^<]+)<\/lastmod>[\s\S]*?<\/url>/g)].map(m=>[m[1],m[2]]));
 dates.set('https://oathwallet.org/press','2026-10-31');
 for (const path of mainPaths) {
  const lab=compatibility.pages.find(p=>p.path===path);
+ if(path==='/ai'){dates.set('https://oathwallet.org'+path,'2026-11-25');continue;}
  if(lab){dates.set('https://oathwallet.org'+path,lab.updated);continue;}
  if(priorityGuidance.pages[path]?.updated) dates.set('https://oathwallet.org'+path,priorityGuidance.pages[path].updated);
  else if(decisionGuides.pages.some(p=>p.path===path)||priorityGuidance.pages[path]) dates.set('https://oathwallet.org'+path,'2026-11-06');

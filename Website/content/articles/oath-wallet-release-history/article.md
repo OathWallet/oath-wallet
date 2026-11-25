@@ -1,6 +1,10 @@
 This page separates confirmed App Store distribution from source-code releases. A GitHub tag or prerelease does not, by itself, mean an update is available in the App Store.
 
-## Current confirmed release: 5.0.2 (104)
+## Current App Store listing: 5.1.0
+
+Apple's public US App Store listing reported **5.1.0** when checked on November 25, 2026, with a release date of November 14, 2026. The public listing does not disclose the approved build number or prove a match to a particular source commit. Availability can vary by storefront and device. Read the [official App Store listing](https://apps.apple.com/app/id6780187283) and the [dated release metadata](https://oathwallet.org/release-status.json).
+
+## Earlier confirmed distribution: 5.0.2 (104)
 
 The [distribution record](https://github.com/OathWallet/oath-wallet/blob/main/releases/5.0.2-distribution.json) records Ready for Distribution, confirmed on November 5, 2026. Check the [official App Store page](https://apps.apple.com/app/id6780187283) for availability on your device and in your storefront.
 

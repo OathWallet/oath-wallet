@@ -1,0 +1,646 @@
+{
+  "schemaVersion": 1,
+  "edition": "2026-11-09",
+  "published": "2026-11-09",
+  "reviewed": "2026-11-09",
+  "title": "Wallet Compatibility Lab — November 9, 2026",
+  "publisher": "Oath team",
+  "scope": "Trust Wallet, MetaMask and Electrum account conventions compared with Oath 5.0.2 (104). Source review, reference-library vectors and Oath core host tests; no installed third-party app or funded-transfer testing.",
+  "evidence": {
+    "schemaVersion": 1,
+    "startedAt": "2026-11-09T20:43:37.989Z",
+    "completedAt": "2026-11-09T20:43:42.773Z",
+    "versions": {
+      "oath": "5.0.2",
+      "build": 104,
+      "sourceCommit": "d039b009d8c81b0497f2ac7e6abebfdf54ff8612",
+      "walletCore": "4.8.4",
+      "bitcoinDevKit": "3.1.1",
+      "swift": "Apple Swift version 6.4.2 (swiftlang-6.4.2.1.9 clang-2100.4.1.1)",
+      "macOS": "27.0",
+      "architecture": "arm64",
+      "node": "v26.5.0"
+    },
+    "sourceReview": {
+      "assertions": 4,
+      "scope": "Pinned Oath path declarations and Wallet Core registry alignment."
+    },
+    "referenceLibrary": {
+      "checks": [
+        {
+          "id": "reference-01",
+          "label": "ethereum: released default matches upstream registry",
+          "status": "passed",
+          "kind": "source-assertion"
+        },
+        {
+          "id": "reference-02",
+          "label": "ethereum: explicit path reproduces default address",
+          "status": "passed",
+          "kind": "library-vector"
+        },
+        {
+          "id": "reference-03",
+          "label": "ethereum: published passphrase vector",
+          "status": "passed",
+          "kind": "library-vector"
+        },
+        {
+          "id": "reference-04",
+          "label": "ethereum: additional passphrase isolates the account",
+          "status": "passed",
+          "kind": "library-vector"
+        },
+        {
+          "id": "reference-05",
+          "label": "bitcoin: released default matches upstream registry",
+          "status": "passed",
+          "kind": "source-assertion"
+        },
+        {
+          "id": "reference-06",
+          "label": "bitcoin: explicit path reproduces default address",
+          "status": "passed",
+          "kind": "library-vector"
+        },
+        {
+          "id": "reference-07",
+          "label": "bitcoin: published passphrase vector",
+          "status": "passed",
+          "kind": "library-vector"
+        },
+        {
+          "id": "reference-08",
+          "label": "bitcoin: additional passphrase isolates the account",
+          "status": "passed",
+          "kind": "library-vector"
+        },
+        {
+          "id": "reference-09",
+          "label": "tron: released default matches upstream registry",
+          "status": "passed",
+          "kind": "source-assertion"
+        },
+        {
+          "id": "reference-10",
+          "label": "tron: explicit path reproduces default address",
+          "status": "passed",
+          "kind": "library-vector"
+        },
+        {
+          "id": "reference-11",
+          "label": "tron: published passphrase vector",
+          "status": "passed",
+          "kind": "library-vector"
+        },
+        {
+          "id": "reference-12",
+          "label": "tron: additional passphrase isolates the account",
+          "status": "passed",
+          "kind": "library-vector"
+        },
+        {
+          "id": "reference-13",
+          "label": "MetaMask: first ordinary EVM address",
+          "status": "passed",
+          "kind": "library-vector"
+        },
+        {
+          "id": "reference-14",
+          "label": "MetaMask: second account is distinct",
+          "status": "passed",
+          "kind": "library-vector"
+        },
+        {
+          "id": "reference-15",
+          "label": "MetaMask: individual key reproduces second account",
+          "status": "passed",
+          "kind": "library-vector"
+        },
+        {
+          "id": "reference-16",
+          "label": "Solana: released app exposes both explicit account conventions",
+          "status": "passed",
+          "kind": "source-assertion"
+        },
+        {
+          "id": "reference-17",
+          "label": "Solana: Trust Wallet path reproduces upstream default",
+          "status": "passed",
+          "kind": "library-vector"
+        },
+        {
+          "id": "reference-18",
+          "label": "Solana: Phantom and Trust Wallet paths are distinct",
+          "status": "passed",
+          "kind": "library-vector"
+        }
+      ],
+      "scope": "Released-source path comparison plus upstream Wallet Core WASM public fixtures. This does not execute the iOS app importer."
+    },
+    "oathCore": {
+      "executed": 15,
+      "passed": 14,
+      "skipped": 1,
+      "failed": 0,
+      "cases": [
+        {
+          "id": "BitcoinKeysTests.testBIP39SeedMatchesAllPublishedAddresses",
+          "status": "passed",
+          "seconds": 0.056
+        },
+        {
+          "id": "BitcoinKeysTests.testCompressedKeyHasAllFourTypes",
+          "status": "passed",
+          "seconds": 0.001
+        },
+        {
+          "id": "BitcoinKeysTests.testExtendedPrivateAndPublicVersionFamiliesRoundTrip",
+          "status": "passed",
+          "seconds": 0.128
+        },
+        {
+          "id": "BitcoinKeysTests.testFinalNormalChildMatchesIndependentBIP44ScriptsAndExports",
+          "status": "passed",
+          "seconds": 0.027
+        },
+        {
+          "id": "BitcoinKeysTests.testFinalNormalChildStillRejectsHardenedAndFixedKeys",
+          "status": "passed",
+          "seconds": 0.003
+        },
+        {
+          "id": "BitcoinKeysTests.testInvalidKeysAndUnsupportedNetworksFailClosed",
+          "status": "passed",
+          "seconds": 0.004
+        },
+        {
+          "id": "BitcoinKeysTests.testLegacyImportOwnershipPublicKeyMatchesPublishedBIP84Address",
+          "status": "passed",
+          "seconds": 0.004
+        },
+        {
+          "id": "BitcoinKeysTests.testPublishedBIPAddresses",
+          "status": "passed",
+          "seconds": 0.004
+        },
+        {
+          "id": "BitcoinKeysTests.testUncompressedKeyIsFiniteLegacyOnly",
+          "status": "passed",
+          "seconds": 0.001
+        },
+        {
+          "id": "ElectrumMnemonicTests.testCoreFundedRecoveryAndTransfersForEverySeedType",
+          "status": "skipped",
+          "seconds": 0.001
+        },
+        {
+          "id": "ElectrumMnemonicTests.testDiscoveryKeepsReceiveChangeAndSpentHistory",
+          "status": "passed",
+          "seconds": 0.718
+        },
+        {
+          "id": "ElectrumMnemonicTests.testExtensionsNormalizationAndIsolation",
+          "status": "passed",
+          "seconds": 0.009
+        },
+        {
+          "id": "ElectrumMnemonicTests.testFinalNormalChildElectrumLeafExport",
+          "status": "passed",
+          "seconds": 0.005
+        },
+        {
+          "id": "ElectrumMnemonicTests.testTwoFactorCJKSeedBoundaries",
+          "status": "passed",
+          "seconds": 0.006
+        },
+        {
+          "id": "ElectrumMnemonicTests.testUpstreamAddressesAndPrivateKeys",
+          "status": "passed",
+          "seconds": 0.361
+        }
+      ],
+      "command": "swift test --package-path Packages/OathBitcoin --filter \"BitcoinKeysTests|ElectrumMnemonicTests\"",
+      "logSHA256": "ac2eb112e7c0ec14f8d2934330e38a2553e76b61978966d1ca2d065b9362c9c7"
+    },
+    "electrumFixtureInventory": {
+      "fixtures": 22,
+      "addresses": 132,
+      "kinds": [
+        "2fa",
+        "2fa_segwit",
+        "old",
+        "segwit",
+        "standard"
+      ]
+    },
+    "sources": [
+      {
+        "path": "OathAtmosphere/Wallet/OathWalletEngine.swift",
+        "sha256": "cdd37ba5790ca3c09eab2b0b03e5a5e83d6b47cc3ea66293de02c2b1376ea946"
+      },
+      {
+        "path": "OathAtmosphere/Wallet/OathPrivateKeyImport.swift",
+        "sha256": "2a51be5e62564f51edc7a45d6c7ed1ad4323ea94b502b1f05842ddab6d4c6297"
+      },
+      {
+        "path": "OathAtmosphere/Wallet/OathSolanaWallet.swift",
+        "sha256": "4a2fc4bd1431eb8a8419bb797a1b9132dcb88c3ce79215d83002f0ac2092a685"
+      },
+      {
+        "path": "OathAtmosphere/Wallet/OathBitcoinWallet.swift",
+        "sha256": "0dabdeaddc025a7bf95281f293151ec16f4885a398a763bd3c7a3b43789bddf9"
+      },
+      {
+        "path": "OathAtmosphere/Import/OathRecoveryPhraseScreen.swift",
+        "sha256": "6dc77cd30deafb02fe9aac2ea3a739e30ff9103f371ae09ecd33f2b234f0fdc4"
+      },
+      {
+        "path": "OathAtmosphere/Home/OathWalletSheets.swift",
+        "sha256": "5c1d734ec239965415dbdf62bdc80fbb59b888c06ac93d9314a168b6783c4e0d"
+      },
+      {
+        "path": "OathAtmosphere/Wallet/OathPassphraseWalletModel.swift",
+        "sha256": "8892486ce68d12ddcd8b500847ce5d9fb9038dc728ba827552191985a629e881"
+      },
+      {
+        "path": "Packages/OathDatabase/Sources/OathDatabase/SolanaReceive.swift",
+        "sha256": "b70d4d1920fb40726e82d31edd2a1f94cc9ef09c88017d104bd3ebbb5ec64672"
+      },
+      {
+        "path": "Packages/WalletCore/registry-4.8.4.json",
+        "sha256": "9b6d3202e009dc5634531b84b4590d3d3fe6d08f1205f93f8eaae98444017240"
+      },
+      {
+        "path": "Packages/OathBitcoin/Sources/OathBitcoin/ElectrumBitcoin.swift",
+        "sha256": "00691116e5c22730202ce9195cb2a2799f633b0c632ba0b8c58c4d0f36fd3f9e"
+      },
+      {
+        "path": "Packages/OathBitcoin/Sources/OathBitcoin/BitcoinKeys.swift",
+        "sha256": "46409993aff29ae73145be05008d33d921fd378acba8f0fd39f69fe9afd57697"
+      },
+      {
+        "path": "Packages/OathBitcoin/Sources/OathBitcoin/ElectrumMnemonic.swift",
+        "sha256": "9d7fc824e7321e6e8ad48f152950ed2fbe9900766b8550311181cf41d9bda64a"
+      },
+      {
+        "path": "Packages/OathBitcoin/Tests/OathBitcoinTests/ElectrumMnemonicTests.swift",
+        "sha256": "aed75b8bbd9f33af2c608c661a1b3d77342934a579a54e750d1eb49d98219c2d"
+      },
+      {
+        "path": "Packages/OathBitcoin/Tests/OathBitcoinTests/Fixtures/electrum-reference.json",
+        "sha256": "333205bec2cd51c50551f5ea266eac5590be54d9dbe6f2ca558ba62deafb2427"
+      },
+      {
+        "path": "LocalizationTests/OathWalletEngineTests.swift",
+        "sha256": "602ec5342539e380af743b7a6a2e683c635963a0ad1bb8cb2e6e42544b751321"
+      },
+      {
+        "path": "Packages/OathBitcoin/Tests/OathBitcoinTests/BitcoinKeysTests.swift",
+        "sha256": "1d55e1e5d6c5242e2dc78978bfa444286effc8f294bfc8613587ef689cd359b5"
+      },
+      {
+        "path": "Packages/OathBitcoin/Package.swift",
+        "sha256": "f4d76cb230d0ee4eb0a3105717ead0456cd14c7bb2938416a3b8db9b16025c8b"
+      },
+      {
+        "path": "Packages/OathBitcoin/Package.resolved",
+        "sha256": "87ad0b68516b908d0573fcbc8d559963f6db31a69c210ae7c4c1ab98df5f7223"
+      }
+    ],
+    "notPerformed": [
+      "Installed Trust Wallet, MetaMask or Electrum app testing",
+      "Oath iPhone or simulator importer testing",
+      "Live-provider balance discovery",
+      "Funded transfers",
+      "Every account index, historical wallet or custom script"
+    ]
+  },
+  "levels": [
+    {
+      "id": "source",
+      "label": "Source reviewed",
+      "description": "Read or asserted against the pinned released source. This does not run an importer."
+    },
+    {
+      "id": "reference",
+      "label": "Reference-library checks",
+      "description": "Public fixtures executed in Wallet Core 4.8.4 WASM, with Oath path declarations checked separately. This does not execute the Oath app importer."
+    },
+    {
+      "id": "core",
+      "label": "Oath core host tests",
+      "description": "Actual released OathBitcoin Swift code executed on a Mac, using public fixtures and mocked discovery where specified. This does not launch the iPhone app."
+    },
+    {
+      "id": "limited",
+      "label": "Limited checks; migration unverified",
+      "description": "Some cryptographic fixtures pass, but the original account policy or full restoration workflow is not established."
+    },
+    {
+      "id": "unverified",
+      "label": "Not evaluated",
+      "description": "No compatibility result is asserted. A missing check is not a passing result."
+    }
+  ],
+  "rows": [
+    {
+      "id": "trust-evm",
+      "wallet": "Trust Wallet",
+      "account": "First ordinary EVM account",
+      "path": "m/44'/60'/0'/0/0",
+      "result": "Default path aligns",
+      "scope": "The reviewed Oath default and Wallet Core 4.8.4 registry agree. The reference library reproduced the first address with the explicit path.",
+      "limitation": "Covers the first ordinary BIP39 account. It does not establish every Trust Wallet app version, account index, token discovery result or smart account.",
+      "evidenceLevel": "reference",
+      "checks": [
+        "reference-01",
+        "reference-02",
+        "reference-03",
+        "reference-04"
+      ],
+      "guide": "https://articles.oathwallet.org/move-from-trust-wallet-to-oath"
+    },
+    {
+      "id": "trust-bitcoin",
+      "wallet": "Trust Wallet",
+      "account": "Bitcoin native SegWit, account 0",
+      "path": "m/84'/0'/0'/0/0",
+      "result": "Default path aligns",
+      "scope": "The reviewed default matches the Wallet Core Bitcoin registry. Oath core also reproduced the published native SegWit address.",
+      "limitation": "Other address types have separate core checks below. This is not a balance-discovery or funded-transfer test of Trust Wallet.",
+      "evidenceLevel": "core",
+      "checks": [
+        "reference-05",
+        "reference-06",
+        "BitcoinKeysTests.testPublishedBIPAddresses"
+      ],
+      "guide": "https://articles.oathwallet.org/move-from-trust-wallet-to-oath"
+    },
+    {
+      "id": "trust-tron",
+      "wallet": "Trust Wallet",
+      "account": "First TRON account",
+      "path": "m/44'/195'/0'/0/0",
+      "result": "Default path aligns",
+      "scope": "Explicit-path and default-address derivation agree in Wallet Core. Public passphrase vectors and account isolation checks passed.",
+      "limitation": "A matching address does not verify every TRC-20 contract, available TRX/resources or sending behavior.",
+      "evidenceLevel": "reference",
+      "checks": [
+        "reference-09",
+        "reference-10",
+        "reference-11",
+        "reference-12"
+      ],
+      "guide": "https://articles.oathwallet.org/move-from-trust-wallet-to-oath"
+    },
+    {
+      "id": "trust-solana",
+      "wallet": "Trust Wallet",
+      "account": "Solana account convention",
+      "path": "Trust: m/44'/501'/0'; Oath default: m/44'/501'/0'/0'",
+      "result": "Different defaults; compare the address",
+      "scope": "The released source exposes Trust Wallet and Phantom account conventions. The reference library produced different addresses for the same public fixture.",
+      "limitation": "Use the matching account convention in Oath and compare its public address with the original wallet. An automatic match or full historical-account discovery was not tested.",
+      "evidenceLevel": "reference",
+      "checks": [
+        "reference-16",
+        "reference-17",
+        "reference-18"
+      ],
+      "guide": "https://articles.oathwallet.org/move-from-trust-wallet-to-oath"
+    },
+    {
+      "id": "metamask-first",
+      "wallet": "MetaMask",
+      "account": "First ordinary EVM account",
+      "path": "m/44'/60'/0'/0/0",
+      "result": "First-account derivation agrees",
+      "scope": "The MetaMask-documented default account branch and Oath’s first account align. Wallet Core reproduced the known first-account address.",
+      "limitation": "Only ordinary phrase-derived EVM accounts are covered. Social-login recovery, hardware wallets, smart accounts and non-EVM/Snap accounts are outside this result.",
+      "evidenceLevel": "reference",
+      "checks": [
+        "reference-01",
+        "reference-13"
+      ],
+      "guide": "https://articles.oathwallet.org/use-metamask-wallet-in-oath"
+    },
+    {
+      "id": "metamask-later",
+      "wallet": "MetaMask",
+      "account": "Later or separately imported EVM account",
+      "path": "Example later leaf: m/44'/60'/0'/0/1",
+      "result": "A different account needs its own key or matching path",
+      "scope": "The second account is distinct from the first. A reference-library test reproduced that second address from its individual public-fixture private key. Oath’s ordinary EVM private-key import is source reviewed.",
+      "limitation": "This does not show that phrase import automatically restores all accounts. An individual key covers one account, not the other accounts derived from the phrase or a separately imported key.",
+      "evidenceLevel": "reference",
+      "checks": [
+        "reference-14",
+        "reference-15"
+      ],
+      "guide": "https://articles.oathwallet.org/use-metamask-wallet-in-oath"
+    },
+    {
+      "id": "electrum-standard",
+      "wallet": "Electrum",
+      "account": "Electrum-generated standard seed",
+      "path": "Root m; receive /0/i; change /1/i",
+      "result": "Legacy derivation fixtures pass",
+      "scope": "Released Oath core reproduced standard Electrum fixture addresses and key results, including receive and change branches.",
+      "limitation": "This is Electrum’s own versioned seed format, not a BIP39 phrase merely used inside Electrum. No installed Electrum app or funded migration was exercised.",
+      "evidenceLevel": "core",
+      "checks": [
+        "ElectrumMnemonicTests.testUpstreamAddressesAndPrivateKeys"
+      ],
+      "guide": "https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone"
+    },
+    {
+      "id": "electrum-segwit",
+      "wallet": "Electrum",
+      "account": "Electrum-generated SegWit seed",
+      "path": "Root m/0'; receive /0/i; change /1/i",
+      "result": "Native SegWit derivation fixtures pass",
+      "scope": "Released Oath core reproduced SegWit fixture addresses and key results. The root differs from a BIP84 wallet even though both can produce bc1q addresses.",
+      "limitation": "Do not infer the seed format from the address prefix alone. Multisig and Lightning state are outside this ordinary single-wallet result.",
+      "evidenceLevel": "core",
+      "checks": [
+        "ElectrumMnemonicTests.testUpstreamAddressesAndPrivateKeys"
+      ],
+      "guide": "https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone"
+    },
+    {
+      "id": "electrum-old",
+      "wallet": "Electrum",
+      "account": "Old Electrum seed encoding",
+      "path": "Legacy Electrum derivation",
+      "result": "Old-format fixtures pass",
+      "scope": "The pinned fixture set includes old-format seed decoding and legacy address/key expectations, exercised by Oath core.",
+      "limitation": "Old seeds do not support an extra seed extension in this implementation. An encrypted wallet-file password is not the same as a seed extension.",
+      "evidenceLevel": "core",
+      "checks": [
+        "ElectrumMnemonicTests.testUpstreamAddressesAndPrivateKeys",
+        "ElectrumMnemonicTests.testExtensionsNormalizationAndIsolation"
+      ],
+      "guide": "https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone"
+    },
+    {
+      "id": "electrum-extension",
+      "wallet": "Electrum",
+      "account": "Standard or SegWit seed with extension",
+      "path": "Same seed format and exact extension",
+      "result": "Normalization and account isolation checks pass",
+      "scope": "Oath core tests check extension normalization and distinct account results. Restoring the original wallet requires the same extension used to create it.",
+      "limitation": "The website cannot recover a forgotten extension. Oath 5.0.2 excludes Electrum-derived wallets from its encrypted iCloud export; retain the original seed and extension backup privately.",
+      "evidenceLevel": "core",
+      "checks": [
+        "ElectrumMnemonicTests.testExtensionsNormalizationAndIsolation"
+      ],
+      "guide": "https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone"
+    },
+    {
+      "id": "electrum-two-factor",
+      "wallet": "Electrum",
+      "account": "2FA / TrustedCoin or custom multisig",
+      "path": "Policy-specific scripts and cosigners",
+      "result": "Outside this migration scope",
+      "scope": "The core suite contains 2FA address/key and CJK normalization fixtures. Those are cryptographic checks, not proof that a migration preserves the original cosigning or security policy.",
+      "limitation": "Do not use this row as a supported migration procedure. TrustedCoin interaction, original 2FA protection and custom multisig recovery were not validated end to end.",
+      "evidenceLevel": "limited",
+      "checks": [
+        "ElectrumMnemonicTests.testUpstreamAddressesAndPrivateKeys",
+        "ElectrumMnemonicTests.testTwoFactorCJKSeedBoundaries"
+      ],
+      "guide": "https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone"
+    },
+    {
+      "id": "other-accounts",
+      "wallet": "Other account types",
+      "account": "Hardware, smart accounts, social login, custom scripts",
+      "path": "Account-specific",
+      "result": "Not evaluated",
+      "scope": "A phrase or an ordinary private key is not a universal export of every account and authorization model.",
+      "limitation": "No installed-app compatibility claim is made for hardware pairing, smart-account deployment/owners, social login, Snap accounts or custom scripts. Consult the original wallet’s recovery method.",
+      "evidenceLevel": "unverified",
+      "checks": [],
+      "guide": null
+    }
+  ],
+  "bitcoin": [
+    {
+      "id": "legacy",
+      "name": "Legacy",
+      "format": "P2PKH · starts with 1",
+      "path": "m/44'/0'/0'/change/index",
+      "scope": "Account 0: initial receiving address matches a fixed published expectation; seed and mnemonic-derived branches agree for receive/change indexes 0–19.",
+      "checks": [
+        "BitcoinKeysTests.testPublishedBIPAddresses",
+        "BitcoinKeysTests.testBIP39SeedMatchesAllPublishedAddresses"
+      ]
+    },
+    {
+      "id": "nested",
+      "name": "Nested SegWit",
+      "format": "P2SH-P2WPKH · starts with 3",
+      "path": "m/49'/0'/0'/change/index",
+      "scope": "Account 0: initial receiving address matches a fixed published expectation; seed and mnemonic-derived branches agree for receive/change indexes 0–19.",
+      "checks": [
+        "BitcoinKeysTests.testPublishedBIPAddresses",
+        "BitcoinKeysTests.testBIP39SeedMatchesAllPublishedAddresses"
+      ]
+    },
+    {
+      "id": "native",
+      "name": "Native SegWit",
+      "format": "P2WPKH · starts with bc1q",
+      "path": "m/84'/0'/0'/change/index",
+      "scope": "Account 0: initial receiving address matches a fixed published expectation; seed and mnemonic-derived branches agree for receive/change indexes 0–19.",
+      "checks": [
+        "BitcoinKeysTests.testPublishedBIPAddresses",
+        "BitcoinKeysTests.testBIP39SeedMatchesAllPublishedAddresses"
+      ]
+    },
+    {
+      "id": "taproot",
+      "name": "Taproot",
+      "format": "Single-key P2TR · starts with bc1p",
+      "path": "m/86'/0'/0'/change/index",
+      "scope": "Account 0: initial receiving address matches a fixed published expectation; seed and mnemonic-derived branches agree for receive/change indexes 0–19.",
+      "checks": [
+        "BitcoinKeysTests.testPublishedBIPAddresses",
+        "BitcoinKeysTests.testBIP39SeedMatchesAllPublishedAddresses"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "oath-source",
+      "label": "Oath 5.0.2 (104) reviewed source",
+      "url": "https://github.com/OathWallet/oath-wallet/tree/d039b009d8c81b0497f2ac7e6abebfdf54ff8612"
+    },
+    {
+      "id": "oath-tests",
+      "label": "Pinned Oath Bitcoin host tests and public fixtures",
+      "url": "https://github.com/OathWallet/oath-wallet/tree/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/Packages/OathBitcoin/Tests/OathBitcoinTests"
+    },
+    {
+      "id": "wallet-core",
+      "label": "Wallet Core 4.8.4 account registry",
+      "url": "https://github.com/trustwallet/wallet-core/blob/4.8.4/registry.json"
+    },
+    {
+      "id": "metamask-paths",
+      "label": "MetaMask: default derivation path and imported wallets",
+      "url": "https://support.metamask.io/configure/wallet/importing-a-seed-phrase-from-another-wallet-software-derivation-path/"
+    },
+    {
+      "id": "metamask-accounts",
+      "label": "MetaMask: accounts after recovery",
+      "url": "https://support.metamask.io/configure/accounts/how-to-add-missing-accounts-after-restoring-with-secret-recovery-phrase/"
+    },
+    {
+      "id": "electrum-seeds",
+      "label": "Electrum: versioned seed phrases",
+      "url": "https://electrum.readthedocs.io/en/latest/seedphrase.html"
+    },
+    {
+      "id": "bip44",
+      "label": "BIP 44: account hierarchy",
+      "url": "https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki"
+    },
+    {
+      "id": "bip49",
+      "label": "BIP 49: nested SegWit",
+      "url": "https://github.com/bitcoin/bips/blob/master/bip-0049.mediawiki"
+    },
+    {
+      "id": "bip84",
+      "label": "BIP 84: native SegWit",
+      "url": "https://github.com/bitcoin/bips/blob/master/bip-0084.mediawiki"
+    },
+    {
+      "id": "bip86",
+      "label": "BIP 86: single-key Taproot",
+      "url": "https://github.com/bitcoin/bips/blob/master/bip-0086.mediawiki"
+    }
+  ],
+  "thirdPartyApps": [
+    {
+      "name": "Trust Wallet",
+      "testedVersion": null,
+      "status": "Not installed or executed for this edition"
+    },
+    {
+      "name": "MetaMask",
+      "testedVersion": null,
+      "status": "Not installed or executed for this edition"
+    },
+    {
+      "name": "Electrum",
+      "testedVersion": null,
+      "status": "Not installed or executed for this edition"
+    }
+  ],
+  "changes": [
+    "First edition. Pinned source and reusable public-fixture checks published; no prior edition to compare."
+  ]
+}

@@ -1,13 +1,12 @@
-# Aptos wallet: send and receive APT
+# Aptos Wallet on iPhone – Find Your Address and Receive APT
 
-Manage APT and supported Aptos assets in a native iPhone and iPad wallet.
+Open Oath on your iPhone and select the wallet you want to fund. Tap Receive, search for APT and choose Aptos (APT). Tap Copy address or show the QR code. Ask the sender to send native APT to that address on Aptos Mainnet.
 
-## Receive Aptos
+## Where is my Aptos wallet address?
 
-1. Open Oath, select your wallet and choose Aptos in Receive.
-2. Copy the receiving address or show its QR code. Confirm the exact network with the sender.
-3. Receive on Aptos using your selected account. Match the asset type as well as the network when receiving a token.
-4. After the sender broadcasts the transfer, follow its status in Oath. Network confirmation can take time.
+1. In the Receive results, choose the native coin with the symbol APT. Other tokens can appear on Aptos too.
+2. In the sending wallet or exchange, choose APT and the Aptos withdrawal network. Paste your copied address or scan the QR code, then compare the complete destination with the address on your iPhone before confirming.
+3. After broadcast, look up the transaction hash in Aptos Explorer with Mainnet selected. Check the recipient, amount and status, then open the same wallet in Oath to see the deposit.
 
 ## Send APT
 
@@ -26,7 +25,7 @@ Aptos send and receive support does not include a supported dApp connection rout
 
 ### How do I receive Aptos in Oath?
 
-Open Oath, select your wallet and choose Aptos in Receive. Copy the receiving address or show its QR code. Confirm the exact network with the sender. Receive on Aptos using your selected account. Match the asset type as well as the network when receiving a token.
+Open Oath on your iPhone and select the wallet you want to fund. Tap Receive, search for APT and choose Aptos (APT). Tap Copy address or show the QR code. Ask the sender to send native APT to that address on Aptos Mainnet.
 
 ### What pays the Aptos transaction fee?
 
@@ -45,6 +44,32 @@ Features depend on the app version, network, wallet type and the service you con
 [Network catalog](https://github.com/OathWallet/oath-wallet/blob/6ff671b3e8f2ca8b8388ddebbf95f783a6ea0c7a/OathAtmosphere/Import/OathImportCatalog.swift) · Updated 2026-10-31. Source review is not confirmation of App Store availability.
 
 [Get Oath for iPhone and iPad](https://apps.apple.com/app/id6780187283) · [All networks](https://oathwallet.org/networks)
+
+
+
+
+
+
+## Receiving APT on iPhone
+
+### Do I need an Aptos RPC URL to receive APT?
+
+No. An RPC URL connects software to an Aptos node. The sender needs the public account address from your Receive screen. Aptos account addresses are 32 bytes and are commonly displayed as 0x followed by 64 hexadecimal characters. Copy the complete address as Oath shows it.
+
+### Who pays the fee when someone sends me APT?
+
+For an ordinary wallet transfer the sender pays the network fee in APT. An exchange may also charge a withdrawal fee. You can receive without an APT balance. Keep some APT for gas if you send funds later.
+
+### My withdrawal is pending. How do I check it?
+
+Look in the sending service’s withdrawal history for a transaction hash. If it has already broadcast the transfer, use that hash to check Aptos Mainnet. If it has not provided one, ask the sending service for the status before making another withdrawal.
+
+- [Aptos account addresses](https://aptos.dev/network/blockchain/accounts)
+- [Aptos gas and storage fees](https://aptos.dev/network/blockchain/gas-txn-fee)
+- [Check a transaction in Aptos Explorer](https://explorer.aptoslabs.com/?network=mainnet)
+- [Oath’s released Receive screen](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Home/OathReceiveSheet.swift)
+
+Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-16. [How we review guides](https://oathwallet.org/about#editorial).
 
 <!-- token-catalog:start -->
 ## Tokens on Aptos

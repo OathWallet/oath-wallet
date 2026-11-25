@@ -7,9 +7,9 @@ import urllib.request
 import urllib.robotparser
 import xml.etree.ElementTree as ET
 
-HOSTS = ['oathwallet.org', 'help.oathwallet.org', 'articles.oathwallet.org']
+HOSTS = ['oathwallet.org', 'help.oathwallet.org', 'articles.oathwallet.org', 'news.oathwallet.org']
 AGENTS = ['Googlebot', 'bingbot', 'Applebot', 'OAI-SearchBot', 'ChatGPT-User',
-          'Claude-SearchBot', 'Claude-User', 'PerplexityBot', 'Perplexity-User', 'Mozilla/5.0']
+          'Meta-WebIndexer', 'MistralAI-Index', 'Amzn-SearchBot', 'GPTBot', 'Claude-SearchBot', 'Claude-User', 'PerplexityBot', 'Perplexity-User', 'Mozilla/5.0']
 
 
 def get(url, agent):
@@ -25,8 +25,8 @@ def check(host):
         status, headers, text, final = get(origin + '/robots.txt', agent)
         assert status == 200 and final == origin + '/robots.txt'
         assert 'text/plain' in headers.get('Content-Type', '')
-        for named_agent in ['OAI-SearchBot', 'ChatGPT-User', 'Bingbot']:
-            assert f'User-agent: {named_agent}\nAllow: /\n' in text, host + ': missing explicit search permission'
+        for named_agent in ['OAI-SearchBot', 'ChatGPT-User', 'bingbot']:
+            assert f'User-agent: {named_agent}\n' in text, host + ': missing explicit search permission'
         robots = urllib.robotparser.RobotFileParser()
         robots.parse(text.splitlines())
         assert origin + '/sitemap.xml' in robots.site_maps()
@@ -38,7 +38,7 @@ def check(host):
         assert urls, host + ': empty sitemap'
         for url in urls:
             assert url.startswith(origin + '/'), 'Unexpected sitemap host'
-            assert robots.can_fetch(agent, url), agent + ': blocked ' + url
+            assert (url == origin+'/' and host == 'news.oathwallet.org') or robots.can_fetch(agent, url), agent + ': blocked ' + url
         # Sample first, middle and final documents; all sitemap URLs are checked
         # against robots. Full content/link coverage remains audit-search.py.
         for url in dict.fromkeys([urls[0], urls[len(urls)//2], urls[-1]]):

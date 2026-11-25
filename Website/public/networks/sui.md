@@ -49,6 +49,41 @@ Features depend on the app version, network, wallet type and the service you con
 
 [Get Oath for iPhone and iPad](https://apps.apple.com/app/id6780187283) · [All networks](https://oathwallet.org/networks)
 
+
+## How to receive SUI on iPhone
+
+Open the wallet you want to receive into, tap Receive and choose Sui Network. On the Receive Sui Network screen, tap Copy address or let the sender scan your QR code. Ask them to select Sui Mainnet for the transfer.
+
+- **When you receive:** Showing your address or QR code does not submit a transaction. The outgoing transaction needs a gas payer. A sending exchange may also charge its own withdrawal fee.
+- **When you send later:** For an ordinary send from Oath, keep SUI in the same Sui account for gas and review the estimate before confirming.
+
+### The sender only sees another network
+
+Stop at the network selection. Ask whether the sending service supports withdrawals on Sui Mainnet. Address appearance alone cannot confirm the network.
+
+![Oath Receive Sui Network screen with a demo QR, Copy address and Share buttons](https://oathwallet.org/assets/guides/2026-11-10/sui.webp)
+
+Oath 5.0.2 (104) · Mac simulator. This real app screen uses an invalid demonstration address. Use Copy address in your own wallet or show its QR code to your sender.
+
+
+
+## Before the sender confirms
+
+### How can I check a pending withdrawal?
+
+Ask the sender for the transaction digest and check the destination on Sui Mainnet. An exchange withdrawal can still be processing before it has an on-chain transaction.
+
+- [Check network fees in Oath](https://oathwallet.org/networks/fees)
+
+### Sources and review
+
+App steps checked against the linked release source; token identities and network requirements checked against the sources below. Screenshots show the actual app interface with mock data, not completed live transfers.
+
+- [Sui documentation on wallets and gas](https://www.docs.sui.io/onchain-finance/asset-custody/wallets/what-is-a-wallet)
+- [Oath 5.0.2 release source](https://github.com/OathWallet/oath-wallet/tree/d039b009d8c81b0497f2ac7e6abebfdf54ff8612)
+
+Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-10. [How we review guides](https://oathwallet.org/about#editorial).
+
 <!-- token-catalog:start -->
 ## Tokens on Sui Network
 

@@ -1,16 +1,10 @@
+import {publicSearchRobots} from './search-crawlers.js';
 const EDGE='https://rfjdenxkgjgepgbmxxkd.supabase.co/functions/v1/oath-newsletter';
 const COOKIE='__Host-oath-news-admin';
 const NEWS='news.oathwallet.org';
 // Only the public signup page, its redirects and public assets may be crawled.
 // In particular, /news/ also contains the admin and subscriber preference UI.
-const signupRobots = [
- 'User-agent: *', 'Disallow: /', 'Allow: /$', 'Allow: /?',
- 'Allow: /news/$', 'Allow: /news/index.html', 'Allow: /newsletter$', 'Allow: /newsletter/$',
- 'Allow: /news/signup.css', 'Allow: /news/signup.js', 'Allow: /theme.css', 'Allow: /theme.js',
- 'Allow: /favicon.svg', 'Allow: /assets/fonts/', 'Allow: /assets/brand/', 'Allow: /assets/networks/',
- 'Allow: /site-chrome.js', 'Allow: /help/site-chrome.css', 'Allow: /newsletter.css', 'Allow: /newsletter.js',
- 'Allow: /.well-known/security.txt', 'Allow: /security.txt', ''
-].join('\n');
+const signupRobots=publicSearchRobots('https://news.oathwallet.org');
 const json=(status,body)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}});
 const cookieValue=request=>request.headers.get('Cookie')?.split(';').map(v=>v.trim()).find(v=>v.startsWith(COOKIE+'='))?.slice(COOKIE.length+1)||'';
 export function newsletterSecurity(response){
@@ -96,7 +90,8 @@ export async function handleNewsletter(request,env){
   }
   if(isNews||(local&&['/admin','/confirm','/preferences','/newsletter-preview'].includes(url.pathname))){
    if(!['GET','HEAD'].includes(request.method))return newsletterSecurity(json(405,{error:'Method not allowed.'}));
-   if(url.pathname==='/robots.txt')return newsletterSecurity(new Response(request.method==='HEAD'?null:signupRobots,{headers:{'Content-Type':'text/plain; charset=utf-8'}}));
+   if(url.pathname==='/sitemap.xml'){const asset=await env.ASSETS.fetch(new Request('https://oathwallet.org/news/sitemap.xml'));return newsletterSecurity(new Response(request.method==='HEAD'?null:asset.body,{status:asset.status,headers:{'Content-Type':'application/xml; charset=utf-8'}}));}
+    if(url.pathname==='/robots.txt')return newsletterSecurity(new Response(request.method==='HEAD'?null:signupRobots,{headers:{'Content-Type':'text/plain; charset=utf-8'}}));
    const paths={'/':'/news/index.html','/admin':'/news/admin.html','/admin/':'/news/admin.html','/confirm':'/news/preferences.html','/preferences':'/news/preferences.html','/unsubscribe':'/news/preferences.html','/newsletter-preview':'/news/index.html'};
    const mapped=paths[url.pathname];
    if(mapped){url.pathname=mapped;url.search='';return newsletterSecurity(await env.ASSETS.fetch(new Request(url,request)));}

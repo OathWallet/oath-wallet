@@ -74,3 +74,10 @@ Oath 4.0.3 app screenshot with sample data. Compare the network and full receivi
 - [Choose the network for USDT or USDC](https://oathwallet.org/networks/choose-token-network)
 - [Find the network fee asset](https://oathwallet.org/networks/fees)
 - [Read current release information](https://articles.oathwallet.org/oath-wallet-release-history)
+
+
+## Compare the versioned evidence
+
+The [Wallet Compatibility Lab](https://oathwallet.org/compatibility) separates source review, reference-library checks and tests of Oath’s released Bitcoin core. [Read the November 9, 2026 results](https://oathwallet.org/compatibility/2026-11-09) for the exact account types, source revision, passing checks and limitations. Installed third-party apps and funded migrations were not tested in that edition.
+
+[First ordinary Trust Wallet EVM account in the dated lab results](https://oathwallet.org/compatibility/2026-11-09#trust-evm).

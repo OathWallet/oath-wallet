@@ -1,0 +1,35 @@
+# Oath public editorial documentation
+
+Current App Store listing: Oath Wallet 5.1.0. Checked 2026-11-25 (us storefront). Approved build number: not publicly verified.
+App Store: https://apps.apple.com/app/id6780187283
+Distribution evidence: https://itunes.apple.com/lookup?id=6780187283&country=us
+Release metadata: https://oathwallet.org/release-status.json
+Published source release: 5.1.0 (110); https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.0-build110
+Guide source: 5.0.2 (104); https://github.com/OathWallet/oath-wallet/releases/tag/v5.0.2-build104
+Published security review: https://github.com/OathWallet/oath-wallet-security-review
+Review scope: maintainer-commissioned, Codex-led security review. The whole-wallet review remains incomplete. Findings, fixes and tests apply to their recorded source commits; later releases do not automatically inherit coverage. No independent security-company certification or independently reproduced App Store binary match is established.
+Each result retains its tested source revision. Historical articles, screenshots and catalog snapshots retain their recorded versions.
+
+This bundle contains editorial and Help documents. Token catalog documents are paginated at https://oathwallet.org/tokens/documents.json.
+
+---
+
+Canonical: https://news.oathwallet.org/
+Updated: 2026-11-25
+
+# Oath Notes — The Oath Wallet newsletter
+
+Wallet releases, security alerts, market context, and practical guides from the Oath team. Delivered to your inbox.
+
+## Choose your topics
+
+- Wallet updates
+- Markets & prices
+- Security brief
+- Wallet guides
+
+## Subscribe
+
+Visit [Oath Notes](https://news.oathwallet.org/) and enter your email address. Enable JavaScript to submit your subscription. By joining, you agree to receive Oath Notes by email. Unsubscribe anytime. [Privacy policy](https://oathwallet.org/privacy).
+
+[Oath Wallet](https://oathwallet.org/) · [Contact](mailto:care@oathwallet.org)

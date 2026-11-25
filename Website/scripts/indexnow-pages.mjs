@@ -2,6 +2,7 @@ import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {sitemapURLs} from './sitemaps.mjs';
 import manifest from '../src/tokens-manifest.json' with {type:'json'};
+import {handleNewsletter} from '../src/newsletter.js';
 import {handleHelp} from '../src/help/index.js';
 import {handleArticleHost} from '../src/article-host.js';
 
@@ -9,7 +10,7 @@ const root=new URL('../public/',import.meta.url);
 const digest=text=>createHash('sha256').update(text).digest('hex');
 const assets={ASSETS:{async fetch(request){
   const path=new URL(request.url).pathname;
-  if (!path.endsWith('.html')) throw Error('Expected a published HTML document');
+  if (!path.endsWith('.html')&&!path.endsWith('.xml')) throw Error('Expected a published HTML document');
   return new Response(await readFile(new URL('.'+path,root)), {headers:{'Content-Type':'text/html; charset=utf-8'}});
 }}};
 
@@ -22,7 +23,7 @@ export async function indexNowHashes() {
     hashes[url]=path.startsWith('/tokens')||path.endsWith('/tokens') ? manifest.version
       : digest(await readFile(new URL('.'+(path==='/'?'/index.html':path+'.html'),root)));
   }
-  for(const [host,handler] of [['help.oathwallet.org',handleHelp],['articles.oathwallet.org',handleArticleHost]]) {
+  for(const [host,handler] of [['help.oathwallet.org',handleHelp],['articles.oathwallet.org',handleArticleHost],['news.oathwallet.org',handleNewsletter]]) {
     const sitemap=await handler(new Request(`https://${host}/sitemap.xml`),assets);
     if(!sitemap.ok)throw Error('Host sitemap failed');
     const urls=[...(await sitemap.text()).matchAll(/<loc>([^<]+)<\/loc>/g)].map(m=>m[1].replaceAll('&amp;','&'));

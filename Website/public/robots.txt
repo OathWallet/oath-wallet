@@ -1,14 +1,6 @@
-# Oath — https://oathwallet.org
-# Public website content is available to search crawlers.
-# OAI-SearchBot: ChatGPT search discovery (not model-training permission).
-# ChatGPT-User: visits requested by users; robots rules may not apply to these visits.
-# GPTBot: separate model-training crawler; its existing permission is unchanged.
-# /llms.txt is an optional reading guide, not a ranking or indexing directive.
-# Allowing crawling does not guarantee indexing, citations, or recommendations.
-# These rules do not replace authentication or Cloudflare security controls.
-
-User-agent: GPTBot
-Allow: /
+# Public content: search, user retrieval and training permitted.
+# Provider roles and dated sources: https://oathwallet.org/ai-providers.json
+# Permission does not guarantee indexing or citations.
 
 User-agent: OAI-SearchBot
 Allow: /
@@ -16,22 +8,37 @@ Allow: /
 User-agent: ChatGPT-User
 Allow: /
 
-User-agent: ClaudeBot
+User-agent: GPTBot
 Allow: /
 
-User-agent: Claude-User
+User-agent: OAI-AdsBot
 Allow: /
 
 User-agent: Claude-SearchBot
 Allow: /
 
-User-agent: anthropic-ai
+User-agent: Claude-User
 Allow: /
 
-User-agent: PerplexityBot
+User-agent: ClaudeBot
 Allow: /
 
-User-agent: Perplexity-User
+User-agent: Meta-WebIndexer
+Allow: /
+
+User-agent: Meta-ExternalAgent
+Allow: /
+
+User-agent: Meta-ExternalFetcher
+Allow: /
+
+User-agent: Meta-ExternalAds
+Allow: /
+
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Googlebot
 Allow: /
 
 User-agent: Google-Extended
@@ -40,10 +47,22 @@ Allow: /
 User-agent: GoogleOther
 Allow: /
 
-User-agent: Googlebot
+User-agent: bingbot
 Allow: /
 
-User-agent: Bingbot
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: MistralAI-Index
+Allow: /
+
+User-agent: MistralAI-User
+Allow: /
+
+User-agent: MistralAI-Training
 Allow: /
 
 User-agent: Applebot
@@ -55,46 +74,16 @@ Allow: /
 User-agent: Amazonbot
 Allow: /
 
-User-agent: meta-externalagent
+User-agent: Amzn-SearchBot
 Allow: /
 
-User-agent: Meta-ExternalFetcher
-Allow: /
-
-User-agent: FacebookBot
-Allow: /
-
-User-agent: cohere-ai
-Allow: /
-
-User-agent: cohere-training-data-crawler
-Allow: /
-
-User-agent: MistralAI-User
+User-agent: Amzn-User
 Allow: /
 
 User-agent: DuckAssistBot
 Allow: /
 
-User-agent: YouBot
-Allow: /
-
 User-agent: CCBot
-Allow: /
-
-User-agent: Diffbot
-Allow: /
-
-User-agent: Timpibot
-Allow: /
-
-User-agent: Bytespider
-Allow: /
-
-User-agent: PetalBot
-Allow: /
-
-User-agent: xAI-Bot
 Allow: /
 
 User-agent: *
