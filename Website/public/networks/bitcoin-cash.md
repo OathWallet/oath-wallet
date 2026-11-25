@@ -32,10 +32,6 @@ Open Oath, select your wallet and choose Bitcoin Cash in Receive. Copy the recei
 
 BCH is the native fee asset for this network account. Review the BCH amount, destination and network fee. A familiar address format does not make a Bitcoin transfer compatible.
 
-### Can I connect Bitcoin Cash dApps?
-
-Bitcoin Cash send and receive support does not include a supported dApp connection route in this guide. Use Oath for transfers; do not import your recovery phrase into a website to connect.
-
 ### Can I send to the same address on another network?
 
 Only send using the network the recipient explicitly supports. A matching address or ticker does not bridge assets or make different chains interchangeable.
@@ -101,4 +97,4 @@ App steps checked against the linked release source; token identities and networ
 - [Oath 5.0.2: asset details and activity](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Assets/OathAssetDetailScreen.swift)
 - [Oath 5.0.2: supported send flows](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Send/OathSendModel.swift)
 
-Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-09. [How we review guides](https://oathwallet.org/about#editorial).
+Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-10. [How we review guides](https://oathwallet.org/about#editorial).

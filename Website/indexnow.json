@@ -4,6 +4,7 @@
   "hosts": [
     "oathwallet.org",
     "help.oathwallet.org",
-    "articles.oathwallet.org"
+    "articles.oathwallet.org",
+    "news.oathwallet.org"
   ]
 }

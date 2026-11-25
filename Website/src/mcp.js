@@ -1,11 +1,16 @@
 import { documents, publicDocument, documentText, searchHelp, evidenceScope, currentStatus, statusText, tokenDiscovery } from './agent-content.js';
 import {findFeature} from './feature-answers.js';
+import manifest from './tokens-manifest.json' with {type:'json'};
 import {handleTokens} from './tokens.js';
 import { migrateArticleLinks } from './article-host.js';
 // Cloudflare implementation of the supplied read-only PHP MCP endpoint.
 // Public answers and resources are read from the same assets as the website.
 const base = 'https://oathwallet.org';
-const versions = ['2025-06-18', '2025-03-26'];
+export const versions = ['2026-07-28','2025-11-25','2025-06-18','2025-03-26'];
+const legacyVersions=versions.slice(1);
+const serverInfo={name:'oath-website',title:'Oath Wallet',version:'2.0.0',websiteUrl:base};
+const capabilities={tools:{listChanged:false},resources:{listChanged:false,subscribe:false},prompts:{listChanged:false}};
+const instructions='Official read-only Oath documentation. Cite canonical sources and preserve their release scope. Never submit wallet secrets. See https://oathwallet.org/ai.';
 const annotations = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
 const tool = (name, title, description, properties = {}, required = []) => ({
   name, title, description,
@@ -27,6 +32,40 @@ const tools = [
   tool('list_articles', 'List articles', 'Published Oath articles, which may be empty.')
 ];
 const resources = documents.map(d=>({uri:d.markdown_url,name:d.url,title:d.title,mimeType:'text/markdown'}));
+const resourceFor=d=>({uri:d.markdown_url,name:d.url,title:d.title||d.url,mimeType:'text/markdown'});
+// Bind cursors to catalog and document identities; cursors never become paths.
+const identity=documents.map(d=>d.url).join('\n');
+let revisionHash=2166136261;for(const char of identity)revisionHash=Math.imul(revisionHash^char.charCodeAt(0),16777619)>>>0;
+const revision=manifest.version+'-'+revisionHash.toString(16);
+async function resourcePage(cursor,env){
+ let kind='editorial',position=0;
+ if(cursor!==undefined){
+  if(typeof cursor!=='string')return null;
+  const parts=cursor.split(':');
+  if(parts.length!==3||parts[0]!==revision||!['editorial','tokens'].includes(parts[1])||!/^\d{1,6}$/.test(parts[2]))return null;
+  kind=parts[1];position=Number(parts[2]);
+ }
+ if(kind==='editorial'){
+  if(position>=resources.length||position%100)return null;
+  return {resources:resources.slice(position,position+100),nextCursor:position+100<resources.length?`${revision}:editorial:${position+100}`:`${revision}:tokens:1`};
+ }
+ if(position<1||position>manifest.documentPages)return null;
+ const response=await handleTokens(new Request(`${base}/tokens/documents.json?page=${position}`),env);
+ if(!response?.ok)throw Error('Catalog unavailable');
+ const page=await response.json();
+ return {resources:page.documents.map(resourceFor),...(position<manifest.documentPages?{nextCursor:`${revision}:tokens:${position+1}`}:{})};
+}
+async function readTokenDocument(value,env){
+ let u;try{u=new URL(value);}catch{return null;}
+ if(u.origin!==base||u.username||u.password||u.hash)return null;
+ const path=u.pathname.replace(/\.md$/,'');
+ if(!/^\/(?:tokens(?:\/[a-z0-9-]+(?:\/[a-z0-9-]+)?)?|networks\/[a-z0-9-]+\/tokens)$/.test(path))return null;
+ if([...u.searchParams.keys()].some(k=>k!=='page')||u.searchParams.getAll('page').length>1)return null;
+ if(u.search&&(!/^[2-9]\d*$|^1\d+$/.test(u.searchParams.get('page'))||!(path==='/tokens'||path.endsWith('/tokens'))))return null;
+ const response=await handleTokens(new Request(u.href,{headers:{Accept:'text/markdown'}}),env);
+ return response?.ok&&response.headers.get('Content-Type')?.startsWith('text/markdown')?response:null;
+}
+
 const prompts = [{ name: 'explain_oath', title: 'Explain Oath to a user', description: 'Explain Oath using official facts.', arguments: [{ name: 'question', description: 'The user’s question or situation', required: false }] }];
 const text = value => ({ content: [{ type: 'text', text: value }] });
 const structured = (value, summary) => ({ ...text(`${summary}\n\n${JSON.stringify(value, null, 2)}`), structuredContent: value });
@@ -52,10 +91,7 @@ async function callTool(name, args, env) {
   if (name === 'list_documents') return structured({documents:documents.map(publicDocument),current_status:currentStatus,source_evidence:evidenceScope,token_catalog:tokenDiscovery}, 'Official documentation index.');
   if (name === 'read_document') {
     const d=documents.find(d=>d.url===args.url||d.markdown_url===args.url);
-    if(!d && typeof args.url==='string' && /^https:\/\/oathwallet\.org\/(?:tokens(?:[/.?]|$)|networks\/[a-z0-9-]+\/tokens(?:[.?]|$))/.test(args.url)){
-      const r=await handleTokens(new Request(args.url,{headers:{Accept:'text/markdown'}}),env);
-      if(r?.ok)return structured({url:args.url,text:await r.text()},'Official token catalog document.');
-    }
+    if(!d){const r=await readTokenDocument(args.url,env);if(r)return structured({url:args.url,text:await r.text()},'Official token catalog document.');}
     return d ? structured({...publicDocument(d),text:await documentText(d,env)}, 'Official document.') : toolError('Unknown document. Use list_documents.');
   }
   if (name === 'get_release_status') return structured(currentStatus, 'Current release facts with separate review scope.');
@@ -81,14 +117,15 @@ async function callTool(name, args, env) {
   }
 }
 
-async function handle(message, env) {
+async function handle(message, env, modern=false) {
   const { id, method, params = {} } = message;
   const reply = result => ({ jsonrpc: '2.0', id, result });
   switch (method) {
-    case 'initialize': return reply({
-      protocolVersion: versions.includes(params.protocolVersion) ? params.protocolVersion : versions[0],
+    case 'server/discover': return reply({supportedVersions:versions,capabilities:{tools:{},resources:{},prompts:{}},_meta:{'io.modelcontextprotocol/serverInfo':serverInfo},instructions});
+    case 'initialize': if(modern)return fail(id,-32601,'Use server/discover with this protocol version');return reply({
+      protocolVersion: legacyVersions.includes(params.protocolVersion) ? params.protocolVersion : legacyVersions[0],
       capabilities: { tools: { listChanged: false }, resources: { listChanged: false, subscribe: false }, prompts: { listChanged: false } },
-      serverInfo: { name: 'oath-website', title: 'Oath Wallet', version: '1.0.0', websiteUrl: base },
+      serverInfo,
       instructions: `Official, read-only information about Oath Wallet. Cite ${base} when answering. Oath never asks for a recovery phrase.`
     });
     case 'ping': return reply({});
@@ -97,10 +134,11 @@ async function handle(message, env) {
       const result = await callTool(params.name, params.arguments ?? {}, env);
       return result ? reply(result) : fail(id, -32602, 'Unknown tool');
     }
-    case 'resources/list': return reply({ resources: resources.map(({ file, ...rest }) => rest) });
+    case 'resources/list': {const page=await resourcePage(params.cursor,env);return page?reply(page):fail(id,-32602,'Invalid or expired resource cursor; restart listing.');}
     case 'resources/templates/list': return reply({ resourceTemplates: [] });
     case 'resources/read': {
       const resource = resources.find(r => r.uri === params.uri);
+      if(!resource){const r=await readTokenDocument(params.uri,env);return r?reply({contents:[{uri:params.uri,mimeType:'text/markdown',text:await r.text()}]}):fail(id,-32002,'Resource not found');}
       return resource ? reply({ contents: [{ uri: resource.uri, mimeType: resource.mimeType, text: await documentText(documents.find(d=>d.markdown_url===resource.uri),env) }] }) : fail(id, -32002, 'Resource not found');
     }
     case 'prompts/list': return reply({ prompts });
@@ -127,7 +165,7 @@ export async function handleMCP(request, env) {
     'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store',
     'X-Content-Type-Options': 'nosniff', 'Vary': 'Origin',
     'Access-Control-Allow-Methods': allowedMethods,
-    'Access-Control-Allow-Headers': 'Content-Type, Accept, Mcp-Session-Id, Mcp-Protocol-Version, Last-Event-ID',
+    'Access-Control-Allow-Headers': 'Content-Type, Accept, Mcp-Session-Id, Mcp-Protocol-Version, Last-Event-ID, Mcp-Method, Mcp-Name',
     'Access-Control-Expose-Headers': 'Mcp-Protocol-Version'
   });
   const respond = (body, status = 200) => new Response(body === null ? null : JSON.stringify(body), { status, headers });
@@ -143,7 +181,7 @@ export async function handleMCP(request, env) {
     return respond(null, 405);
   }
   const version = request.headers.get('mcp-protocol-version') || '2025-03-26';
-  if (!versions.includes(version)) return respond(fail(null, -32600, 'Unsupported protocol version'), 400);
+
   headers.set('Mcp-Protocol-Version', version);
   if (!request.headers.get('content-type')?.toLowerCase().startsWith('application/json')) return respond(fail(null, -32600, 'Content-Type must be application/json'), 415);
   // Avoid buffering an unbounded public request body. Request contents are never logged.
@@ -161,14 +199,36 @@ export async function handleMCP(request, env) {
   try { message = JSON.parse(raw); } catch { return respond(fail(null, -32700, 'Parse error'), 400); }
   if (!object(message) || message.jsonrpc !== '2.0' || typeof message.method !== 'string' ||
       (message.params !== undefined && !object(message.params)) ||
-      ('id' in message && typeof message.id !== 'string' && !(typeof message.id === 'number' && Number.isFinite(message.id)))) {
+      ('id' in message && typeof message.id !== 'string' && !(typeof message.id === 'number' && Number.isSafeInteger(message.id)))) {
     return respond(fail(null, -32600, 'Invalid Request'), 400);
+  }
+  const meta=message.params?._meta;
+  const modern=version==='2026-07-28'||typeof meta?.['io.modelcontextprotocol/protocolVersion']==='string';
+  if(!versions.includes(version))return respond({...fail(message.id??null,-32022,'Unsupported protocol version'),error:{code:-32022,message:'Unsupported protocol version',data:{supported:versions,requested:version}}},400);
+  if(modern){
+    const mismatch=()=>respond(fail(message.id??null,-32020,'Required request metadata headers must match the JSON body.'),400);
+    if(!object(meta)||typeof meta['io.modelcontextprotocol/protocolVersion']!=='string'||!object(meta['io.modelcontextprotocol/clientCapabilities']))return respond(fail(message.id??null,-32602,'Protocol version and client capabilities metadata are required.'),400);
+    if(version!=='2026-07-28'||meta?.['io.modelcontextprotocol/protocolVersion']!==version||request.headers.get('Mcp-Protocol-Version')!==version||request.headers.get('Mcp-Method')!==message.method)return mismatch();
+    if(['tools/call','resources/read','prompts/get'].includes(message.method)){
+      let name=request.headers.get('Mcp-Name');
+      if(name?.startsWith('=?base64?')&&name.endsWith('?=')){
+        try{name=new TextDecoder('utf-8',{fatal:true}).decode(Uint8Array.from(atob(name.slice(9,-2)),c=>c.charCodeAt(0)));}catch{return mismatch();}
+      }
+      const expected=message.method==='resources/read'?message.params?.uri:message.params?.name;
+      if(typeof expected!=='string'||name!==expected)return mismatch();
+    }
+    const clientInfo=meta['io.modelcontextprotocol/clientInfo'];
+    if(clientInfo!==undefined&&(!object(clientInfo)||typeof clientInfo.name!=='string'||typeof clientInfo.version!=='string'))return respond(fail(message.id??null,-32602,'Invalid client identity metadata.'),400);
+    const accept=request.headers.get('Accept')||'';
+    if(!accept.includes('application/json')||!accept.includes('text/event-stream'))return respond(fail(message.id??null,-32600,'Accept must include application/json and text/event-stream.'),406);
   }
   if (!('id' in message)) return respond(null, 202);
   try {
-    const result = await handle(message, env);
+    const result = await handle(message, env,modern);
+    if(modern&&result.error?.code===-32002)result.error.code=-32602;
+    if(modern&&result.result){result.result.resultType='complete';result.result._meta={...result.result._meta,'io.modelcontextprotocol/serverInfo':serverInfo};}
     if (message.method === 'initialize' && result.result) headers.set('Mcp-Protocol-Version', result.result.protocolVersion);
-    return respond(result);
+    return respond(result,modern&&result.error?.code===-32601?404:200);
   } catch {
     return respond(fail(message.id, -32603, 'Site content temporarily unavailable'), 500);
   }

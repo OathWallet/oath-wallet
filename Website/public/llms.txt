@@ -1,255 +1,55 @@
 # Oath Wallet — public documentation
 
-Official product information only. Never submit recovery phrases, private keys, passcodes or wallet data to these interfaces.
+> Official, source-attributed wallet documentation. Public content is available for search, user-requested reading and training; this does not guarantee indexing or citations.
 
-Read-only MCP: https://oathwallet.org/mcp
-Document index: https://oathwallet.org/agent-documents.json
-Token catalog: https://oathwallet.org/tokens
-Paginated token documents: https://oathwallet.org/tokens/documents.json
-App Store: https://apps.apple.com/us/app/oath-bitcoin-crypto-wallet/id6780187283
-Public source and releases: https://github.com/OathWallet/oath-wallet
-
-Current release: Oath Wallet 5.0.2 (104). Release facts checked 2026-11-05.
-Release and verification record: https://github.com/OathWallet/oath-wallet/releases/tag/v5.0.2-build104
-Current release metadata: https://oathwallet.org/release-status.json
+Current App Store listing: Oath Wallet 5.1.0. Checked 2026-11-25 (us storefront). Approved build number: not publicly verified.
+App Store: https://apps.apple.com/app/id6780187283
+Distribution evidence: https://itunes.apple.com/lookup?id=6780187283&country=us
+Release metadata: https://oathwallet.org/release-status.json
+Published source release: 5.1.0 (110); https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.0-build110
+Guide source: 5.0.2 (104); https://github.com/OathWallet/oath-wallet/releases/tag/v5.0.2-build104
 Published security review: https://github.com/OathWallet/oath-wallet-security-review
-Review status: maintainer-commissioned, Codex-led security review; in progress. The whole-wallet review remains incomplete. Findings, fixes and tests apply to their recorded source commits; later releases do not automatically inherit coverage. No independent security-company certification or independently reproduced App Store binary match is established.
-Each review result retains its tested source revision. Older articles, tags and directory snapshots describe their recorded versions.
+Review scope: maintainer-commissioned, Codex-led security review. The whole-wallet review remains incomplete. Findings, fixes and tests apply to their recorded source commits; later releases do not automatically inherit coverage. No independent security-company certification or independently reproduced App Store binary match is established.
+Each result retains its tested source revision. Historical articles, screenshots and catalog snapshots retain their recorded versions.
 
-Help instructions carry their applicable app version and authored update dates. Source excerpts cover 5.0.2 (104), reviewed 2026-11-05; this is not an independent audit or proof of App Store availability.
+## Start here
 
+- [AI reader and developer guide](https://oathwallet.org/ai.md): source selection, limitations and MCP examples.
+- [This host's document index](https://oathwallet.org/agent-documents.json): complete local editorial inventory, including all public hosts.
+- [All public documents](https://oathwallet.org/agent-documents.json): editorial documents plus the paginated token catalog.
+- [Token catalog documents](https://oathwallet.org/tokens/documents.json): follow next until null; catalog presence is not issuer verification or tested sending.
+- [Read-only MCP](https://oathwallet.org/.well-known/mcp.json): explicit client configuration and supported protocol versions.
+
+## Selected documents
+
+- [Wallet Compatibility Lab: Import & Recovery Evidence | Oath](https://oathwallet.org/compatibility.md): Compare Trust Wallet, MetaMask and Electrum account recovery with Oath. Explore versioned derivation results, Bitcoin address types, methods and limitations.
+- [Wallet Compatibility Results — November 2026 | Oath](https://oathwallet.org/compatibility/2026-11-09.md): Oath 5.0.2 compatibility evidence: 14 reference-library checks, four source assertions and 14 passing Bitcoin host tests, with exact scope and skipped tests.
+- [Wallet Compatibility Lab: Methods & Reproduction | Oath](https://oathwallet.org/compatibility/methodology.md): How Oath reviews wallet recovery: pinned versions, public fixtures, reproducible checks and clear boundaries between source, core tests and observed behavior.
 - [Prepare a Crypto Transfer | Token, Network & Fees | Oath](https://oathwallet.org/networks/choose-token-network.md): Prepare a token transfer with Oath. Start with USDT or USDC, or open any catalog token’s checklist to compare its exact identity, receiving network and fee requirements.
 - [Which Coin Pays My Crypto Network Fee? | Oath Wallet](https://oathwallet.org/networks/fees.md): Find the fee asset and account requirements for Oath’s supported networks. Understand TRX, ETH, SOL and Bitcoin fees before sending.
 - [Check and revoke token approvals](https://oathwallet.org/features/revoke-token-approvals.md): Check discovered token approvals in Oath for iPhone. Review supported EVM, TRON and Solana access, estimate network fees and verify supported revocations.
 - [Encrypted iCloud wallet backup](https://oathwallet.org/features/icloud-wallet-backup.md): Back up eligible Oath wallets to iCloud Drive with password encryption. Learn what is supported, how to confirm uploads and what you need to restore.
 - [Connect to dApps with WalletConnect](https://oathwallet.org/features/walletconnect.md): Use WalletConnect with Oath on iPhone. Review the dApp, wallet, networks and permissions, then approve supported requests individually.
-- [Bitcoin wallet: send, receive and dApp connections](https://oathwallet.org/networks/bitcoin.md): Receive native BTC with your Oath address and review your Bitcoin network fee before sending.
-- [Ethereum wallet: send, receive and dApp connections](https://oathwallet.org/networks/ethereum.md): Receive, send and manage assets on Ethereum with Oath for iPhone and iPad. Keep your network, address and fee details in view.
-- [Solana wallet: send, receive and dApp connections](https://oathwallet.org/networks/solana.md): Keep SOL and supported Solana tokens together, with receiving, sending and compatible dApp connections.
-- [Gram wallet: send, receive and dApp connections](https://oathwallet.org/networks/gram.md): Send and receive Gram on iPhone and iPad with Oath Wallet. Gram (GRAM) is the native coin of the TON blockchain, formerly called Toncoin.
-- [THORChain wallet: send, receive and dApp connections](https://oathwallet.org/networks/thorchain.md): Keep RUNE and supported THORChain assets in Oath, and connect to compatible THORChain dApps.
-- [BNB Smart Chain wallet: send, receive and dApp connections](https://oathwallet.org/networks/bnb-smart-chain.md): Receive, send and manage assets on BNB Smart Chain with Oath for iPhone and iPad. Keep your network, address and fee details in view.
-- [Polygon wallet: send, receive and dApp connections](https://oathwallet.org/networks/polygon.md): Receive, send and manage assets on Polygon with Oath for iPhone and iPad. Keep your network, address and fee details in view.
-- [Arbitrum wallet: send, receive and dApp connections](https://oathwallet.org/networks/arbitrum.md): Receive, send and manage assets on Arbitrum with Oath for iPhone and iPad. Keep your network, address and fee details in view.
-- [Base wallet: send, receive and dApp connections](https://oathwallet.org/networks/base.md): Receive, send and manage assets on Base with Oath for iPhone and iPad. Keep your network, address and fee details in view.
-- [Optimism wallet: send, receive and dApp connections](https://oathwallet.org/networks/optimism.md): Receive, send and manage assets on Optimism with Oath for iPhone and iPad. Keep your network, address and fee details in view.
-- [Avalanche C-Chain wallet: send, receive and dApp connections](https://oathwallet.org/networks/avalanche.md): Receive, send and manage assets on Avalanche C-Chain with Oath for iPhone and iPad. Keep your network, address and fee details in view.
-- [TRON wallet: send, receive and dApp connections](https://oathwallet.org/networks/tron.md): Manage TRX and supported TRC-20 assets with clear send and receive details.
-- [XRP Ledger wallet: send, receive and dApp connections](https://oathwallet.org/networks/xrp-ledger.md): Receive XRP, manage supported XRP Ledger assets and review outgoing transfers in Oath.
-- [NEAR Protocol wallet: send, receive and dApp connections](https://oathwallet.org/networks/near.md): Receive NEAR and supported tokens, send from Oath and review compatible dApp requests.
-- [Sui Network wallet: send, receive and dApp connections](https://oathwallet.org/networks/sui.md): Manage SUI and supported Sui assets, with local transaction review and compatible dApp connections.
-- [Aptos wallet: send, receive and dApp connections](https://oathwallet.org/networks/aptos.md): Manage APT and supported Aptos assets in a native iPhone and iPad wallet.
-- [Polkadot wallet: send, receive and dApp connections](https://oathwallet.org/networks/polkadot.md): Manage DOT and supported Asset Hub assets in Oath on iPhone and iPad.
-- [Stellar wallet: send, receive and dApp connections](https://oathwallet.org/networks/stellar.md): Receive and send XLM and supported Stellar assets from Oath.
-- [Litecoin wallet: send, receive and dApp connections](https://oathwallet.org/networks/litecoin.md): Receive LTC, review activity and send Litecoin from your iPhone or iPad.
-- [Dogecoin wallet: send, receive and dApp connections](https://oathwallet.org/networks/dogecoin.md): Manage native DOGE with a clear receiving address and a fee review before you send.
-- [Bitcoin Cash wallet: send, receive and dApp connections](https://oathwallet.org/networks/bitcoin-cash.md): Send and receive BCH on Bitcoin Cash with a dedicated network account.
-- [Arc wallet: send, receive and dApp connections](https://oathwallet.org/networks/arc.md): Receive, send and manage assets on Arc with Oath for iPhone and iPad. Keep your network, address and fee details in view.
-- [Fantom wallet: send, receive and dApp connections](https://oathwallet.org/networks/fantom.md): Receive, send and manage assets on Fantom with Oath for iPhone and iPad. Keep your network, address and fee details in view.
-- [Flare wallet: send, receive and dApp connections](https://oathwallet.org/networks/flare.md): Receive, send and manage assets on Flare with Oath for iPhone and iPad. Keep your network, address and fee details in view.
-- [Gnosis wallet: send, receive and dApp connections](https://oathwallet.org/networks/gnosis.md): Receive, send and manage assets on Gnosis with Oath for iPhone and iPad. Keep your network, address and fee details in view.
-- [Linea wallet: send, receive and dApp connections](https://oathwallet.org/networks/linea.md): Receive, send and manage assets on Linea with Oath for iPhone and iPad. Keep your network, address and fee details in view.
-- [Chiliz wallet: send, receive and dApp connections](https://oathwallet.org/networks/chiliz.md): Receive, send and manage assets on Chiliz with Oath for iPhone and iPad. Keep your network, address and fee details in view.
-- [IoTeX wallet: send, receive and dApp connections](https://oathwallet.org/networks/iotex.md): Receive, send and manage assets on IoTeX with Oath for iPhone and iPad. Keep your network, address and fee details in view.
-- [0G wallet: send, receive and dApp connections](https://oathwallet.org/networks/0g.md): Receive, send and manage assets on 0G with Oath for iPhone and iPad. Keep your network, address and fee details in view.
-- [Sei wallet: send, receive and dApp connections](https://oathwallet.org/networks/sei.md): Receive, send and manage assets on Sei with Oath for iPhone and iPad. Keep your network, address and fee details in view.
-- [Filecoin wallet: send, receive and dApp connections](https://oathwallet.org/networks/filecoin.md): Receive, send and manage assets on Filecoin with Oath for iPhone and iPad. Keep your network, address and fee details in view.
-- [Celo wallet: send, receive and dApp connections](https://oathwallet.org/networks/celo.md): Receive, send and manage assets on Celo with Oath for iPhone and iPad. Keep your network, address and fee details in view.
-- [Monad wallet: send, receive and dApp connections](https://oathwallet.org/networks/monad.md): Receive, send and manage assets on Monad with Oath for iPhone and iPad. Keep your network, address and fee details in view.
-- [Unichain wallet: send, receive and dApp connections](https://oathwallet.org/networks/unichain.md): Receive, send and manage assets on Unichain with Oath for iPhone and iPad. Keep your network, address and fee details in view.
-- [HyperEVM wallet: send, receive and dApp connections](https://oathwallet.org/networks/hyperevm.md): Receive, send and manage assets on HyperEVM with Oath for iPhone and iPad. Keep your network, address and fee details in view.
-- [Robinhood Chain wallet: send, receive and dApp connections](https://oathwallet.org/networks/robinhood-chain.md): Receive, send and manage assets on Robinhood Chain with Oath for iPhone and iPad. Keep your network, address and fee details in view.
-- [Scroll wallet: send, receive and dApp connections](https://oathwallet.org/networks/scroll.md): Receive, send and manage assets on Scroll with Oath for iPhone and iPad. Keep your network, address and fee details in view.
-- [Somnia wallet: send, receive and dApp connections](https://oathwallet.org/networks/somnia.md): Receive, send and manage assets on Somnia with Oath for iPhone and iPad. Keep your network, address and fee details in view.
-- [Story wallet: send, receive and dApp connections](https://oathwallet.org/networks/story.md): Receive, send and manage assets on Story with Oath for iPhone and iPad. Keep your network, address and fee details in view.
-- [Taiko wallet: send, receive and dApp connections](https://oathwallet.org/networks/taiko.md): Receive, send and manage assets on Taiko with Oath for iPhone and iPad. Keep your network, address and fee details in view.
-- [Telos wallet: send, receive and dApp connections](https://oathwallet.org/networks/telos.md): Receive, send and manage assets on Telos with Oath for iPhone and iPad. Keep your network, address and fee details in view.
-- [X Layer wallet: send, receive and dApp connections](https://oathwallet.org/networks/x-layer.md): Receive, send and manage assets on X Layer with Oath for iPhone and iPad. Keep your network, address and fee details in view.
-- [Oath Wallet](https://oathwallet.org/index.md)
-- [Features](https://oathwallet.org/features.md)
-- [About](https://oathwallet.org/about.md)
-- [Networks](https://oathwallet.org/networks.md)
-- [Press](https://oathwallet.org/press.md)
-- [Security](https://oathwallet.org/security.md)
-- [Bug-bounty](https://oathwallet.org/bug-bounty.md)
-- [Terms](https://oathwallet.org/terms.md)
-- [Privacy](https://oathwallet.org/privacy.md)
-- [Help Center](https://help.oathwallet.org/index.md)
-- [Getting started](https://help.oathwallet.org/collections/start.md): Your first wallet, without the guesswork.
-- [Your wallets](https://help.oathwallet.org/collections/wallets.md): Organize, personalize and manage your wallets.
-- [Backup & recovery](https://help.oathwallet.org/collections/backup.md): Keep a recovery route before you need it.
-- [Security & privacy](https://help.oathwallet.org/collections/security.md): Control access and protect sensitive information.
-- [Assets & networks](https://help.oathwallet.org/collections/assets.md): Understand balances, prices and tokens.
-- [Send & receive](https://help.oathwallet.org/collections/receive.md): Choose the right network, review a transfer and share an address.
-- [Transactions & activity](https://help.oathwallet.org/collections/activity.md): Read, check and share transaction information.
-- [Settings & support](https://help.oathwallet.org/collections/settings.md): Make Oath yours and find help.
-- [dApps & permissions](https://help.oathwallet.org/collections/dapps.md): Connect apps, understand requests and revoke supported access.
-- [Create your first wallet](https://help.oathwallet.org/articles/create-wallet.md): Start with a new wallet, then give it a name and color you recognize.
-- [Import a recovery phrase](https://help.oathwallet.org/articles/import-recovery-phrase.md): Bring an existing wallet into Oath using supported BIP39, Electrum or aezeed recovery words and any required passphrase.
-- [Scan a recovery-phrase QR code](https://help.oathwallet.org/articles/scan-recovery-qr.md): Use the camera to import a compatible recovery phrase without typing every word.
-- [Import a private key](https://help.oathwallet.org/articles/import-private-key.md): Import the key for a particular network or the shared Ethereum & EVM group.
-- [Which private-key formats can I import?](https://help.oathwallet.org/articles/private-key-formats.md): Choose the correct network before entering key material. Oath validates both format and key structure.
-- [Set your first app passcode](https://help.oathwallet.org/articles/first-passcode.md): Protect entry to Oath with the same six-digit keypad used to unlock it.
-- [Find your way around Home](https://help.oathwallet.org/articles/home-screen.md): Use the Wallet, History and Search icons, and find the controls for your active wallet.
-- [Add another wallet](https://help.oathwallet.org/articles/add-another-wallet.md): Keep separate wallets in the same app without replacing the one you already use.
-- [Switch wallets from Home](https://help.oathwallet.org/articles/switch-wallet.md): Use the glass name capsule above your balance to select another wallet or add one.
-- [Change a wallet’s name and color](https://help.oathwallet.org/articles/customize-wallet.md): Give each wallet a visual identity that is easy to recognize.
-- [Reorder your wallets](https://help.oathwallet.org/articles/reorder-wallets.md): Put frequently used wallets where you want them in the list.
-- [Move a wallet to Recently Deleted](https://help.oathwallet.org/articles/remove-wallet.md): Remove a wallet from the active list while keeping a short recovery window.
-- [Recover a recently deleted wallet](https://help.oathwallet.org/articles/recover-deleted-wallet.md): Bring a wallet back before its retention window expires.
-- [Permanently delete removed wallets](https://help.oathwallet.org/articles/permanently-delete-wallet.md): Clear wallets from Recently Deleted when you no longer need their local copies.
-- [Create a wallet with a BIP-39 passphrase](https://help.oathwallet.org/articles/add-passphrase.md): Derive a separate wallet from the same recovery phrase plus an exact passphrase.
-- [Back up all wallets to iCloud](https://help.oathwallet.org/articles/backup-all-wallets.md): Start an encrypted backup for every active wallet from one screen.
-- [Back up one wallet to iCloud](https://help.oathwallet.org/articles/backup-one-wallet.md): Create an encrypted recovery file for a particular wallet.
-- [Understand your backup password](https://help.oathwallet.org/articles/backup-password.md): The password for an iCloud backup is separate from your app passcode and BIP-39 passphrase.
-- [Restore from an iCloud backup](https://help.oathwallet.org/articles/restore-icloud.md): Recover a wallet from an encrypted Oath backup file.
-- [Check whether a backup has finished](https://help.oathwallet.org/articles/backup-status.md): Read the per-wallet result instead of assuming a switched-on toggle means success.
-- [Fix an iCloud backup or restore problem](https://help.oathwallet.org/articles/icloud-troubleshooting.md): Check the Apple Account, storage and backup file before retrying.
-- [View your recovery phrase](https://help.oathwallet.org/articles/view-recovery-phrase.md): Open the recovery words for a phrase-based wallet when you need an offline backup.
-- [View or copy a private key](https://help.oathwallet.org/articles/view-private-key.md): Reveal the recovery key for a selected account only when you need it.
-- [Restore your wallets on another iPhone](https://help.oathwallet.org/articles/move-to-new-phone.md): Use recovery material or an encrypted iCloud backup before removing the old installation.
-- [Unlock Oath](https://help.oathwallet.org/articles/unlock-wallet.md): Use your app passcode or enabled biometrics to open the app.
-- [Enable passcode protection](https://help.oathwallet.org/articles/enable-passcode.md): Require authentication to enter Oath.
-- [Change your app passcode](https://help.oathwallet.org/articles/change-passcode.md): Replace your Oath unlock code without changing your wallet addresses.
-- [Enable Face ID or Touch ID](https://help.oathwallet.org/articles/enable-face-id.md): Use the device’s biometric authentication for faster access.
-- [Turn off Face ID or passcode protection](https://help.oathwallet.org/articles/disable-security.md): Change how Oath authenticates you from the security screen.
-- [Choose when Oath locks](https://help.oathwallet.org/articles/auto-lock.md): Control how long Oath stays unlocked after moving to the background.
-- [Lock Oath immediately](https://help.oathwallet.org/articles/lock-now.md): End the current unlocked session without waiting for the automatic delay.
-- [Hide the app preview in the app switcher](https://help.oathwallet.org/articles/app-switcher-privacy.md): Cover the app’s preview when switching between apps.
-- [Hide balances on screen](https://help.oathwallet.org/articles/hide-balances.md): Temporarily replace visible amounts with dots.
-- [What if I forget my app passcode?](https://help.oathwallet.org/articles/forgot-passcode.md): Keep recovery options separate from the app lock.
-- [Reset Oath on this device](https://help.oathwallet.org/articles/reset-app.md): Erase local app data and return to setup.
-- [Open an asset’s screen](https://help.oathwallet.org/articles/asset-screen.md): View one asset’s value, quantity, market information and activity.
-- [Understand balances and portfolio value](https://help.oathwallet.org/articles/portfolio-values.md): Oath shows token quantities and a local-currency valuation.
-- [Refresh balances and activity](https://help.oathwallet.org/articles/refresh-balances.md): Request updated data without leaving your wallet.
-- [Search for a coin or token](https://help.oathwallet.org/articles/search-assets.md): Find an asset by its name, symbol, network or saved token address.
-- [Find and add a token by address](https://help.oathwallet.org/articles/add-custom-token.md): Look up a supported contract or mint address and review its details before adding it.
-- [Why isn’t a token appearing?](https://help.oathwallet.org/articles/token-not-found.md): Check the wallet, network, address and lookup result before assuming funds are missing.
-- [How assets are sorted](https://help.oathwallet.org/articles/asset-order.md): The list prioritizes portfolio value instead of alphabetical order alone.
-- [Read an asset’s price and chart](https://help.oathwallet.org/articles/prices-chart.md): View the latest available market quote and its recent movement.
-- [View an asset’s information](https://help.oathwallet.org/articles/asset-information.md): Check the network, symbol, type and token identity.
-- [Why does my address need funds to activate?](https://help.oathwallet.org/articles/account-activation-and-reserves.md): Understand account activation, minimum balances and storage on Stellar, XRP Ledger, Solana, TRON, NEAR and Gram (TON). Oath does not charge an activation fee.
-- [Receive crypto with a QR code](https://help.oathwallet.org/articles/receive-crypto.md): Share the receiving address for the wallet and network you intend to use.
-- [Copy or share your receiving address](https://help.oathwallet.org/articles/copy-share-address.md): Use Oath’s receive actions instead of retyping a long address.
-- [What does “and more” mean on Receive?](https://help.oathwallet.org/articles/receive-network-tokens.md): The example logos illustrate tokens on a network; they are not a limit on what its address can receive.
-- [Choose a Bitcoin address type](https://help.oathwallet.org/articles/bitcoin-address-types.md): Select the receiving format compatible with the service sending you BTC.
-- [Why can a Bitcoin receiving address change?](https://help.oathwallet.org/articles/bitcoin-gap-limit.md): HD wallets derive multiple addresses rather than reusing one address forever.
-- [Choose Phantom or Trust Wallet’s Solana path](https://help.oathwallet.org/articles/solana-address-path.md): Match the Solana account derived by the wallet you are recovering.
-- [Check the network before a transfer](https://help.oathwallet.org/articles/wrong-network.md): Prevent address and network mismatches before the sender broadcasts.
-- [Read your transaction activity](https://help.oathwallet.org/articles/transaction-list.md): See the direction, time and amount for an asset’s transactions.
-- [Open transaction details](https://help.oathwallet.org/articles/transaction-details.md): Review the useful details without navigating raw blockchain data.
-- [Understand pending, confirmed and failed activity](https://help.oathwallet.org/articles/transaction-status.md): Use status to distinguish a submitted transaction from a settled one.
-- [What do Canceled and Replaced mean?](https://help.oathwallet.org/articles/canceled-replaced.md): These labels are shown only when the app has evidence of the corresponding transaction state.
-- [Read the network fee](https://help.oathwallet.org/articles/network-fee.md): See a transaction’s available fee converted to your chosen currency.
-- [Copy a transaction ID or address](https://help.oathwallet.org/articles/copy-transaction-id.md): Use the small copy controls beside shortened identifiers.
-- [View a transaction on its explorer](https://help.oathwallet.org/articles/view-explorer.md): Open the public network record inside Oath’s native browser.
-- [Share a transaction image or link](https://help.oathwallet.org/articles/share-transaction.md): Export a receipt-style image or a link to the explorer.
-- [Send coins and tokens](https://help.oathwallet.org/articles/send-availability.md): Choose the right wallet, network, recipient and amount, then review and authorize a transfer.
-- [Create a contact in the address book](https://help.oathwallet.org/articles/address-book.md): Save a person’s name first, then add network-specific addresses.
-- [Add an address to a contact](https://help.oathwallet.org/articles/contact-address.md): Associate a public address with the correct network.
-- [Edit a contact or saved address](https://help.oathwallet.org/articles/edit-contact.md): Keep contact names, address labels and network entries up to date.
-- [Delete a contact or remove an address](https://help.oathwallet.org/articles/delete-contact.md): Clear address-book entries you no longer need.
-- [Find a contact](https://help.oathwallet.org/articles/search-contacts.md): Search the saved address book before opening a contact’s details.
-- [Change your display currency](https://help.oathwallet.org/articles/currency.md): Show portfolio values, prices and available fees in your preferred local currency.
-- [Change the app language](https://help.oathwallet.org/articles/language.md): Choose an available language for Oath’s interface.
-- [Use Light, Dark or System appearance](https://help.oathwallet.org/articles/appearance.md): Choose a fixed appearance or follow the device’s setting.
-- [Change the app icon](https://help.oathwallet.org/articles/app-icon.md): Choose an Oath icon from the available alternatives.
-- [Review wallet permissions and connected apps](https://help.oathwallet.org/articles/permissions.md): Inspect token allowances, NFT access, connected apps and supported account-control permissions for the selected wallet.
-- [Open links without leaving Oath](https://help.oathwallet.org/articles/in-app-browser.md): Websites and explorer links open in a native iOS browser inside the app.
-- [Request a feature](https://help.oathwallet.org/articles/request-feature.md): Suggest a specific improvement and explain how it would help.
-- [Report a bug](https://help.oathwallet.org/articles/report-bug.md): Give enough detail for the problem to be reproduced without exposing secrets.
-- [Contact Oath support](https://help.oathwallet.org/articles/contact-support.md): Email the team at care@oathwallet.org.
-- [Find articles, privacy and terms](https://help.oathwallet.org/articles/about-legal.md): Open Oath’s published information from the About screen.
-- [Use Bitcoin Cash in Oath](https://help.oathwallet.org/articles/use-bitcoin-cash.md): Receive, send and inspect Bitcoin Cash assets using the correct account and network.
-- [Use Dogecoin in Oath](https://help.oathwallet.org/articles/use-dogecoin.md): Receive, send and inspect Dogecoin assets using the correct account and network.
-- [Use Litecoin in Oath](https://help.oathwallet.org/articles/use-litecoin.md): Receive, send and inspect Litecoin assets using the correct account and network.
-- [Use Solana in Oath](https://help.oathwallet.org/articles/use-solana.md): Receive, send and inspect Solana assets using the correct account and network.
-- [Use TRON in Oath](https://help.oathwallet.org/articles/use-tron.md): Receive, send and inspect TRON assets using the correct account and network.
-- [Use Gram in Oath](https://help.oathwallet.org/articles/use-gram.md): Receive, send and inspect Gram assets using the correct account and network.
-- [Use Aptos in Oath](https://help.oathwallet.org/articles/use-aptos.md): Receive, send and inspect Aptos assets using the correct account and network.
-- [Use Sui Network in Oath](https://help.oathwallet.org/articles/use-sui.md): Receive, send and inspect Sui Network assets using the correct account and network.
-- [Use NEAR Protocol in Oath](https://help.oathwallet.org/articles/use-near.md): Receive, send and inspect NEAR Protocol assets using the correct account and network.
-- [Use XRP Ledger in Oath](https://help.oathwallet.org/articles/use-xrp-ledger.md): Receive, send and inspect XRP Ledger assets using the correct account and network.
-- [Use Stellar in Oath](https://help.oathwallet.org/articles/use-stellar.md): Receive, send and inspect Stellar assets using the correct account and network.
-- [Use Ethereum and EVM networks](https://help.oathwallet.org/articles/evm-networks.md): One wallet can show the same public address across EVM networks while tracking each network separately.
-- [Understand USDC on Arc](https://help.oathwallet.org/articles/arc-usdc.md): Arc uses USDC as its native asset in the app’s network integration.
-- [Use Robinhood Chain](https://help.oathwallet.org/articles/robinhood-chain.md): Find the Robinhood Chain account separately from an exchange account or other EVM networks.
-- [Scan a token address from Home](https://help.oathwallet.org/articles/home-scanner.md): Use the viewfinder button to bring QR text into asset search without typing it.
-- [Open the current wallet’s settings from Home](https://help.oathwallet.org/articles/wallet-settings-shortcut.md): Reach the active wallet’s management screen using the toolbar shortcut that appears after scrolling.
-- [Read wallet balances and the active-wallet badge](https://help.oathwallet.org/articles/wallet-balances.md): Recognize each wallet by its color and check its available value beside the disclosure arrow.
-- [View the active wallet’s full transaction history](https://help.oathwallet.org/articles/full-transaction-history.md): Review available coin and token activity together across the active wallet’s networks.
-- [Search transactions by ID, address or amount](https://help.oathwallet.org/articles/search-transactions.md): Find a transaction using information you already know, within the active wallet’s available history.
-- [Filter transaction history](https://help.oathwallet.org/articles/filter-transactions.md): Narrow activity by network, asset, direction, status, date and quantity without changing the underlying records.
-- [View all transactions for one coin or token](https://help.oathwallet.org/articles/asset-transaction-history.md): Move from an asset’s five-entry preview to a dedicated history for that exact asset and account.
-- [How Oath hides spam and phishing activity](https://help.oathwallet.org/articles/spam-history.md): Understand why suspicious or unverified token entries can be absent from your activity lists.
-- [Why can a transaction show zero?](https://help.oathwallet.org/articles/zero-value-transactions.md): Distinguish a rounded fiat amount, a zero-value contract action and a hidden spam transfer.
-- [Understand verified and manually added tokens](https://help.oathwallet.org/articles/unverified-tokens.md): Learn why automatic discovery can omit a token and what changes when you choose to track it.
-- [Use the checkmark to finish an action](https://help.oathwallet.org/articles/confirmation-checkmark.md): The native checkmark replaces text Done controls in supported screens and sheets.
-- [Authenticate before opening Passcode & Face ID](https://help.oathwallet.org/articles/security-settings-access.md): Protect changes to app security with a separate authentication step.
-- [Open and search the Help Center](https://help.oathwallet.org/articles/help-center.md): Find a feature’s instructions inside Oath and return to the app when you are finished.
-- [Use Max and understand spendable balance](https://help.oathwallet.org/articles/send-max-and-fees.md): See why the maximum you can send may be lower than the total displayed on Home.
-- [Enter destination tags and memos](https://help.oathwallet.org/articles/send-tags-and-memos.md): Include the extra reference an exchange or shared receiving account needs to credit your transfer.
-- [Set Bitcoin transfer options](https://help.oathwallet.org/articles/bitcoin-transfer-options.md): Understand Replace by fee and the optional public on-chain message before sending.
-- [Resolve a transfer that cannot be sent](https://help.oathwallet.org/articles/send-troubleshooting.md): Work out whether the problem is validation, fees, authorization, provider access or an uncertain submission.
-- [Connect a dApp with WalletConnect](https://help.oathwallet.org/articles/connect-dapp.md): Approve the intended website, wallet and networks before responding to a dApp request.
-- [Disconnect a dApp safely](https://help.oathwallet.org/articles/dapp-disconnect.md): End a WalletConnect session and separately review any on-chain permissions you granted.
-- [Review a token swap from a dApp](https://help.oathwallet.org/articles/dapp-swap.md): Understand which asset you pay, which asset you expect, and the network and limits you are authorizing.
-- [Read human-readable transaction data](https://help.oathwallet.org/articles/dapp-transaction-data.md): Use the decoded details to understand a contract request while keeping the exact technical payload available.
-- [Review messages, sign-ins and token permits](https://help.oathwallet.org/articles/dapp-signatures.md): Tell a login challenge apart from a message, token approval or spending authorization.
-- [Use Solana dApps and test networks](https://help.oathwallet.org/articles/walletconnect-solana.md): Review Solana requests on the exact mainnet, Devnet or Testnet cluster approved for the session.
-- [Review THORChain dApp requests](https://help.oathwallet.org/articles/walletconnect-thorchain.md): Check RUNE transfers, deposits and readable cross-chain swap instructions separately.
-- [Revoke a token allowance or delegate](https://help.oathwallet.org/articles/revoke-token-access.md): Remove a supported permission and verify that access is actually gone on-chain.
-- [Revoke several permissions](https://help.oathwallet.org/articles/bulk-revoke-access.md): Select a group of permissions, review the batch and check each result independently.
-- [Understand permission scan coverage](https://help.oathwallet.org/articles/permission-coverage.md): Use scan status to distinguish checked, partial, unavailable and unindexed network results.
-- [Check a contract and approved address](https://help.oathwallet.org/articles/check-contract-access.md): Look up a specific supported permission when you know the exact contract and spender.
-- [Understand Permit2 and signed approvals](https://help.oathwallet.org/articles/permit2-access.md): Separate an existing allowance from a signature that may authorize future spending.
-- [Check revocation progress and failures](https://help.oathwallet.org/articles/permission-removal-history.md): Confirm each permission removal rather than assuming a completed queue means every item succeeded.
-- [Review account-control and permanent delegates](https://help.oathwallet.org/articles/account-control-permissions.md): Recognize permissions that affect more than a single token allowance.
-- [Remove the last active wallet](https://help.oathwallet.org/articles/last-wallet-reset.md): Understand the final-wallet reset and clear Recently Deleted only after protecting your recovery options.
-- [Open existing wallets after an Oath update](https://help.oathwallet.org/articles/upgrade-existing-wallets.md): Unlock normally and let Oath prepare compatible existing wallets without creating replacements.
-- [Understand the balance-change capsule](https://help.oathwallet.org/articles/balance-change.md): Read the observed change under the portfolio total without mistaking deposits for investment profit.
-- [Filter the Home assets list](https://help.oathwallet.org/articles/asset-filters.md): Narrow the portfolio by network and available asset filters without changing ownership.
-- [Understand token logos and missing prices](https://help.oathwallet.org/articles/token-prices-and-logos.md): Distinguish token identity, balance, artwork and market data when searching by contract or mint.
-- [Turn haptic feedback on or off](https://help.oathwallet.org/articles/haptic-feedback.md): Choose whether Oath provides tactile feedback for supported controls and outcomes.
-- [Use THORChain and RUNE](https://help.oathwallet.org/articles/use-thorchain.md): Receive RUNE, send on THORChain and distinguish a direct transfer from a dApp swap.
-- [Use HyperEVM in Oath](https://help.oathwallet.org/articles/use-hyperevm.md): Find the correct HyperEVM account, native fee asset and tokens without confusing other EVM deployments.
-- [Use Monad in Oath](https://help.oathwallet.org/articles/use-monad.md): Find the correct Monad account, native fee asset and tokens without confusing other EVM deployments.
-- [Use Unichain in Oath](https://help.oathwallet.org/articles/use-unichain.md): Find the correct Unichain account, native fee asset and tokens without confusing other EVM deployments.
-- [Articles](https://articles.oathwallet.org/index.md)
-- [The Missing Link Between Open Source and the Wallet on Your Phone](https://articles.oathwallet.org/open-source-wallets-verifiable-builds.md)
-- [Bitcoin Address Types and Recovery Scope in Oath](https://articles.oathwallet.org/bitcoin-settings-oath-address-types-indexes-complete-guide.md)
-- [WalletConnect in Oath: Review the Request, Control the Permission](https://articles.oathwallet.org/why-oath-has-no-swaps-perps-web3-walletconnect.md)
-- [Coldcard’s Weak-Seed Crisis: Complexity Is Not the Same as Security](https://articles.oathwallet.org/coldcard-weak-seed-crisis-complexity-verifiable-wallet-security.md)
-- [Add a Custom Token Without Trusting Its Name or Symbol](https://articles.oathwallet.org/add-custom-token-without-trusting-name-symbol.md)
-- [Lock Oath Down: Passcode, Biometrics and Auto-Lock](https://articles.oathwallet.org/lock-oath-down-passcode-face-id-auto-lock-app-switcher-privacy.md)
-- [Oath’s Current Security Model: Local Keys and Explicit Network Boundaries](https://articles.oathwallet.org/what-never-leaves-iphone-oath-self-custody-security-model.md)
-- [Receive Crypto Safely: Match the Network and Address](https://articles.oathwallet.org/receive-crypto-safely-network-address-qr-requested-amounts.md)
-- [Why Bitcoin Receiving Addresses Change](https://articles.oathwallet.org/why-bitcoin-wallets-generate-fresh-receiving-addresses.md)
-- [One Wallet, Many Mainnets: How Oath Keeps Accounts and Networks Separate](https://articles.oathwallet.org/one-wallet-many-mainnets-accounts-networks-separate.md)
-- [Recovery Phrase, Private Key or Encrypted Backup: Choose the Right Import](https://articles.oathwallet.org/recovery-phrase-private-key-icloud-iphone-transfer-import.md)
-- [Where Crypto Network Fees Actually Go](https://articles.oathwallet.org/where-crypto-network-fees-actually-go.md)
-- [Backup and Restore in Oath: Files, Passwords and Recovery Words](https://articles.oathwallet.org/backup-restore-oath-wallet.md)
-- [BIP39 Passphrases and Electrum Seed Extensions in Oath](https://articles.oathwallet.org/add-bip39-passphrase-oath-wallet.md)
-- [Coldcard-এর দুর্বল-সিড সংকট: জটিলতা নিরাপত্তার সমার্থক নয়](https://articles.oathwallet.org/bn/coldcard-weak-seed-crisis-complexity-verifiable-wallet-security.md)
-- [Кризис слабых сид-фраз Coldcard: сложность не равнозначна безопасности](https://articles.oathwallet.org/ru/coldcard-weak-seed-crisis-complexity-verifiable-wallet-security.md)
-- [Crisis de las semillas débiles de Coldcard: complejidad no equivale a seguridad](https://articles.oathwallet.org/es/coldcard-weak-seed-crisis-complexity-verifiable-wallet-security.md)
-- [Coldcardの脆弱シード危機――複雑さはセキュリティと同義ではない](https://articles.oathwallet.org/ja/coldcard-weak-seed-crisis-complexity-verifiable-wallet-security.md)
-- [Coldcard کے کمزور سیڈ کا بحران: پیچیدگی سکیورٹی کے مترادف نہیں](https://articles.oathwallet.org/ur/coldcard-weak-seed-crisis-complexity-verifiable-wallet-security.md)
-- [Coldcard 弱种子危机：复杂性不等于安全性](https://articles.oathwallet.org/zh-Hans/coldcard-weak-seed-crisis-complexity-verifiable-wallet-security.md)
-- [Krisis Seed Lemah Coldcard: Kompleksitas Tidak Sama dengan Keamanan](https://articles.oathwallet.org/id/coldcard-weak-seed-crisis-complexity-verifiable-wallet-security.md)
-- [Coldcards Krise um schwache Seeds: Komplexität ist nicht gleich Sicherheit](https://articles.oathwallet.org/de/coldcard-weak-seed-crisis-complexity-verifiable-wallet-security.md)
-- [La crise des graines faibles de Coldcard : la complexité n’est pas synonyme de sécurité](https://articles.oathwallet.org/fr/coldcard-weak-seed-crisis-complexity-verifiable-wallet-security.md)
-- [Coldcard का कमजोर-सीड संकट: जटिलता और सुरक्षा एक ही बात नहीं हैं](https://articles.oathwallet.org/hi/coldcard-weak-seed-crisis-complexity-verifiable-wallet-security.md)
-- [Coldcard 취약 시드 위기: 복잡성이 곧 보안은 아니다](https://articles.oathwallet.org/ko/coldcard-weak-seed-crisis-complexity-verifiable-wallet-security.md)
-- [A crise das sementes fracas da Coldcard: complexidade não é o mesmo que segurança](https://articles.oathwallet.org/pt-BR/coldcard-weak-seed-crisis-complexity-verifiable-wallet-security.md)
-- [Coldcard’ın Zayıf Tohum Krizi: Karmaşıklık Güvenlikle Aynı Şey Değildir](https://articles.oathwallet.org/tr/coldcard-weak-seed-crisis-complexity-verifiable-wallet-security.md)
-- [أزمة البذور الضعيفة في Coldcard: التعقيد ليس مرادفًا للأمن](https://articles.oathwallet.org/ar/coldcard-weak-seed-crisis-complexity-verifiable-wallet-security.md)
-- [Khủng hoảng seed yếu của Coldcard: Phức tạp không đồng nghĩa với bảo mật](https://articles.oathwallet.org/vi/coldcard-weak-seed-crisis-complexity-verifiable-wallet-security.md)
-- [Your Crypto, Their Permission: The $388 Million Bitget Wake-Up Call](https://articles.oathwallet.org/bitget-388-million-hack-self-custody.md)
-- [Oath Wallet release history and current version](https://articles.oathwallet.org/oath-wallet-release-history.md)
-- [Move from Trust Wallet to Oath](https://articles.oathwallet.org/move-from-trust-wallet-to-oath.md)
-- [Restore an Electrum Bitcoin Wallet on iPhone](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone.md)
-- [Use an Existing MetaMask Wallet in Oath](https://articles.oathwallet.org/use-metamask-wallet-in-oath.md)
-- [Binance Lost $6.3 Billion. Who Signed the Withdrawals?](https://articles.oathwallet.org/binance-withdrawals-who-signed.md)
+- [Oath Wallet](https://oathwallet.org/index.md): Official Oath Wallet product information, features, downloads and self-custody guidance.
+- [Oath Wallet: official guide for AI readers and developers](https://oathwallet.org/ai.md): Official AI reader guide: accurate Oath facts, complete document discovery, Markdown, read-only MCP, provider policies and search indexing.
+- [Features](https://oathwallet.org/features.md): Explore Oath wallet features and their network and release limitations.
+- [About](https://oathwallet.org/about.md): Learn about Oath, its supported platforms, product scope and official source.
+- [Networks](https://oathwallet.org/networks.md): Find network-specific Oath receiving, sending, fees and dApp connection guidance.
+- [Press](https://oathwallet.org/press.md): Official Oath brand assets, product background and press contacts.
+- [Security](https://oathwallet.org/security.md): Oath security model, scoped source evidence, review limitations and vulnerability reporting.
+- [Bug-bounty](https://oathwallet.org/bug-bounty.md): Oath vulnerability disclosure, program eligibility, evidence requirements and reward policy.
+- [Terms](https://oathwallet.org/terms.md): Read the Oath Wallet terms of service and product conditions.
+- [Privacy](https://oathwallet.org/privacy.md): Read how Oath Wallet handles data and the privacy practices of its services.
 
-Full text: https://oathwallet.org/llms-full.txt
+## Other official sites
+
+- [help.oathwallet.org](https://help.oathwallet.org/llms.txt)
+- [articles.oathwallet.org](https://articles.oathwallet.org/llms.txt)
+- [news.oathwallet.org](https://news.oathwallet.org/llms.txt)
+
+## Optional
+
+- [Full editorial text](https://oathwallet.org/llms-full.txt): editorial and Help content only; token documents remain paginated.
+- [Provider registry](https://oathwallet.org/ai-providers.json): dated official documentation and verified crawler roles.
+
+Never send recovery phrases, private keys, passcodes, wallet backups or subscriber tokens to these interfaces.

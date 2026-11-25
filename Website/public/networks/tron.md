@@ -50,9 +50,24 @@ Features depend on the app version, network, wallet type and the service you con
 [Get Oath for iPhone and iPad](https://apps.apple.com/app/id6780187283) · [All networks](https://oathwallet.org/networks)
 
 
-![Use TRON in Oath](https://oathwallet.org/help/assets/guide-chain-tron.webp)
+## Receiving TRX or USDT on TRON?
 
-Oath 4.0.3. Existing app capture with sample data. Appearance can differ in newer releases; this image is not a completed transfer.
+For native TRX, open Receive and choose TRON. For a USDT withdrawal, select USDT on TRON in Oath and confirm that the sending service uses TRON (TRC20). Compare the destination before submitting.
+
+- **TRX:** TRX is the native asset. The first screenshot shows its own Send, Receive and activity controls.
+- **USDT on TRON:** USDT is a TRC-20 token. An ordinary outgoing token transfer uses TRON resources and can consume TRX when resources are insufficient. Read the estimate for the selected account.
+
+### Withdrawing from Binance
+
+Choose USDT as the asset and match the TRON network on the withdrawal screen. Review the current withdrawal fee and the amount that will arrive.
+
+![Native TRX asset screen in Oath showing Send, Receive and example TRX activity](https://oathwallet.org/assets/guides/2026-11-10/trx.webp)
+
+Oath 5.0.2 (104) · Mac simulator. The native TRX screen labels amounts in TRX. Balances, prices and activity are mock data.
+
+![Oath USDT on TRON asset screen with mock balance and sample sent and received activity](https://oathwallet.org/assets/guides/2026-11-09/usdt-tron.webp)
+
+Oath 5.0.2 (104) · Mac simulator. Real app capture with mock balances, prices and transfer history. No live transfers were made. Always use your own receiving details; never send funds to an example address.
 
 
 
@@ -74,13 +89,14 @@ Ask for the public transaction ID and the exact network. Check the destination a
 
 Stop and check the original transaction before sending again. A matching address is not proof of recovery. Contact the receiving service for its supported recovery process; never provide recovery credentials to support.
 
+- [Withdraw USDT from Binance using TRON](https://articles.oathwallet.org/withdraw-usdt-binance-to-oath-tron)
 - [Find the fee asset for your network](https://oathwallet.org/networks/fees)
 - [Choose a network for USDT or USDC](https://oathwallet.org/networks/choose-token-network)
 - [Check pending, confirmed or failed activity](https://help.oathwallet.org/articles/transaction-status)
 - [Follow the receiving instructions](https://help.oathwallet.org/articles/receive-crypto)
 - [TRON account and resource guidance](https://help.oathwallet.org/articles/use-tron)
 
-Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-06. [How we review guides](https://oathwallet.org/about#editorial).
+Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-10. [How we review guides](https://oathwallet.org/about#editorial).
 
 <!-- token-catalog:start -->
 ## Tokens on TRON

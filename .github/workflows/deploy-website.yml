@@ -57,11 +57,11 @@ jobs:
           exit 1
       - name: Verify production pages and links
         run: python3 scripts/audit-search.py /tmp/oath-search-audit.json
-      - name: Verify public search crawler access on all three hosts
+      - name: Verify public search crawler access on all four hosts
         run: python3 scripts/check-search-crawlers.py
       - name: Verify every public document and agent workflow
         run: node scripts/check-agent-access.mjs
       - name: Verify public files, token discovery and redirects with a default HTTP client
         run: python3 scripts/check-public-reads.py
-      - name: Notify IndexNow about changes on all three verified hosts
+      - name: Notify IndexNow about changes on all four verified hosts
         run: npm run notify:search

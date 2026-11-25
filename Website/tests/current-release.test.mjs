@@ -66,8 +66,8 @@ test('website version references omit review-status UI and distribution claims',
   assert.doesNotMatch(copy,/Waiting for Review|App Store Connect listed|Version 4\.1\.2 is available|app-review-status/);
  }
  assert.equal(data.facts.source_version,'5.0.2 (104)');
- assert.equal(data.facts.app_version,'5.0.2');
- assert.equal(data.facts.app_build,104);
+ assert.equal(data.facts.app_version,'5.1.0');
+ assert.equal(data.facts.app_build,null);
  assert.equal(data.facts.app_store_review_status,undefined);
  assert.equal(data.facts.app_store_version,undefined);
  assert.equal(data.security.source_correspondence.delivery_receipt,undefined);

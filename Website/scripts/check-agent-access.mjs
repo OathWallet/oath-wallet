@@ -21,10 +21,10 @@ await Promise.all(Array.from({length:4},async()=>{
   const html=await request(d.url,{headers:{Accept:'text/html'}});assert.match(html.headers.get('content-type'),/text\/html/);assert.ok(html.headers.get('link')?.includes(d.markdown_url));assert.doesNotMatch(html.headers.get('x-robots-tag')||'',/noindex|none/i,d.url);completed++;
  }
 }));
-for(const host of ['oathwallet.org','help.oathwallet.org','articles.oathwallet.org']){
+for(const host of ['oathwallet.org','help.oathwallet.org','articles.oathwallet.org','news.oathwallet.org']){
  // Reproduce the exact client family previously rejected with error 1010.
  const guide=await(await request(`https://${host}/llms.txt`,{headers:{'User-Agent':'Python-urllib/3.9'}})).text();
- assert.ok(guide.includes(`Oath Wallet ${currentStatus.version} (${currentStatus.build})`));
+ assert.ok(guide.includes(`Oath Wallet ${currentStatus.version}`));
  assert.ok(guide.includes(currentStatus.review.url));
  assert.deepEqual(await(await request(`https://${host}/release-status.json`,{headers:{'User-Agent':'Python-urllib/3.14'}})).json(),currentStatus);
  const hostIndex=await(await request(`https://${host}/agent-documents.json`,{headers:{'User-Agent':'Python-urllib/3.14'}})).json();

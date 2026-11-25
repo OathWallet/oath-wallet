@@ -61,7 +61,7 @@ def main():
     manifest = json.loads((Path(__file__).resolve().parents[1] / 'src/tokens-manifest.json').read_text())
     listed = set()
     sitemap_files = 0
-    for host in (MAIN, ARTICLES, HELP):
+    for host in (MAIN, ARTICLES, HELP, NEWS):
         urls, reports = collect_sitemaps(host + '/sitemap.xml', lambda url: check_file((url, 'application/xml')))
         listed.update(urls)
         sitemap_files += len(reports)

@@ -1,13 +1,13 @@
-# Fantom wallet: send and receive FTM
+# How to Get FTM on Fantom Opera: Receive FTM in Oath
 
-Receive, send and manage assets on Fantom with Oath for iPhone and iPad. Keep your network, address and fee details in view.
+To get native FTM on Fantom, have someone send FTM from an Opera wallet, or withdraw FTM from a service that currently offers Fantom Opera. In Oath, copy your Fantom receiving address and make sure the sender uses Opera mainnet (chain ID 250).
 
-## Receive Fantom
+## How to get FTM on Fantom Opera
 
-1. Open Oath, select your wallet and choose Fantom in Receive.
-2. Copy the receiving address or show its QR code. Confirm the exact network with the sender.
-3. This account is for Fantom Opera. Do not assume a Sonic transfer is supported by an Opera address.
-4. After the sender broadcasts the transfer, follow its status in Oath. Network confirmation can take time.
+1. Open the wallet you want to fund in Oath. Tap Receive, choose Fantom and copy the address shown, or show the sender its QR code.
+2. In the sending wallet, select native FTM on Fantom Opera. At an exchange, open Withdraw, choose FTM and check that withdrawals on Fantom Opera are enabled. If you only see Sonic (S) or Ethereum, stop before confirming.
+3. Compare the entire destination address, network, amount and any withdrawal fee. For a first transfer, send a small amount that meets the service’s minimum.
+4. After broadcast, check the transaction hash on Opera and verify the recipient and amount. If a withdrawal is pending and the service has not provided a hash, check its withdrawal history before sending again.
 
 ## Send FTM
 
@@ -29,7 +29,7 @@ Connect to compatible Fantom dApps through WalletConnect. The website must reque
 
 ### How do I receive Fantom in Oath?
 
-Open Oath, select your wallet and choose Fantom in Receive. Copy the receiving address or show its QR code. Confirm the exact network with the sender. This account is for Fantom Opera. Do not assume a Sonic transfer is supported by an Opera address.
+To get native FTM on Fantom, have someone send FTM from an Opera wallet, or withdraw FTM from a service that currently offers Fantom Opera. In Oath, copy your Fantom receiving address and make sure the sender uses Opera mainnet (chain ID 250).
 
 ### What pays the Fantom transaction fee?
 
@@ -48,6 +48,33 @@ Features depend on the app version, network, wallet type and the service you con
 [Network catalog](https://github.com/OathWallet/oath-wallet/blob/6ff671b3e8f2ca8b8388ddebbf95f783a6ea0c7a/OathAtmosphere/Import/OathImportCatalog.swift) · Updated 2026-10-31. Source review is not confirmation of App Store availability.
 
 [Get Oath for iPhone and iPad](https://apps.apple.com/app/id6780187283) · [All networks](https://oathwallet.org/networks)
+
+
+
+
+
+
+## Fantom Opera transfer questions
+
+### Do I need FTM already to receive it?
+
+For an ordinary transfer from another wallet, the sender pays the Opera network fee in FTM. Your receiving wallet needs no starting balance. An exchange may charge a withdrawal fee. Keep some FTM in your wallet for a later send.
+
+### Will sending S on Sonic give me FTM on Opera?
+
+No. Sonic mainnet uses S and chain ID 146. Opera uses FTM and chain ID 250. Both can display the same 0x address. Sending on Sonic leaves the funds on Sonic.
+
+### Is Fantom Opera still running?
+
+On June 23, 2026, Sonic Labs said Opera would stay live through at least the end of 2026. Oath checked chain ID 250 and a current Opera block on November 16. Check the sending service’s current network availability before each withdrawal.
+
+- [Fantom Opera mainnet settings](https://docs.fantom.foundation/build-on-opera/api/public-endpoints)
+- [How Fantom Opera fees work](https://docs.fantom.foundation/technology/transaction-fees)
+- [Sonic mainnet settings](https://docs.soniclabs.com/sonic/build-on-sonic/getting-started)
+- [Sonic Labs’ June 23 Opera update](https://www.soniclabs.com/blog/the-first-1)
+- [Oath’s released Receive screen](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Home/OathReceiveSheet.swift)
+
+Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-16. [How we review guides](https://oathwallet.org/about#editorial).
 
 <!-- token-catalog:start -->
 ## Tokens on Fantom

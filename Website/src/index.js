@@ -21,7 +21,7 @@ import { articleRoutes } from './article-routes.js';
 import { handleNewsletter, newsletterScheduled } from './newsletter.js';
 import { handleRetiredTradingPages } from './retired-trading-pages.js';
 
-const pageNames = new Set([...compatibility.pages.map(p=>p.path.slice(1)), ...decisionGuides.pages.map(p=>p.path.slice(1)), 'features', 'articles', 'support', 'press', 'terms', 'privacy', 'security', 'bug-bounty', 'about', 'networks', ...networkCatalog.networks.map(n => 'networks/' + n.slug), ...featureCatalog.features.map(f => f.path.slice(1))]);
+const pageNames = new Set([...compatibility.pages.map(p=>p.path.slice(1)), ...decisionGuides.pages.map(p=>p.path.slice(1)), 'ai', 'features', 'articles', 'support', 'press', 'terms', 'privacy', 'security', 'bug-bounty', 'about', 'networks', ...networkCatalog.networks.map(n => 'networks/' + n.slug), ...featureCatalog.features.map(f => f.path.slice(1))]);
 const hstsPolicy = 'max-age=31536000; includeSubDomains; preload';
 
 export default {
@@ -50,6 +50,7 @@ export default {
     response = await applyTheme(request, response);
     response = await applyAppBanner(request, response);
     response = addAgentDiscovery(request, response);
+    if(request.method==='HEAD')response=new Response(null,response);
     // Cover assets, redirects, API responses and 404s with the same HTTPS policy.
     if (new URL(request.url).protocol !== 'https:') return response;
     const secured = new Response(response.body, response);
@@ -148,7 +149,7 @@ async function serveRequest(request, env, ctx) {
     });
     return new Response(xml,{headers:{'Content-Type':'application/xml'}});
   }
-  if (asset.ok && url.pathname === '/robots.txt') return new Response((await asset.text())+'\nSitemap: https://help.oathwallet.org/sitemap.xml\nSitemap: https://articles.oathwallet.org/sitemap.xml\n',{headers:{'Content-Type':'text/plain'}});
+  if (asset.ok && url.pathname === '/robots.txt') return new Response((await asset.text())+'\nSitemap: https://help.oathwallet.org/sitemap.xml\nSitemap: https://articles.oathwallet.org/sitemap.xml\nSitemap: https://news.oathwallet.org/sitemap.xml\n',{headers:{'Content-Type':'text/plain'}});
   if (asset.ok && /\.(md|json|txt)$/.test(url.pathname)) {
     const headers=new Headers(asset.headers); headers.delete('Content-Length'); headers.delete('ETag'); headers.set('Access-Control-Allow-Origin','*');
     if(url.pathname.endsWith('.md')) { headers.set('Content-Type','text/markdown; charset=utf-8'); headers.set('Link', `<https://oathwallet.org${url.pathname === '/index.md' ? '/' : url.pathname.slice(0,-3)}>; rel="canonical"`); }

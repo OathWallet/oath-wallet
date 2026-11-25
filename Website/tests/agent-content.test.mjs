@@ -67,28 +67,28 @@ test('private routes, redirects and cross-origin MCP protections remain intact',
  assert.equal((await worker.fetch(new Request('https://help.oathwallet.org/admin.md',{headers:{Accept:'text/markdown'}}),env)).status,404);
  assert.equal((await worker.fetch(new Request('http://help.oathwallet.org/articles/create-wallet',{headers:{Accept:'text/markdown'}}),env)).status,301);
  assert.equal((await worker.fetch(new Request('https://oathwallet.org/wc',{headers:{Accept:'text/markdown'}}),env)).headers.get('X-Robots-Tag'),null);
- for(const host of ['oathwallet.org','help.oathwallet.org','articles.oathwallet.org'])assert.equal((await worker.fetch(new Request(`https://${host}/llms.txt`),env)).status,200);
+ for(const host of ['oathwallet.org','help.oathwallet.org','articles.oathwallet.org','news.oathwallet.org'])assert.equal((await worker.fetch(new Request(`https://${host}/llms.txt`),env)).status,200);
 });
 
 test('release status stays consistent across all hosts, generated files and MCP',async()=>{
  const distribution=JSON.parse(await readFile(new URL('../../releases/5.0.2-distribution.json',import.meta.url),'utf8'));
- assert.equal(currentStatus.version,distribution.version);assert.equal(currentStatus.build,distribution.build);
- assert.equal(currentStatus.source_commit,(distribution.source_reference ?? distribution.source_commit));assert.equal(currentStatus.distribution_status,distribution.status);
+ assert.equal(currentStatus.version,'5.1.0');assert.equal(currentStatus.build,null);assert.equal(currentStatus.schema_version,2);assert.equal(currentStatus.guide_source.version,distribution.version);
+ assert.equal(currentStatus.source_commit,null);assert.equal(currentStatus.guide_source.source_commit,distribution.source_commit);assert.equal(currentStatus.distribution_status,'PUBLIC_APP_STORE_LISTING');
  assert.equal(currentStatus.review.status,'in_progress');assert.equal(currentStatus.review.independent_certification,false);
  assert.match(currentStatus.review.coverage_url,/scope\/inventory\.json$/);
  assert.deepEqual(JSON.parse(await readFile(new URL('../public/release-status.json',import.meta.url),'utf8')),currentStatus);
- for(const host of ['oathwallet.org','help.oathwallet.org','articles.oathwallet.org']){
+ for(const host of ['oathwallet.org','help.oathwallet.org','articles.oathwallet.org','news.oathwallet.org']){
   const response=await worker.fetch(new Request(`https://${host}/release-status.json`),env);
   assert.equal(response.status,200);assert.match(response.headers.get('Content-Type'),/application\/json/);
   assert.deepEqual(await response.json(),currentStatus);
   assert.equal(await(await worker.fetch(new Request(`https://${host}/release-status.json`,{method:'HEAD'}),env)).text(),'');
   const index=await(await worker.fetch(new Request(`https://${host}/agent-documents.json`),env)).json();assert.deepEqual(index.current_status,currentStatus);
   const guideText=await(await worker.fetch(new Request(`https://${host}/llms.txt`),env)).text();
-  assert.ok(guideText.includes(`Oath Wallet ${distribution.version} (${distribution.build})`));assert.ok(guideText.includes(currentStatus.review.url));
+  assert.ok(guideText.includes(`Oath Wallet ${currentStatus.version}`));assert.ok(guideText.includes(currentStatus.review.url));
  }
  assert.deepEqual((await call('get_release_status')).structuredContent,currentStatus);
  assert.deepEqual((await call('get_security_review')).structuredContent,currentStatus.review);
- const overview=(await call('get_overview')).content[0].text;assert.ok(overview.includes(currentStatus.review.url));assert.ok(overview.includes(`Oath Wallet ${distribution.version} (${distribution.build})`));
+ const overview=(await call('get_overview')).content[0].text;assert.ok(overview.includes(currentStatus.review.url));assert.ok(overview.includes(`Oath Wallet ${currentStatus.version}`));
  const card=JSON.parse(await readFile(new URL('../public/.well-known/mcp.json',import.meta.url),'utf8'));
  for(const name of ['get_release_status','get_security_review'])assert.ok(card.tools.includes(name));
 });
@@ -101,7 +101,7 @@ test('MCP answers cite the same released feature scope as the public guides', as
    assert.equal(row.url, 'https://oathwallet.org' + f.path);
    assert.equal(row.summary, f.description);
    assert.deepEqual(row.scope.map(s => s.detail), f.scope.map(s => s.detail));
-   assert.equal(row.app_version, currentStatus.version);
+   assert.equal(row.app_version, currentStatus.guide_source.version);
  }
  for (const [query, scope, pattern] of [
    ['How do I revoke token approvals on TRON in Oath?', 'TRON', /collectible permissions/],

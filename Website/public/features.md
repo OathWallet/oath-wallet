@@ -11,6 +11,8 @@ Everything you need. Nothing you don’t.
 
 ## Wallet migration and compatibility
 
+[Wallet Compatibility Lab](https://oathwallet.org/compatibility): compare account paths, tested formats and versioned evidence.
+
 - [Move from Trust Wallet to Oath](https://articles.oathwallet.org/move-from-trust-wallet-to-oath): Check the first EVM, Bitcoin and TRON accounts, and choose the matching Solana path.
 - [Use an Existing MetaMask Wallet in Oath](https://articles.oathwallet.org/use-metamask-wallet-in-oath): Restore the first phrase-derived EVM account or an individual software account key.
 - [Restore an Electrum Bitcoin Wallet on iPhone](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone): Identify the Electrum seed format, extension and Bitcoin recovery scope.

@@ -1,7 +1,7 @@
 {
   "format": 1,
-  "version": "2edc5d09971ff14e",
-  "prefix": "/token-data/2edc5d09971ff14e",
+  "version": "8a7326fbd4caeb17",
+  "prefix": "/token-data/8a7326fbd4caeb17",
   "pageSize": 50,
   "count": 32135,
   "coinCount": 20017,
@@ -14,6 +14,18 @@
     "sha256": "14e3293bba3a0049ad8fdfcf38f75950447939d8c41e13b9c8646d9754ce9330",
     "date": "2026-10-30"
   },
+  "shortcuts": [
+    {
+      "symbol": "USDT",
+      "path": "/tokens/usdt",
+      "artwork": "/token-artwork/c5585255fe186465/7e1fcc400c7a16ff2bab73069dee34f1"
+    },
+    {
+      "symbol": "USDC",
+      "path": "/tokens/usdc",
+      "artwork": "/token-artwork/c5585255fe186465/5ad390a451f735502606539c35d2fcaa"
+    }
+  ],
   "networks": {
     "ethereum": {
       "id": "ethereum",

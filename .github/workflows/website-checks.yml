@@ -20,7 +20,7 @@ jobs:
           node-version: '24'
           cache: npm
           cache-dependency-path: Website/package-lock.json
-      - run: npm ci && npm run predeploy && npm run test:unit
+      - run: npm ci && npm run predeploy && npm run test:unit && npm run check:discovery
         working-directory: Website
       - run: python3 Website/scripts/verify-source-excerpts.py . --verify-release-tag
       - run: python3 -m unittest discover -s Distribution/tests -v

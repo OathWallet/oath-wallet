@@ -1,20 +1,19 @@
-# Polkadot wallet: send and receive DOT
+# Polkadot Wallet for iPhone: Send DOT to a Polkadot.js Account
 
-Manage DOT and supported Asset Hub assets in Oath on iPhone and iPad.
+Oath receives and sends native DOT on Polkadot Asset Hub. To receive DOT on your iPhone, open Receive and choose Polkadot. To send DOT to someone who uses Polkadot.js, you only need their public Polkadot address.
 
-## Receive Polkadot
+## Use Oath as a Polkadot wallet on iPhone
 
-1. Open Oath, select your wallet and choose Polkadot in Receive.
-2. Copy the receiving address or show its QR code. Confirm the exact network with the sender.
-3. Check the selected Polkadot network and address. Relay-chain and Asset Hub balances are not interchangeable.
-4. After the sender broadcasts the transfer, follow its status in Oath. Network confirmation can take time.
+1. In Oath, select the wallet you want to fund. Tap Receive, choose Polkadot and copy the address or show its QR code.
+2. Ask the sender to select native DOT on Polkadot Asset Hub mainnet. If a withdrawal service only says “Polkadot,” check which chain it uses before continuing.
+3. Once the transfer is confirmed on Asset Hub, check the DOT balance in the same Oath wallet.
 
-## Send DOT
+## How to send DOT to a Polkadot.js account
 
-1. Open Send and select the asset on Polkadot. Paste the recipient’s address or scan their QR.
-2. Keep enough DOT for applicable fees and account requirements. Check the chain and asset before confirming an Asset Hub transfer.
-3. Enter the amount and any required memo or tag. Compare the complete destination with the recipient’s instructions.
-4. Review the asset, network, amount and fee, then confirm in Oath. Follow the transaction status after broadcast.
+1. In the Polkadot.js Apps interface, select Polkadot Asset Hub mainnet and open Accounts. Copy the public Polkadot address of the account that should receive the DOT. If someone else owns that account, ask them to copy and share it.
+2. On your iPhone, open the wallet that holds the DOT. Tap Send, select native DOT on Polkadot, paste the recipient’s address and enter the amount.
+3. On the review screen, compare the full destination with the address from Polkadot.js. Check the final amount and network fee in DOT. Leave enough DOT for the fee and the account minimum. A new recipient must receive enough to meet the network minimum.
+4. Confirm in Oath. Follow the transaction in Activity. After confirmation, open Accounts in Polkadot.js Apps on Asset Hub and check the recipient’s balance.
 
 ## dApp connections
 
@@ -29,7 +28,7 @@ Connect to compatible Polkadot dApps through WalletConnect. The website must req
 
 ### How do I receive Polkadot in Oath?
 
-Open Oath, select your wallet and choose Polkadot in Receive. Copy the receiving address or show its QR code. Confirm the exact network with the sender. Check the selected Polkadot network and address. Relay-chain and Asset Hub balances are not interchangeable.
+Oath receives and sends native DOT on Polkadot Asset Hub. To receive DOT on your iPhone, open Receive and choose Polkadot. To send DOT to someone who uses Polkadot.js, you only need their public Polkadot address.
 
 ### What pays the Polkadot transaction fee?
 
@@ -48,6 +47,29 @@ Features depend on the app version, network, wallet type and the service you con
 [Network catalog](https://github.com/OathWallet/oath-wallet/blob/6ff671b3e8f2ca8b8388ddebbf95f783a6ea0c7a/OathAtmosphere/Import/OathImportCatalog.swift) · Updated 2026-10-31. Source review is not confirmation of App Store availability.
 
 [Get Oath for iPhone and iPad](https://apps.apple.com/app/id6780187283) · [All networks](https://oathwallet.org/networks)
+
+
+
+
+
+
+## Polkadot.js transfer questions
+
+### Why is the balance missing from the Polkadot.js extension?
+
+The extension manages accounts and signs requests. To view the balance, open Polkadot.js Apps, select Polkadot Asset Hub and check the same account under Accounts. If a transfer is still pending, check its status before sending again.
+
+### Which address should I copy?
+
+Use the recipient’s Polkadot-format SS58 address for their account on Asset Hub. If Oath rejects the address, have the recipient copy it again from the correct network. Never edit an address by hand or share a recovery phrase to receive DOT.
+
+- [Open Accounts in Polkadot.js Apps](https://polkadot.js.org/apps/#/accounts)
+- [What the Polkadot.js extension does](https://polkadot.js.org/extension/)
+- [Polkadot’s guide to Asset Hub](https://support.polkadot.network/support/solutions/articles/65000181800-what-is-statemint-and-statemine-and-how-do-i-use-them-)
+- [Polkadot account minimums](https://support.polkadot.network/support/solutions/articles/65000168651-what-is-the-existential-deposit-Info)
+- [How the released Oath app checks a DOT transfer](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/Packages/OathAnkr/Sources/OathAnkr/PolkadotSendClient.swift)
+
+Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-16. [How we review guides](https://oathwallet.org/about#editorial).
 
 <!-- token-catalog:start -->
 ## Tokens on Polkadot

@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "reviewed_on": "2026-11-25",
+  "policy": "Permit search, user-requested public reading and training. Private operations remain excluded. Unknown readers use the wildcard public-content policy.",
+  "providers": [
+    {
+      "name": "OpenAI / ChatGPT",
+      "documentation": "https://developers.openai.com/api/docs/bots",
+      "agents": {
+        "OAI-SearchBot": "search",
+        "ChatGPT-User": "user retrieval",
+        "GPTBot": "training",
+        "OAI-AdsBot": "advertising"
+      }
+    },
+    {
+      "name": "Anthropic / Claude",
+      "documentation": "https://privacy.claude.com/en/articles/8896518-does-anthropic-crawl-data-from-the-web-and-how-can-site-owners-block-the-crawler",
+      "agents": {
+        "Claude-SearchBot": "search",
+        "Claude-User": "user retrieval",
+        "ClaudeBot": "training"
+      }
+    },
+    {
+      "name": "Meta AI",
+      "documentation": "https://developers.facebook.com/documentation/sharing/webmasters/web-crawlers",
+      "agents": {
+        "Meta-WebIndexer": "search",
+        "Meta-ExternalAgent": "training and indexing",
+        "Meta-ExternalFetcher": "user retrieval",
+        "Meta-ExternalAds": "advertising",
+        "facebookexternalhit": "link previews"
+      }
+    },
+    {
+      "name": "Google / Gemini",
+      "documentation": "https://developers.google.com/search/docs/fundamentals/gen-ai-controls",
+      "agents": {
+        "Googlebot": "search, including Search AI",
+        "Google-Extended": "training and non-Search grounding control",
+        "GoogleOther": "other public crawling"
+      }
+    },
+    {
+      "name": "Bing / Copilot",
+      "documentation": "https://www.bing.com/webmasters/help/webmaster-guidelines-30fba23a",
+      "agents": {
+        "bingbot": "search"
+      }
+    },
+    {
+      "name": "Perplexity",
+      "documentation": "https://docs.perplexity.ai/docs/resources/perplexity-crawlers",
+      "agents": {
+        "PerplexityBot": "search",
+        "Perplexity-User": "user retrieval"
+      }
+    },
+    {
+      "name": "Mistral",
+      "documentation": "https://docs.mistral.ai/robots",
+      "agents": {
+        "MistralAI-Index": "search",
+        "MistralAI-User": "user retrieval",
+        "MistralAI-Training": "training"
+      }
+    },
+    {
+      "name": "Apple",
+      "documentation": "https://support.apple.com/en-us/119829",
+      "agents": {
+        "Applebot": "search and grounding",
+        "Applebot-Extended": "training control"
+      }
+    },
+    {
+      "name": "Amazon",
+      "documentation": "https://developer.amazon.com/docs/amazonbot/amazonbot",
+      "agents": {
+        "Amazonbot": "general crawling and training",
+        "Amzn-SearchBot": "search",
+        "Amzn-User": "user retrieval"
+      }
+    },
+    {
+      "name": "DuckDuckGo",
+      "documentation": "https://duckduckgo.com/duckduckgo-help-pages/results/duckassistbot",
+      "agents": {
+        "DuckAssistBot": "answer retrieval"
+      }
+    },
+    {
+      "name": "Common Crawl",
+      "documentation": "https://commoncrawl.org/ccbot",
+      "agents": {
+        "CCBot": "public web corpus"
+      }
+    },
+    {
+      "name": "DeepSeek",
+      "documentation": "https://api-docs.deepseek.com/guides/search/",
+      "agents": {},
+      "note": "Search and Fetch APIs are documented. No dedicated webmaster crawler identity was verified; ordinary public HTTP and Markdown access is supported."
+    },
+    {
+      "name": "xAI / Grok",
+      "documentation": "https://docs.x.ai/developers/tools/overview",
+      "agents": {},
+      "note": "Web-search tools are documented. No dedicated crawler identity was verified; ordinary public HTTP and Markdown access is supported."
+    },
+    {
+      "name": "Cohere",
+      "documentation": "https://docs.cohere.com/v2/docs/cohere-web-crawlers",
+      "agents": {},
+      "note": "The provider currently says it does not use web crawlers for foundation-model training. No active crawler name is asserted here."
+    }
+  ],
+  "legacy_unverified_names": [
+    "anthropic-ai",
+    "FacebookBot",
+    "cohere-ai",
+    "cohere-training-data-crawler",
+    "YouBot",
+    "Diffbot",
+    "Timpibot",
+    "Bytespider",
+    "PetalBot",
+    "xAI-Bot"
+  ],
+  "limitations": "Permission and successful emulated requests do not establish a genuine provider visit, indexing, training inclusion, recommendation or citation. User-requested fetchers may apply different robots behavior. User-agent names are not authentication."
+}

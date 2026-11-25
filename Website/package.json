@@ -33,7 +33,9 @@
     "build:share-previews": "node scripts/build-share-previews.mjs",
     "build:security": "node scripts/build-security-txt.mjs",
     "build:theme": "node scripts/build-theme.mjs",
-    "build:compatibility": "node scripts/build-compatibility.mjs"
+    "build:compatibility": "node scripts/build-compatibility.mjs",
+    "check:discovery": "node scripts/verify-agent-coverage.mjs",
+    "check:discovery:live": "node scripts/check-all-public-documents.mjs"
   },
   "devDependencies": {
     "playwright": "1.63.0",

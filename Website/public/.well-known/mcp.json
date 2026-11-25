@@ -2,10 +2,10 @@
   "$schema": "https://modelcontextprotocol.io/schemas/server-card.json",
   "name": "org.oathwallet/website",
   "title": "Oath Wallet",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Read-only facts about Oath Wallet, a self-custody iPhone wallet: features, support answers, download link, contact and policies.",
   "websiteUrl": "https://oathwallet.org",
-  "documentationUrl": "https://oathwallet.org/llms.txt",
+  "documentationUrl": "https://oathwallet.org/ai",
   "remotes": [
     {
       "type": "streamable-http",
@@ -33,5 +33,11 @@
     "read_document",
     "get_release_status",
     "get_security_review"
+  ],
+  "protocolVersions": [
+    "2026-07-28",
+    "2025-11-25",
+    "2025-06-18",
+    "2025-03-26"
   ]
 }
