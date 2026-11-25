@@ -10,7 +10,19 @@ const write=(p,s)=>writeFile(new URL(p,root),s);
 const env={ASSETS:{async fetch(req){try{return new Response(await read('.'+new URL(req.url).pathname));}catch{return new Response(null,{status:404});}}}};
 const template=await readFile(new URL('../content/ai-guide.md',import.meta.url),'utf8');
 const providerText=`Provider documentation reviewed ${providers.reviewed_on}.\n\n`+providers.providers.map(p=>`- [${p.name}](${p.documentation}): ${Object.entries(p.agents).map(([name,role])=>`${name} (${role})`).join('; ')||p.note}`).join('\n');
-const ai=template.replace('{{release_status}}',statusText()).replace('{{providers}}',providerText);
+const releaseGuide=`Current App Store listing: Oath Wallet ${currentStatus.version}. Checked ${currentStatus.checked_on} (${currentStatus.app_store.storefront} storefront). The approved build number is not publicly verified.
+
+- [App Store listing](${currentStatus.app_store.url}) and [distribution evidence](${currentStatus.app_store.evidence_url}).
+- [Machine-readable release metadata](https://oathwallet.org/release-status.json).
+- [Published source release ${currentStatus.published_source.version}, build ${currentStatus.published_source.build}](${currentStatus.published_source.release_url}).
+- [Guide source ${currentStatus.guide_source.version}, build ${currentStatus.guide_source.build}](${currentStatus.guide_source.release_url}).
+- [Published security review](${currentStatus.review.url}).
+
+Review scope: ${currentStatus.review.kind}. ${currentStatus.review.limitations}
+
+Each result retains its tested source revision. Historical articles, screenshots and catalog snapshots retain their recorded versions.
+`;
+const ai=template.replace('{{release_status}}',releaseGuide).replace('{{providers}}',providerText);
 await write('ai.md',ai);
 const chrome=await buildSiteChrome();
 const aiDoc=documents.find(d=>d.url==='https://oathwallet.org/ai');
