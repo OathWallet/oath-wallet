@@ -6,14 +6,16 @@ This guide explains how to find, read and cite Oath's public product documentati
 
 Oath is a self-custody cryptocurrency wallet for iPhone and iPad. The user controls the wallet's recovery material. Oath's website provides product explanations, network and token guides, Help Center instructions, policies and dated articles. Use the [official App Store listing](https://apps.apple.com/app/id6780187283) to check availability and requirements for a particular device and storefront. Do not infer an Android app, browser extension or desktop wallet from a website page.
 
-Current App Store listing: Oath Wallet 5.1.0. Checked 2026-11-25 (us storefront). Approved build number: not publicly verified.
-App Store: https://apps.apple.com/app/id6780187283
-Distribution evidence: https://itunes.apple.com/lookup?id=6780187283&country=us
-Release metadata: https://oathwallet.org/release-status.json
-Published source release: 5.1.0 (110); https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.0-build110
-Guide source: 5.0.2 (104); https://github.com/OathWallet/oath-wallet/releases/tag/v5.0.2-build104
-Published security review: https://github.com/OathWallet/oath-wallet-security-review
+Current App Store listing: Oath Wallet 5.1.0. Checked 2026-11-25 (us storefront). The approved build number is not publicly verified.
+
+- [App Store listing](https://apps.apple.com/app/id6780187283) and [distribution evidence](https://itunes.apple.com/lookup?id=6780187283&country=us).
+- [Machine-readable release metadata](https://oathwallet.org/release-status.json).
+- [Published source release 5.1.0, build 110](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.0-build110).
+- [Guide source 5.0.2, build 104](https://github.com/OathWallet/oath-wallet/releases/tag/v5.0.2-build104).
+- [Published security review](https://github.com/OathWallet/oath-wallet-security-review).
+
 Review scope: maintainer-commissioned, Codex-led security review. The whole-wallet review remains incomplete. Findings, fixes and tests apply to their recorded source commits; later releases do not automatically inherit coverage. No independent security-company certification or independently reproduced App Store binary match is established.
+
 Each result retains its tested source revision. Historical articles, screenshots and catalog snapshots retain their recorded versions.
 
 
