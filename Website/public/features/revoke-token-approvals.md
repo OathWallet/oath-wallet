@@ -6,7 +6,7 @@ See which discovered permissions can still use your assets. Review the wallet, n
 
 ![Oath token-access screen with example permissions grouped by network](https://oathwallet.org/help/assets/guide-permission-list.webp)
 
-Oath 4.0.3 · Actual app screen with synthetic allowances. This capture does not show a completed revocation.
+Historical app capture · Actual app screen with synthetic allowances. This capture does not show a completed revocation.
 
 ## See the scope
 
@@ -100,18 +100,18 @@ Review the WalletConnect session separately. Disconnecting stops that session’
 - [Find the fee asset for your network](https://oathwallet.org/networks/fees)
 - [Check pending, confirmed or failed activity](https://help.oathwallet.org/articles/transaction-status)
 
-Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-06. [How we review guides](https://oathwallet.org/about#editorial).
+Guidance reviewed for Oath 5.1.1 (111); updated 2026-11-26. [How we review guides](https://oathwallet.org/about#editorial).
 
 
 ## Release and source details
 
-Feature scope reviewed for Oath 5.0.2 (104) on 2026-11-06. Screens show Oath 4.0.3; appearance can differ in newer versions.
+Feature scope reviewed for Oath 5.1.1 (111) on 2026-11-26. Screens are historical app captures; appearance can differ from this release.
 
-[Release availability record](https://github.com/OathWallet/oath-wallet/blob/main/releases/5.0.2-distribution.json)
+[Release notes and checks](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111)
 
-- [OathPermissionService.swift](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Permissions/OathPermissionService.swift)
-- [Permissions.swift](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/Packages/OathAnkr/Sources/OathAnkr/Permissions.swift)
-- [PermissionDiscovery.swift](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/Packages/OathAnkr/Sources/OathAnkr/PermissionDiscovery.swift)
+- [OathPermissionService.swift](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Permissions/OathPermissionService.swift)
+- [Permissions.swift](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/Packages/OathAnkr/Sources/OathAnkr/Permissions.swift)
+- [PermissionDiscovery.swift](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/Packages/OathAnkr/Sources/OathAnkr/PermissionDiscovery.swift)
 
 Source review and sample screens do not establish a completed live transaction or backup.
 

@@ -8,11 +8,11 @@ Oath now supports WalletConnect. Understand the difference between a session, a 
 
 ## Guide source version
 
-Checked against [Oath 5.0.0 (102) source](https://github.com/OathWallet/oath-wallet/tree/7eabd04a6f3273fa4ed7ce4108ac4ac683b2a108). Older screenshots are illustrative.
+Checked against [Oath 5.1.1 (111) source](https://github.com/OathWallet/oath-wallet/tree/87c783cf929c4282ba50daf2cc056f25c6a4d469). Older screenshots are illustrative.
 
 ## What changed
 
-Earlier Oath versions did not include WalletConnect. That older product boundary no longer describes 5.0.0: supported dApps can connect through encrypted WalletConnect relay sessions. Use the current connection screens and supported-chain guidance.
+Earlier Oath versions did not include WalletConnect. That older product boundary no longer describes 5.1.1: supported dApps can connect through encrypted WalletConnect relay sessions. Use the current connection screens and supported-chain guidance.
 
 ## Connection is not unlimited approval
 
@@ -30,4 +30,4 @@ Disconnecting closes a session. Existing on-chain token or account permissions c
 
 A legitimate connection uses public accounts and requested signatures, not your recovery phrase or private key. Never type recovery material into a dApp, support message or web-based troubleshooting form.
 
-Read the [security model](https://oathwallet.org/security), [Help Center](https://help.oathwallet.org/), and [release verification record](https://github.com/OathWallet/oath-wallet/releases/tag/v5.0.0-build102-r3).
+Read the [security model](https://oathwallet.org/security), [Help Center](https://help.oathwallet.org/), and [release verification record](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111-r3).

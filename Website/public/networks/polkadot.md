@@ -44,7 +44,7 @@ Only send using the network the recipient explicitly supports. A matching addres
 
 Features depend on the app version, network, wallet type and the service you connect to. Check the available actions in your installed app before transferring.
 
-[Network catalog](https://github.com/OathWallet/oath-wallet/blob/6ff671b3e8f2ca8b8388ddebbf95f783a6ea0c7a/OathAtmosphere/Import/OathImportCatalog.swift) · Updated 2026-10-31. Source review is not confirmation of App Store availability.
+[Network catalog](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Import/OathImportCatalog.swift) · Updated 2026-11-26. Source review is not confirmation of App Store availability.
 
 [Get Oath for iPhone and iPad](https://apps.apple.com/app/id6780187283) · [All networks](https://oathwallet.org/networks)
 
@@ -67,9 +67,9 @@ Use the recipient’s Polkadot-format SS58 address for their account on Asset Hu
 - [What the Polkadot.js extension does](https://polkadot.js.org/extension/)
 - [Polkadot’s guide to Asset Hub](https://support.polkadot.network/support/solutions/articles/65000181800-what-is-statemint-and-statemine-and-how-do-i-use-them-)
 - [Polkadot account minimums](https://support.polkadot.network/support/solutions/articles/65000168651-what-is-the-existential-deposit-Info)
-- [How the released Oath app checks a DOT transfer](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/Packages/OathAnkr/Sources/OathAnkr/PolkadotSendClient.swift)
+- [How the released Oath app checks a DOT transfer](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/Packages/OathAnkr/Sources/OathAnkr/PolkadotSendClient.swift)
 
-Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-16. [How we review guides](https://oathwallet.org/about#editorial).
+Guidance reviewed for Oath 5.1.1 (111); updated 2026-11-26. [How we review guides](https://oathwallet.org/about#editorial).
 
 <!-- token-catalog:start -->
 ## Tokens on Polkadot

@@ -6,7 +6,7 @@ Connect Oath to a compatible dApp using its WalletConnect QR code or app link. C
 
 ![Oath WalletConnect proposal showing the website, selected wallet, networks and connection permissions](https://oathwallet.org/help/assets/guide-wc-connect.webp)
 
-Oath 4.0.3 · Actual app screen showing an offline sample proposal. It does not establish a live connection, endorsement or completed transaction.
+Historical app capture · Actual app screen showing an offline sample proposal. It does not establish a live connection, endorsement or completed transaction.
 
 ## Check the website
 
@@ -98,17 +98,17 @@ A session and a signing request have separate reviews. Read the website, account
 - [Find network-specific connection guidance](https://oathwallet.org/networks)
 - [Find the fee asset for your network](https://oathwallet.org/networks/fees)
 
-Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-06. [How we review guides](https://oathwallet.org/about#editorial).
+Guidance reviewed for Oath 5.1.1 (111); updated 2026-11-26. [How we review guides](https://oathwallet.org/about#editorial).
 
 
 ## Release and source details
 
-Feature scope reviewed for Oath 5.0.2 (104) on 2026-11-06. Screens show Oath 4.0.3; appearance can differ in newer versions.
+Feature scope reviewed for Oath 5.1.1 (111) on 2026-11-26. Screens are historical app captures; appearance can differ from this release.
 
-[Release availability record](https://github.com/OathWallet/oath-wallet/blob/main/releases/5.0.2-distribution.json)
+[Release notes and checks](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111)
 
-- [OathWalletConnectPolicy.swift](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Scanner/OathWalletConnectPolicy.swift)
-- [OathWalletConnectConnections.swift](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Scanner/OathWalletConnectConnections.swift)
+- [OathWalletConnectPolicy.swift](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Scanner/OathWalletConnectPolicy.swift)
+- [OathWalletConnectConnections.swift](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Scanner/OathWalletConnectConnections.swift)
 
 Source review and sample screens do not establish a completed live transaction or backup.
 

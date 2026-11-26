@@ -24,12 +24,20 @@ import { handleRetiredTradingPages } from './retired-trading-pages.js';
 const pageNames = new Set([...compatibility.pages.map(p=>p.path.slice(1)), ...decisionGuides.pages.map(p=>p.path.slice(1)), 'ai', 'features', 'articles', 'support', 'press', 'terms', 'privacy', 'security', 'bug-bounty', 'about', 'networks', ...networkCatalog.networks.map(n => 'networks/' + n.slug), ...featureCatalog.features.map(f => f.path.slice(1))]);
 const hstsPolicy = 'max-age=31536000; includeSubDomains; preload';
 
+function compatibilityAlias(request) {
+  const url=new URL(request.url);
+  const old=/^\/compatibility\/2026-11-09(?:(\.html|\.md|\.json|\.csv)|\/)?$/.exec(url.pathname);
+  if(url.hostname!=='oathwallet.org'||!old||!['GET','HEAD'].includes(request.method))return null;
+  url.pathname='/compatibility/'+compatibility.latest+(old[1]==='.html'?'':old[1]||'');
+  return Response.redirect(url.href,308);
+}
+
 export default {
   async scheduled(_event, env, ctx) { ctx.waitUntil(newsletterScheduled(env)); },
   async fetch(request, env, ctx) {
     const themePath = new URL(request.url).pathname;
     let response;
-    const special = handleRetiredTradingPages(request) || (['/theme.js','/theme.css'].includes(themePath) ? await env.ASSETS.fetch(request) : null) || handleSecurityTxt(request) || await handleSearchVerification(request, env) || handleRetiredArticle(request) || await handleTransferPreparation(request, env) || await handleAgentContent(request, env) || handleWalletLinks(request) || await handleHelp(request, env) || await handleArticleHost(request, env);
+    const special = compatibilityAlias(request) || handleRetiredTradingPages(request) || (['/theme.js','/theme.css'].includes(themePath) ? await env.ASSETS.fetch(request) : null) || handleSecurityTxt(request) || await handleSearchVerification(request, env) || handleRetiredArticle(request) || await handleTransferPreparation(request, env) || await handleAgentContent(request, env) || handleWalletLinks(request) || await handleHelp(request, env) || await handleArticleHost(request, env);
     const newsletter = special || await handleNewsletter(request, env);
     if (newsletter) {
       response = newsletter;

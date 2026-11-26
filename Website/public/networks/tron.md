@@ -45,7 +45,7 @@ Only send using the network the recipient explicitly supports. A matching addres
 
 Features depend on the app version, network, wallet type and the service you connect to. Check the available actions in your installed app before transferring.
 
-[Network catalog](https://github.com/OathWallet/oath-wallet/blob/6ff671b3e8f2ca8b8388ddebbf95f783a6ea0c7a/OathAtmosphere/Import/OathImportCatalog.swift) · Updated 2026-10-31. Source review is not confirmation of App Store availability.
+[Network catalog](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Import/OathImportCatalog.swift) · Updated 2026-11-26. Source review is not confirmation of App Store availability.
 
 [Get Oath for iPhone and iPad](https://apps.apple.com/app/id6780187283) · [All networks](https://oathwallet.org/networks)
 
@@ -63,11 +63,11 @@ Choose USDT as the asset and match the TRON network on the withdrawal screen. Re
 
 ![Native TRX asset screen in Oath showing Send, Receive and example TRX activity](https://oathwallet.org/assets/guides/2026-11-10/trx.webp)
 
-Oath 5.0.2 (104) · Mac simulator. The native TRX screen labels amounts in TRX. Balances, prices and activity are mock data.
+Historical app capture. The native TRX screen labels amounts in TRX. Balances, prices and activity are mock data.
 
 ![Oath USDT on TRON asset screen with mock balance and sample sent and received activity](https://oathwallet.org/assets/guides/2026-11-09/usdt-tron.webp)
 
-Oath 5.0.2 (104) · Mac simulator. Real app capture with mock balances, prices and transfer history. No live transfers were made. Always use your own receiving details; never send funds to an example address.
+Historical app capture. Real app capture with mock balances, prices and transfer history. No live transfers were made. Always use your own receiving details; never send funds to an example address.
 
 
 
@@ -96,7 +96,7 @@ Stop and check the original transaction before sending again. A matching address
 - [Follow the receiving instructions](https://help.oathwallet.org/articles/receive-crypto)
 - [TRON account and resource guidance](https://help.oathwallet.org/articles/use-tron)
 
-Guidance reviewed for Oath 5.0.2 (104); updated 2026-11-10. [How we review guides](https://oathwallet.org/about#editorial).
+Guidance reviewed for Oath 5.1.1 (111); updated 2026-11-26. [How we review guides](https://oathwallet.org/about#editorial).
 
 <!-- token-catalog:start -->
 ## Tokens on TRON

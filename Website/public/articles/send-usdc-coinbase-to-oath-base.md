@@ -25,7 +25,7 @@ Open the wallet that should receive the funds. Select **USD Coin (USDC) on Base*
 
 ![Oath Receive USD Coin screen with the Base network warning and an example QR code](https://articles.oathwallet.org/assets/articles/editorials/send-usdc-coinbase-to-oath-base/oath-receive.webp)
 
-Actual Oath 5.0.2 (104) simulator capture with a mock address. Never send to the example address or QR code. Use the receiving details inside your own Oath wallet.
+Historical Oath simulator capture with a mock address. Never send to the example address or QR code. Use the receiving details inside your own Oath wallet.
 
 Keep the address available while you review Coinbase’s final destination. Do not use an address from an old message, a search result or a screenshot simply because it begins with `0x`.
 
@@ -66,7 +66,7 @@ Avoid sending again to “unstick” the first withdrawal. A second successful s
 
 ## Review and next steps
 
-Reviewed **November 9, 2026** against Coinbase’s consumer-account documentation, Circle’s token identity and [Oath 5.0.2 (104) receiving code](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Home/OathReceiveSheet.swift). The screenshot uses mock data in the real app. This was a documentation and released-source review, not a funded Coinbase withdrawal or an individual account eligibility test.
+Source references updated **November 26, 2026**. The original external-documentation review was on **November 9, 2026**. The references cover Coinbase’s consumer-account documentation, Circle’s token identity and [Oath 5.1.1 (111) receiving code](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Home/OathReceiveSheet.swift). The screenshot uses mock data in the real app. This was a documentation and released-source review, not a funded Coinbase withdrawal or an individual account eligibility test.
 
 This is Oath’s independent guide, not a Coinbase endorsement. Use official support for exchange account restrictions. Never share a recovery phrase, private key, password or two-factor code with support or this website.
 

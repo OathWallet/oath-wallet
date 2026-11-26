@@ -8,11 +8,11 @@ Understand the protected local vault, password-encrypted backups, and what publi
 
 ## Guide source version
 
-Checked against [Oath 5.0.0 (102) source](https://github.com/OathWallet/oath-wallet/tree/7eabd04a6f3273fa4ed7ce4108ac4ac683b2a108). Older screenshots are illustrative.
+Checked against [Oath 5.1.1 (111) source](https://github.com/OathWallet/oath-wallet/tree/87c783cf929c4282ba50daf2cc056f25c6a4d469). Older screenshots are illustrative.
 
 ## Local credentials
 
-The 5.0.0 source keeps recovery input and signing material in an authenticated AES-GCM vault. Storage uses device-only Keychain items plus an installation key in a protected, backup-excluded app-container file. When enabled, the app passcode protects the vault key with PBKDF2-HMAC-SHA256 using 600,000 rounds.
+The 5.1.1 source keeps recovery input and signing material in an authenticated AES-GCM vault. Storage uses device-only Keychain items plus an installation key in a protected, backup-excluded app-container file. When enabled, the app passcode protects the vault key with PBKDF2-HMAC-SHA256 using 600,000 rounds.
 
 ## What network services receive
 
@@ -30,4 +30,4 @@ User-approved dApp connections can share public accounts and signatures through 
 
 The public release has no operator upload path for wallet credentials, recovery typing, wallet records or diagnostics. Its source, archive and upload checks are documented. They are not an independent audit or a proof that compromised devices cannot expose secrets.
 
-Read the [security model](https://oathwallet.org/security), [Help Center](https://help.oathwallet.org/), and [release verification record](https://github.com/OathWallet/oath-wallet/releases/tag/v5.0.0-build102-r3).
+Read the [security model](https://oathwallet.org/security), [Help Center](https://help.oathwallet.org/), and [release verification record](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111-r3).

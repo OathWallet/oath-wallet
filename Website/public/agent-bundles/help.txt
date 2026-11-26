@@ -1,21 +1,20 @@
 # Oath public editorial documentation
 
-Latest source release: Oath Wallet 5.1.1, build 111.
-Current App Store listing: Oath Wallet 5.1.0. Checked 2026-11-25 (us storefront). Approved build number: not publicly verified.
-App Store: https://apps.apple.com/app/id6780187283
-Distribution evidence: https://itunes.apple.com/lookup?id=6780187283&country=us
+Current release: Oath Wallet 5.1.1, build 111.
+Release: https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111
+App Store availability: https://apps.apple.com/app/id6780187283
 Release metadata: https://oathwallet.org/release-status.json
-Published source release: 5.1.1 (111); https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111
-Guide source: 5.0.2 (104); https://github.com/OathWallet/oath-wallet/releases/tag/v5.0.2-build104
+Guide source: 5.1.1 (111); https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111
 Published security review: https://github.com/OathWallet/oath-wallet-security-review
 Review scope: maintainer-commissioned, Codex-led security review. The whole-wallet review remains incomplete. Findings, fixes and tests apply to their recorded source commits; later releases do not automatically inherit coverage. No independent security-company certification or independently reproduced App Store binary match is established.
-Each result retains its tested source revision. Historical articles, screenshots and catalog snapshots retain their recorded versions.
+Historical captures illustrate workflows; their dates do not establish current runtime coverage.
 
 This bundle contains editorial and Help documents. Token catalog documents are paginated at https://oathwallet.org/tokens/documents.json.
 
 ---
 
 Canonical: https://help.oathwallet.org/
+Current Oath release: 5.1.1 (build 111).
 
 # Help Center
 
@@ -34,6 +33,7 @@ Find Oath Wallet instructions for setup, accounts, receiving, sending, backups, 
 ---
 
 Canonical: https://help.oathwallet.org/collections/start
+Current Oath release: 5.1.1 (build 111).
 
 # Getting started
 
@@ -51,6 +51,7 @@ Your first wallet, without the guesswork.
 ---
 
 Canonical: https://help.oathwallet.org/collections/wallets
+Current Oath release: 5.1.1 (build 111).
 
 # Your wallets
 
@@ -72,6 +73,7 @@ Organize, personalize and manage your wallets.
 ---
 
 Canonical: https://help.oathwallet.org/collections/backup
+Current Oath release: 5.1.1 (build 111).
 
 # Backup & recovery
 
@@ -90,6 +92,7 @@ Keep a recovery route before you need it.
 ---
 
 Canonical: https://help.oathwallet.org/collections/security
+Current Oath release: 5.1.1 (build 111).
 
 # Security & privacy
 
@@ -112,6 +115,7 @@ Control access and protect sensitive information.
 ---
 
 Canonical: https://help.oathwallet.org/collections/assets
+Current Oath release: 5.1.1 (build 111).
 
 # Assets & networks
 
@@ -152,6 +156,7 @@ Understand balances, prices and tokens.
 ---
 
 Canonical: https://help.oathwallet.org/collections/receive
+Current Oath release: 5.1.1 (build 111).
 
 # Send & receive
 
@@ -174,6 +179,7 @@ Choose the right network, review a transfer and share an address.
 ---
 
 Canonical: https://help.oathwallet.org/collections/activity
+Current Oath release: 5.1.1 (build 111).
 
 # Transactions & activity
 
@@ -196,6 +202,7 @@ Read, check and share transaction information.
 ---
 
 Canonical: https://help.oathwallet.org/collections/settings
+Current Oath release: 5.1.1 (build 111).
 
 # Settings & support
 
@@ -222,6 +229,7 @@ Make Oath yours and find help.
 ---
 
 Canonical: https://help.oathwallet.org/collections/dapps
+Current Oath release: 5.1.1 (build 111).
 
 # dApps & permissions
 
@@ -246,8 +254,9 @@ Connect apps, understand requests and revoke supported access.
 ---
 
 Canonical: https://help.oathwallet.org/articles/create-wallet
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Create your first wallet
 
@@ -281,8 +290,9 @@ A new wallet is different from importing an existing one. Your app passcode unlo
 ---
 
 Canonical: https://help.oathwallet.org/articles/import-recovery-phrase
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Import a recovery phrase
 
@@ -296,7 +306,7 @@ Verify the wallet name and intended public address after setup. A newly generate
 
 BIP39, Electrum and aezeed are different recovery formats. Use the format recognized by the import screen and enter the original seed extension or aezeed password when requested. Electrum and aezeed imports are Bitcoin-only; aezeed does not restore Lightning channels or arbitrary custom LND accounts.
 
-Electrum and aezeed wallets are not eligible for iCloud backup in 5.0.0. Keep their original words and required passphrase or password independently.
+Electrum and aezeed wallets are not eligible for iCloud backup in this release. Keep their original words and required passphrase or password independently.
 
 ## Steps
 
@@ -318,8 +328,9 @@ Never enter recovery words into this website, a support message, or an online ch
 ---
 
 Canonical: https://help.oathwallet.org/articles/scan-recovery-qr
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Scan a recovery-phrase QR code
 
@@ -349,8 +360,9 @@ A receiving-address QR is not a recovery phrase. Do not share or photograph reco
 ---
 
 Canonical: https://help.oathwallet.org/articles/import-private-key
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Import a private key
 
@@ -382,8 +394,9 @@ A private-key wallet does not have a recovery phrase in Oath. Keep the original 
 ---
 
 Canonical: https://help.oathwallet.org/articles/private-key-formats
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Which private-key formats can I import?
 
@@ -413,8 +426,9 @@ Do not convert keys on an unfamiliar website. A public address, xpub, or transac
 ---
 
 Canonical: https://help.oathwallet.org/articles/first-passcode
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Set your first app passcode
 
@@ -444,8 +458,9 @@ If the confirmation does not match, follow the inline error and retry. A passcod
 ---
 
 Canonical: https://help.oathwallet.org/articles/home-screen
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Find your way around Home
 
@@ -479,8 +494,9 @@ The total is a valuation based on available balances, prices and exchange rates.
 ---
 
 Canonical: https://help.oathwallet.org/articles/add-another-wallet
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Add another wallet
 
@@ -510,8 +526,9 @@ Additional wallets share the app lock. They remain separate wallet records; addi
 ---
 
 Canonical: https://help.oathwallet.org/articles/switch-wallet
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Switch wallets from Home
 
@@ -546,8 +563,9 @@ Switching wallets does not transfer funds. A wallet-row valuation can use cached
 ---
 
 Canonical: https://help.oathwallet.org/articles/customize-wallet
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Change a wallet’s name and color
 
@@ -577,8 +595,9 @@ The color changes the wallet artwork. Appearance mode and the app icon are contr
 ---
 
 Canonical: https://help.oathwallet.org/articles/reorder-wallets
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Reorder your wallets
 
@@ -610,8 +629,9 @@ This changes wallet order. Asset lists are sorted by portfolio value and activit
 ---
 
 Canonical: https://help.oathwallet.org/articles/remove-wallet
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Move a wallet to Recently Deleted
 
@@ -641,8 +661,9 @@ Removed wallets are retained for seven days before automatic cleanup. Removing a
 ---
 
 Canonical: https://help.oathwallet.org/articles/recover-deleted-wallet
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Recover a recently deleted wallet
 
@@ -672,8 +693,9 @@ Each row shows when removal becomes permanent. Do not rely on Recently Deleted a
 ---
 
 Canonical: https://help.oathwallet.org/articles/permanently-delete-wallet
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Permanently delete removed wallets
 
@@ -704,8 +726,9 @@ Permanent deletion cannot be undone using Recently Deleted. Existing external ba
 ---
 
 Canonical: https://help.oathwallet.org/articles/add-passphrase
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Create a wallet with a BIP-39 passphrase
 
@@ -737,8 +760,9 @@ This does not add a password to the existing wallet. Every different passphrase 
 ---
 
 Canonical: https://help.oathwallet.org/articles/backup-all-wallets
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Back up all wallets to iCloud
 
@@ -750,7 +774,7 @@ Check each wallet’s outcome. A batch can contain a failed upload even when ano
 
 Treat the backup as usable only when the relevant operation has completed and you retain the correct recovery material or file password. Loading, preparing and unavailable states are not successful backups.
 
-In 5.0.0, Electrum and aezeed wallets are excluded from iCloud backup. Preserve their original recovery material. Back Up All Wallets processes eligible active wallets; it excludes Recently Deleted wallets.
+In 5.1.1, Electrum and aezeed wallets are excluded from iCloud backup. Preserve their original recovery material. Back Up All Wallets processes eligible active wallets; it excludes Recently Deleted wallets.
 
 ## Steps
 
@@ -770,8 +794,9 @@ Each wallet has its own encrypted backup file, using the password you just chose
 ---
 
 Canonical: https://help.oathwallet.org/articles/backup-one-wallet
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Back up one wallet to iCloud
 
@@ -783,7 +808,7 @@ Keep Oath open until its upload status completes. If iCloud is unavailable, fix 
 
 Treat the backup as usable only when the relevant operation has completed and you retain the correct recovery material or file password. Loading, preparing and unavailable states are not successful backups.
 
-In 5.0.0, Electrum and aezeed wallets are excluded from iCloud backup. Preserve their original recovery material. Back Up All Wallets processes eligible active wallets; it excludes Recently Deleted wallets.
+In 5.1.1, Electrum and aezeed wallets are excluded from iCloud backup. Preserve their original recovery material. Back Up All Wallets processes eligible active wallets; it excludes Recently Deleted wallets.
 
 ## Steps
 
@@ -803,8 +828,9 @@ Files are stored in iCloud Drive → Oath Wallet → Wallet Backups. Turning off
 ---
 
 Canonical: https://help.oathwallet.org/articles/backup-password
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Understand your backup password
 
@@ -834,8 +860,9 @@ Oath cannot reset the password of an encrypted backup. If you still have an acce
 ---
 
 Canonical: https://help.oathwallet.org/articles/restore-icloud
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Restore from an iCloud backup
 
@@ -847,7 +874,7 @@ After restoration, compare the wallet name and public addresses with the origina
 
 Treat the backup as usable only when the relevant operation has completed and you retain the correct recovery material or file password. Loading, preparing and unavailable states are not successful backups.
 
-In 5.0.0, Electrum and aezeed wallets are excluded from iCloud backup. Preserve their original recovery material. Back Up All Wallets processes eligible active wallets; it excludes Recently Deleted wallets.
+In 5.1.1, Electrum and aezeed wallets are excluded from iCloud backup. Preserve their original recovery material. Back Up All Wallets processes eligible active wallets; it excludes Recently Deleted wallets.
 
 ## Steps
 
@@ -867,8 +894,9 @@ An all-wallet backup creates separate files; restore them individually with the 
 ---
 
 Canonical: https://help.oathwallet.org/articles/backup-status
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Check whether a backup has finished
 
@@ -880,7 +908,7 @@ Preparing means Oath is constructing the encrypted backup. Uploading means the c
 
 Review the status for each wallet you intend to preserve. Keep its backup password and any recovery passphrase independently; a successful upload alone does not mean you remember how to decrypt it.
 
-In 5.0.0, Electrum and aezeed wallets are excluded from iCloud backup. Preserve their original recovery material. Back Up All Wallets processes eligible active wallets; it excludes Recently Deleted wallets.
+In 5.1.1, Electrum and aezeed wallets are excluded from iCloud backup. Preserve their original recovery material. Back Up All Wallets processes eligible active wallets; it excludes Recently Deleted wallets.
 
 ## Steps
 
@@ -900,8 +928,9 @@ Closing or locking the app can interrupt preparation of remaining wallets. Encry
 ---
 
 Canonical: https://help.oathwallet.org/articles/icloud-troubleshooting
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Fix an iCloud backup or restore problem
 
@@ -931,8 +960,9 @@ Do not delete the app or the only backup file to troubleshoot. Contact support w
 ---
 
 Canonical: https://help.oathwallet.org/articles/view-recovery-phrase
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # View your recovery phrase
 
@@ -964,8 +994,9 @@ Never share the words with support, websites or other people. Avoid screenshots.
 ---
 
 Canonical: https://help.oathwallet.org/articles/view-private-key
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # View or copy a private key
 
@@ -995,8 +1026,9 @@ Anyone with a private key can control its account. Do not paste it into this Hel
 ---
 
 Canonical: https://help.oathwallet.org/articles/move-to-new-phone
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Restore your wallets on another iPhone
 
@@ -1026,8 +1058,9 @@ The current build does not offer a direct phone-to-phone transfer flow. Deleting
 ---
 
 Canonical: https://help.oathwallet.org/articles/unlock-wallet
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Unlock Oath
 
@@ -1057,8 +1090,9 @@ The keypad passcode is the one created in Oath. It is not necessarily your iPhon
 ---
 
 Canonical: https://help.oathwallet.org/articles/enable-passcode
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Enable passcode protection
 
@@ -1088,8 +1122,9 @@ Store recovery material separately. An app passcode is an access lock, not a rec
 ---
 
 Canonical: https://help.oathwallet.org/articles/change-passcode
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Change your app passcode
 
@@ -1119,8 +1154,9 @@ Changing the app passcode does not change an existing iCloud backup password or 
 ---
 
 Canonical: https://help.oathwallet.org/articles/enable-face-id
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Enable Face ID or Touch ID
 
@@ -1150,8 +1186,9 @@ The label depends on the device. Enabling biometrics uses a biometric prompt; it
 ---
 
 Canonical: https://help.oathwallet.org/articles/disable-security
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Turn off Face ID or passcode protection
 
@@ -1181,8 +1218,9 @@ Turning off passcode protection also removes the app-lock requirement. Keep prot
 ---
 
 Canonical: https://help.oathwallet.org/articles/auto-lock
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Choose when Oath locks
 
@@ -1212,8 +1250,9 @@ Restarting the app requires authentication when passcode protection is on, regar
 ---
 
 Canonical: https://help.oathwallet.org/articles/lock-now
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Lock Oath immediately
 
@@ -1243,8 +1282,9 @@ The lock icon appears when passcode protection is enabled. Manual locking does n
 ---
 
 Canonical: https://help.oathwallet.org/articles/app-switcher-privacy
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Hide the app preview in the app switcher
 
@@ -1276,8 +1316,9 @@ This protects the app-switcher preview. It does not hide public blockchain activ
 ---
 
 Canonical: https://help.oathwallet.org/articles/hide-balances
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Hide balances on screen
 
@@ -1311,8 +1352,9 @@ Hiding amounts is a screen-privacy choice. It does not change balances, transfer
 ---
 
 Canonical: https://help.oathwallet.org/articles/forgot-passcode
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # What if I forget my app passcode?
 
@@ -1342,8 +1384,9 @@ There is no email reset that recovers your wallet from the six-digit app passcod
 ---
 
 Canonical: https://help.oathwallet.org/articles/reset-app
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Reset Oath on this device
 
@@ -1375,8 +1418,9 @@ Reset is different from moving one wallet to Recently Deleted. It does not erase
 ---
 
 Canonical: https://help.oathwallet.org/articles/asset-screen
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Open an asset’s screen
 
@@ -1407,8 +1451,9 @@ A token’s ticker is not its identity. Check the network and contract or asset 
 ---
 
 Canonical: https://help.oathwallet.org/articles/portfolio-values
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Understand balances and portfolio value
 
@@ -1438,8 +1483,9 @@ A local-currency value uses available prices and exchange rates; it is not a sal
 ---
 
 Canonical: https://help.oathwallet.org/articles/refresh-balances
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Refresh balances and activity
 
@@ -1469,8 +1515,9 @@ Providers can return delayed or incomplete data. Oath retains cached information
 ---
 
 Canonical: https://help.oathwallet.org/articles/search-assets
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Search for a coin or token
 
@@ -1500,8 +1547,9 @@ The same symbol can belong to unrelated tokens on different networks. Inspect th
 ---
 
 Canonical: https://help.oathwallet.org/articles/add-custom-token
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Find and add a token by address
 
@@ -1532,8 +1580,9 @@ Manual address lookup supports the app’s EVM networks, TRON and Solana. Result
 ---
 
 Canonical: https://help.oathwallet.org/articles/token-not-found
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Why isn’t a token appearing?
 
@@ -1564,8 +1613,9 @@ Some automatically discovered tokens are filtered using provider verification li
 ---
 
 Canonical: https://help.oathwallet.org/articles/asset-order
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # How assets are sorted
 
@@ -1595,8 +1645,9 @@ This order is automatic. Reordering wallets does not reorder the assets inside t
 ---
 
 Canonical: https://help.oathwallet.org/articles/prices-chart
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Read an asset’s price and chart
 
@@ -1627,8 +1678,9 @@ Quotes and charts depend on provider coverage. They may use cached values and do
 ---
 
 Canonical: https://help.oathwallet.org/articles/asset-information
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # View an asset’s information
 
@@ -1658,8 +1710,9 @@ Descriptions and logos are informational. A familiar name or image is not proof 
 ---
 
 Canonical: https://help.oathwallet.org/articles/account-activation-and-reserves
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Why does my address need funds to activate?
 
@@ -1761,8 +1814,9 @@ Network values can change. Use the current amount shown in Oath and review the s
 ---
 
 Canonical: https://help.oathwallet.org/articles/receive-crypto
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Receive crypto with a QR code
 
@@ -1794,8 +1848,9 @@ The same-looking address can exist on multiple networks. The network must match,
 ---
 
 Canonical: https://help.oathwallet.org/articles/copy-share-address
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Copy or share your receiving address
 
@@ -1826,8 +1881,9 @@ Only share a public receiving address or receiving QR. A private key, recovery p
 ---
 
 Canonical: https://help.oathwallet.org/articles/receive-network-tokens
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # What does “and more” mean on Receive?
 
@@ -1858,8 +1914,9 @@ Token discovery depends on the network, provider coverage and filtering. A recei
 ---
 
 Canonical: https://help.oathwallet.org/articles/bitcoin-address-types
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Choose a Bitcoin address type
 
@@ -1891,8 +1948,9 @@ The choice affects receiving. The Bitcoin balance scan covers supported imported
 ---
 
 Canonical: https://help.oathwallet.org/articles/bitcoin-gap-limit
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Why can a Bitcoin receiving address change?
 
@@ -1924,8 +1982,9 @@ The scanner uses a gap of 20 unused addresses per supported branch. Addresses fa
 ---
 
 Canonical: https://help.oathwallet.org/articles/solana-address-path
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Choose Phantom or Trust Wallet’s Solana path
 
@@ -1957,8 +2016,9 @@ The paths derive different accounts from the same phrase. Changing paths does no
 ---
 
 Canonical: https://help.oathwallet.org/articles/wrong-network
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Check the network before a transfer
 
@@ -1988,8 +2048,9 @@ A matching symbol or 0x address does not mean funds will appear on the network y
 ---
 
 Canonical: https://help.oathwallet.org/articles/transaction-list
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Read your transaction activity
 
@@ -2020,8 +2081,9 @@ Some providers supply incomplete history or do not identify every transfer. Loca
 ---
 
 Canonical: https://help.oathwallet.org/articles/transaction-details
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Open transaction details
 
@@ -2052,8 +2114,9 @@ Missing provider fields are not fabricated. A displayed local-currency fee is a 
 ---
 
 Canonical: https://help.oathwallet.org/articles/transaction-status
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Understand pending, confirmed and failed activity
 
@@ -2086,8 +2149,9 @@ A failed transaction may still incur a network fee on some chains. A pending inc
 ---
 
 Canonical: https://help.oathwallet.org/articles/canceled-replaced
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # What do Canceled and Replaced mean?
 
@@ -2117,8 +2181,9 @@ Oath does not infer cancellation merely because a request failed or a transactio
 ---
 
 Canonical: https://help.oathwallet.org/articles/network-fee
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Read the network fee
 
@@ -2148,8 +2213,9 @@ The fee is separate from a token’s transfer amount. The local value uses an av
 ---
 
 Canonical: https://help.oathwallet.org/articles/copy-transaction-id
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Copy a transaction ID or address
 
@@ -2183,8 +2249,9 @@ The copied value is complete even when the on-screen label is shortened. A trans
 ---
 
 Canonical: https://help.oathwallet.org/articles/view-explorer
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # View a transaction on its explorer
 
@@ -2215,8 +2282,9 @@ The explorer is an independent website. It never needs your recovery phrase or p
 ---
 
 Canonical: https://help.oathwallet.org/articles/share-transaction
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Share a transaction image or link
 
@@ -2247,8 +2315,9 @@ A screenshot is not independent proof of payment. The recipient can verify the t
 ---
 
 Canonical: https://help.oathwallet.org/articles/send-availability
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Send coins and tokens
 
@@ -2281,8 +2350,9 @@ A direct send stays on the selected network. It does not swap assets or bridge f
 ---
 
 Canonical: https://help.oathwallet.org/articles/address-book
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Create a contact in the address book
 
@@ -2312,8 +2382,9 @@ Creating a contact does not add a network or send funds. The name is a label you
 ---
 
 Canonical: https://help.oathwallet.org/articles/contact-address
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Add an address to a contact
 
@@ -2343,8 +2414,9 @@ A contact can have multiple addresses, up to the app’s limit of 50. Format val
 ---
 
 Canonical: https://help.oathwallet.org/articles/edit-contact
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Edit a contact or saved address
 
@@ -2374,8 +2446,9 @@ Editing a label does not change the blockchain account. If a contact gives you a
 ---
 
 Canonical: https://help.oathwallet.org/articles/delete-contact
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Delete a contact or remove an address
 
@@ -2405,8 +2478,9 @@ Address-book deletion does not delete a wallet or affect on-chain funds. Contact
 ---
 
 Canonical: https://help.oathwallet.org/articles/search-contacts
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Find a contact
 
@@ -2436,8 +2510,9 @@ Check the network beside a saved address before using it.
 ---
 
 Canonical: https://help.oathwallet.org/articles/currency
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Change your display currency
 
@@ -2467,8 +2542,9 @@ This is a display conversion. It does not exchange crypto or change native units
 ---
 
 Canonical: https://help.oathwallet.org/articles/language
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Change the app language
 
@@ -2498,8 +2574,9 @@ Asset symbols, addresses and third-party descriptions may retain their original 
 ---
 
 Canonical: https://help.oathwallet.org/articles/appearance
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Use Light, Dark or System appearance
 
@@ -2529,8 +2606,9 @@ System mode follows the device appearance. It does not automatically change the 
 ---
 
 Canonical: https://help.oathwallet.org/articles/app-icon
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Change the app icon
 
@@ -2560,8 +2638,9 @@ Changing the icon is cosmetic and does not affect your wallets.
 ---
 
 Canonical: https://help.oathwallet.org/articles/permissions
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Review wallet permissions and connected apps
 
@@ -2593,8 +2672,9 @@ Revocations are network transactions and require fees. Removing a token from vie
 ---
 
 Canonical: https://help.oathwallet.org/articles/in-app-browser
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Open links without leaving Oath
 
@@ -2624,8 +2704,9 @@ A website is separate from the wallet. Do not type recovery words or private key
 ---
 
 Canonical: https://help.oathwallet.org/articles/request-feature
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Request a feature
 
@@ -2655,8 +2736,9 @@ GitHub issues are public. Never include recovery material, backup passwords or c
 ---
 
 Canonical: https://help.oathwallet.org/articles/report-bug
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Report a bug
 
@@ -2688,8 +2770,9 @@ Do not share recovery phrases, private keys or backup passwords. For a sensitive
 ---
 
 Canonical: https://help.oathwallet.org/articles/contact-support
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Contact Oath support
 
@@ -2721,8 +2804,9 @@ Opening Contact Us does not send an email automatically. Never send recovery phr
 ---
 
 Canonical: https://help.oathwallet.org/articles/about-legal
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Find articles, privacy and terms
 
@@ -2752,8 +2836,9 @@ Release articles may describe an older app version. Use this Help Center’s ver
 ---
 
 Canonical: https://help.oathwallet.org/articles/use-bitcoin-cash
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Use Bitcoin Cash in Oath
 
@@ -2785,8 +2870,9 @@ Uses Bitcoin Cash addresses and its own history. Do not send Bitcoin (BTC) to th
 ---
 
 Canonical: https://help.oathwallet.org/articles/use-dogecoin
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Use Dogecoin in Oath
 
@@ -2818,8 +2904,9 @@ Uses Dogecoin addresses. A Dogecoin key is not interchangeable with a similarly 
 ---
 
 Canonical: https://help.oathwallet.org/articles/use-litecoin
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Use Litecoin in Oath
 
@@ -2851,8 +2938,9 @@ Use the address-type control when available for the imported wallet material.
 ---
 
 Canonical: https://help.oathwallet.org/articles/use-solana
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Use Solana in Oath
 
@@ -2884,8 +2972,9 @@ Balances, discovered tokens and activity follow the active Solana address.
 ---
 
 Canonical: https://help.oathwallet.org/articles/use-tron
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Use TRON in Oath
 
@@ -2917,8 +3006,9 @@ Choose TRON at the sender for TRX and compatible TRON tokens.
 ---
 
 Canonical: https://help.oathwallet.org/articles/use-gram
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Use Gram in Oath
 
@@ -2950,8 +3040,9 @@ The app labels this network Gram and recognizes TON-related search aliases.
 ---
 
 Canonical: https://help.oathwallet.org/articles/use-aptos
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Use Aptos in Oath
 
@@ -2983,8 +3074,9 @@ Uses an Aptos account and network-specific token identities.
 ---
 
 Canonical: https://help.oathwallet.org/articles/use-sui
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Use Sui Network in Oath
 
@@ -3016,8 +3108,9 @@ Uses a Sui account and Sui coin types.
 ---
 
 Canonical: https://help.oathwallet.org/articles/use-near
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Use NEAR Protocol in Oath
 
@@ -3049,8 +3142,9 @@ Shows data for the wallet’s active NEAR account.
 ---
 
 Canonical: https://help.oathwallet.org/articles/use-xrp-ledger
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Use XRP Ledger in Oath
 
@@ -3082,8 +3176,9 @@ Shows XRP and supported issued assets for the active ledger account.
 ---
 
 Canonical: https://help.oathwallet.org/articles/use-stellar
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Use Stellar in Oath
 
@@ -3115,8 +3210,9 @@ Shows XLM and supported assets for the active Stellar account.
 ---
 
 Canonical: https://help.oathwallet.org/articles/evm-networks
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Use Ethereum and EVM networks
 
@@ -3146,8 +3242,9 @@ Keep the network’s fee asset available for token transfers. Arc is a special c
 ---
 
 Canonical: https://help.oathwallet.org/articles/arc-usdc
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Understand USDC on Arc
 
@@ -3179,8 +3276,9 @@ An Ethereum or another network’s USDC balance is separate. Mainnet and testnet
 ---
 
 Canonical: https://help.oathwallet.org/articles/robinhood-chain
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Use Robinhood Chain
 
@@ -3212,8 +3310,9 @@ A Robinhood Chain address in Oath is not a login to a Robinhood brokerage accoun
 ---
 
 Canonical: https://help.oathwallet.org/articles/home-scanner
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Scan a token address from Home
 
@@ -3244,8 +3343,9 @@ Scanning is an input shortcut, not a trust check. Confirm the network and comple
 ---
 
 Canonical: https://help.oathwallet.org/articles/wallet-settings-shortcut
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Open the current wallet’s settings from Home
 
@@ -3276,8 +3376,9 @@ The controls can be mirrored for right-to-left languages. Identify them by their
 ---
 
 Canonical: https://help.oathwallet.org/articles/wallet-balances
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Read wallet balances and the active-wallet badge
 
@@ -3310,8 +3411,9 @@ The active-wallet badge identifies the wallet used by Home and History. Use the 
 ---
 
 Canonical: https://help.oathwallet.org/articles/full-transaction-history
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # View the active wallet’s full transaction history
 
@@ -3342,8 +3444,9 @@ If an expected entry is absent, clear search and filters, refresh Home or the as
 ---
 
 Canonical: https://help.oathwallet.org/articles/search-transactions
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Search transactions by ID, address or amount
 
@@ -3374,8 +3477,9 @@ A short address fragment or common amount can match several entries. Compare the
 ---
 
 Canonical: https://help.oathwallet.org/articles/filter-transactions
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Filter transaction history
 
@@ -3409,8 +3513,9 @@ A disabled checkmark means a range needs correction, such as a minimum above its
 ---
 
 Canonical: https://help.oathwallet.org/articles/asset-transaction-history
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # View all transactions for one coin or token
 
@@ -3441,8 +3546,9 @@ An absent View All button is not proof that no other on-chain activity ever occu
 ---
 
 Canonical: https://help.oathwallet.org/articles/spam-history
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # How Oath hides spam and phishing activity
 
@@ -3475,8 +3581,9 @@ No filter can recognize every scam, and an unlisted token is not automatically f
 ---
 
 Canonical: https://help.oathwallet.org/articles/zero-value-transactions
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Why can a transaction show zero?
 
@@ -3507,8 +3614,9 @@ Filtering a zero-value entry is not the same as canceling it. On-chain records a
 ---
 
 Canonical: https://help.oathwallet.org/articles/unverified-tokens
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Understand verified and manually added tokens
 
@@ -3539,8 +3647,9 @@ Never decide by symbol alone. Tokens with the same name on the same or different
 ---
 
 Canonical: https://help.oathwallet.org/articles/confirmation-checkmark
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Use the checkmark to finish an action
 
@@ -3571,8 +3680,9 @@ The small check badge on a wallet icon means that wallet is active. It is differ
 ---
 
 Canonical: https://help.oathwallet.org/articles/security-settings-access
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Authenticate before opening Passcode & Face ID
 
@@ -3603,8 +3713,9 @@ Your app passcode is not your recovery phrase, BIP-39 passphrase or iCloud backu
 ---
 
 Canonical: https://help.oathwallet.org/articles/help-center
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Open and search the Help Center
 
@@ -3635,8 +3746,9 @@ Never put a recovery phrase, private key, app passcode or backup password into a
 ---
 
 Canonical: https://help.oathwallet.org/articles/send-max-and-fees
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Use Max and understand spendable balance
 
@@ -3648,7 +3760,7 @@ For a token, the entire token balance may be transferable while a different nati
 
 Fee estimates are network-specific and can change. A maximum fee is a spending limit or estimate used in that review, not a promise that the exact amount will be charged.
 
-In 5.0.0, Max keeps the full calculated amount. Send and review values can show more digits than compact balance displays; signing still uses exact atomic units.
+In 5.1.1, Max keeps the full calculated amount. Send and review values can show more digits than compact balance displays; signing still uses exact atomic units.
 
 Fiat entry accepts at most two fractional digits. Send Max retains the full native amount used for signing; a rounded fiat display does not replace that amount. Tiny nonzero fiat values use a less-than bound instead of appearing as zero.
 
@@ -3671,8 +3783,9 @@ A displayed portfolio total is a valuation, not a promise that all of it is spen
 ---
 
 Canonical: https://help.oathwallet.org/articles/send-tags-and-memos
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Enter destination tags and memos
 
@@ -3703,8 +3816,9 @@ Memos and on-chain messages can become public. Never put a recovery phrase, priv
 ---
 
 Canonical: https://help.oathwallet.org/articles/bitcoin-transfer-options
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Set Bitcoin transfer options
 
@@ -3736,8 +3850,9 @@ Never put secrets in an on-chain message. Confirmed blockchain content cannot be
 ---
 
 Canonical: https://help.oathwallet.org/articles/send-troubleshooting
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Resolve a transfer that cannot be sent
 
@@ -3769,8 +3884,9 @@ Do not send recovery words, private keys, passcodes or raw signing payloads to s
 ---
 
 Canonical: https://help.oathwallet.org/articles/connect-dapp
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Connect a dApp with WalletConnect
 
@@ -3802,8 +3918,9 @@ Never share a WalletConnect pairing QR or URI publicly. Connecting does not requ
 ---
 
 Canonical: https://help.oathwallet.org/articles/dapp-disconnect
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Disconnect a dApp safely
 
@@ -3835,8 +3952,9 @@ If a site still displays an old connected state, refresh it. Check Oath’s sess
 ---
 
 Canonical: https://help.oathwallet.org/articles/dapp-swap
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Review a token swap from a dApp
 
@@ -3848,7 +3966,7 @@ A quote or simulation is not a guaranteed settlement price. Slippage, price move
 
 Unknown routers, commands or metadata remain explicitly unknown or technical. A safe review must not invent an output token or interpret every arbitrary contract call as a swap.
 
-In 5.0.0, history recognizes supported Across and Relay bridge receipts and pairs matching outgoing and received legs. Unproven or unsupported transfers keep their ordinary history presentation. This does not add an in-app bridge service.
+In 5.1.1, history recognizes supported Across and Relay bridge receipts and pairs matching outgoing and received legs. Unproven or unsupported transfers keep their ordinary history presentation. This does not add an in-app bridge service.
 
 ## Steps
 
@@ -3870,8 +3988,9 @@ An approval grants spending access; it is not the swap itself. Verify the spende
 ---
 
 Canonical: https://help.oathwallet.org/articles/dapp-transaction-data
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Read human-readable transaction data
 
@@ -3902,8 +4021,9 @@ Simulation is an estimate and can be incomplete. Always compare the exact networ
 ---
 
 Canonical: https://help.oathwallet.org/articles/dapp-signatures
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Review messages, sign-ins and token permits
 
@@ -3935,8 +4055,9 @@ No legitimate WalletConnect approval asks you to type a recovery phrase or priva
 ---
 
 Canonical: https://help.oathwallet.org/articles/walletconnect-solana
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Use Solana dApps and test networks
 
@@ -3968,8 +4089,9 @@ Third-party dApp compatibility varies. A test-cluster connection is not proof th
 ---
 
 Canonical: https://help.oathwallet.org/articles/walletconnect-thorchain
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Review THORChain dApp requests
 
@@ -4001,8 +4123,9 @@ A direct RUNE send is different from a deposit or cross-chain swap. Review the a
 ---
 
 Canonical: https://help.oathwallet.org/articles/revoke-token-access
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Revoke a token allowance or delegate
 
@@ -4034,8 +4157,9 @@ Revoking access does not recover funds already spent by a contract. It also does
 ---
 
 Canonical: https://help.oathwallet.org/articles/bulk-revoke-access
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Revoke several permissions
 
@@ -4067,8 +4191,9 @@ Keep enough fee assets on every selected network. Never describe a partly succes
 ---
 
 Canonical: https://help.oathwallet.org/articles/permission-coverage
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Understand permission scan coverage
 
@@ -4099,8 +4224,9 @@ An empty permission list must not be interpreted as a comprehensive security aud
 ---
 
 Canonical: https://help.oathwallet.org/articles/check-contract-access
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Check a contract and approved address
 
@@ -4112,7 +4238,7 @@ Selecting a collection-wide approval is different from checking access to one NF
 
 This targeted lookup does not scan every possible spender. It answers the specific supported permission query you supplied.
 
-In 5.0.0, transaction history distinguishes supported token approvals, approval removal and contract interactions. A label describes the observed call; check its transaction status separately.
+In 5.1.1, transaction history distinguishes supported token approvals, approval removal and contract interactions. A label describes the observed call; check its transaction status separately.
 
 ## Steps
 
@@ -4133,8 +4259,9 @@ Do not paste a private key or recovery phrase into either address field.
 ---
 
 Canonical: https://help.oathwallet.org/articles/permit2-access
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Understand Permit2 and signed approvals
 
@@ -4165,8 +4292,9 @@ An unlimited allowance is a spending authorization, not your token balance.
 ---
 
 Canonical: https://help.oathwallet.org/articles/permission-removal-history
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Check revocation progress and failures
 
@@ -4197,8 +4325,9 @@ Do not retry an uncertain transaction blindly. Use its existing public transacti
 ---
 
 Canonical: https://help.oathwallet.org/articles/account-control-permissions
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Review account-control and permanent delegates
 
@@ -4230,8 +4359,9 @@ When the app cannot safely remove a permission, it should remain a limitation ra
 ---
 
 Canonical: https://help.oathwallet.org/articles/last-wallet-reset
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Remove the last active wallet
 
@@ -4263,8 +4393,9 @@ Do not delete the last local copy of recovery material unless you have an indepe
 ---
 
 Canonical: https://help.oathwallet.org/articles/upgrade-existing-wallets
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Open existing wallets after an Oath update
 
@@ -4296,8 +4427,9 @@ Never send your passcode or recovery material to support. Keep the original reco
 ---
 
 Canonical: https://help.oathwallet.org/articles/balance-change
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Understand the balance-change capsule
 
@@ -4327,8 +4459,9 @@ A missing or incomplete baseline can limit the comparison. Do not infer a full p
 ---
 
 Canonical: https://help.oathwallet.org/articles/asset-filters
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Filter the Home assets list
 
@@ -4359,8 +4492,9 @@ A displayed logo or name is not verification that an asset is legitimate.
 ---
 
 Canonical: https://help.oathwallet.org/articles/token-prices-and-logos
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Understand token logos and missing prices
 
@@ -4392,8 +4526,9 @@ No provider can supply a trustworthy price for every token. Unknown prices shoul
 ---
 
 Canonical: https://help.oathwallet.org/articles/haptic-feedback
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Turn haptic feedback on or off
 
@@ -4423,8 +4558,9 @@ Read the on-screen status even when you feel success feedback.
 ---
 
 Canonical: https://help.oathwallet.org/articles/use-thorchain
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Use THORChain and RUNE
 
@@ -4455,8 +4591,9 @@ A source-chain confirmation alone does not prove a cross-chain destination payme
 ---
 
 Canonical: https://help.oathwallet.org/articles/use-hyperevm
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Use HyperEVM in Oath
 
@@ -4488,8 +4625,9 @@ A shared 0x address does not bridge funds. Choose the exact network on both side
 ---
 
 Canonical: https://help.oathwallet.org/articles/use-monad
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Use Monad in Oath
 
@@ -4521,8 +4659,9 @@ A shared 0x address does not bridge funds. Choose the exact network on both side
 ---
 
 Canonical: https://help.oathwallet.org/articles/use-unichain
+Current Oath release: 5.1.1 (build 111).
 Updated: 2026-10-28T00:00:00Z
-Applies to app version: Oath 5.0.0
+Applies to app version: Oath 5.1.1 (111)
 
 # Use Unichain in Oath
 

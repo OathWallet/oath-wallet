@@ -2,16 +2,14 @@
 
 > Official, source-attributed wallet documentation. Public content is available for search, user-requested reading and training; this does not guarantee indexing or citations.
 
-Latest source release: Oath Wallet 5.1.1, build 111.
-Current App Store listing: Oath Wallet 5.1.0. Checked 2026-11-25 (us storefront). Approved build number: not publicly verified.
-App Store: https://apps.apple.com/app/id6780187283
-Distribution evidence: https://itunes.apple.com/lookup?id=6780187283&country=us
+Current release: Oath Wallet 5.1.1, build 111.
+Release: https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111
+App Store availability: https://apps.apple.com/app/id6780187283
 Release metadata: https://oathwallet.org/release-status.json
-Published source release: 5.1.1 (111); https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111
-Guide source: 5.0.2 (104); https://github.com/OathWallet/oath-wallet/releases/tag/v5.0.2-build104
+Guide source: 5.1.1 (111); https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111
 Published security review: https://github.com/OathWallet/oath-wallet-security-review
 Review scope: maintainer-commissioned, Codex-led security review. The whole-wallet review remains incomplete. Findings, fixes and tests apply to their recorded source commits; later releases do not automatically inherit coverage. No independent security-company certification or independently reproduced App Store binary match is established.
-Each result retains its tested source revision. Historical articles, screenshots and catalog snapshots retain their recorded versions.
+Historical captures illustrate workflows; their dates do not establish current runtime coverage.
 
 ## Start here
 
@@ -24,7 +22,7 @@ Each result retains its tested source revision. Historical articles, screenshots
 ## Selected documents
 
 - [Wallet Compatibility Lab: Import & Recovery Evidence | Oath](https://oathwallet.org/compatibility.md): Compare Trust Wallet, MetaMask and Electrum account recovery with Oath. Explore versioned derivation results, Bitcoin address types, methods and limitations.
-- [Wallet Compatibility Results — November 2026 | Oath](https://oathwallet.org/compatibility/2026-11-09.md): Oath 5.0.2 compatibility evidence: 14 reference-library checks, four source assertions and 14 passing Bitcoin host tests, with exact scope and skipped tests.
+- [Wallet Compatibility Results — November 2026 | Oath](https://oathwallet.org/compatibility/2026-11-26.md): Oath 5.1.1 compatibility evidence: 14 reference-library checks, four source assertions and 14 passing Bitcoin host tests, with exact scope and skipped tests.
 - [Wallet Compatibility Lab: Methods & Reproduction | Oath](https://oathwallet.org/compatibility/methodology.md): How Oath reviews wallet recovery: pinned versions, public fixtures, reproducible checks and clear boundaries between source, core tests and observed behavior.
 - [Prepare a Crypto Transfer | Token, Network & Fees | Oath](https://oathwallet.org/networks/choose-token-network.md): Prepare a token transfer with Oath. Start with USDT or USDC, or open any catalog token’s checklist to compare its exact identity, receiving network and fee requirements.
 - [Which Coin Pays My Crypto Network Fee? | Oath Wallet](https://oathwallet.org/networks/fees.md): Find the fee asset and account requirements for Oath’s supported networks. Understand TRX, ETH, SOL and Bitcoin fees before sending.

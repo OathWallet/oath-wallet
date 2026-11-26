@@ -11,8 +11,8 @@ test('every current guide has usable steps, source references and captioned actu
  assert.equal(Object.keys(walkthroughs).length,130);
  for(const a of data.articles.filter(a=>coverage.some(c=>c.slug===a.slug))){
   assert.ok(a.steps.length>=4,a.slug);assert.ok(a.body.length>=2,a.slug);
-  assert.equal(a.app_version,'Oath 5.0.0');
-  assert.equal(a.screenshot_version,'Oath 4.0.3');
+  assert.equal(a.app_version,'Oath 5.1.1 (111)');
+  assert.equal(a.screenshot_version,'Historical app capture');
   assert.ok(coverage.find(c=>c.slug===a.slug)?.sources.length,a.slug);
   const items=walkthroughs[a.slug];assert.ok(items?.length,a.slug);
   assert.equal(a.screenshot,items[0].image,a.slug);

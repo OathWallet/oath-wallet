@@ -7,9 +7,9 @@ import {fileURLToPath} from 'node:url';
 import {validateSnapshot,assignRoutes,nativeAlias,readLedger} from './token-catalog.mjs';
 
 const root = new URL('../../', import.meta.url);
-const evidence = JSON.parse(await readFile(new URL('Website/content/release-evidence.json', root)));
-const distribution = JSON.parse(await readFile(new URL(`releases/${evidence.version}-distribution.json`, root)));
-if (distribution.source_commit !== evidence.source_commit || distribution.status !== 'READY_FOR_DISTRIBUTION') throw Error('A confirmed distribution record matching the source evidence is required.');
+const evidence = JSON.parse(await readFile(new URL('Website/content/published-source-release.json', root)));
+const tagRevision=execFileSync('git',['rev-parse',`refs/tags/${evidence.source_tag}^{commit}`],{cwd:fileURLToPath(root)}).toString().trim();
+if(tagRevision!==evidence.source_commit)throw Error('The published source tag must match the catalog revision.');
 const revision = evidence.source_commit;
 const read = path => execFileSync('git', ['show', `${revision}:${path}`], {cwd:fileURLToPath(root), maxBuffer:20*1024*1024});
 const seedPath = 'Packages/OathAnkr/Sources/OathAnkr/Resources/TokenDiscoverySeed.json';
@@ -27,7 +27,9 @@ const featured = JSON.parse(read('OathApp/Resources/ReceiveAssets.json')).networ
 const sourceDate = execFileSync('git',['log','-1','--format=%cs',revision,'--',seedPath],{cwd:fileURLToPath(root)}).toString().trim();
 const snapshot = {format:1, version:evidence.version, build:evidence.build, revision, sourceDate,
   sha256:createHash('sha256').update(raw).digest('hex'), enabled, nativeOnly, featured,
-  rawCount:seed.entries.length,excludedNativeAliases:seed.entries.filter(nativeAlias).map(e=>e.network+':'+e.reference),entries:seed.entries.filter(e=>!nativeAlias(e))};
+  rawCount:seed.entries.length,excludedNativeAliases:seed.entries.filter(nativeAlias).map(e=>e.network+':'+e.reference),
+  excludedTokenNetworks:[...new Set(seed.entries.filter(e=>!enabled.includes(e.network)).map(e=>e.network))].sort(),
+  entries:seed.entries.filter(e=>enabled.includes(e.network)&&!nativeAlias(e))};
 validateSnapshot(snapshot);
 let accepted;
 try{accepted=JSON.parse(gunzipSync(await readFile(new URL('Website/content/tokens/source.json.gz',root))));}catch(e){if(e.code!=='ENOENT')throw e;}

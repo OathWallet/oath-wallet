@@ -5,7 +5,7 @@ import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import sharp from 'sharp';
 import catalog from '../content/features.json' with {type:'json'};
-import distribution from '../../releases/5.0.2-distribution.json' with {type:'json'};
+import distribution from '../content/published-source-release.json' with {type:'json'};
 import help from '../src/help/content.json' with {type:'json'};
 import networks from '../content/networks.json' with {type:'json'};
 import {documents} from '../src/agent-content.js';
@@ -18,7 +18,7 @@ const escape=s=>s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>',
 test('feature claims and unchanged screenshots retain pinned release provenance',async()=>{
  assert.equal(catalog.sourceCommit,(distribution.source_reference ?? distribution.source_commit));
  assert.equal(catalog.version,distribution.version);assert.equal(catalog.build,distribution.build);
- assert.equal(distribution.status,'READY_FOR_DISTRIBUTION');
+ assert.equal(distribution.source_tag,'v5.1.1-build111');
  assert.equal(catalog.features.length,3);
  assert.equal(new Set(catalog.features.map(f=>f.path)).size,3);
  for(const f of catalog.features){

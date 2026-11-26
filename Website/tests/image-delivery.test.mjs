@@ -22,7 +22,7 @@ test('responsive icons retain the source pixels at each target size and reduce t
    count++;
   }
  }
- assert.equal(count,47); assert.ok(delivered<original*.25,`${delivered} vs ${original}`);
+ assert.equal(count,50); assert.ok(delivered<original*.25,`${delivered} vs ${original}`);
 });
 test('phone preview points to working density candidates without changing its presentation',async()=>{
  const source=await readFile(new URL('Oath App Home.dc.html',root),'utf8');
@@ -42,7 +42,7 @@ test('shared footer uses small fallback icons and a compact homepage poster',asy
  const {buildSiteChrome}=await import('../scripts/build-help-chrome.mjs');
  const chrome=await buildSiteChrome();
  const icons=[...chrome.footer.matchAll(/<img\b[^>]*src="([^"]*assets\/networks[^"]*)"[^>]*>/g)];
- assert.equal(icons.length,42);let delivered=0,original=0;
+ assert.equal(icons.length,45);let delivered=0,original=0;
  for(const [,path]of icons){
   assert.match(path,/responsive\/[^/]+-56\.webp$/);
   delivered+=(await readFile(new URL('.'+path,root))).length;

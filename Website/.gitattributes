@@ -1,0 +1,2 @@
+# Compatibility downloads use RFC 4180 CRLF line endings.
+public/compatibility/*.csv whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

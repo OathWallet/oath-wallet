@@ -1,14 +1,14 @@
 # Released token catalog
 
-The accepted snapshot is `source.json.gz`. It is extracted from the app revision in `content/release-evidence.json`, only when the matching distribution record says `READY_FOR_DISTRIBUTION`. Source bytes, revision, release, date, enabled networks and native-alias exclusions are recorded in the snapshot. The current raw seed has 32,136 entries; the released app removes CELO's native ERC-20 alias, leaving 32,135 token entries, 20,017 asset groups and 38 token-capable networks. Four native-only networks retain their existing guides.
+The accepted snapshot is `source.json.gz`, extracted from the annotated tag in `content/published-source-release.json`. The tag must match the recorded source revision. The current release is **5.1.1 (111)**, with 32,211 token entries, 20,043 asset groups and 41 token-capable networks. Source bytes, release version/build, revision, date, enabled networks and exclusions are recorded. Historical artwork is retained only for exact identities still present in the accepted catalog; new missing artwork uses initials.
 
 `routes.json` is a permanent identity ledger. Its compact array format avoids mistaking public token IDs for credential settings. Never delete retired identities or reuse their paths. Network plus canonical contract/mint/issuer/reference is the identity. The provider asset ID groups networks; the symbol does not. USDT and USDC reserve readable aliases. A changed provider grouping fails the refresh and requires an explicit migration review.
 
 ## Build and refresh
 
 - `npm run predeploy` builds from the last accepted snapshot, without contacting token providers. Generated data lives in ignored `public/token-data/{version}/` shards; the version includes the renderer, styles and shared navigation.
-- `npm run refresh:tokens` reads the approved Git source, validates the snapshot and existing URL ledger, then builds and tests. Invalid snapshots never replace the source file. Commit the accepted snapshot, ledger, manifest and generated tracked website files together.
-- The **Refresh released website catalog** GitHub workflow runs on explicit dispatch or changes to approved release evidence/distribution. It publishes a review branch, dispatches Website checks and attempts to open a PR. If repository policy prevents automatic PR creation, its run summary provides the comparison link; no permissions are expanded. After review and merge, the existing **Deploy website** workflow publishes. No periodic refresh or alternate hosting path is used.
+- `npm run refresh:tokens` reads the published Git source, validates the snapshot and existing URL ledger, then builds and tests. Invalid snapshots never replace the source file. Commit the accepted snapshot, ledger, manifest and generated tracked website files together.
+- The **Refresh released website catalog** GitHub workflow runs on explicit dispatch or changes to published release metadata. It publishes a review branch, dispatches Website checks and attempts to open a PR. If repository policy prevents automatic PR creation, its run summary provides the comparison link; no permissions are expanded. After review and merge, the existing **Deploy website** workflow publishes. No periodic refresh or alternate hosting path is used.
 - A catalog-source update in an unreleased app branch does not change the public website.
 
 ## Rendering and discovery

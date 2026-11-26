@@ -16,7 +16,7 @@ The App Store app does not collect user analytics or automatically upload error 
 
 ## 3. Wallet credentials and device storage
 
-In the 4.1.14 public source, recovery material is sealed in an authenticated local vault using device-only Keychain storage and an additional installation key in the protected app container. Public wallet metadata and transaction records are stored separately in the local database. Signing takes place locally; network providers receive public queries and signed transactions, not the spending credentials used to sign them.
+In the 5.1.1 public source, recovery material is sealed in an authenticated local vault using device-only Keychain storage and an additional installation key in the protected app container. Public wallet metadata and transaction records are stored separately in the local database. Signing takes place locally; network providers receive public queries and signed transactions, not the spending credentials used to sign them.
 
 Optional encrypted iCloud backup can store eligible wallet material at your request. Manual export can also reveal or copy recovery material under your control. Do not interpret on-device storage as a promise that a user-authorized export never leaves the device.
 
@@ -28,7 +28,7 @@ Face ID and Touch ID are handled by iOS; Oath does not receive your biometric te
 
 Optional iCloud backup encrypts an eligible wallet on the device with AES-256-GCM. Its key is derived from a separate backup password using PBKDF2-HMAC-SHA256 with 600,000 rounds and a fresh salt. Restore requires both the encrypted backup file and its backup password. Oath does not receive the password or a plaintext backup. Apple operates iCloud Drive under its own policies.
 
-Electrum and aezeed wallets are not eligible for iCloud backup in 4.1.14; preserve their original recovery material. Existing backup files remain outside the app-reset boundary. The former passkey-based backup and nearby-iPhone transfer flows are not current recovery methods. Keep an older device until a supported recovery method is verified.
+Electrum and aezeed wallets are not eligible for iCloud backup in 5.1.1; preserve their original recovery material. Existing backup files remain outside the app-reset boundary. The former passkey-based backup and nearby-iPhone transfer flows are not current recovery methods. Keep an older device until a supported recovery method is verified.
 
 WalletConnect uses encrypted relay connections to pair with a dApp. A user-approved connection can share public accounts and requested signatures or signed transactions with that dApp. It does not send recovery phrases or private keys. Review the destination and request before approving.
 
@@ -42,7 +42,7 @@ To show balances, prices and history and to broadcast transactions, the app conn
 
 ## Notification services in earlier releases
 
-The 4.1.14 public source does not register wallet addresses or notification tokens with an operator notification service. Earlier releases and separately enabled services may have registered public wallet information, notification tokens and device metadata. Contact us about data you previously supplied to those services; updating the app alone does not delete earlier service records.
+The 5.1.1 public source does not register wallet addresses or notification tokens with an operator notification service. Earlier releases and separately enabled services may have registered public wallet information, notification tokens and device metadata. Contact us about data you previously supplied to those services; updating the app alone does not delete earlier service records.
 
 ## Website visitor statistics
 

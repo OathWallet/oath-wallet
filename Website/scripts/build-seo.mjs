@@ -32,7 +32,7 @@ await write('about.html', about);
 const questions=JSON.parse(await readFile(new URL('../content/self-custody-questions.json',import.meta.url),'utf8'));
 const data=JSON.parse(await read('oath-data.json'));
 data.features=featureAnswers(featureCatalog);
-data.facts.app_version=release.version;data.facts.app_build=release.build;data.facts.published_source=release.published_source;data.facts.source_version_scope='Pinned source for the existing technical guides; see published_source for the separately published GitHub release.';
+data.facts.app_version=release.version;data.facts.app_build=release.build;data.facts.published_source=release.published_source;data.facts.source_version=`${release.version} (${release.build})`;data.facts.source_version_scope='Current published release source; historical captures retain their dates.';
 if(data.facts.app_version!==release.version || data.facts.app_build!==release.build)throw Error('Current product facts disagree with the published release record');
 const rating=data.facts.app_store_rating;
 if(!Number.isFinite(rating.value)||rating.value<1||rating.value>5||!Number.isInteger(rating.count)||rating.count<1||!/^\d{4}-\d{2}-\d{2}$/.test(rating.checked_on))throw Error('Invalid attributed App Store rating snapshot');
@@ -113,6 +113,7 @@ home=home.replace(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g,(
  }
  return `<script type="application/ld+json">${json(schema)}</script>`;
 });
+home=home.replace(/(<div class="why-release">)<span>[^<]*<\/span><strong>[^<]*<small>[^<]*<\/small><\/strong>/g,`$1<span>Current release</span><strong>${release.version} <small>(${release.build})</small></strong>`);
 await write('index.html',home);
 let markdown=await read('index.md');
 markdown=markdown.replace(transferBlock,'');

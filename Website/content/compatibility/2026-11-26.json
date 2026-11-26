@@ -1,19 +1,19 @@
 {
   "schemaVersion": 1,
-  "edition": "2026-11-09",
-  "published": "2026-11-09",
-  "reviewed": "2026-11-09",
-  "title": "Wallet Compatibility Lab — November 9, 2026",
+  "edition": "2026-11-26",
+  "published": "2026-11-26",
+  "reviewed": "2026-11-26",
+  "title": "Wallet Compatibility Lab — November 26, 2026",
   "publisher": "Oath team",
-  "scope": "Trust Wallet, MetaMask and Electrum account conventions compared with Oath 5.0.2 (104). Source review, reference-library vectors and Oath core host tests; no installed third-party app or funded-transfer testing.",
+  "scope": "Trust Wallet, MetaMask and Electrum account conventions compared with Oath 5.1.1 (111). Source assertions, reference-library vectors and Mac host tests; no installed third-party app or funded-transfer testing.",
   "evidence": {
     "schemaVersion": 1,
-    "startedAt": "2026-11-09T20:43:37.989Z",
-    "completedAt": "2026-11-09T20:43:42.773Z",
+    "startedAt": "2026-11-26T09:54:08.157Z",
+    "completedAt": "2026-11-26T09:54:39.479Z",
     "versions": {
-      "oath": "5.0.2",
-      "build": 104,
-      "sourceCommit": "d039b009d8c81b0497f2ac7e6abebfdf54ff8612",
+      "oath": "5.1.1",
+      "build": 111,
+      "sourceCommit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
       "walletCore": "4.8.4",
       "bitcoinDevKit": "3.1.1",
       "swift": "Apple Swift version 6.4.2 (swiftlang-6.4.2.1.9 clang-2100.4.1.1)",
@@ -147,7 +147,7 @@
         {
           "id": "BitcoinKeysTests.testBIP39SeedMatchesAllPublishedAddresses",
           "status": "passed",
-          "seconds": 0.056
+          "seconds": 0.039
         },
         {
           "id": "BitcoinKeysTests.testCompressedKeyHasAllFourTypes",
@@ -157,12 +157,12 @@
         {
           "id": "BitcoinKeysTests.testExtendedPrivateAndPublicVersionFamiliesRoundTrip",
           "status": "passed",
-          "seconds": 0.128
+          "seconds": 0.118
         },
         {
           "id": "BitcoinKeysTests.testFinalNormalChildMatchesIndependentBIP44ScriptsAndExports",
           "status": "passed",
-          "seconds": 0.027
+          "seconds": 0.024
         },
         {
           "id": "BitcoinKeysTests.testFinalNormalChildStillRejectsHardenedAndFixedKeys",
@@ -177,12 +177,12 @@
         {
           "id": "BitcoinKeysTests.testLegacyImportOwnershipPublicKeyMatchesPublishedBIP84Address",
           "status": "passed",
-          "seconds": 0.004
+          "seconds": 0.003
         },
         {
           "id": "BitcoinKeysTests.testPublishedBIPAddresses",
           "status": "passed",
-          "seconds": 0.004
+          "seconds": 0.003
         },
         {
           "id": "BitcoinKeysTests.testUncompressedKeyIsFiniteLegacyOnly",
@@ -197,31 +197,31 @@
         {
           "id": "ElectrumMnemonicTests.testDiscoveryKeepsReceiveChangeAndSpentHistory",
           "status": "passed",
-          "seconds": 0.718
+          "seconds": 0.693
         },
         {
           "id": "ElectrumMnemonicTests.testExtensionsNormalizationAndIsolation",
           "status": "passed",
-          "seconds": 0.009
+          "seconds": 0.008
         },
         {
           "id": "ElectrumMnemonicTests.testFinalNormalChildElectrumLeafExport",
           "status": "passed",
-          "seconds": 0.005
+          "seconds": 0.004
         },
         {
           "id": "ElectrumMnemonicTests.testTwoFactorCJKSeedBoundaries",
           "status": "passed",
-          "seconds": 0.006
+          "seconds": 0.005
         },
         {
           "id": "ElectrumMnemonicTests.testUpstreamAddressesAndPrivateKeys",
           "status": "passed",
-          "seconds": 0.361
+          "seconds": 0.344
         }
       ],
       "command": "swift test --package-path Packages/OathBitcoin --filter \"BitcoinKeysTests|ElectrumMnemonicTests\"",
-      "logSHA256": "ac2eb112e7c0ec14f8d2934330e38a2553e76b61978966d1ca2d065b9362c9c7"
+      "logSHA256": "6e5c6a5c4c1aba9a3d247cc5e9dae73b49b9130f3c0738b3730e2dd3efec2b3b"
     },
     "electrumFixtureInventory": {
       "fixtures": 22,
@@ -237,7 +237,7 @@
     "sources": [
       {
         "path": "OathAtmosphere/Wallet/OathWalletEngine.swift",
-        "sha256": "cdd37ba5790ca3c09eab2b0b03e5a5e83d6b47cc3ea66293de02c2b1376ea946"
+        "sha256": "14b1c7563eaadb73fb1f14d7c89a80770926c71924dd29b85ae02113208084f9"
       },
       {
         "path": "OathAtmosphere/Wallet/OathPrivateKeyImport.swift",
@@ -245,7 +245,7 @@
       },
       {
         "path": "OathAtmosphere/Wallet/OathSolanaWallet.swift",
-        "sha256": "4a2fc4bd1431eb8a8419bb797a1b9132dcb88c3ce79215d83002f0ac2092a685"
+        "sha256": "329f2ee36a39e5a2d99033d9fb86c3da6066cabf874420e17ba02de312773bba"
       },
       {
         "path": "OathAtmosphere/Wallet/OathBitcoinWallet.swift",
@@ -253,11 +253,11 @@
       },
       {
         "path": "OathAtmosphere/Import/OathRecoveryPhraseScreen.swift",
-        "sha256": "6dc77cd30deafb02fe9aac2ea3a739e30ff9103f371ae09ecd33f2b234f0fdc4"
+        "sha256": "0826a0f70433712d82bc12e7be03433f3c22674ad0ee73746ed80f8041d89dcd"
       },
       {
         "path": "OathAtmosphere/Home/OathWalletSheets.swift",
-        "sha256": "5c1d734ec239965415dbdf62bdc80fbb59b888c06ac93d9314a168b6783c4e0d"
+        "sha256": "e2c9b99eab66afca386d88cf3f928ad71b20a2f464b46760b5fb894ccaeb4f5f"
       },
       {
         "path": "OathAtmosphere/Wallet/OathPassphraseWalletModel.swift",
@@ -265,7 +265,7 @@
       },
       {
         "path": "Packages/OathDatabase/Sources/OathDatabase/SolanaReceive.swift",
-        "sha256": "b70d4d1920fb40726e82d31edd2a1f94cc9ef09c88017d104bd3ebbb5ec64672"
+        "sha256": "119bde78ccdab309dfc4dd0ec390565aa1005f76b1abaffe6cdce964a1c87a0d"
       },
       {
         "path": "Packages/WalletCore/registry-4.8.4.json",
@@ -490,7 +490,7 @@
       "path": "Same seed format and exact extension",
       "result": "Normalization and account isolation checks pass",
       "scope": "Oath core tests check extension normalization and distinct account results. Restoring the original wallet requires the same extension used to create it.",
-      "limitation": "The website cannot recover a forgotten extension. Oath 5.0.2 excludes Electrum-derived wallets from its encrypted iCloud export; retain the original seed and extension backup privately.",
+      "limitation": "The website cannot recover a forgotten extension. Oath 5.1.1 excludes Electrum-derived wallets from its encrypted iCloud export; retain the original seed and extension backup privately.",
       "evidenceLevel": "core",
       "checks": [
         "ElectrumMnemonicTests.testExtensionsNormalizationAndIsolation"
@@ -574,13 +574,13 @@
   "sources": [
     {
       "id": "oath-source",
-      "label": "Oath 5.0.2 (104) reviewed source",
-      "url": "https://github.com/OathWallet/oath-wallet/tree/d039b009d8c81b0497f2ac7e6abebfdf54ff8612"
+      "label": "Oath 5.1.1 (111) reviewed source",
+      "url": "https://github.com/OathWallet/oath-wallet/tree/87c783cf929c4282ba50daf2cc056f25c6a4d469"
     },
     {
       "id": "oath-tests",
       "label": "Pinned Oath Bitcoin host tests and public fixtures",
-      "url": "https://github.com/OathWallet/oath-wallet/tree/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/Packages/OathBitcoin/Tests/OathBitcoinTests"
+      "url": "https://github.com/OathWallet/oath-wallet/tree/87c783cf929c4282ba50daf2cc056f25c6a4d469/Packages/OathBitcoin/Tests/OathBitcoinTests"
     },
     {
       "id": "wallet-core",
@@ -641,6 +641,7 @@
     }
   ],
   "changes": [
-    "First edition. Pinned source and reusable public-fixture checks published; no prior edition to compare."
+    "Rechecked the published 5.1.1 (111) source using 18 reference/source checks and 14 passing Mac host tests. The funded test remains skipped.",
+    "Historical editions remain available in the repository history. Current pages use this release-specific evidence."
   ]
 }

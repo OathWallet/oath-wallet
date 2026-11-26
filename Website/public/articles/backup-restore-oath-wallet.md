@@ -4,11 +4,11 @@ Oath Editorial · Originally published 2026-08-30 · Updated November 2, 2026
 
 https://articles.oathwallet.org/backup-restore-oath-wallet
 
-Choose a recovery method supported by 5.0.0 and verify it before replacing or erasing your phone.
+Choose a recovery method supported by 5.1.1 and verify it before replacing or erasing your phone.
 
 ## Guide source version
 
-Checked against [Oath 5.0.0 (102) source](https://github.com/OathWallet/oath-wallet/tree/7eabd04a6f3273fa4ed7ce4108ac4ac683b2a108). Older screenshots are illustrative.
+Checked against [Oath 5.1.1 (111) source](https://github.com/OathWallet/oath-wallet/tree/87c783cf929c4282ba50daf2cc056f25c6a4d469). Older screenshots are illustrative.
 
 ## Choose the recovery material
 
@@ -20,7 +20,7 @@ Open Settings → Backup, or the selected wallet’s backup section. Choose a se
 
 ## Know what is excluded
 
-Electrum and aezeed wallets are not eligible for iCloud backup in 5.0.0. Recently Deleted wallets are excluded from Back Up All Wallets. Keep manual recovery material for excluded wallets. A backup does not reproduce every cached balance, transaction note or app setting.
+Electrum and aezeed wallets are not eligible for iCloud backup in this release. Recently Deleted wallets are excluded from Back Up All Wallets. Keep manual recovery material for excluded wallets. A backup does not reproduce every cached balance, transaction note or app setting.
 
 ## Restore and verify
 
@@ -30,4 +30,4 @@ Enable iCloud Drive for the Apple Account holding the file. Choose Restore from 
 
 Oath cannot reset a forgotten backup password. If the original wallet still opens, create a new supported backup and retain its password. Removing the app does not delete separate iCloud files. Do not erase the old phone until the replacement wallet and recovery material are verified.
 
-Read the [security model](https://oathwallet.org/security), [Help Center](https://help.oathwallet.org/), and [release verification record](https://github.com/OathWallet/oath-wallet/releases/tag/v5.0.0-build102-r3).
+Read the [security model](https://oathwallet.org/security), [Help Center](https://help.oathwallet.org/), and [release verification record](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111-r3).

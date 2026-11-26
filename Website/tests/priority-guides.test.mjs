@@ -17,8 +17,8 @@ test('ten reviewed guides have visible unique answers, examples, sources and com
  assert.deepEqual(Object.keys(guidance.pages).filter(p=>guidance.pages[p].overview).sort(),[...paths,'/networks/tron','/networks/sui'].sort());
  assert.equal(new Set(paths.map(p=>guidance.pages[p].overview.answer)).size,10);
  for(const path of paths){
-  const page=guidance.pages[path];assert.equal(page.version,'5.0.2');assert.equal(page.build,104);
-  assert.equal(page.sourceCommit,'d039b009d8c81b0497f2ac7e6abebfdf54ff8612');
+  const page=guidance.pages[path];assert.equal(page.version,'5.1.1');assert.equal(page.build,111);
+  assert.equal(page.sourceCommit,'87c783cf929c4282ba50daf2cc056f25c6a4d469');
   const r=await get(path);assert.equal(r.status,200,path);assert.equal(r.headers.get('X-Robots-Tag'),null);
   const html=await r.text(),md=await(await get(path+'.md')).text();
   assert.equal((html.match(/<h1\b/g)||[]).length,1,path);
@@ -44,7 +44,7 @@ test('ten reviewed guides have visible unique answers, examples, sources and com
 test('review dates are assigned only to the pages actually reviewed',async()=>{
  const xml=(await Promise.all(['/sitemaps/pages.xml',...Array.from({length:4},(_,i)=>'/sitemaps/tokens-000'+(i+1)+'.xml')].map(async p=>(await read(p)).toString()))).join('\n');
  for(const path of paths){const entries=[...xml.matchAll(/<url>([\s\S]*?)<\/url>/g)].filter(m=>m[1].includes(`<loc>${origin+path}</loc>`));assert.equal(entries.length,1,path);assert.ok(entries[0][1].includes(`<lastmod>${guidance.pages[path].updated}</lastmod>`),path);}
- assert.equal(priorityUpdated('/networks/tron'),'2026-11-10');assert.equal(priorityUpdated('/features/walletconnect'),'2026-11-06');assert.equal(priorityUpdated('/tokens/nonexistent'),undefined);
+ assert.equal(priorityUpdated('/networks/tron'),'2026-11-26');assert.equal(priorityUpdated('/features/walletconnect'),'2026-11-26');assert.equal(priorityUpdated('/tokens/nonexistent'),undefined);
  assert.doesNotMatch(xml,/<loc>https:\/\/oathwallet.org\/tokens\/treehouse\/ethereum<\/loc><lastmod>2026-11-09<\/lastmod>/);
 });
 test('screenshots preserve genuine capture identity and expose sample-data captions',async()=>{
@@ -56,7 +56,7 @@ test('screenshots preserve genuine capture identity and expose sample-data capti
    const evidence=captures.images.find(c=>c.path===img.path);assert.ok(evidence,path);assert.equal(evidence.sha256,img.sha256);
    const bytes=await read(img.path);assert.equal(createHash('sha256').update(bytes).digest('hex'),img.sha256);
    const info=await sharp(bytes).metadata();assert.equal(info.width,img.width);assert.equal(info.height,img.height);
-   assert.match(img.caption,/mock/i);assert.match(img.caption,/never send/i);assert.match(img.version,/5\.0\.2/);assert.ok(html.includes(`width="${img.width}" height="${img.height}"`));
+   assert.match(img.caption,/mock/i);assert.match(img.caption,/never send/i);assert.equal(img.version,'Historical app capture');assert.ok(html.includes(`width="${img.width}" height="${img.height}"`));
    assert.ok(html.includes(escape(img.caption)));assert.ok(html.includes(escape(img.alt)));
   }
  }

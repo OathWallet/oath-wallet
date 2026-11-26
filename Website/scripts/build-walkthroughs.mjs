@@ -1,3 +1,4 @@
+import release from '../content/published-source-release.json' with {type:'json'};
 import {readFile, writeFile} from 'node:fs/promises';
 const root=new URL('../public/',import.meta.url);
 const esc=s=>s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;');
@@ -26,7 +27,7 @@ const demos=[
       ],
       [
         "Check current limits",
-        "Silent Payments receiving and discovery are not supported in 5.0.2. Preserve the original format, account information and any required passphrase.",
+        "Silent Payments receiving and discovery are not supported in this release. Preserve the original format, account information and any required passphrase.",
         null,
         "Correct network \u2192 Your own address \u2192 Supported recovery."
       ]
@@ -35,7 +36,7 @@ const demos=[
 ];
 for (const d of demos) {
   const steps=d.steps.map(([title,text,img,caption],i)=>`<div class="walkthrough-step" data-step><div class="walkthrough-copy"><p class="walkthrough-kicker">${i+1} / ${d.steps.length}</p><h3>${esc(title)}</h3><p>${esc(text)}</p></div>${img?`<figure><img src="/assets/articles/${img}" alt="${esc(caption)}" width="${img.includes('e9fe')?1320:1206}" height="${img.includes('e9fe')?2868:2622}" loading="lazy" decoding="async"><figcaption>${esc(caption)}</figcaption></figure>`:`<p class="walkthrough-check">${esc(caption)}</p>`}</div>`).join('');
-  const demo=`<!-- oath-walkthrough:start --><section class="oath-walkthrough" id="visual-walkthrough" aria-labelledby="walkthrough-title"><p class="walkthrough-kicker">Four-step visual walkthrough</p><h2 id="walkthrough-title">${esc(d.title)}</h2><p class="walkthrough-scope">Guidance checked against 5.0.2 (104) source on November 16, 2026. Any included app screenshots are historical examples. This is an illustrated guide, not a recording of a current App Store test. No wallet is connected.</p>${steps}<nav class="walkthrough-controls" aria-label="Walkthrough steps" hidden><button type="button" data-prev>Previous</button><span data-progress role="status" aria-live="polite" aria-atomic="true">Step 1 of 4</span><button type="button" data-next>Next step</button></nav><p class="walkthrough-source"><a href="/security">Security and release limitations</a> · <a href="/articles/backup-restore-oath-wallet">Recovery requirements</a></p></section><!-- oath-walkthrough:end -->`;
+  const demo=`<!-- oath-walkthrough:start --><section class="oath-walkthrough" id="visual-walkthrough" aria-labelledby="walkthrough-title"><p class="walkthrough-kicker">Four-step visual walkthrough</p><h2 id="walkthrough-title">${esc(d.title)}</h2><p class="walkthrough-scope">Guidance for Oath ${release.version} (${release.build}). Any included app screenshots are historical examples. This is an illustrated guide, not a recording of a current App Store test. No wallet is connected.</p>${steps}<nav class="walkthrough-controls" aria-label="Walkthrough steps" hidden><button type="button" data-prev>Previous</button><span data-progress role="status" aria-live="polite" aria-atomic="true">Step 1 of 4</span><button type="button" data-next>Next step</button></nav><p class="walkthrough-source"><a href="/security">Security and release limitations</a> · <a href="/articles/backup-restore-oath-wallet">Recovery requirements</a></p></section><!-- oath-walkthrough:end -->`;
   const file=new URL('articles/'+d.slug+'.html',root);
   let html=await readFile(file,'utf8');
   html=html.replace(/<!-- oath-walkthrough:start -->[\s\S]*?<!-- oath-walkthrough:end -->/,'');
@@ -48,7 +49,7 @@ for (const d of demos) {
   const mdfile=new URL('articles/'+d.slug+'.md',root);
   let md=await readFile(mdfile,'utf8');
   md=md.replace(/\n<!-- oath-walkthrough:start -->[\s\S]*?<!-- oath-walkthrough:end -->\n/,'\n');
-  md=md.trimEnd()+'\n\n<!-- oath-walkthrough:start -->\n## '+d.title+' — visual walkthrough transcript\n\nGuidance checked against 5.0.2 (104) source on November 16, 2026. Included screenshots are historical examples. This is an illustrated guide, not a recording of a current App Store test.\n\n'+d.steps.map(([title,text],i)=>`### ${i+1}. ${title}\n\n${text}`).join('\n\n')+'\n\n[Open the visual walkthrough](https://articles.oathwallet.org/'+d.slug+'#visual-walkthrough)\n<!-- oath-walkthrough:end -->\n';
+  md=md.trimEnd()+'\n\n<!-- oath-walkthrough:start -->\n## '+d.title+' — visual walkthrough transcript\n\nGuidance for Oath '+release.version+' ('+release.build+'). Included screenshots are historical examples. This is an illustrated guide, not a recording of a current App Store test.\n\n'+d.steps.map(([title,text],i)=>`### ${i+1}. ${title}\n\n${text}`).join('\n\n')+'\n\n[Open the visual walkthrough](https://articles.oathwallet.org/'+d.slug+'#visual-walkthrough)\n<!-- oath-walkthrough:end -->\n';
   await writeFile(mdfile,md);
 }
 console.log('Built supported illustrated walkthroughs with readable transcripts.');

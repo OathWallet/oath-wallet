@@ -44,12 +44,15 @@ Features depend on the app version, network, wallet type and the service you con
 - [Taiko — ETH](https://oathwallet.org/networks/taiko): send, receive and compatible WalletConnect dApps.
 - [Telos — TLOS](https://oathwallet.org/networks/telos): send, receive and compatible WalletConnect dApps.
 - [X Layer — OKB](https://oathwallet.org/networks/x-layer): send, receive and compatible WalletConnect dApps.
+- [Plasma — XPL](https://oathwallet.org/networks/plasma): send, receive and compatible WalletConnect dApps.
+- [World Chain — ETH](https://oathwallet.org/networks/worldchain): send, receive and compatible WalletConnect dApps.
+- [Elysium — HYPE](https://oathwallet.org/networks/elysium): send, receive and compatible WalletConnect dApps.
 
 Gram is the native coin of the TON blockchain, formerly known as Toncoin.
 
 ## Source and availability
 
-This 42-network catalog was checked 2026-10-31 against [the public app source](https://github.com/OathWallet/oath-wallet/blob/6ff671b3e8f2ca8b8388ddebbf95f783a6ea0c7a/OathAtmosphere/Import/OathImportCatalog.swift). Availability can differ between app releases.
+This 45-network catalog was checked 2026-11-26 against [the public app source](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Import/OathImportCatalog.swift). Availability can differ between app releases.
 
 ## Plan a transfer
 

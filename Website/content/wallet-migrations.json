@@ -1,8 +1,8 @@
 {
-  "version": "5.0.2",
-  "build": 104,
-  "sourceCommit": "d039b009d8c81b0497f2ac7e6abebfdf54ff8612",
-  "checkedAt": "2026-11-06",
+  "version": "5.1.1",
+  "build": 111,
+  "sourceCommit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
+  "checkedAt": "2026-11-26",
   "guides": [
     {
       "slug": "move-from-trust-wallet-to-oath",

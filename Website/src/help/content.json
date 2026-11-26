@@ -97,7 +97,6 @@
       "note": "A new wallet is different from importing an existing one. Your app passcode unlocks Oath; it is not a recovery phrase or backup password.",
       "screenshot": "guide-welcome",
       "tags": [
-        "5.0.0",
         "create wallet"
       ],
       "related": [
@@ -108,9 +107,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 0,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Create your first wallet in Oath on iPhone, choose a recognizable name and color, and learn where to find your wallet and protect its recovery information."
     },
     {
@@ -132,14 +131,13 @@
         "A separate BIP-39 passphrase creates different accounts. If your previous wallet used one, restore that exact passphrase wallet and compare addresses before concluding a balance is missing.",
         "Verify the wallet name and intended public address after setup. A newly generated wallet and an imported wallet can have the same label while controlling different accounts.",
         "BIP39, Electrum and aezeed are different recovery formats. Use the format recognized by the import screen and enter the original seed extension or aezeed password when requested. Electrum and aezeed imports are Bitcoin-only; aezeed does not restore Lightning channels or arbitrary custom LND accounts.",
-        "Electrum and aezeed wallets are not eligible for iCloud backup in 5.0.0. Keep their original words and required passphrase or password independently."
+        "Electrum and aezeed wallets are not eligible for iCloud backup in this release. Keep their original words and required passphrase or password independently."
       ],
       "note": "Never enter recovery words into this website, a support message, or an online checker. A wallet protected by a BIP-39 passphrase also needs that exact passphrase.",
       "screenshot": "guide-help-import",
       "tags": [
         "12 words",
         "24 words",
-        "5.0.0",
         "import recovery phrase",
         "mnemonic",
         "seed",
@@ -156,9 +154,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 1,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Import a wallet into Oath with supported BIP39, Electrum or aezeed recovery words. Check the wallet type and include the original passphrase when required."
     },
     {
@@ -181,7 +179,6 @@
       "note": "A receiving-address QR is not a recovery phrase. Do not share or photograph recovery QR codes.",
       "screenshot": "guide-help-import",
       "tags": [
-        "5.0.0",
         "scan recovery qr"
       ],
       "related": [
@@ -192,9 +189,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 2,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Scan a compatible recovery-phrase QR code in Oath instead of typing each word. Review the import details and keep recovery material private throughout setup."
     },
     {
@@ -219,7 +216,6 @@
       "note": "A private-key wallet does not have a recovery phrase in Oath. Keep the original key or an encrypted backup. A single private key and an extended HD key are not the same kind of recovery material.",
       "screenshot": "guide-help-key-networks",
       "tags": [
-        "5.0.0",
         "import private key"
       ],
       "related": [
@@ -230,9 +226,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 3,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Import a private key into Oath for a specific network or the shared Ethereum and EVM group. Select the correct network and review the resulting account."
     },
     {
@@ -255,7 +251,6 @@
       "note": "Do not convert keys on an unfamiliar website. A public address, xpub, or transaction ID is not a private key. Other signature schemes or wallet-specific export formats may not import.",
       "screenshot": "guide-help-key-networks",
       "tags": [
-        "5.0.0",
         "private key formats"
       ],
       "related": [
@@ -266,9 +261,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 4,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Check which private-key formats Oath accepts before importing a wallet. Choose the intended network and understand format and key-structure validation."
     },
     {
@@ -291,7 +286,6 @@
       "note": "If the confirmation does not match, follow the inline error and retry. A passcode protects this installation; it does not restore a deleted app.",
       "screenshot": "guide-welcome",
       "tags": [
-        "5.0.0",
         "first passcode"
       ],
       "related": [
@@ -302,9 +296,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 5,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Set a six-digit app passcode when starting Oath on iPhone. Learn how the app's unlock code protects access and how it differs from wallet recovery information."
     },
     {
@@ -330,7 +324,6 @@
       "note": "The total is a valuation based on available balances, prices and exchange rates. Missing or delayed provider data can affect it. Check the actual asset quantity and network when reviewing a transfer.",
       "screenshot": "guide-01-portfolio",
       "tags": [
-        "5.0.0",
         "home screen"
       ],
       "related": [
@@ -341,9 +334,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 6,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Find your way around Oath's Home screen on iPhone. Locate Wallet, History and Search, switch the active wallet, and find its balance and management controls."
     },
     {
@@ -366,7 +359,6 @@
       "note": "Additional wallets share the app lock. They remain separate wallet records; adding a wallet does not transfer funds.",
       "screenshot": "guide-01-portfolio",
       "tags": [
-        "5.0.0",
         "add another wallet"
       ],
       "related": [
@@ -377,9 +369,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 7,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Add another wallet in Oath without replacing your existing wallet. Keep wallets separate and use the wallet selector to choose the one you want to manage."
     },
     {
@@ -405,7 +397,6 @@
       "note": "Switching wallets does not transfer funds. A wallet-row valuation can use cached balances and prices; it is not a guarantee of a fresh network check.",
       "screenshot": "guide-07-wallets",
       "tags": [
-        "5.0.0",
         "capsule",
         "liquid glass",
         "long name",
@@ -421,9 +412,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 8,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Switch the active wallet from Oath's Home screen using the name above your balance. Select an existing wallet or open the option to add another wallet."
     },
     {
@@ -446,7 +437,6 @@
       "note": "The color changes the wallet artwork. Appearance mode and the app icon are controlled separately under Settings → Appearance.",
       "screenshot": "guide-help-customize",
       "tags": [
-        "5.0.0",
         "customize wallet"
       ],
       "related": [
@@ -457,9 +447,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 9,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Change a wallet's name and color in Oath to recognize it more easily. Find the wallet's customization controls and distinguish it from your other wallets."
     },
     {
@@ -483,7 +473,6 @@
       "note": "This changes wallet order. Asset lists are sorted by portfolio value and activity, not by this setting.",
       "screenshot": "guide-07-wallets",
       "tags": [
-        "5.0.0",
         "reorder wallets"
       ],
       "related": [
@@ -494,9 +483,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 10,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Reorder your wallets in Oath so the ones you use most are easier to find. Open wallet management, adjust the list and check the resulting wallet order."
     },
     {
@@ -519,7 +508,6 @@
       "note": "Removed wallets are retained for seven days before automatic cleanup. Removing a wallet does not move on-chain funds or delete an existing iCloud backup. Keep a separate backup before removal.",
       "screenshot": "guide-07-wallets",
       "tags": [
-        "5.0.0",
         "remove wallet"
       ],
       "related": [
@@ -530,9 +518,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 11,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Move an Oath wallet to Recently Deleted and understand its limited recovery window. Protect your recovery information before removing the wallet locally."
     },
     {
@@ -555,7 +543,6 @@
       "note": "Each row shows when removal becomes permanent. Do not rely on Recently Deleted as your only backup.",
       "screenshot": "guide-help-recently-deleted",
       "tags": [
-        "5.0.0",
         "recover deleted wallet"
       ],
       "related": [
@@ -566,9 +553,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 12,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Restore a wallet from Recently Deleted in Oath before its retention window expires. Learn where removed wallets appear and how to return one to your list."
     },
     {
@@ -592,7 +579,6 @@
       "note": "Permanent deletion cannot be undone using Recently Deleted. Existing external backups and on-chain records are separate.",
       "screenshot": "guide-help-recently-deleted",
       "tags": [
-        "5.0.0",
         "permanently delete wallet"
       ],
       "related": [
@@ -603,9 +589,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 13,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Permanently remove local wallet copies from Recently Deleted in Oath. Check that you have a usable recovery backup before confirming the final deletion."
     },
     {
@@ -629,7 +615,6 @@
       "note": "This does not add a password to the existing wallet. Every different passphrase produces a different wallet; you need both the recovery phrase and that exact passphrase to recover it. The option is not available for private-key wallets.",
       "screenshot": "guide-help-passphrase",
       "tags": [
-        "5.0.0",
         "add passphrase"
       ],
       "related": [
@@ -640,9 +625,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 14,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Create a separate Oath wallet using a recovery phrase and BIP-39 passphrase. Understand why the exact passphrase is required to restore the same wallet."
     },
     {
@@ -661,12 +646,11 @@
         "The backup flow encrypts the supported wallet material before saving backup files to your iCloud Drive. The backup password is required to restore those files.",
         "Check each wallet’s outcome. A batch can contain a failed upload even when another wallet completed; retain an independent recovery copy until the relevant upload is confirmed.",
         "Treat the backup as usable only when the relevant operation has completed and you retain the correct recovery material or file password. Loading, preparing and unavailable states are not successful backups.",
-        "In 5.0.0, Electrum and aezeed wallets are excluded from iCloud backup. Preserve their original recovery material. Back Up All Wallets processes eligible active wallets; it excludes Recently Deleted wallets."
+        "In 5.1.1, Electrum and aezeed wallets are excluded from iCloud backup. Preserve their original recovery material. Back Up All Wallets processes eligible active wallets; it excludes Recently Deleted wallets."
       ],
       "note": "Each wallet has its own encrypted backup file, using the password you just chose. Recently Deleted wallets are excluded. Restore these files individually. Your app passcode does not replace the backup password.",
       "screenshot": "guide-help-backup",
       "tags": [
-        "5.0.0",
         "backup all wallets"
       ],
       "related": [
@@ -677,9 +661,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 15,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Back up all active Oath wallets to iCloud from one screen. Create encrypted recovery files and check each wallet's result before relying on the backup."
     },
     {
@@ -698,12 +682,11 @@
         "Select the wallet by name before enabling its backup. A backup for one wallet is not automatically a backup for every other wallet in the app.",
         "Keep Oath open until its upload status completes. If iCloud is unavailable, fix the account, Drive, storage or connectivity issue and retry.",
         "Treat the backup as usable only when the relevant operation has completed and you retain the correct recovery material or file password. Loading, preparing and unavailable states are not successful backups.",
-        "In 5.0.0, Electrum and aezeed wallets are excluded from iCloud backup. Preserve their original recovery material. Back Up All Wallets processes eligible active wallets; it excludes Recently Deleted wallets."
+        "In 5.1.1, Electrum and aezeed wallets are excluded from iCloud backup. Preserve their original recovery material. Back Up All Wallets processes eligible active wallets; it excludes Recently Deleted wallets."
       ],
       "note": "Files are stored in iCloud Drive → Oath Wallet → Wallet Backups. Turning off the switch keeps existing files in iCloud Drive.",
       "screenshot": "guide-help-backup",
       "tags": [
-        "5.0.0",
         "backup one wallet"
       ],
       "related": [
@@ -714,9 +697,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 16,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Create an encrypted iCloud backup for one wallet in Oath. Find its backup controls, keep the backup password available and verify the result for that wallet."
     },
     {
@@ -739,7 +722,6 @@
       "note": "Oath cannot reset the password of an encrypted backup. If you still have an accessible wallet, create a new backup with a password you know.",
       "screenshot": "guide-help-backup",
       "tags": [
-        "5.0.0",
         "backup password"
       ],
       "related": [
@@ -750,9 +732,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 17,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Understand the password used to encrypt an Oath iCloud backup. Learn how it differs from your app passcode and BIP-39 passphrase before you restore a wallet."
     },
     {
@@ -771,12 +753,11 @@
         "Restoring downloads an encrypted file and requires its own backup password. Signing into the correct Apple Account alone is not sufficient to decrypt it.",
         "After restoration, compare the wallet name and public addresses with the original. Network balances and transaction history are fetched separately; allow refresh to finish.",
         "Treat the backup as usable only when the relevant operation has completed and you retain the correct recovery material or file password. Loading, preparing and unavailable states are not successful backups.",
-        "In 5.0.0, Electrum and aezeed wallets are excluded from iCloud backup. Preserve their original recovery material. Back Up All Wallets processes eligible active wallets; it excludes Recently Deleted wallets."
+        "In 5.1.1, Electrum and aezeed wallets are excluded from iCloud backup. Preserve their original recovery material. Back Up All Wallets processes eligible active wallets; it excludes Recently Deleted wallets."
       ],
       "note": "An all-wallet backup creates separate files; restore them individually with the correct backup password. A passkey or the app passcode does not decrypt a .oathbackup file.",
       "screenshot": "guide-help-restore",
       "tags": [
-        "5.0.0",
         "restore icloud"
       ],
       "related": [
@@ -787,9 +768,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 18,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Restore an Oath wallet from an encrypted iCloud backup file. Locate the backup and use its original password to recover the wallet on your installation."
     },
     {
@@ -808,12 +789,11 @@
         "Treat the backup as usable only when the relevant operation has completed and you retain the correct recovery material or file password. Loading, preparing and unavailable states are not successful backups.",
         "Preparing means Oath is constructing the encrypted backup. Uploading means the cloud operation is still in progress. An error or unavailable state must not be counted as a completed backup.",
         "Review the status for each wallet you intend to preserve. Keep its backup password and any recovery passphrase independently; a successful upload alone does not mean you remember how to decrypt it.",
-        "In 5.0.0, Electrum and aezeed wallets are excluded from iCloud backup. Preserve their original recovery material. Back Up All Wallets processes eligible active wallets; it excludes Recently Deleted wallets."
+        "In 5.1.1, Electrum and aezeed wallets are excluded from iCloud backup. Preserve their original recovery material. Back Up All Wallets processes eligible active wallets; it excludes Recently Deleted wallets."
       ],
       "note": "Closing or locking the app can interrupt preparation of remaining wallets. Encrypted jobs already saved to the upload queue can resume. Review the individual results after returning.",
       "screenshot": "guide-help-backup",
       "tags": [
-        "5.0.0",
         "backup status"
       ],
       "related": [
@@ -824,9 +804,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 19,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Check whether an Oath iCloud backup has finished by reading each wallet's result. A switched-on backup setting alone does not confirm a completed backup."
     },
     {
@@ -849,7 +829,6 @@
       "note": "Do not delete the app or the only backup file to troubleshoot. Contact support with the error text, never your recovery phrase, private key or backup password.",
       "screenshot": "guide-help-backup",
       "tags": [
-        "5.0.0",
         "icloud troubleshooting"
       ],
       "related": [
@@ -860,9 +839,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 20,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Troubleshoot an Oath iCloud backup or restore problem. Check your Apple Account, available storage and backup file before retrying the affected operation."
     },
     {
@@ -886,7 +865,6 @@
       "note": "Never share the words with support, websites or other people. Avoid screenshots. Private-key imports do not have a recovery phrase to display. For a passphrase wallet, recovery also requires the exact BIP-39 passphrase.",
       "screenshot": "guide-help-wallet-details",
       "tags": [
-        "5.0.0",
         "view recovery phrase"
       ],
       "related": [
@@ -897,9 +875,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 21,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Find the recovery words for a phrase-based wallet in Oath when making an offline backup. Open the wallet's recovery controls and keep those words private."
     },
     {
@@ -922,7 +900,6 @@
       "note": "Anyone with a private key can control its account. Do not paste it into this Help Center, support email or an explorer. An exported key may cover fewer accounts than a recovery phrase.",
       "screenshot": "guide-help-wallet-details",
       "tags": [
-        "5.0.0",
         "view private key"
       ],
       "related": [
@@ -933,9 +910,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 22,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "View or copy a selected account's private key in Oath when you need a recovery copy. Check the account and network, and keep the revealed key private."
     },
     {
@@ -958,7 +935,6 @@
       "note": "The current build does not offer a direct phone-to-phone transfer flow. Deleting and reinstalling the app requires recovery; the app passcode alone is insufficient.",
       "screenshot": "guide-help-restore",
       "tags": [
-        "5.0.0",
         "move to new phone"
       ],
       "related": [
@@ -969,9 +945,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 23,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Restore Oath wallets on another iPhone using recovery material or an encrypted iCloud backup. Verify your recovery route before removing the old installation."
     },
     {
@@ -994,7 +970,6 @@
       "note": "The keypad passcode is the one created in Oath. It is not necessarily your iPhone’s device passcode.",
       "screenshot": "guide-unlock",
       "tags": [
-        "5.0.0",
         "unlock wallet"
       ],
       "related": [
@@ -1005,9 +980,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 24,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Unlock Oath with your app passcode or enabled Face ID or Touch ID. Learn how the unlock screen behaves and distinguish the app code from your device code."
     },
     {
@@ -1030,7 +1005,6 @@
       "note": "Store recovery material separately. An app passcode is an access lock, not a recovery backup.",
       "screenshot": "guide-passcode",
       "tags": [
-        "5.0.0",
         "enable passcode"
       ],
       "related": [
@@ -1041,9 +1015,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 25,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Enable passcode protection in Oath to require authentication when opening the app. Find the security controls and check that the app-lock setting is enabled."
     },
     {
@@ -1066,7 +1040,6 @@
       "note": "Changing the app passcode does not change an existing iCloud backup password or a BIP-39 wallet passphrase.",
       "screenshot": "guide-passcode",
       "tags": [
-        "5.0.0",
         "change passcode"
       ],
       "related": [
@@ -1077,9 +1050,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 26,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Change the app passcode used to unlock Oath without changing your wallet addresses. Open the security settings and complete the required authentication steps."
     },
     {
@@ -1102,7 +1075,6 @@
       "note": "The label depends on the device. Enabling biometrics uses a biometric prompt; it does not require another current-passcode entry within this flow.",
       "screenshot": "guide-passcode",
       "tags": [
-        "5.0.0",
         "enable face id"
       ],
       "related": [
@@ -1113,9 +1085,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 27,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Enable Face ID or Touch ID for faster access to Oath on a supported device. Find the biometric setting and understand its relationship to your app passcode."
     },
     {
@@ -1138,7 +1110,6 @@
       "note": "Turning off passcode protection also removes the app-lock requirement. Keep protection enabled if other people can use your device.",
       "screenshot": "guide-passcode",
       "tags": [
-        "5.0.0",
         "disable security"
       ],
       "related": [
@@ -1149,9 +1120,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 28,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Review how to turn off Face ID, Touch ID or the app passcode in Oath. Understand the resulting protection settings before confirming a change to app access."
     },
     {
@@ -1174,7 +1145,6 @@
       "note": "Restarting the app requires authentication when passcode protection is on, regardless of this delay. A manual lock also locks immediately.",
       "screenshot": "guide-09-security",
       "tags": [
-        "5.0.0",
         "auto lock"
       ],
       "related": [
@@ -1185,9 +1155,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 29,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Choose how long Oath stays unlocked after moving to the background. Find the automatic lock setting and select the delay that suits how you use the app."
     },
     {
@@ -1210,7 +1180,6 @@
       "note": "The lock icon appears when passcode protection is enabled. Manual locking does not immediately trigger Face ID and unlock itself.",
       "screenshot": "guide-unlock",
       "tags": [
-        "5.0.0",
         "lock now"
       ],
       "related": [
@@ -1221,9 +1190,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 30,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Lock Oath immediately to end your current unlocked session. Find the lock action and require authentication again without waiting for the automatic delay."
     },
     {
@@ -1247,7 +1216,6 @@
       "note": "This protects the app-switcher preview. It does not hide public blockchain activity or replace a passcode.",
       "screenshot": "guide-09-security",
       "tags": [
-        "5.0.0",
         "app switcher privacy"
       ],
       "related": [
@@ -1258,9 +1226,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 31,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Hide Oath's preview when moving between apps on iPhone. Find App Switcher Privacy and understand how the preview cover differs from app authentication."
     },
     {
@@ -1285,7 +1253,6 @@
       "note": "Hiding amounts is a screen-privacy choice. It does not change balances, transfers or public blockchain information.",
       "screenshot": "guide-hidden-balances",
       "tags": [
-        "5.0.0",
         "hide balances"
       ],
       "related": [
@@ -1296,9 +1263,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 32,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Hide visible amounts in Oath by replacing balances with dots. Learn where to change the display and why hiding amounts is separate from locking the app."
     },
     {
@@ -1321,7 +1288,6 @@
       "note": "There is no email reset that recovers your wallet from the six-digit app passcode. Reinstalling the app destroys access to its previous local installation keys.",
       "screenshot": "guide-unlock",
       "tags": [
-        "5.0.0",
         "forgot passcode"
       ],
       "related": [
@@ -1332,9 +1298,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 33,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Forgot your Oath app passcode? Check your available recovery options and preserve your wallet backup before deleting the app or resetting the installation."
     },
     {
@@ -1358,7 +1324,6 @@
       "note": "Reset is different from moving one wallet to Recently Deleted. It does not erase transactions from blockchains or remove existing files from iCloud Drive.",
       "screenshot": "guide-help-settings",
       "tags": [
-        "5.0.0",
         "reset app"
       ],
       "related": [
@@ -1369,9 +1334,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 34,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Understand what Reset App removes from Oath on your device. Verify recovery for every wallet before erasing local data and returning the app to setup."
     },
     {
@@ -1395,7 +1360,6 @@
       "note": "A token’s ticker is not its identity. Check the network and contract or asset reference when comparing tokens.",
       "screenshot": "guide-02-bitcoin-market",
       "tags": [
-        "5.0.0",
         "asset screen"
       ],
       "related": [
@@ -1406,9 +1370,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 35,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Open a coin or token's screen in Oath to inspect its quantity, value, market information and activity. Check the selected wallet and network as you browse."
     },
     {
@@ -1431,7 +1395,6 @@
       "note": "A local-currency value uses available prices and exchange rates; it is not a sale quote. A displayed zero is not proof that a network query succeeded or that an asset has no market value.",
       "screenshot": "guide-01-portfolio",
       "tags": [
-        "5.0.0",
         "portfolio values"
       ],
       "related": [
@@ -1442,9 +1405,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 36,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Understand token quantities and local-currency portfolio values in Oath. Learn how balances and market quotes contribute to the amounts shown for your wallet."
     },
     {
@@ -1467,7 +1430,6 @@
       "note": "Providers can return delayed or incomplete data. Oath retains cached information when updates fail; a refresh is not confirmation that a pending transfer has settled.",
       "screenshot": "guide-01-portfolio",
       "tags": [
-        "5.0.0",
         "refresh balances"
       ],
       "related": [
@@ -1478,9 +1440,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 37,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Refresh balances and activity in Oath without leaving your wallet. Request updated data and understand the difference between asset quantities and prices."
     },
     {
@@ -1503,7 +1465,6 @@
       "note": "The same symbol can belong to unrelated tokens on different networks. Inspect the asset information before relying on a match.",
       "screenshot": "guide-asset-search",
       "tags": [
-        "5.0.0",
         "search assets"
       ],
       "related": [
@@ -1514,9 +1475,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 38,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Find coins and tokens in Oath by name, symbol, network or saved token address. Check the selected wallet and identify the exact asset before opening it."
     },
     {
@@ -1540,7 +1501,6 @@
       "note": "Manual address lookup supports the app’s EVM networks, TRON and Solana. Results can be incomplete if a provider fails. Adding a token does not buy it, approve it or transfer funds.",
       "screenshot": "guide-asset-search",
       "tags": [
-        "5.0.0",
         "ERC20",
         "SPL",
         "TRC20",
@@ -1557,9 +1517,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 39,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Find and add a supported token in Oath using its contract or mint address. Check the network and token details before choosing to track it in your wallet."
     },
     {
@@ -1583,7 +1543,6 @@
       "note": "Some automatically discovered tokens are filtered using provider verification lists. An unsupported price, filtered token or failed request does not erase a blockchain holding.",
       "screenshot": "guide-asset-search",
       "tags": [
-        "5.0.0",
         "token not found"
       ],
       "related": [
@@ -1594,9 +1553,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 40,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Troubleshoot a token that does not appear in Oath. Check your wallet, network, contract or mint address and lookup result before assuming funds are missing."
     },
     {
@@ -1619,7 +1578,6 @@
       "note": "This order is automatic. Reordering wallets does not reorder the assets inside them.",
       "screenshot": "guide-01-portfolio",
       "tags": [
-        "5.0.0",
         "asset order"
       ],
       "related": [
@@ -1630,9 +1588,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 41,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Learn how Oath orders the assets in your wallet. Understand why portfolio value takes priority over alphabetical order when reviewing the coins and tokens list."
     },
     {
@@ -1656,7 +1614,6 @@
       "note": "Quotes and charts depend on provider coverage. They may use cached values and do not guarantee an executable trade price. A transaction’s local-currency value can use today’s quote rather than the historical execution price.",
       "screenshot": "guide-02-bitcoin-market",
       "tags": [
-        "5.0.0",
         "prices chart"
       ],
       "related": [
@@ -1667,9 +1624,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 42,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Read an asset's latest available price and recent chart movement in Oath. Understand how market data relates to the token quantity shown in your wallet."
     },
     {
@@ -1692,7 +1649,6 @@
       "note": "Descriptions and logos are informational. A familiar name or image is not proof that a token is genuine. Some assets do not have a fixed decimal count.",
       "screenshot": "guide-asset-info",
       "tags": [
-        "5.0.0",
         "asset information"
       ],
       "related": [
@@ -1703,9 +1659,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 43,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Use Asset Information in Oath to verify a coin or token's network, symbol, type and identity. Check the exact asset before receiving, sending or adding it."
     },
     {
@@ -1795,9 +1751,9 @@
       "status": "published",
       "published_at": "2026-10-21T13:29:43.572099+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 44,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Understand account activation, minimum balances and storage on Stellar, XRP Ledger, Solana, TRON, NEAR and Gram (TON). Oath does not charge an activation fee."
     },
     {
@@ -1822,7 +1778,6 @@
       "note": "The same-looking address can exist on multiple networks. The network must match, and the QR is an address, not a guarantee that the sender chose the correct chain.",
       "screenshot": "guide-05-receive",
       "tags": [
-        "5.0.0",
         "receive crypto"
       ],
       "related": [
@@ -1833,9 +1788,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 44,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Receive crypto in Oath by sharing the correct wallet's address or QR code. Confirm the asset and network with the sender before they broadcast a transfer."
     },
     {
@@ -1859,7 +1814,6 @@
       "note": "Only share a public receiving address or receiving QR. A private key, recovery phrase or recovery QR gives access to funds.",
       "screenshot": "guide-05-receive",
       "tags": [
-        "5.0.0",
         "copy share address"
       ],
       "related": [
@@ -1870,9 +1824,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 45,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Copy or share your receiving address from Oath instead of retyping it. Select the intended wallet and network, then check the complete address before use."
     },
     {
@@ -1896,7 +1850,6 @@
       "note": "Token discovery depends on the network, provider coverage and filtering. A received token may need an address lookup to appear, and receiving it does not guarantee a price. Never send a token on a different network just because its logo is shown.",
       "screenshot": "guide-05-receive",
       "tags": [
-        "5.0.0",
         "receive network tokens"
       ],
       "related": [
@@ -1907,9 +1860,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 46,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Understand the example token logos and 'and more' label on Oath's Receive screen. Check the network rather than treating those logos as a complete token list."
     },
     {
@@ -1933,7 +1886,6 @@
       "note": "The choice affects receiving. The Bitcoin balance scan covers supported imported branches, not only the currently visible type. Uncompressed private keys support Legacy only; scoped extended keys cannot recover unrelated branches.",
       "screenshot": "guide-receive-bitcoin",
       "tags": [
-        "5.0.0",
         "bitcoin address types"
       ],
       "related": [
@@ -1944,9 +1896,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 47,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Choose a Bitcoin receiving address type in Oath that the sending service supports. Review the selected format before copying an address or sharing its QR code."
     },
     {
@@ -1970,7 +1922,6 @@
       "note": "The scanner uses a gap of 20 unused addresses per supported branch. Addresses far beyond an unused gap may not be discovered. Previously derived addresses still belong to the same wallet.",
       "screenshot": "guide-receive-bitcoin",
       "tags": [
-        "5.0.0",
         "bitcoin gap limit"
       ],
       "related": [
@@ -1981,9 +1932,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 48,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Learn why a Bitcoin receiving address can change in Oath. Understand HD address derivation and gap limits when recovering a wallet or checking its activity."
     },
     {
@@ -2007,7 +1958,6 @@
       "note": "The paths derive different accounts from the same phrase. Changing paths does not transfer funds between accounts. A directly imported private key has its original address and does not offer two HD paths.",
       "screenshot": "guide-receive-solana",
       "tags": [
-        "5.0.0",
         "solana address path"
       ],
       "related": [
@@ -2018,9 +1968,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 49,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Choose the Solana derivation path used by Phantom or Trust Wallet when restoring in Oath. Match the original wallet's account before checking its balance."
     },
     {
@@ -2043,7 +1993,6 @@
       "note": "A matching symbol or 0x address does not mean funds will appear on the network you expected. Recovery is not guaranteed, and another transfer does not reverse the first one.",
       "screenshot": "guide-05-receive",
       "tags": [
-        "5.0.0",
         "wrong network"
       ],
       "related": [
@@ -2054,9 +2003,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 50,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Check the receiving address and network before a crypto transfer to Oath. Avoid network mismatches by confirming the same network with the sending service."
     },
     {
@@ -2080,7 +2029,6 @@
       "note": "Some providers supply incomplete history or do not identify every transfer. Local-currency amounts may use current available prices, not the price at the time of the transaction.",
       "screenshot": "guide-03-activity",
       "tags": [
-        "5.0.0",
         "transaction list"
       ],
       "related": [
@@ -2091,9 +2039,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 51,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Read an asset's transaction activity in Oath, including direction, time and amount. Open a transaction to inspect more details for the selected wallet and asset."
     },
     {
@@ -2117,7 +2065,6 @@
       "note": "Missing provider fields are not fabricated. A displayed local-currency fee is a conversion and can differ from the value at the transaction’s original time.",
       "screenshot": "guide-04-transaction",
       "tags": [
-        "5.0.0",
         "transaction details"
       ],
       "related": [
@@ -2128,9 +2075,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 52,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Open transaction details in Oath to review a transfer's useful information. Check its status, amounts and identifiers without navigating raw blockchain data."
     },
     {
@@ -2155,7 +2102,6 @@
       "note": "A failed transaction may still incur a network fee on some chains. A pending incoming payment is not final; provider lag or a chain reorganization can change the result.",
       "screenshot": "guide-03-activity",
       "tags": [
-        "5.0.0",
         "transaction status"
       ],
       "related": [
@@ -2166,9 +2112,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 53,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Understand pending, confirmed and failed transaction states in Oath. Distinguish a submitted transfer from a settled transaction when reviewing wallet activity."
     },
     {
@@ -2191,7 +2137,6 @@
       "note": "Oath does not infer cancellation merely because a request failed or a transaction disappeared from one response. Support varies by chain and provider. This build does not offer a user action to cancel or replace a transfer.",
       "screenshot": "guide-03-activity",
       "tags": [
-        "5.0.0",
         "canceled replaced"
       ],
       "related": [
@@ -2202,9 +2147,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 54,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Understand the Canceled and Replaced labels in Oath transaction history. Learn why these states require evidence and how they differ from a pending transfer."
     },
     {
@@ -2227,7 +2172,6 @@
       "note": "The fee is separate from a token’s transfer amount. The local value uses an available conversion rate; unavailable fee information is not treated as a verified zero.",
       "screenshot": "guide-03-activity",
       "tags": [
-        "5.0.0",
         "network fee"
       ],
       "related": [
@@ -2238,9 +2182,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 55,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Find a transaction's available network fee in Oath and view its local-currency value. Review fee information separately from the amount sent or received."
     },
     {
@@ -2265,7 +2209,6 @@
       "note": "The copied value is complete even when the on-screen label is shortened. A transaction ID is public; recovery material is not.",
       "screenshot": "guide-03-activity",
       "tags": [
-        "5.0.0",
         "copy transaction id"
       ],
       "related": [
@@ -2276,9 +2219,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 56,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Copy a full transaction ID or public address from Oath's transaction details. Use the copy controls beside shortened identifiers instead of typing them manually."
     },
     {
@@ -2302,7 +2245,6 @@
       "note": "The explorer is an independent website. It never needs your recovery phrase or private key to display a transaction.",
       "screenshot": "guide-04-transaction",
       "tags": [
-        "5.0.0",
         "view explorer"
       ],
       "related": [
@@ -2313,9 +2255,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 57,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "View an Oath transaction on its network's public explorer. Open the external record in the in-app browser to check the transfer and its available status."
     },
     {
@@ -2339,7 +2281,6 @@
       "note": "A screenshot is not independent proof of payment. The recipient can verify the transaction using its explorer link.",
       "screenshot": "guide-04-transaction",
       "tags": [
-        "5.0.0",
         "share transaction"
       ],
       "related": [
@@ -2350,9 +2291,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 58,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Share a transaction from Oath as a receipt-style image or explorer link. Open the transfer's details and choose the sharing option that fits your purpose."
     },
     {
@@ -2378,7 +2319,6 @@
       "note": "A direct send stays on the selected network. It does not swap assets or bridge funds to another chain.",
       "screenshot": "guide-06-send-assets",
       "tags": [
-        "5.0.0",
         "send availability"
       ],
       "related": [
@@ -2389,9 +2329,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 59,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Send supported coins and tokens from Oath. Select the wallet, network, recipient and amount, then review transfer details and fees before authorizing it."
     },
     {
@@ -2414,7 +2354,6 @@
       "note": "Creating a contact does not add a network or send funds. The name is a label you choose.",
       "screenshot": "guide-help-contacts",
       "tags": [
-        "5.0.0",
         "address book"
       ],
       "related": [
@@ -2425,9 +2364,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 60,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Create a contact in Oath's address book and add network-specific public addresses. Save a recognizable name and check the network for each receiving address."
     },
     {
@@ -2450,7 +2389,6 @@
       "note": "A contact can have multiple addresses, up to the app’s limit of 50. Format validation does not prove the address belongs to the person. Verify it with them.",
       "screenshot": "guide-help-contacts",
       "tags": [
-        "5.0.0",
         "contact address"
       ],
       "related": [
@@ -2461,9 +2399,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 61,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Add a public address to a contact in Oath and associate it with the correct network. Check the address and label before using the saved entry for a transfer."
     },
     {
@@ -2486,7 +2424,6 @@
       "note": "Editing a label does not change the blockchain account. If a contact gives you a new address, verify it independently before updating.",
       "screenshot": "guide-help-contacts",
       "tags": [
-        "5.0.0",
         "edit contact"
       ],
       "related": [
@@ -2497,9 +2434,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 62,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Edit a contact's name, address labels or network entries in Oath. Keep saved receiving details current and review the complete address before using it."
     },
     {
@@ -2522,7 +2459,6 @@
       "note": "Address-book deletion does not delete a wallet or affect on-chain funds. Contacts do not use the wallets’ Recently Deleted recovery section.",
       "screenshot": "guide-help-contacts",
       "tags": [
-        "5.0.0",
         "delete contact"
       ],
       "related": [
@@ -2533,9 +2469,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 63,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Delete a contact or remove an address from Oath's address book. Find the relevant entry and clear saved details that you no longer want to keep in the app."
     },
     {
@@ -2558,7 +2494,6 @@
       "note": "Check the network beside a saved address before using it.",
       "screenshot": "guide-help-contacts",
       "tags": [
-        "5.0.0",
         "search contacts"
       ],
       "related": [
@@ -2569,9 +2504,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 64,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Find a saved contact in Oath's address book using search. Open the contact's details and check the network-specific address you intend to use for a transfer."
     },
     {
@@ -2594,7 +2529,6 @@
       "note": "This is a display conversion. It does not exchange crypto or change native units. Available rates and their date are shown in the currency screen; cached rates can be used when updates fail.",
       "screenshot": "guide-help-currency",
       "tags": [
-        "5.0.0",
         "currency"
       ],
       "related": [
@@ -2605,9 +2539,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 65,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Change Oath's display currency for portfolio values, asset prices and available fees. Choose the local currency you want to use when reviewing your wallet."
     },
     {
@@ -2630,7 +2564,6 @@
       "note": "Asset symbols, addresses and third-party descriptions may retain their original language. The Help Center currently publishes its new guides in English.",
       "screenshot": "guide-help-language",
       "tags": [
-        "5.0.0",
         "language"
       ],
       "related": [
@@ -2641,9 +2574,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 66,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Change the language used by Oath's interface from the app settings. Choose an available language and understand which asset details may keep their original text."
     },
     {
@@ -2666,7 +2599,6 @@
       "note": "System mode follows the device appearance. It does not automatically change the wallet’s chosen color.",
       "screenshot": "guide-help-appearance",
       "tags": [
-        "5.0.0",
         "appearance"
       ],
       "related": [
@@ -2677,9 +2609,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 67,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Choose Light, Dark or System appearance in Oath. Find the app's appearance setting and decide whether to use a fixed theme or follow your device's setting."
     },
     {
@@ -2702,7 +2634,6 @@
       "note": "Changing the icon is cosmetic and does not affect your wallets.",
       "screenshot": "guide-10-app-icons",
       "tags": [
-        "5.0.0",
         "app icon"
       ],
       "related": [
@@ -2713,9 +2644,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 68,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Change Oath's app icon on your iPhone using the available alternatives. Find the icon setting, choose a design and check the resulting icon on your device."
     },
     {
@@ -2740,7 +2671,6 @@
       "note": "Revocations are network transactions and require fees. Removing a token from view, deleting a local wallet or disconnecting a dApp does not revoke its on-chain allowance.",
       "screenshot": "guide-help-permissions",
       "tags": [
-        "5.0.0",
         "permissions"
       ],
       "related": [
@@ -2751,9 +2681,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 69,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Review token allowances, NFT access, connected apps and supported account-control permissions in Oath. Check scan coverage and inspect the selected wallet's access."
     },
     {
@@ -2776,7 +2706,6 @@
       "note": "A website is separate from the wallet. Do not type recovery words or private keys into a page, even if it opened from the app.",
       "screenshot": "guide-help-settings",
       "tags": [
-        "5.0.0",
         "in app browser"
       ],
       "related": [
@@ -2787,9 +2716,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 70,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Open website and blockchain explorer links inside Oath's native browser on iPhone. Review the destination while keeping access to the app's wallet screens."
     },
     {
@@ -2812,7 +2741,6 @@
       "note": "GitHub issues are public. Never include recovery material, backup passwords or confidential wallet information.",
       "screenshot": "guide-help-settings",
       "tags": [
-        "5.0.0",
         "request feature"
       ],
       "related": [
@@ -2823,9 +2751,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 71,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Request an Oath feature with a clear explanation of the improvement and how it would help. Find the feedback route and describe the workflow you want to improve."
     },
     {
@@ -2849,7 +2777,6 @@
       "note": "Do not share recovery phrases, private keys or backup passwords. For a sensitive report, use Contact Us instead of a public issue.",
       "screenshot": "guide-help-settings",
       "tags": [
-        "5.0.0",
         "report bug"
       ],
       "related": [
@@ -2860,9 +2787,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 72,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Report an Oath bug with steps and nonsecret details that help the team reproduce it. Describe what happened without sharing recovery phrases or private keys."
     },
     {
@@ -2886,7 +2813,6 @@
       "note": "Opening Contact Us does not send an email automatically. Never send recovery phrases, private keys, app passcodes or backup passwords.",
       "screenshot": "guide-help-settings",
       "tags": [
-        "5.0.0",
         "contact support"
       ],
       "related": [
@@ -2897,9 +2823,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 73,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Contact Oath support at care@oathwallet.org for help with the app. Describe the issue clearly and keep recovery phrases, private keys and passwords out of email."
     },
     {
@@ -2922,7 +2848,6 @@
       "note": "Release articles may describe an older app version. Use this Help Center’s version label when matching instructions to the current interface.",
       "screenshot": "guide-help-settings",
       "tags": [
-        "5.0.0",
         "about legal"
       ],
       "related": [
@@ -2933,9 +2858,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 74,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Find Oath's articles, privacy information and terms from the About screen. Open the published resources to learn about the app and its current policies."
     },
     {
@@ -2960,7 +2885,6 @@
       "note": "Uses Bitcoin Cash addresses and its own history. Do not send Bitcoin (BTC) to this network.",
       "screenshot": "guide-chain-bitcoin-cash",
       "tags": [
-        "5.0.0",
         "use bitcoin cash"
       ],
       "related": [
@@ -2971,9 +2895,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 75,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Use Bitcoin Cash in Oath to receive, send and inspect your BCH activity. Check the selected account, receiving network and transfer details before confirming."
     },
     {
@@ -2998,7 +2922,6 @@
       "note": "Uses Dogecoin addresses. A Dogecoin key is not interchangeable with a similarly shaped Bitcoin address.",
       "screenshot": "guide-chain-dogecoin",
       "tags": [
-        "5.0.0",
         "use dogecoin"
       ],
       "related": [
@@ -3009,9 +2932,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 76,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Use Dogecoin in Oath to receive, send and inspect DOGE activity. Find the correct account and network, then review the receiving address or outgoing transfer."
     },
     {
@@ -3036,7 +2959,6 @@
       "note": "Use the address-type control when available for the imported wallet material.",
       "screenshot": "guide-chain-litecoin",
       "tags": [
-        "5.0.0",
         "use litecoin"
       ],
       "related": [
@@ -3047,9 +2969,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 77,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Use Litecoin in Oath to receive, send and inspect LTC activity. Select the intended account, check the network and review transfer details before confirming."
     },
     {
@@ -3074,7 +2996,6 @@
       "note": "Balances, discovered tokens and activity follow the active Solana address.",
       "screenshot": "guide-chain-solana",
       "tags": [
-        "5.0.0",
         "use solana"
       ],
       "related": [
@@ -3085,9 +3006,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 78,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Use Solana in Oath to receive, send and inspect assets and activity. Verify the selected Solana account, network and token identity before making a transfer."
     },
     {
@@ -3112,7 +3033,6 @@
       "note": "Choose TRON at the sender for TRX and compatible TRON tokens.",
       "screenshot": "guide-chain-tron",
       "tags": [
-        "5.0.0",
         "use tron"
       ],
       "related": [
@@ -3123,9 +3043,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 79,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Use TRON in Oath to receive, send and inspect assets and activity. Check the selected account, network and transfer requirements before confirming a transaction."
     },
     {
@@ -3150,7 +3070,6 @@
       "note": "The app labels this network Gram and recognizes TON-related search aliases.",
       "screenshot": "guide-chain-ton",
       "tags": [
-        "5.0.0",
         "use gram"
       ],
       "related": [
@@ -3161,9 +3080,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 80,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Use Gram and TON-related assets in Oath. Verify the account and jetton identity, check any required memo, and review fees and activity for the selected network."
     },
     {
@@ -3188,7 +3107,6 @@
       "note": "Uses an Aptos account and network-specific token identities.",
       "screenshot": "guide-chain-aptos",
       "tags": [
-        "5.0.0",
         "use aptos"
       ],
       "related": [
@@ -3199,9 +3117,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 81,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Use Aptos in Oath to receive, send and inspect assets and activity. Find the correct account and network, and verify the asset before reviewing a transfer."
     },
     {
@@ -3226,7 +3144,6 @@
       "note": "Uses a Sui account and Sui coin types.",
       "screenshot": "guide-chain-sui",
       "tags": [
-        "5.0.0",
         "use sui"
       ],
       "related": [
@@ -3237,9 +3154,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 82,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Use Sui Network in Oath to receive, send and inspect your assets. Check the selected account, exact network and transfer details before authorizing an action."
     },
     {
@@ -3264,7 +3181,6 @@
       "note": "Shows data for the wallet’s active NEAR account.",
       "screenshot": "guide-chain-near",
       "tags": [
-        "5.0.0",
         "use near"
       ],
       "related": [
@@ -3275,9 +3191,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 83,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Use NEAR Protocol in Oath to receive, send and inspect assets and activity. Verify the account and network, then review transfer details before confirming."
     },
     {
@@ -3302,7 +3218,6 @@
       "note": "Shows XRP and supported issued assets for the active ledger account.",
       "screenshot": "guide-chain-xrpl",
       "tags": [
-        "5.0.0",
         "use xrp ledger"
       ],
       "related": [
@@ -3313,9 +3228,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 84,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Use XRP Ledger in Oath to receive, send and inspect your assets. Check the account, destination and any required transfer reference before confirming a payment."
     },
     {
@@ -3340,7 +3255,6 @@
       "note": "Shows XLM and supported assets for the active Stellar account.",
       "screenshot": "guide-chain-stellar",
       "tags": [
-        "5.0.0",
         "use stellar"
       ],
       "related": [
@@ -3351,9 +3265,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 85,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Use Stellar in Oath to receive, send and inspect assets and activity. Verify the account, receiving network and any required memo before confirming a transfer."
     },
     {
@@ -3376,7 +3290,6 @@
       "note": "Keep the network’s fee asset available for token transfers. Arc is a special case with native USDC; follow its own fee review.",
       "screenshot": "guide-chain-ethereum",
       "tags": [
-        "5.0.0",
         "evm networks"
       ],
       "related": [
@@ -3387,9 +3300,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 86,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Understand Ethereum and EVM accounts in Oath. A shared public address can appear on several networks while each network keeps separate balances and tokens."
     },
     {
@@ -3413,7 +3326,6 @@
       "note": "An Ethereum or another network’s USDC balance is separate. Mainnet and testnet are distinct; use the network identity shown by the app and the sender.",
       "screenshot": "guide-chain-arc",
       "tags": [
-        "5.0.0",
         "arc usdc"
       ],
       "related": [
@@ -3424,9 +3336,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 87,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Understand native USDC on Arc in Oath and how it differs from USDC on other networks. Check the exact Arc network, balance and fee units before a transfer."
     },
     {
@@ -3450,7 +3362,6 @@
       "note": "A Robinhood Chain address in Oath is not a login to a Robinhood brokerage account. Provider coverage can limit discovery and history; a successful native balance lookup does not prove complete token coverage.",
       "screenshot": "guide-chain-robinhood",
       "tags": [
-        "5.0.0",
         "robinhood chain"
       ],
       "related": [
@@ -3461,9 +3372,9 @@
       "status": "published",
       "published_at": "2026-10-12T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 88,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Find the Robinhood Chain account in Oath and inspect its assets. Distinguish that network from an exchange account and from balances on other EVM chains."
     },
     {
@@ -3487,7 +3398,6 @@
       "note": "Scanning is an input shortcut, not a trust check. Confirm the network and complete address using an independent source.",
       "screenshot": "guide-01-portfolio",
       "tags": [
-        "5.0.0",
         "QR",
         "camera",
         "contract",
@@ -3504,9 +3414,9 @@
       "status": "published",
       "published_at": "2026-10-12T17:33:34.237657+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 89,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Scan a token address from Oath's Home screen using the viewfinder button. Bring QR text into asset search and check the resulting asset and network details."
     },
     {
@@ -3530,7 +3440,6 @@
       "note": "The controls can be mirrored for right-to-left languages. Identify them by their symbols or VoiceOver names rather than relying only on left or right placement.",
       "screenshot": "guide-help-customize",
       "tags": [
-        "5.0.0",
         "appclip",
         "current wallet",
         "settings",
@@ -3546,9 +3455,9 @@
       "status": "published",
       "published_at": "2026-10-12T17:33:34.237657+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 90,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Open the active wallet's settings from Oath Home using the toolbar shortcut that appears after scrolling. Check which wallet you are managing before making changes."
     },
     {
@@ -3573,7 +3482,6 @@
       "note": "The active-wallet badge identifies the wallet used by Home and History. Use the Home name capsule to switch; opening a management row in Settings does not by itself change the active wallet.",
       "screenshot": "guide-01-portfolio",
       "tags": [
-        "5.0.0",
         "badge",
         "balance",
         "checkmark",
@@ -3590,9 +3498,9 @@
       "status": "published",
       "published_at": "2026-10-12T17:33:34.237657+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 91,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Read wallet balances and the active-wallet badge in Oath. Recognize wallets by color and check the available value shown beside each wallet's disclosure arrow."
     },
     {
@@ -3616,7 +3524,6 @@
       "note": "If an expected entry is absent, clear search and filters, refresh Home or the asset, and compare the exact public account on its network explorer.",
       "screenshot": "guide-03-activity",
       "tags": [
-        "5.0.0",
         "activity",
         "all transactions",
         "full transaction history",
@@ -3632,9 +3539,9 @@
       "status": "published",
       "published_at": "2026-10-12T17:33:34.237657+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 92,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "View available coin and token activity across the active wallet's networks in Oath. Open full transaction history and distinguish it from a single asset's activity."
     },
     {
@@ -3658,7 +3565,6 @@
       "note": "A short address fragment or common amount can match several entries. Compare the complete transaction ID before treating a result as the transfer you intended.",
       "screenshot": "guide-history-search",
       "tags": [
-        "5.0.0",
         "address",
         "amount",
         "hash",
@@ -3676,9 +3582,9 @@
       "status": "published",
       "published_at": "2026-10-12T17:33:34.237657+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 93,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Search Oath transaction history by ID, address or amount. Find matching activity within the active wallet's available records and inspect the relevant transfer."
     },
     {
@@ -3704,7 +3610,6 @@
       "note": "A disabled checkmark means a range needs correction, such as a minimum above its maximum or a start date after its end. No matching results can simply mean the combined filters are too narrow.",
       "screenshot": "guide-history-filters",
       "tags": [
-        "5.0.0",
         "date range",
         "filter",
         "filter transactions",
@@ -3722,9 +3627,9 @@
       "status": "published",
       "published_at": "2026-10-12T17:33:34.237657+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 94,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Filter Oath transaction history by network, asset, direction, status, date and quantity. Narrow the displayed activity without changing the underlying records."
     },
     {
@@ -3748,7 +3653,6 @@
       "note": "An absent View All button is not proof that no other on-chain activity ever occurred. Check the correct account and explorer if a known transaction is missing.",
       "screenshot": "guide-02-bitcoin-market",
       "tags": [
-        "5.0.0",
         "5 transactions",
         "asset history",
         "asset transaction history",
@@ -3764,9 +3668,9 @@
       "status": "published",
       "published_at": "2026-10-12T17:33:34.237657+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 95,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "View all available transactions for one coin or token in Oath. Move from the asset's preview to history for that exact asset, account and selected network."
     },
     {
@@ -3791,7 +3695,6 @@
       "note": "No filter can recognize every scam, and an unlisted token is not automatically fraudulent. Never follow a claim link from unsolicited token metadata or use a lookalike address copied from unfamiliar activity.",
       "screenshot": "guide-03-activity",
       "tags": [
-        "5.0.0",
         "address poisoning",
         "airdrop",
         "phishing",
@@ -3808,9 +3711,9 @@
       "status": "published",
       "published_at": "2026-10-12T17:33:34.237657+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 96,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Understand why Oath may hide suspicious or unverified token activity. Learn the limits of spam filtering when reviewing the transactions shown for your wallet."
     },
     {
@@ -3836,7 +3739,6 @@
       "tags": [
         "0 ETH",
         "0.00",
-        "5.0.0",
         "address poisoning",
         "contract call",
         "dust",
@@ -3851,9 +3753,9 @@
       "status": "published",
       "published_at": "2026-10-12T17:33:34.237657+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 97,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Understand why a transaction can show zero in Oath. Distinguish rounded fiat amounts, zero-value contract actions and hidden spam transfers in wallet activity."
     },
     {
@@ -3877,7 +3779,6 @@
       "note": "Never decide by symbol alone. Tokens with the same name on the same or different networks can have different contracts and issuers.",
       "screenshot": "guide-asset-search",
       "tags": [
-        "5.0.0",
         "manual token",
         "token discovery",
         "unlisted",
@@ -3893,9 +3794,9 @@
       "status": "published",
       "published_at": "2026-10-12T17:33:34.237657+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 98,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Understand verified and manually added tokens in Oath. Learn why discovery can omit a token and what changes when you choose to track its contract or mint."
     },
     {
@@ -3919,7 +3820,6 @@
       "note": "The small check badge on a wallet icon means that wallet is active. It is different from the tappable checkmark used to finish an action.",
       "screenshot": "guide-history-filters",
       "tags": [
-        "5.0.0",
         "VoiceOver",
         "accessibility",
         "apply",
@@ -3936,9 +3836,9 @@
       "status": "published",
       "published_at": "2026-10-12T17:33:34.237657+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 99,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Use the native checkmark to finish actions in supported Oath screens and sheets. Learn how it replaces a text Done control and where to find the confirmation."
     },
     {
@@ -3962,7 +3862,6 @@
       "note": "Your app passcode is not your recovery phrase, BIP-39 passphrase or iCloud backup password. Security changes do not replace a separate recovery backup.",
       "screenshot": "guide-unlock",
       "tags": [
-        "5.0.0",
         "authentication",
         "face id",
         "passcode",
@@ -3978,9 +3877,9 @@
       "status": "published",
       "published_at": "2026-10-12T17:33:34.237657+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 100,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Authenticate before opening Passcode & Face ID in Oath. Understand the separate security check required before changing the app's access-protection settings."
     },
     {
@@ -4004,7 +3903,6 @@
       "note": "Never put a recovery phrase, private key, app passcode or backup password into a support form or message. Public transaction IDs are normally enough to start a transaction investigation.",
       "screenshot": "guide-help-settings",
       "tags": [
-        "5.0.0",
         "articles",
         "documentation",
         "help",
@@ -4019,9 +3917,9 @@
       "status": "published",
       "published_at": "2026-10-12T17:33:34.237657+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 101,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Open and search the Oath Help Center from the app. Find instructions for a feature, setting or network, then return to your wallet when you have finished."
     },
     {
@@ -4042,13 +3940,12 @@
         "Native-coin Max needs to leave enough for transaction costs. UTXO fees depend on inputs and transaction size; account-based networks may retain mandatory balances or reserves.",
         "For a token, the entire token balance may be transferable while a different native asset pays gas. A token with no reliable quote can still be entered in asset units.",
         "Fee estimates are network-specific and can change. A maximum fee is a spending limit or estimate used in that review, not a promise that the exact amount will be charged.",
-        "In 5.0.0, Max keeps the full calculated amount. Send and review values can show more digits than compact balance displays; signing still uses exact atomic units.",
+        "In 5.1.1, Max keeps the full calculated amount. Send and review values can show more digits than compact balance displays; signing still uses exact atomic units.",
         "Fiat entry accepts at most two fractional digits. Send Max retains the full native amount used for signing; a rounded fiat display does not replace that amount. Tiny nonzero fiat values use a less-than bound instead of appearing as zero."
       ],
       "note": "A displayed portfolio total is a valuation, not a promise that all of it is spendable.",
       "screenshot": "guide-send-amount",
       "tags": [
-        "5.0.0",
         "send max and fees"
       ],
       "related": [
@@ -4058,9 +3955,9 @@
       "status": "published",
       "published_at": "2026-10-16T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 302,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Use Max when sending from Oath and understand spendable balance. Learn why fees and network requirements can make the maximum lower than your Home balance."
     },
     {
@@ -4085,7 +3982,6 @@
       "note": "Memos and on-chain messages can become public. Never put a recovery phrase, private key, password or personal secret in them.",
       "screenshot": "guide-send-recipient",
       "tags": [
-        "5.0.0",
         "send tags and memos"
       ],
       "related": [
@@ -4095,9 +3991,9 @@
       "status": "published",
       "published_at": "2026-10-16T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 303,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Enter destination tags and memos when sending from Oath. Include the exact reference an exchange or shared receiving account requires to credit a transfer."
     },
     {
@@ -4122,7 +4018,6 @@
       "note": "Never put secrets in an on-chain message. Confirmed blockchain content cannot be edited like a chat message.",
       "screenshot": "guide-send-options",
       "tags": [
-        "5.0.0",
         "bitcoin transfer options"
       ],
       "related": [
@@ -4133,9 +4028,9 @@
       "status": "published",
       "published_at": "2026-10-16T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 304,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Review Bitcoin transfer options in Oath, including Replace by fee and an optional public on-chain message. Understand each choice before confirming your transfer."
     },
     {
@@ -4160,7 +4055,6 @@
       "note": "Do not send recovery words, private keys, passcodes or raw signing payloads to support.",
       "screenshot": "guide-wc-simulation",
       "tags": [
-        "5.0.0",
         "send troubleshooting"
       ],
       "related": [
@@ -4171,9 +4065,9 @@
       "status": "published",
       "published_at": "2026-10-16T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 305,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Troubleshoot an Oath transfer that cannot be sent. Check validation, fees, authorization and provider access, and distinguish an uncertain submission from failure."
     },
     {
@@ -4198,7 +4092,6 @@
       "note": "Never share a WalletConnect pairing QR or URI publicly. Connecting does not require giving a site your recovery phrase or private key.",
       "screenshot": "guide-wc-connect",
       "tags": [
-        "5.0.0",
         "connect dapp"
       ],
       "related": [
@@ -4209,9 +4102,9 @@
       "status": "published",
       "published_at": "2026-10-16T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 306,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Connect a dApp to Oath using WalletConnect. Review the intended website, wallet and requested networks before approving the session or responding to requests."
     },
     {
@@ -4236,7 +4129,6 @@
       "note": "If a site still displays an old connected state, refresh it. Check Oath’s session list and on-chain permission status separately.",
       "screenshot": "guide-help-dapps",
       "tags": [
-        "5.0.0",
         "dapp disconnect"
       ],
       "related": [
@@ -4247,9 +4139,9 @@
       "status": "published",
       "published_at": "2026-10-16T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 307,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Disconnect a dApp from Oath and review any remaining on-chain permissions. Ending a WalletConnect session does not automatically revoke token access already granted."
     },
     {
@@ -4270,12 +4162,11 @@
         "For recognized router methods Oath displays readable swap bounds and routing operations. Native wrapping/unwrapping is only summarized when the route supports that interpretation.",
         "A quote or simulation is not a guaranteed settlement price. Slippage, price movement, expiry and contract conditions can cause a swap to fail.",
         "Unknown routers, commands or metadata remain explicitly unknown or technical. A safe review must not invent an output token or interpret every arbitrary contract call as a swap.",
-        "In 5.0.0, history recognizes supported Across and Relay bridge receipts and pairs matching outgoing and received legs. Unproven or unsupported transfers keep their ordinary history presentation. This does not add an in-app bridge service."
+        "In 5.1.1, history recognizes supported Across and Relay bridge receipts and pairs matching outgoing and received legs. Unproven or unsupported transfers keep their ordinary history presentation. This does not add an in-app bridge service."
       ],
       "note": "An approval grants spending access; it is not the swap itself. Verify the spender and limit, then review the separate swap request.",
       "screenshot": "guide-call-details",
       "tags": [
-        "5.0.0",
         "dapp swap"
       ],
       "related": [
@@ -4286,9 +4177,9 @@
       "status": "published",
       "published_at": "2026-10-16T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 308,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Review a dApp token swap in Oath before authorizing it. Check the asset you pay, the asset you expect, the network and the spending limits in the request."
     },
     {
@@ -4313,7 +4204,6 @@
       "note": "Simulation is an estimate and can be incomplete. Always compare the exact network and contract with the dApp action you initiated.",
       "screenshot": "guide-call-details",
       "tags": [
-        "5.0.0",
         "dapp transaction data"
       ],
       "related": [
@@ -4323,9 +4213,9 @@
       "status": "published",
       "published_at": "2026-10-16T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 309,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Read decoded transaction details in Oath to understand a dApp contract request. Inspect the human-readable information while keeping the exact payload available."
     },
     {
@@ -4350,7 +4240,6 @@
       "note": "No legitimate WalletConnect approval asks you to type a recovery phrase or private key into the requesting website.",
       "screenshot": "guide-wc-signin",
       "tags": [
-        "5.0.0",
         "dapp signatures"
       ],
       "related": [
@@ -4361,9 +4250,9 @@
       "status": "published",
       "published_at": "2026-10-16T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 310,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Review dApp messages, sign-ins and token permits in Oath. Distinguish a login challenge from a message, token approval or authorization that can allow spending."
     },
     {
@@ -4388,7 +4277,6 @@
       "note": "Third-party dApp compatibility varies. A test-cluster connection is not proof that every swap program or request is supported.",
       "screenshot": "guide-solana-dapp",
       "tags": [
-        "5.0.0",
         "walletconnect solana"
       ],
       "related": [
@@ -4399,9 +4287,9 @@
       "status": "published",
       "published_at": "2026-10-16T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 311,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Use Solana dApps with Oath and check the approved cluster. Review requests on the exact mainnet, Devnet or Testnet network selected for the WalletConnect session."
     },
     {
@@ -4426,7 +4314,6 @@
       "note": "A direct RUNE send is different from a deposit or cross-chain swap. Review the action name and both sides of a swap.",
       "screenshot": "guide-wc-crossswap",
       "tags": [
-        "5.0.0",
         "walletconnect thorchain"
       ],
       "related": [
@@ -4437,9 +4324,9 @@
       "status": "published",
       "published_at": "2026-10-16T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 312,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Review THORChain dApp requests in Oath. Distinguish RUNE transfers, deposits and readable cross-chain swap instructions before deciding whether to authorize them."
     },
     {
@@ -4464,7 +4351,6 @@
       "note": "Revoking access does not recover funds already spent by a contract. It also does not remove unrelated permissions.",
       "screenshot": "guide-permission-list",
       "tags": [
-        "5.0.0",
         "revoke token access"
       ],
       "related": [
@@ -4475,9 +4361,9 @@
       "status": "published",
       "published_at": "2026-10-16T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 313,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Revoke a supported token allowance or delegate in Oath. Review the permission and network fee, then verify that the requested access was removed on-chain."
     },
     {
@@ -4502,7 +4388,6 @@
       "note": "Keep enough fee assets on every selected network. Never describe a partly successful batch as fully revoked.",
       "screenshot": "guide-permission-select",
       "tags": [
-        "5.0.0",
         "bulk revoke access"
       ],
       "related": [
@@ -4513,9 +4398,9 @@
       "status": "published",
       "published_at": "2026-10-16T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 314,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Revoke several supported permissions in Oath by selecting a group and reviewing the batch. Check each removal result independently after submitting the actions."
     },
     {
@@ -4540,7 +4425,6 @@
       "note": "An empty permission list must not be interpreted as a comprehensive security audit.",
       "screenshot": "guide-help-permissions",
       "tags": [
-        "5.0.0",
         "permission coverage"
       ],
       "related": [
@@ -4550,9 +4434,9 @@
       "status": "published",
       "published_at": "2026-10-16T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 315,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Read permission scan coverage in Oath. Distinguish checked, partial, unavailable and unindexed network results before interpreting the wallet's permission list."
     },
     {
@@ -4573,12 +4457,11 @@
         "The approved address is the spender or operator, not automatically your own wallet address. A contract alone is not enough to identify an allowance.",
         "Selecting a collection-wide approval is different from checking access to one NFT. Permit2 checks also need their appropriate token identity.",
         "This targeted lookup does not scan every possible spender. It answers the specific supported permission query you supplied.",
-        "In 5.0.0, transaction history distinguishes supported token approvals, approval removal and contract interactions. A label describes the observed call; check its transaction status separately."
+        "In 5.1.1, transaction history distinguishes supported token approvals, approval removal and contract interactions. A label describes the observed call; check its transaction status separately."
       ],
       "note": "Do not paste a private key or recovery phrase into either address field.",
       "screenshot": "guide-permission-check",
       "tags": [
-        "5.0.0",
         "check contract access"
       ],
       "related": [
@@ -4588,9 +4471,9 @@
       "status": "published",
       "published_at": "2026-10-16T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 316,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Check a supported permission in Oath when you know the exact contract and approved address. Verify the network and spender before interpreting the lookup result."
     },
     {
@@ -4615,7 +4498,6 @@
       "note": "An unlimited allowance is a spending authorization, not your token balance.",
       "screenshot": "guide-wc-permit2",
       "tags": [
-        "5.0.0",
         "permit2 access"
       ],
       "related": [
@@ -4625,9 +4507,9 @@
       "status": "published",
       "published_at": "2026-10-16T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 317,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Understand Permit2 and signed approvals when reviewing wallet access in Oath. Separate existing on-chain allowances from signatures that may permit future spending."
     },
     {
@@ -4652,7 +4534,6 @@
       "note": "Do not retry an uncertain transaction blindly. Use its existing public transaction ID to establish the outcome first.",
       "screenshot": "guide-permission-review",
       "tags": [
-        "5.0.0",
         "permission removal history"
       ],
       "related": [
@@ -4662,9 +4543,9 @@
       "status": "published",
       "published_at": "2026-10-16T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 318,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Check revocation progress and failures in Oath's permission history. Verify each removal result rather than assuming a completed queue means every action succeeded."
     },
     {
@@ -4689,7 +4570,6 @@
       "note": "When the app cannot safely remove a permission, it should remain a limitation rather than be reported as removed.",
       "screenshot": "guide-help-permissions",
       "tags": [
-        "5.0.0",
         "account control permissions"
       ],
       "related": [
@@ -4700,9 +4580,9 @@
       "status": "published",
       "published_at": "2026-10-16T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 319,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Review account-control permissions and permanent delegates in Oath. Recognize access that can affect more than a single token allowance before taking action."
     },
     {
@@ -4727,7 +4607,6 @@
       "note": "Do not delete the last local copy of recovery material unless you have an independent, usable backup.",
       "screenshot": "guide-07-wallets",
       "tags": [
-        "5.0.0",
         "last wallet reset"
       ],
       "related": [
@@ -4738,9 +4617,9 @@
       "status": "published",
       "published_at": "2026-10-16T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 320,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Understand what happens when removing the last active wallet in Oath. Protect your recovery options before confirming the reset and clearing Recently Deleted."
     },
     {
@@ -4765,7 +4644,6 @@
       "note": "Never send your passcode or recovery material to support. Keep the original recovery route until you have verified the upgraded wallets.",
       "screenshot": "guide-unlock",
       "tags": [
-        "5.0.0",
         "upgrade existing wallets"
       ],
       "related": [
@@ -4776,9 +4654,9 @@
       "status": "published",
       "published_at": "2026-10-16T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 321,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Open existing wallets after an Oath update. Unlock normally and let the app prepare compatible wallets without creating replacements for the accounts you already use."
     },
     {
@@ -4802,7 +4680,6 @@
       "note": "A missing or incomplete baseline can limit the comparison. Do not infer a full period of trading performance from a newly imported wallet.",
       "screenshot": "guide-01-portfolio",
       "tags": [
-        "5.0.0",
         "balance change"
       ],
       "related": [
@@ -4812,9 +4689,9 @@
       "status": "published",
       "published_at": "2026-10-16T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 322,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Read the balance-change capsule under Oath's portfolio total. Understand the observed change without treating incoming deposits as investment profit."
     },
     {
@@ -4838,7 +4715,6 @@
       "note": "A displayed logo or name is not verification that an asset is legitimate.",
       "screenshot": "guide-asset-filters",
       "tags": [
-        "5.0.0",
         "asset filters"
       ],
       "related": [
@@ -4849,9 +4725,9 @@
       "status": "published",
       "published_at": "2026-10-16T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 323,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Filter the assets shown on Oath Home by network and available asset filters. Narrow the portfolio view without changing ownership of the coins and tokens."
     },
     {
@@ -4876,7 +4752,6 @@
       "note": "No provider can supply a trustworthy price for every token. Unknown prices should remain unavailable rather than fabricated.",
       "screenshot": "guide-02-bitcoin-market",
       "tags": [
-        "5.0.0",
         "token prices and logos"
       ],
       "related": [
@@ -4887,9 +4762,9 @@
       "status": "published",
       "published_at": "2026-10-16T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 324,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Understand token logos and missing prices in Oath. Distinguish asset identity, balance, artwork and market data when searching by a contract or mint address."
     },
     {
@@ -4912,7 +4787,6 @@
       "note": "Read the on-screen status even when you feel success feedback.",
       "screenshot": "guide-help-settings",
       "tags": [
-        "5.0.0",
         "haptic feedback"
       ],
       "related": [
@@ -4923,9 +4797,9 @@
       "status": "published",
       "published_at": "2026-10-16T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 325,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Turn haptic feedback on or off in Oath settings. Choose whether supported controls and outcomes provide tactile feedback when your device settings allow it."
     },
     {
@@ -4950,7 +4824,6 @@
       "note": "A source-chain confirmation alone does not prove a cross-chain destination payment is complete.",
       "screenshot": "guide-chain-thorchain",
       "tags": [
-        "5.0.0",
         "use thorchain"
       ],
       "related": [
@@ -4960,9 +4833,9 @@
       "status": "published",
       "published_at": "2026-10-16T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 326,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Use THORChain and RUNE in Oath to receive and send supported transfers. Review network details and distinguish a direct RUNE transfer from a dApp swap request."
     },
     {
@@ -4987,7 +4860,6 @@
       "note": "A shared 0x address does not bridge funds. Choose the exact network on both sides of a transfer.",
       "screenshot": "guide-chain-hyperevm",
       "tags": [
-        "5.0.0",
         "use hyperevm"
       ],
       "related": [
@@ -4998,9 +4870,9 @@
       "status": "published",
       "published_at": "2026-10-16T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 327,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Use HyperEVM in Oath and find the correct account, native fee asset and tokens. Check the exact network because a shared EVM address does not bridge funds."
     },
     {
@@ -5025,7 +4897,6 @@
       "note": "A shared 0x address does not bridge funds. Choose the exact network on both sides of a transfer.",
       "screenshot": "guide-chain-monad",
       "tags": [
-        "5.0.0",
         "use monad"
       ],
       "related": [
@@ -5036,9 +4907,9 @@
       "status": "published",
       "published_at": "2026-10-16T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 328,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Use Monad in Oath and find the correct account, native fee asset and tokens. Check the exact network and contract rather than assuming other EVM balances apply."
     },
     {
@@ -5063,7 +4934,6 @@
       "note": "A shared 0x address does not bridge funds. Choose the exact network on both sides of a transfer.",
       "screenshot": "guide-chain-unichain",
       "tags": [
-        "5.0.0",
         "use unichain"
       ],
       "related": [
@@ -5074,9 +4944,9 @@
       "status": "published",
       "published_at": "2026-10-16T12:00:00+00:00",
       "updated_at": "2026-10-28T00:00:00Z",
-      "app_version": "Oath 5.0.0",
+      "app_version": "Oath 5.1.1 (111)",
       "sort_order": 329,
-      "screenshot_version": "Oath 4.0.3",
+      "screenshot_version": "Historical app capture",
       "seo_description": "Use Unichain in Oath and find the correct account, native fee asset and tokens. Verify the network and contract before receiving or sending an EVM token."
     }
   ],

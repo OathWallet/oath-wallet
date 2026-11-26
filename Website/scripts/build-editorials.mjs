@@ -5,6 +5,7 @@ import sharp from 'sharp';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {archiveRoutes} from '../src/article-routes.js';
+import {articleURL} from '../src/article-host.js';
 import retired from '../content/retired-articles.json' with {type:'json'};
 import {escape, renderMarkdown} from './markdown.mjs';
 
@@ -114,6 +115,22 @@ catalog.articles = [...articles.map(a=>a.row), ...catalog.articles.filter(a=>!a.
 await writeFile(catalogFile,json(catalog));
 const feedFile = join(publicDir,'articles/feed.json'), feed = JSON.parse(await read(feedFile));
 feed.items = [...articles.map(a=>a.item), ...feed.items.filter(i=>!previous.has(i.url) && !urls.has(i.url))].sort((a,b)=>Date.parse(b.date_published)-Date.parse(a.date_published));
+// Archive pages can receive source-reference corrections too. Their feed copies
+// must follow the canonical page instead of retaining older version labels.
+const archiveFiles=new Map(Object.entries(archiveRoutes).flatMap(([route,file])=>[
+  [articleURL(route),file],['https://oathwallet.org'+route,file]
+]));
+const articleRecords=new Map(catalog.articles.map(row=>[row.url,row]));
+for(const item of feed.items){
+  const file=archiveFiles.get(item.url),row=articleRecords.get(item.url);
+  if(!file||!row)continue;
+  const html=await read(join(publicDir,file.replace(/^\//,'')));
+  const body=html.split('<div class="article-body">')[1]?.split('<div class="article-end">')[0];
+  if(body===undefined)throw Error('Archive article body missing: '+file);
+  item.title=row.title;item.summary=row.excerpt;
+  item.date_modified=row.updated_at??row.published_at;
+  item.content_html=body.trim();
+}
 await writeFile(feedFile,json(feed));
 
 const rssItems = feed.items.map(i=>`<item><title>${escape(i.title)}</title><link>${escape(i.url)}</link><guid>${escape(i.url)}</guid><description>${escape(i.summary)}</description><pubDate>${new Date(i.date_published).toUTCString()}</pubDate></item>`);

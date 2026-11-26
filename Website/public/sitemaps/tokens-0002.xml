@@ -1,5 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<url><loc>https://oathwallet.org/tokens/rb-global-xstock/solana</loc></url>
+<url><loc>https://oathwallet.org/tokens/rb-global-xstock/gram</loc></url>
+<url><loc>https://oathwallet.org/tokens/rb-global-xstock/x-layer</loc></url>
+<url><loc>https://oathwallet.org/tokens/strive-dinari-tokenized-stock</loc></url>
+<url><loc>https://oathwallet.org/tokens/strive-dinari-tokenized-stock/arbitrum</loc></url>
+<url><loc>https://oathwallet.org/tokens/strive-dinari-tokenized-stock/avalanche</loc></url>
+<url><loc>https://oathwallet.org/tokens/strive-dinari-tokenized-stock/base</loc></url>
+<url><loc>https://oathwallet.org/tokens/strive-dinari-tokenized-stock/ethereum</loc></url>
+<url><loc>https://oathwallet.org/tokens/backed-zpr1-1-3-month-t-bill</loc></url>
+<url><loc>https://oathwallet.org/tokens/backed-zpr1-1-3-month-t-bill/arbitrum</loc></url>
+<url><loc>https://oathwallet.org/tokens/backed-zpr1-1-3-month-t-bill/avalanche</loc></url>
+<url><loc>https://oathwallet.org/tokens/backed-zpr1-1-3-month-t-bill/base</loc></url>
+<url><loc>https://oathwallet.org/tokens/backed-zpr1-1-3-month-t-bill/bnb-smart-chain</loc></url>
+<url><loc>https://oathwallet.org/tokens/backed-zpr1-1-3-month-t-bill/ethereum</loc></url>
+<url><loc>https://oathwallet.org/tokens/backed-zpr1-1-3-month-t-bill/gnosis</loc></url>
+<url><loc>https://oathwallet.org/tokens/backed-zpr1-1-3-month-t-bill/polygon</loc></url>
+<url><loc>https://oathwallet.org/tokens/ichi-farm</loc></url>
+<url><loc>https://oathwallet.org/tokens/ichi-farm/arbitrum</loc></url>
+<url><loc>https://oathwallet.org/tokens/ichi-farm/bnb-smart-chain</loc></url>
 <url><loc>https://oathwallet.org/tokens/ichi-farm/ethereum</loc></url>
 <url><loc>https://oathwallet.org/tokens/ichi-farm/polygon</loc></url>
 <url><loc>https://oathwallet.org/tokens/microstrategy-xstock</loc></url>
@@ -141,6 +160,7 @@
 <url><loc>https://oathwallet.org/tokens/wrapped-sui-universal</loc></url>
 <url><loc>https://oathwallet.org/tokens/wrapped-sui-universal/arbitrum</loc></url>
 <url><loc>https://oathwallet.org/tokens/wrapped-sui-universal/base</loc></url>
+<url><loc>https://oathwallet.org/tokens/wrapped-sui-universal/worldchain</loc></url>
 <url><loc>https://oathwallet.org/tokens/public-service-enterprise-xstock</loc></url>
 <url><loc>https://oathwallet.org/tokens/public-service-enterprise-xstock/arbitrum</loc></url>
 <url><loc>https://oathwallet.org/tokens/public-service-enterprise-xstock/bnb-smart-chain</loc></url>
@@ -1594,10 +1614,10 @@
 <url><loc>https://oathwallet.org/tokens/d-r-horton-xstock/x-layer</loc></url>
 <url><loc>https://oathwallet.org/tokens/astrotech-rstock/arbitrum</loc></url>
 <url><loc>https://oathwallet.org/tokens/strategy-stove-tokenized-stock/arbitrum</loc></url>
-<url><loc>https://oathwallet.org/tokens/texas-instruments-xstock</loc><lastmod>2026-11-16</lastmod></url>
+<url><loc>https://oathwallet.org/tokens/texas-instruments-xstock</loc><lastmod>2026-11-26</lastmod></url>
 <url><loc>https://oathwallet.org/tokens/texas-instruments-xstock/arbitrum</loc><lastmod>2026-11-10</lastmod></url>
 <url><loc>https://oathwallet.org/tokens/texas-instruments-xstock/bnb-smart-chain</loc><lastmod>2026-11-10</lastmod></url>
-<url><loc>https://oathwallet.org/tokens/texas-instruments-xstock/ethereum</loc><lastmod>2026-11-10</lastmod></url>
+<url><loc>https://oathwallet.org/tokens/texas-instruments-xstock/ethereum</loc><lastmod>2026-11-26</lastmod></url>
 <url><loc>https://oathwallet.org/tokens/texas-instruments-xstock/hyperevm</loc><lastmod>2026-11-10</lastmod></url>
 <url><loc>https://oathwallet.org/tokens/texas-instruments-xstock/optimism</loc><lastmod>2026-11-10</lastmod></url>
 <url><loc>https://oathwallet.org/tokens/texas-instruments-xstock/solana</loc><lastmod>2026-11-10</lastmod></url>
@@ -1688,6 +1708,7 @@
 <url><loc>https://oathwallet.org/tokens/pooltogether/optimism</loc></url>
 <url><loc>https://oathwallet.org/tokens/pooltogether/polygon</loc></url>
 <url><loc>https://oathwallet.org/tokens/pooltogether/scroll</loc></url>
+<url><loc>https://oathwallet.org/tokens/pooltogether/worldchain</loc></url>
 <url><loc>https://oathwallet.org/tokens/wrapped-cisco-xstock/arbitrum</loc></url>
 <url><loc>https://oathwallet.org/tokens/boston-scientific-rstock/arbitrum</loc></url>
 <url><loc>https://oathwallet.org/tokens/salesforce-rstock/arbitrum</loc></url>
@@ -3999,6 +4020,8 @@
 <url><loc>https://oathwallet.org/tokens/chainlink/taiko</loc></url>
 <url><loc>https://oathwallet.org/tokens/chainlink/unichain</loc></url>
 <url><loc>https://oathwallet.org/tokens/chainlink/x-layer</loc></url>
+<url><loc>https://oathwallet.org/tokens/chainlink/plasma</loc></url>
+<url><loc>https://oathwallet.org/tokens/chainlink/worldchain</loc></url>
 <url><loc>https://oathwallet.org/tokens/intc-2x-long-etf-xstock</loc></url>
 <url><loc>https://oathwallet.org/tokens/intc-2x-long-etf-xstock/arbitrum</loc></url>
 <url><loc>https://oathwallet.org/tokens/intc-2x-long-etf-xstock/bnb-smart-chain</loc></url>
@@ -4068,6 +4091,7 @@
 <url><loc>https://oathwallet.org/tokens/uniswap/optimism</loc></url>
 <url><loc>https://oathwallet.org/tokens/uniswap/polygon</loc></url>
 <url><loc>https://oathwallet.org/tokens/uniswap/unichain</loc><lastmod>2026-11-16</lastmod></url>
+<url><loc>https://oathwallet.org/tokens/uniswap/worldchain</loc></url>
 <url><loc>https://oathwallet.org/tokens/kuaishou-technology-xstock</loc></url>
 <url><loc>https://oathwallet.org/tokens/kuaishou-technology-xstock/arbitrum</loc></url>
 <url><loc>https://oathwallet.org/tokens/kuaishou-technology-xstock/bnb-smart-chain</loc></url>
@@ -4246,6 +4270,7 @@
 <url><loc>https://oathwallet.org/tokens/usdt0/stellar</loc></url>
 <url><loc>https://oathwallet.org/tokens/usdt0/unichain</loc></url>
 <url><loc>https://oathwallet.org/tokens/usdt0/x-layer</loc></url>
+<url><loc>https://oathwallet.org/tokens/usdt0/plasma</loc></url>
 <url><loc>https://oathwallet.org/tokens/ck-infrastructure-xstock</loc></url>
 <url><loc>https://oathwallet.org/tokens/ck-infrastructure-xstock/arbitrum</loc></url>
 <url><loc>https://oathwallet.org/tokens/ck-infrastructure-xstock/bnb-smart-chain</loc></url>
@@ -4410,6 +4435,7 @@
 <url><loc>https://oathwallet.org/tokens/argentine-peso/gnosis</loc></url>
 <url><loc>https://oathwallet.org/tokens/argentine-peso/hyperevm</loc></url>
 <url><loc>https://oathwallet.org/tokens/argentine-peso/polygon</loc></url>
+<url><loc>https://oathwallet.org/tokens/argentine-peso/worldchain</loc></url>
 <url><loc>https://oathwallet.org/tokens/arc-bridged-weth-arc/arc</loc></url>
 <url><loc>https://oathwallet.org/tokens/circle-wrapped-btc</loc></url>
 <url><loc>https://oathwallet.org/tokens/circle-wrapped-btc/arc</loc></url>
@@ -4452,6 +4478,7 @@
 <url><loc>https://oathwallet.org/tokens/mexican-peso/gnosis</loc></url>
 <url><loc>https://oathwallet.org/tokens/mexican-peso/hyperevm</loc></url>
 <url><loc>https://oathwallet.org/tokens/mexican-peso/polygon</loc></url>
+<url><loc>https://oathwallet.org/tokens/mexican-peso/worldchain</loc></url>
 <url><loc>https://oathwallet.org/tokens/faze/arc</loc></url>
 <url><loc>https://oathwallet.org/tokens/cortex-4/arc</loc></url>
 <url><loc>https://oathwallet.org/tokens/arcstockpad/arc</loc></url>
@@ -4470,6 +4497,7 @@
 <url><loc>https://oathwallet.org/tokens/peruvian-sol/gnosis</loc></url>
 <url><loc>https://oathwallet.org/tokens/peruvian-sol/hyperevm</loc></url>
 <url><loc>https://oathwallet.org/tokens/peruvian-sol/polygon</loc></url>
+<url><loc>https://oathwallet.org/tokens/peruvian-sol/worldchain</loc></url>
 <url><loc>https://oathwallet.org/tokens/malachite/arc</loc></url>
 <url><loc>https://oathwallet.org/tokens/wonk-fun/arc</loc></url>
 <url><loc>https://oathwallet.org/tokens/arcrouter/arc</loc></url>
@@ -4482,6 +4510,7 @@
 <url><loc>https://oathwallet.org/tokens/chilean-peso/gnosis</loc></url>
 <url><loc>https://oathwallet.org/tokens/chilean-peso/hyperevm</loc></url>
 <url><loc>https://oathwallet.org/tokens/chilean-peso/polygon</loc></url>
+<url><loc>https://oathwallet.org/tokens/chilean-peso/worldchain</loc></url>
 <url><loc>https://oathwallet.org/tokens/akarii/arc</loc></url>
 <url><loc>https://oathwallet.org/tokens/kata-finance/arc</loc></url>
 <url><loc>https://oathwallet.org/tokens/arcia/arc</loc></url>
@@ -4499,6 +4528,7 @@
 <url><loc>https://oathwallet.org/tokens/colombian-peso/gnosis</loc></url>
 <url><loc>https://oathwallet.org/tokens/colombian-peso/hyperevm</loc></url>
 <url><loc>https://oathwallet.org/tokens/colombian-peso/polygon</loc></url>
+<url><loc>https://oathwallet.org/tokens/colombian-peso/worldchain</loc></url>
 <url><loc>https://oathwallet.org/tokens/architects/arc</loc></url>
 <url><loc>https://oathwallet.org/tokens/virtual-protocol</loc></url>
 <url><loc>https://oathwallet.org/tokens/virtual-protocol/arc</loc></url>
@@ -4537,6 +4567,8 @@
 <url><loc>https://oathwallet.org/tokens/euro-coin/optimism</loc></url>
 <url><loc>https://oathwallet.org/tokens/euro-coin/solana</loc></url>
 <url><loc>https://oathwallet.org/tokens/euro-coin/stellar</loc></url>
+<url><loc>https://oathwallet.org/tokens/euro-coin/plasma</loc></url>
+<url><loc>https://oathwallet.org/tokens/euro-coin/worldchain</loc></url>
 <url><loc>https://oathwallet.org/tokens/allunity-chf</loc></url>
 <url><loc>https://oathwallet.org/tokens/allunity-chf/arc</loc></url>
 <url><loc>https://oathwallet.org/tokens/allunity-chf/base</loc></url>
@@ -4564,6 +4596,7 @@
 <url><loc>https://oathwallet.org/tokens/brazilian-real/gnosis</loc></url>
 <url><loc>https://oathwallet.org/tokens/brazilian-real/hyperevm</loc></url>
 <url><loc>https://oathwallet.org/tokens/brazilian-real/polygon</loc></url>
+<url><loc>https://oathwallet.org/tokens/brazilian-real/worldchain</loc></url>
 <url><loc>https://oathwallet.org/tokens/atlantis-coin-2</loc></url>
 <url><loc>https://oathwallet.org/tokens/atlantis-coin-2/arc</loc></url>
 <url><loc>https://oathwallet.org/tokens/atlantis-coin-2/bnb-smart-chain</loc></url>
@@ -4591,6 +4624,8 @@
 <url><loc>https://oathwallet.org/tokens/bilira/ethereum</loc></url>
 <url><loc>https://oathwallet.org/tokens/bilira/polygon</loc></url>
 <url><loc>https://oathwallet.org/tokens/bilira/solana</loc></url>
+<url><loc>https://oathwallet.org/tokens/bilira/plasma</loc></url>
+<url><loc>https://oathwallet.org/tokens/bilira/worldchain</loc></url>
 <url><loc>https://oathwallet.org/tokens/yay-games</loc></url>
 <url><loc>https://oathwallet.org/tokens/yay-games/avalanche</loc></url>
 <url><loc>https://oathwallet.org/tokens/yay-games/bnb-smart-chain</loc></url>
@@ -5004,6 +5039,7 @@
 <url><loc>https://oathwallet.org/tokens/schuman-europ/polygon</loc></url>
 <url><loc>https://oathwallet.org/tokens/schuman-europ/solana</loc></url>
 <url><loc>https://oathwallet.org/tokens/schuman-europ/xrp-ledger</loc></url>
+<url><loc>https://oathwallet.org/tokens/schuman-europ/plasma</loc></url>
 <url><loc>https://oathwallet.org/tokens/fold/avalanche</loc></url>
 <url><loc>https://oathwallet.org/tokens/avaxlama/avalanche</loc></url>
 <url><loc>https://oathwallet.org/tokens/meowcat-2/avalanche</loc></url>
@@ -5023,6 +5059,7 @@
 <url><loc>https://oathwallet.org/tokens/staked-stream-usd</loc></url>
 <url><loc>https://oathwallet.org/tokens/staked-stream-usd/avalanche</loc></url>
 <url><loc>https://oathwallet.org/tokens/staked-stream-usd/ethereum</loc></url>
+<url><loc>https://oathwallet.org/tokens/staked-stream-usd/plasma</loc></url>
 <url><loc>https://oathwallet.org/tokens/xpowermine-com-apow-2/avalanche</loc></url>
 <url><loc>https://oathwallet.org/tokens/defi-yield-protocol</loc></url>
 <url><loc>https://oathwallet.org/tokens/defi-yield-protocol/avalanche</loc></url>
@@ -5092,6 +5129,7 @@
 <url><loc>https://oathwallet.org/tokens/wrapped-eeth/optimism</loc></url>
 <url><loc>https://oathwallet.org/tokens/wrapped-eeth/scroll</loc></url>
 <url><loc>https://oathwallet.org/tokens/wrapped-eeth/unichain</loc></url>
+<url><loc>https://oathwallet.org/tokens/wrapped-eeth/plasma</loc></url>
 <url><loc>https://oathwallet.org/tokens/bware-infra</loc></url>
 <url><loc>https://oathwallet.org/tokens/bware-infra/avalanche</loc></url>
 <url><loc>https://oathwallet.org/tokens/bware-infra/ethereum</loc></url>
@@ -5597,7 +5635,9 @@
 <url><loc>https://oathwallet.org/tokens/portal-2/solana</loc></url>
 <url><loc>https://oathwallet.org/tokens/jooce/base</loc></url>
 <url><loc>https://oathwallet.org/tokens/degenos/base</loc></url>
+<url><loc>https://oathwallet.org/tokens/stargate-bridged-usdt0</loc></url>
 <url><loc>https://oathwallet.org/tokens/stargate-bridged-usdt0/base</loc></url>
+<url><loc>https://oathwallet.org/tokens/stargate-bridged-usdt0/worldchain</loc></url>
 <url><loc>https://oathwallet.org/tokens/based-fwog/base</loc></url>
 <url><loc>https://oathwallet.org/tokens/roxy-frog/base</loc></url>
 <url><loc>https://oathwallet.org/tokens/pollo/base</loc></url>
@@ -5639,7 +5679,9 @@
 <url><loc>https://oathwallet.org/tokens/dropee/gram</loc></url>
 <url><loc>https://oathwallet.org/tokens/niyoko-by-virtuals/base</loc></url>
 <url><loc>https://oathwallet.org/tokens/cloudland/base</loc></url>
+<url><loc>https://oathwallet.org/tokens/wrapped-doge-universal</loc></url>
 <url><loc>https://oathwallet.org/tokens/wrapped-doge-universal/base</loc></url>
+<url><loc>https://oathwallet.org/tokens/wrapped-doge-universal/worldchain</loc></url>
 <url><loc>https://oathwallet.org/tokens/magics/base</loc></url>
 <url><loc>https://oathwallet.org/tokens/basefrog/base</loc></url>
 <url><loc>https://oathwallet.org/tokens/the-based-white-whale/base</loc></url>
@@ -5738,6 +5780,7 @@
 <url><loc>https://oathwallet.org/tokens/idrx/gnosis</loc></url>
 <url><loc>https://oathwallet.org/tokens/idrx/polygon</loc></url>
 <url><loc>https://oathwallet.org/tokens/idrx/solana</loc></url>
+<url><loc>https://oathwallet.org/tokens/idrx/worldchain</loc></url>
 <url><loc>https://oathwallet.org/tokens/propy</loc></url>
 <url><loc>https://oathwallet.org/tokens/propy/base</loc></url>
 <url><loc>https://oathwallet.org/tokens/propy/ethereum</loc></url>
@@ -6489,6 +6532,7 @@
 <url><loc>https://oathwallet.org/tokens/metronome-synth-usd/base</loc></url>
 <url><loc>https://oathwallet.org/tokens/metronome-synth-usd/ethereum</loc></url>
 <url><loc>https://oathwallet.org/tokens/metronome-synth-usd/optimism</loc></url>
+<url><loc>https://oathwallet.org/tokens/metronome-synth-usd/plasma</loc></url>
 <url><loc>https://oathwallet.org/tokens/based-pepe/base</loc></url>
 <url><loc>https://oathwallet.org/tokens/tree-capital</loc></url>
 <url><loc>https://oathwallet.org/tokens/tree-capital/base</loc></url>
@@ -7026,6 +7070,7 @@
 <url><loc>https://oathwallet.org/tokens/metronome-synth-eth/base</loc></url>
 <url><loc>https://oathwallet.org/tokens/metronome-synth-eth/ethereum</loc></url>
 <url><loc>https://oathwallet.org/tokens/metronome-synth-eth/optimism</loc></url>
+<url><loc>https://oathwallet.org/tokens/metronome-synth-eth/plasma</loc></url>
 <url><loc>https://oathwallet.org/tokens/cosmic-on-base/base</loc></url>
 <url><loc>https://oathwallet.org/tokens/j3ff-by-virtuals/base</loc></url>
 <url><loc>https://oathwallet.org/tokens/draiftking/base</loc></url>
@@ -8676,6 +8721,7 @@
 <url><loc>https://oathwallet.org/tokens/dna-token</loc></url>
 <url><loc>https://oathwallet.org/tokens/dna-token/base</loc></url>
 <url><loc>https://oathwallet.org/tokens/dna-token/robinhood-chain</loc></url>
+<url><loc>https://oathwallet.org/tokens/dna-token/worldchain</loc></url>
 <url><loc>https://oathwallet.org/tokens/dolphin-2/base</loc></url>
 <url><loc>https://oathwallet.org/tokens/definitive/base</loc></url>
 <url><loc>https://oathwallet.org/tokens/roost/base</loc></url>
@@ -9954,50 +10000,4 @@
 <url><loc>https://oathwallet.org/tokens/occamfi/bnb-smart-chain</loc></url>
 <url><loc>https://oathwallet.org/tokens/occamfi/ethereum</loc></url>
 <url><loc>https://oathwallet.org/tokens/aria-2</loc></url>
-<url><loc>https://oathwallet.org/tokens/aria-2/bnb-smart-chain</loc></url>
-<url><loc>https://oathwallet.org/tokens/aria-2/story</loc></url>
-<url><loc>https://oathwallet.org/tokens/bort/bnb-smart-chain</loc></url>
-<url><loc>https://oathwallet.org/tokens/strikebit-ai/bnb-smart-chain</loc></url>
-<url><loc>https://oathwallet.org/tokens/xen-crypto-bsc/bnb-smart-chain</loc></url>
-<url><loc>https://oathwallet.org/tokens/shi-gong-mao/bnb-smart-chain</loc></url>
-<url><loc>https://oathwallet.org/tokens/ishares-tips-bond-etf-ondo-tokenized-etf</loc></url>
-<url><loc>https://oathwallet.org/tokens/ishares-tips-bond-etf-ondo-tokenized-etf/bnb-smart-chain</loc></url>
-<url><loc>https://oathwallet.org/tokens/ishares-tips-bond-etf-ondo-tokenized-etf/ethereum</loc></url>
-<url><loc>https://oathwallet.org/tokens/ishares-tips-bond-etf-ondo-tokenized-etf/solana</loc></url>
-<url><loc>https://oathwallet.org/tokens/winter-doge/bnb-smart-chain</loc></url>
-<url><loc>https://oathwallet.org/tokens/ge-vernova-ondo-tokenized</loc></url>
-<url><loc>https://oathwallet.org/tokens/ge-vernova-ondo-tokenized/bnb-smart-chain</loc></url>
-<url><loc>https://oathwallet.org/tokens/ge-vernova-ondo-tokenized/ethereum</loc></url>
-<url><loc>https://oathwallet.org/tokens/ge-vernova-ondo-tokenized/solana</loc></url>
-<url><loc>https://oathwallet.org/tokens/global-x-msci-argentina-etf-ondo-tokenized</loc></url>
-<url><loc>https://oathwallet.org/tokens/global-x-msci-argentina-etf-ondo-tokenized/bnb-smart-chain</loc></url>
-<url><loc>https://oathwallet.org/tokens/global-x-msci-argentina-etf-ondo-tokenized/ethereum</loc></url>
-<url><loc>https://oathwallet.org/tokens/global-x-msci-argentina-etf-ondo-tokenized/solana</loc></url>
-<url><loc>https://oathwallet.org/tokens/petrobras-ondo-tokenized-stock</loc></url>
-<url><loc>https://oathwallet.org/tokens/petrobras-ondo-tokenized-stock/bnb-smart-chain</loc></url>
-<url><loc>https://oathwallet.org/tokens/petrobras-ondo-tokenized-stock/ethereum</loc></url>
-<url><loc>https://oathwallet.org/tokens/petrobras-ondo-tokenized-stock/solana</loc></url>
-<url><loc>https://oathwallet.org/tokens/cakepie-xyz/bnb-smart-chain</loc></url>
-<url><loc>https://oathwallet.org/tokens/magic-square/bnb-smart-chain</loc></url>
-<url><loc>https://oathwallet.org/tokens/teekay-tankers-ondo-tokenized</loc></url>
-<url><loc>https://oathwallet.org/tokens/teekay-tankers-ondo-tokenized/bnb-smart-chain</loc></url>
-<url><loc>https://oathwallet.org/tokens/teekay-tankers-ondo-tokenized/ethereum</loc></url>
-<url><loc>https://oathwallet.org/tokens/teekay-tankers-ondo-tokenized/solana</loc></url>
-<url><loc>https://oathwallet.org/tokens/global-x-space-tech-etf-ondo-tokenized</loc></url>
-<url><loc>https://oathwallet.org/tokens/global-x-space-tech-etf-ondo-tokenized/bnb-smart-chain</loc></url>
-<url><loc>https://oathwallet.org/tokens/global-x-space-tech-etf-ondo-tokenized/ethereum</loc></url>
-<url><loc>https://oathwallet.org/tokens/global-x-space-tech-etf-ondo-tokenized/solana</loc></url>
-<url><loc>https://oathwallet.org/tokens/vinuchain/bnb-smart-chain</loc></url>
-<url><loc>https://oathwallet.org/tokens/benyke-finance/bnb-smart-chain</loc></url>
-<url><loc>https://oathwallet.org/tokens/akedo/bnb-smart-chain</loc></url>
-<url><loc>https://oathwallet.org/tokens/hf-realx/bnb-smart-chain</loc></url>
-<url><loc>https://oathwallet.org/tokens/toptrade/bnb-smart-chain</loc></url>
-<url><loc>https://oathwallet.org/tokens/lucky-block</loc></url>
-<url><loc>https://oathwallet.org/tokens/lucky-block/bnb-smart-chain</loc></url>
-<url><loc>https://oathwallet.org/tokens/lucky-block/ethereum</loc></url>
-<url><loc>https://oathwallet.org/tokens/squadswap/bnb-smart-chain</loc></url>
-<url><loc>https://oathwallet.org/tokens/crypstocksai/bnb-smart-chain</loc></url>
-<url><loc>https://oathwallet.org/tokens/baby-bnb/bnb-smart-chain</loc></url>
-<url><loc>https://oathwallet.org/tokens/kyuzo-s-friends/bnb-smart-chain</loc></url>
-<url><loc>https://oathwallet.org/tokens/lemon-2/bnb-smart-chain</loc></url>
 </urlset>

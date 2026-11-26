@@ -10,8 +10,8 @@ const env={ASSETS:{async fetch(req){try{return new Response(await readFile(new U
 
 test('every catalog network has a crawlable guide, real logo and canonical route',async()=>{
  const titles=new Set();const descriptions=new Set();const sitemap=await read('sitemaps/pages.xml');
- assert.equal(catalog.networks.length,42);
- assert.equal(new Set(catalog.networks.map(n=>n.slug)).size,42);
+ assert.equal(catalog.networks.length,45);
+ assert.equal(new Set(catalog.networks.map(n=>n.slug)).size,45);
  for(const n of catalog.networks){
   const url='https://oathwallet.org/networks/'+n.slug;
   const response=await worker.fetch(new Request(url),env);
@@ -33,7 +33,7 @@ test('every catalog network has a crawlable guide, real logo and canonical route
   const md=await worker.fetch(new Request(url+'.md'),env);
   assert.equal(md.status,200);assert.ok(md.headers.get('Link').includes(url));
  }
- assert.equal(titles.size,42);assert.equal(descriptions.size,42);
+ assert.equal(titles.size,45);assert.equal(descriptions.size,45);
  const missing=await worker.fetch(new Request('https://oathwallet.org/networks/not-a-network'),env);assert.equal(missing.status,404);
 });
 
@@ -77,7 +77,7 @@ test('directory search and family filters combine, reset and preserve TON aliase
  runInNewContext(await read('network-guides.js'),{document});
  input.value='ton';input.events.input();assert.ok(cards.some(c=>!c.hidden&&c.dataset.networkKeywords.includes('Gram')));
  filters.find(f=>f.dataset.networkFilter==='EVM').events.click();assert.equal(cards.filter(c=>!c.hidden).length,0);assert.equal(empty.hidden,false);
- reset.events.click();assert.equal(cards.filter(c=>!c.hidden).length,42);assert.equal(input.focused,true);assert.equal(empty.hidden,true);
+ reset.events.click();assert.equal(cards.filter(c=>!c.hidden).length,45);assert.equal(input.focused,true);assert.equal(empty.hidden,true);
  filters.find(f=>f.dataset.networkFilter==='Bitcoin family').events.click();assert.equal(cards.filter(c=>!c.hidden).length,catalog.networks.filter(n=>n.group==='Bitcoin family').length);
  input.value='bitcoin';input.events.input();assert.ok(cards.filter(c=>!c.hidden).every(c=>c.dataset.networkGroup==='Bitcoin family'));
  input.value='no-such-chain';input.events.input();assert.equal(count.textContent,'0 networks');

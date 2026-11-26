@@ -6,55 +6,55 @@ Current product guidance and dated editorial archives.
 
 Send native USDC from Coinbase to Oath on Base. Match the network, review the fee, check the transaction and troubleshoot a pending withdrawal.
 
-English · Published 2026-11-09 · Updated 2026-11-09
+English · Published 2026-11-09 · Updated 2026-11-26
 
 ## [Withdraw Bitcoin from Kraken to Oath on iPhone](https://articles.oathwallet.org/withdraw-bitcoin-kraken-to-oath-iphone)
 
 Withdraw BTC from Kraken to your Oath Bitcoin wallet on iPhone. Check the on-chain network, address, fee, confirmations and withdrawal holds.
 
-English · Published 2026-11-09 · Updated 2026-11-09
+English · Published 2026-11-09 · Updated 2026-11-26
 
 ## [Withdraw USDT from Binance to Oath on TRON](https://articles.oathwallet.org/withdraw-usdt-binance-to-oath-tron)
 
 Move USDT from the Binance app to Oath on TRON. Match TRC20, check the withdrawal fee and recipient amount, then follow the transaction if it is pending.
 
-English · Published 2026-11-09 · Updated 2026-11-09
+English · Published 2026-11-09 · Updated 2026-11-26
 
 ## [Oath Wallet release history and current version](https://articles.oathwallet.org/oath-wallet-release-history)
 
-Check Oath’s current App Store version, dated release evidence, historical source records and version-specific wallet guides before relying on a feature.
+Oath Wallet 5.1.1, build 111: release notes, current source evidence, product guides and the official download link.
 
-English · Published 2026-11-06 · Updated 2026-11-25
+English · Published 2026-11-06 · Updated 2026-11-26
 
 ## [Move from Trust Wallet to Oath](https://articles.oathwallet.org/move-from-trust-wallet-to-oath)
 
 Import compatible Trust Wallet accounts on iPhone. Check EVM, Bitcoin, TRON and Solana paths, supported assets and recovery limits before you switch.
 
-English · Published 2026-11-06 · Updated 2026-11-10
+English · Published 2026-11-06 · Updated 2026-11-26
 
 ## [Restore an Electrum Bitcoin Wallet on iPhone](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone)
 
 Restore supported Electrum Bitcoin seeds in Oath. Check Standard, SegWit and old seed formats, extensions, change addresses and recovery limits.
 
-English · Published 2026-11-06 · Updated 2026-11-10
+English · Published 2026-11-06 · Updated 2026-11-26
 
 ## [Use an Existing MetaMask Wallet in Oath](https://articles.oathwallet.org/use-metamask-wallet-in-oath)
 
 Use a compatible MetaMask EVM account in Oath on iPhone. Compare phrase and private-key imports, additional accounts, networks and asset compatibility.
 
-English · Published 2026-11-06 · Updated 2026-11-10
+English · Published 2026-11-06 · Updated 2026-11-26
 
 ## [Binance Lost $6.3 Billion. Who Signed the Withdrawals?](https://articles.oathwallet.org/binance-withdrawals-who-signed)
 
 Most of the money moved in about twenty minutes. The blockchain recorded valid instructions. The harder question was who had the power to give them.
 
-English · Published 2026-11-01 · Updated 2026-11-01
+English · Published 2026-11-01 · Updated 2026-11-26
 
 ## [The Missing Link Between Open Source and the Wallet on Your Phone](https://articles.oathwallet.org/open-source-wallets-verifiable-builds)
 
 What connects public source code to the app you install? A practical guide to reproducible builds, signed releases, App Store approval, and Oath’s current evidence.
 
-English · Published 2026-10-19 · Updated 2026-11-05
+English · Published 2026-10-19 · Updated 2026-11-26
 
 ## [Your Crypto, Their Permission: The $388 Million Bitget Wake-Up Call](https://oathwallet.org/articles/bitget-388-million-hack-self-custody)
 
@@ -66,13 +66,13 @@ English · Published 2026-09-28 · Updated 2026-09-28
 
 Compare bc1q, bc1p, 3 and 1 Bitcoin addresses. Learn which receiving format to choose in Oath and how account, change and address indexes affect recovery.
 
-English · Published 2026-09-11 · Updated 2026-11-16
+English · Published 2026-09-11 · Updated 2026-11-26
 
 ## [WalletConnect in Oath: Review the Request, Control the Permission](https://oathwallet.org/articles/why-oath-has-no-swaps-perps-web3-walletconnect)
 
 Oath now supports WalletConnect. Understand the difference between a session, a signature and an on-chain approval.
 
-English · Published 2026-09-04 · Updated 2026-11-02
+English · Published 2026-09-04 · Updated 2026-11-26
 
 ## [Coldcard’s Weak-Seed Crisis: Complexity Is Not the Same as Security](https://oathwallet.org/articles/coldcard-weak-seed-crisis-complexity-verifiable-wallet-security)
 
@@ -180,25 +180,25 @@ English · Published 2026-08-31 · Updated 2026-08-31
 
 Choose access controls deliberately and keep a separate recovery method.
 
-English · Published 2026-08-31 · Updated 2026-11-02
+English · Published 2026-08-31 · Updated 2026-11-26
 
 ## [Oath’s Current Security Model: Local Keys and Explicit Network Boundaries](https://oathwallet.org/articles/what-never-leaves-iphone-oath-self-custody-security-model)
 
 Understand the protected local vault, password-encrypted backups, and what public network requests reveal.
 
-English · Published 2026-08-31 · Updated 2026-11-02
+English · Published 2026-08-31 · Updated 2026-11-26
 
 ## [Receive Crypto Safely: Match the Network and Address](https://oathwallet.org/articles/receive-crypto-safely-network-address-qr-requested-amounts)
 
 Use the address displayed for your selected wallet and exact asset network.
 
-English · Published 2026-08-31 · Updated 2026-11-02
+English · Published 2026-08-31 · Updated 2026-11-26
 
 ## [Why Bitcoin Receiving Addresses Change](https://oathwallet.org/articles/why-bitcoin-wallets-generate-fresh-receiving-addresses)
 
 A fresh address can belong to the same supported HD wallet; verify the wallet and network.
 
-English · Published 2026-08-30 · Updated 2026-11-02
+English · Published 2026-08-30 · Updated 2026-11-26
 
 ## [One Wallet, Many Mainnets: How Oath Keeps Accounts and Networks Separate](https://oathwallet.org/articles/one-wallet-many-mainnets-accounts-networks-separate)
 
@@ -210,7 +210,7 @@ English · Published 2026-08-30 · Updated 2026-08-30
 
 Match the recovery format, network and required passphrase to the original wallet.
 
-English · Published 2026-08-30 · Updated 2026-11-02
+English · Published 2026-08-30 · Updated 2026-11-26
 
 ## [Where Crypto Network Fees Actually Go](https://oathwallet.org/articles/where-crypto-network-fees-actually-go)
 
@@ -220,12 +220,12 @@ English · Published 2026-08-30 · Updated 2026-08-30
 
 ## [Backup and Restore in Oath: Files, Passwords and Recovery Words](https://oathwallet.org/articles/backup-restore-oath-wallet)
 
-Choose a recovery method supported by 5.0.0 and verify it before replacing or erasing your phone.
+Choose a recovery method supported by 5.1.1 and verify it before replacing or erasing your phone.
 
-English · Published 2026-08-30 · Updated 2026-11-02
+English · Published 2026-08-30 · Updated 2026-11-26
 
 ## [BIP39 Passphrases and Electrum Seed Extensions in Oath](https://oathwallet.org/articles/add-bip39-passphrase-oath-wallet)
 
 A passphrase derives another wallet; it is not an app lock or backup-file password.
 
-English · Published 2026-08-30 · Updated 2026-11-02
+English · Published 2026-08-30 · Updated 2026-11-26

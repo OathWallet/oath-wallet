@@ -5,7 +5,6 @@ import networkCatalog from '../content/networks.json' with {type:'json'};
 import help from './help/content.json' with {type:'json'};
 import facts from '../public/oath-data.json' with {type:'json'};
 import evidence from '../content/release-evidence.json' with {type:'json'};
-import distribution from '../../releases/5.0.2-distribution.json' with {type:'json'};
 import publishedSource from '../content/published-source-release.json' with {type:'json'};
 import appStore from '../content/app-store-release.json' with {type:'json'};
 import providers from '../content/ai-providers.json' with {type:'json'};
@@ -20,7 +19,7 @@ const pageSummaries={index:'Official Oath Wallet product information, features, 
 export const documents=[
  ...compatibility.pages.map(p=>({url:main+p.path,markdown_url:main+p.path+'.md',title:p.title,summary:p.description,kind:'compatibility',file:p.path+'.md',updated_at:p.updated})),
  ...decisionGuides.pages.map(p=>({url:main+p.path,markdown_url:main+p.path+'.md',title:p.title,summary:p.description,kind:'decision-guide',file:p.path+'.md',updated_at:decisionGuides.updated})),
- ...featureCatalog.features.map(f=>({url:main+f.path,markdown_url:main+f.path+'.md',title:f.name,summary:f.description,kind:'feature',file:f.path+'.md',updated_at:featureCatalog.reviewed,app_version:featureCatalog.version})),
+ ...featureCatalog.features.map(f=>({url:main+f.path,markdown_url:main+f.path+'.md',title:f.name,summary:f.description,kind:'feature',file:f.path+'.md',updated_at:featureCatalog.reviewed,app_version:featureCatalog.version,app_build:featureCatalog.build})),
  ...networkCatalog.networks.map(n=>({url:main+'/networks/'+n.slug,markdown_url:main+'/networks/'+n.slug+'.md',title:n.name+' wallet: send, receive and dApp connections',summary:n.intro,kind:'network',file:'/networks/'+n.slug+'.md',updated_at:networkCatalog.reviewed})),
  ...pages.map(p=>({url:main+(p==='index'?'/':'/'+p),markdown_url:main+'/'+p+'.md',title:p==='index'?'Oath Wallet':p==='ai'?'Oath Wallet: official guide for AI readers and developers':p[0].toUpperCase()+p.slice(1),summary:pageSummaries[p],kind:'page',file:'/'+p+'.md',...(p==='ai'?{updated_at:'2026-11-25'}:{})})),
  {url:'https://news.oathwallet.org/',markdown_url:'https://news.oathwallet.org/index.md',title:'Oath Notes — The Oath Wallet newsletter',summary:'Wallet releases, security alerts, market context and practical guides from the Oath team, with email topic preferences.',kind:'newsletter',file:'/news/index.md',updated_at:'2026-11-25'},
@@ -36,16 +35,17 @@ export const documents=[
 export const publicDocument=d=>({language:'en',...Object.fromEntries(Object.entries(d).filter(([k,v])=>!['file','id'].includes(k)&&v!==undefined))});
 export const evidenceScope={version:evidence.version,build:evidence.build,reviewed_on:evidence.reviewed_on,source_url:`https://github.com/OathWallet/oath-wallet/tree/${evidence.source_commit}`,scope:'Pinned source excerpts, not an independent audit or confirmation of the current App Store version.',app_store_url:facts.facts.download};
 // Release identity, excerpt verification and review coverage are separate facts.
-export const currentStatus={schema_version:2,checked_on:appStore.checked_on,name:facts.name,
- version:appStore.version,build:appStore.build,distribution_status:appStore.status,
- release_url:appStore.url,source_commit:null,distribution_evidence_url:appStore.evidence_url,
+export const currentStatus={schema_version:2,checked_on:publishedSource.checked_on,name:facts.name,
+ version:publishedSource.version,build:publishedSource.build,distribution_status:'SOURCE_RELEASE_PUBLISHED',
+ release_url:publishedSource.release_url,source_commit:publishedSource.source_commit,
+ distribution_evidence_url:`https://github.com/OathWallet/oath-wallet/releases/download/${publishedSource.source_tag}/${publishedSource.version}-source.json`,
  app_store:appStore,
  published_source:publishedSource,
- guide_source:{version:distribution.version,build:distribution.build,source_commit:distribution.source_commit,
+ guide_source:{version:publishedSource.version,build:publishedSource.build,source_commit:publishedSource.source_commit,
   release_url:facts.security.release_record,scope:'Pinned source used by the existing product guides; not a verified match to the current App Store binary.'},
  security_review:facts.security.published_review,review:facts.security.published_review,source_evidence:evidenceScope,
- compatibility:{deprecated_fields:['version','build','distribution_status','release_url','source_commit','distribution_evidence_url','review'],note:'Use app_store, published_source and security_review. An unknown App Store build or binary-to-source correspondence is null.'}};
-export const statusText=()=>`Latest source release: Oath Wallet ${publishedSource.version}, build ${publishedSource.build}.\nCurrent App Store listing: Oath Wallet ${currentStatus.version}. Checked ${currentStatus.checked_on} (${appStore.storefront} storefront). Approved build number: not publicly verified.\nApp Store: ${appStore.url}\nDistribution evidence: ${appStore.evidence_url}\nRelease metadata: ${main}/release-status.json\nPublished source release: ${publishedSource.version} (${publishedSource.build}); ${publishedSource.release_url}\nGuide source: ${distribution.version} (${distribution.build}); ${currentStatus.guide_source.release_url}\nPublished security review: ${currentStatus.review.url}\nReview scope: ${currentStatus.review.kind}. ${currentStatus.review.limitations}\nEach result retains its tested source revision. Historical articles, screenshots and catalog snapshots retain their recorded versions.\n`;
+ compatibility:{deprecated_fields:['distribution_status','distribution_evidence_url','review'],note:'Version and build identify the published release. Check app_store.url for storefront availability; no App Store binary correspondence is asserted.'}};
+export const statusText=()=>`Current release: Oath Wallet ${publishedSource.version}, build ${publishedSource.build}.\nRelease: ${publishedSource.release_url}\nApp Store availability: ${appStore.url}\nRelease metadata: ${main}/release-status.json\nGuide source: ${publishedSource.version} (${publishedSource.build}); ${currentStatus.guide_source.release_url}\nPublished security review: ${currentStatus.review.url}\nReview scope: ${currentStatus.review.kind}. ${currentStatus.review.limitations}\nHistorical captures illustrate workflows; their dates do not establish current runtime coverage.\n`;
 const link=d=>`- [${d.title}](${d.markdown_url})${d.summary?': '+d.summary:''}`;
 export function guide(origin) {
  if(!publicOrigins.includes(origin))throw Error('Unknown documentation host');
@@ -72,7 +72,7 @@ export async function documentText(d,env,asset) {
  }
  body=migrateArticleLinks(body).replace(/\]\((\/[^)]+)\)/g,(_,path)=>`](${new URL(path,main).href})`);
  body=body.replace(/^[-*][ \t]*\n(?:[ \t]*\n)+(?=\S)/gm,'- ').replace(/[ \t]+$/gm,'');
- return `Canonical: ${d.url}\n${d.updated_at?'Updated: '+d.updated_at+'\n':''}${d.app_version?'Applies to app version: '+d.app_version+'\n':''}\n${body.trim()}\n`;
+ return `Canonical: ${d.url}\nCurrent Oath release: ${publishedSource.version} (build ${publishedSource.build}).\n${d.updated_at?'Updated: '+d.updated_at+'\n':''}${d.app_version?'Applies to app version: '+d.app_version+'\n':''}\n${body.trim()}\n`;
 }
 export function searchHelp(query) {
  const words=query.toLowerCase().match(/[\p{L}\p{N}]+/gu)||[];

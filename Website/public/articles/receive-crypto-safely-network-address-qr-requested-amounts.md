@@ -8,7 +8,7 @@ Use the address displayed for your selected wallet and exact asset network.
 
 ## Guide source version
 
-Checked against [Oath 5.0.0 (102) source](https://github.com/OathWallet/oath-wallet/tree/7eabd04a6f3273fa4ed7ce4108ac4ac683b2a108). Older screenshots are illustrative.
+Checked against [Oath 5.1.1 (111) source](https://github.com/OathWallet/oath-wallet/tree/87c783cf929c4282ba50daf2cc056f25c6a4d469). Older screenshots are illustrative.
 
 ## Select the wallet and network
 
@@ -20,10 +20,10 @@ Use the app’s copy action or QR code. Compare the complete destination on trus
 
 ## Understand address types
 
-Bitcoin formats depend on the imported material. A fresh receiving address can belong to the same wallet. Silent Payments receiving and discovery are not supported in 5.0.0; old sp1 examples are not current setup instructions.
+Bitcoin formats depend on the imported material. A fresh receiving address can belong to the same wallet. Silent Payments receiving and discovery are not supported in 5.1.1; old sp1 examples are not current setup instructions.
 
 ## Confirm the deposit
 
 Check the transaction on the correct network and allow the app to refresh. A QR code or successful address copy does not prove that a transfer occurred. Never send funds to an address shown only in a help screenshot.
 
-Read the [security model](https://oathwallet.org/security), [Help Center](https://help.oathwallet.org/), and [release verification record](https://github.com/OathWallet/oath-wallet/releases/tag/v5.0.0-build102-r3).
+Read the [security model](https://oathwallet.org/security), [Help Center](https://help.oathwallet.org/), and [release verification record](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111-r3).

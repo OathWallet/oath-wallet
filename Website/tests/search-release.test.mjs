@@ -25,7 +25,7 @@ test('issuer evidence matches all 40 released entries and cannot verify replacem
       assert.match(productIdentity({coinID,slug:slugs.get(coinID)},entry,escapeHTML),/Catalog record only/);
     }
     const overview='/tokens/'+slugs.get(coinID);
-    assert.equal(priorityUpdated(overview),guide.symbol==='TXNx'?'2026-11-16':'2026-11-10');
+    assert.equal(priorityUpdated(overview),guide.symbol==='TXNx'?'2026-11-26':'2026-11-10');
     assert.equal(priorityUpdated(overview+'/arbitrum'),'2026-11-10');
     assert.ok((await readPublic(guidePreview('/tokens/'+slugs.get(coinID)).slice(1))).length>0);
   }
@@ -51,10 +51,10 @@ test('Apple campaign URLs preserve the app ID and existing attribution and revie
   }
 });
 test('edition describes both downloadable files and provides addressable evidence for the migration guides',async()=>{
-  const html=(await readPublic('compatibility/2026-11-09.html')).toString();
+  const html=(await readPublic('compatibility/2026-11-26.html')).toString();
   const graph=[...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].flatMap(m=>JSON.parse(m[1])['@graph']||[]);
   const dataset=graph.find(x=>x['@type']==='Dataset');
-  assert.equal(dataset.version,'2026-11-09');
+  assert.equal(dataset.version,'2026-11-26');
   assert.equal(dataset.distribution.length,2);
   for(const download of dataset.distribution)assert.ok((await readPublic(new URL(download.contentUrl).pathname.slice(1))).length);
   for(const id of ['citation','trust-evm','metamask-later','electrum-segwit'])assert.ok(html.includes('id="'+id+'"'));

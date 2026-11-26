@@ -1,7 +1,7 @@
 {
   "format": 1,
-  "version": "c5585255fe186465",
-  "prefix": "/token-artwork-data/c5585255fe186465",
+  "version": "8868e914aca4223e",
+  "prefix": "/token-artwork-data/8868e914aca4223e",
   "entries": 31793,
   "reviewed": "2026-11-06",
   "networks": {
@@ -36,7 +36,6 @@
     "sui": 159,
     "taiko": 6,
     "telos": 8,
-    "thorchain": 0,
     "ton": 906,
     "tron": 94,
     "unichain": 39,

@@ -23,7 +23,7 @@ Open the intended wallet in Oath. Find **Tether (USDT) on TRON**, open **Receive
 
 ![Oath Receive Tether screen showing USDT on TRON and an example QR code](https://articles.oathwallet.org/assets/articles/editorials/withdraw-usdt-binance-to-oath-tron/oath-receive.webp)
 
-Actual Oath 5.0.2 (104) simulator capture with a mock address. Never send funds to the address or QR code in this screenshot. Copy from your own wallet inside Oath.
+Historical Oath simulator capture with a mock address. Never send funds to the address or QR code in this screenshot. Copy from your own wallet inside Oath.
 
 A regular Binance exchange balance cannot be imported into Oath with an exchange password. Withdrawal moves assets to the receiving wallet; it does not transfer your Binance account, trading history or security settings. Have access to your Oath wallet’s recovery method before using it for funds you need to keep.
 
@@ -64,7 +64,7 @@ Binance describes these stages in [Why hasn’t my withdrawal arrived?](https://
 
 ## Review and next steps
 
-Reviewed **November 9, 2026** against the linked exchange documentation, token issuer information and [Oath 5.0.2 (104) receiving implementation](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Home/OathReceiveSheet.swift). The image shows the real app with mock data. We did not perform a funded Binance withdrawal for this guide or verify availability inside an individual Binance account.
+Source references updated **November 26, 2026**. The original external-documentation review was on **November 9, 2026**. The references cover the linked exchange documentation, token issuer information and [Oath 5.1.1 (111) receiving implementation](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Home/OathReceiveSheet.swift). The image shows the real app with mock data. We did not perform a funded Binance withdrawal for this guide or verify availability inside an individual Binance account.
 
 Oath publishes this guide independently; it does not imply a Binance partnership. Use the exchange’s official app or support links for account verification. Neither this page nor an Oath support conversation needs your recovery phrase, private key or exchange authentication code.
 

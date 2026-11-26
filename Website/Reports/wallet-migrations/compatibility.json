@@ -1,8 +1,8 @@
 {
-  "checkedAt": "2026-11-06T10:37:55.076Z",
-  "version": "5.0.2",
-  "build": 104,
-  "sourceCommit": "7ffd0f449c3312d9fafd01eda59c6b9eb813f9ca",
+  "checkedAt": "2026-11-26T09:54:08.151Z",
+  "version": "5.1.1",
+  "build": 111,
+  "sourceCommit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
   "walletCore": "4.8.4",
   "method": "Released-source path comparison plus upstream Wallet Core WASM public fixtures. This does not execute the iOS app importer.",
   "checks": [
@@ -28,7 +28,7 @@
   "sources": [
     {
       "path": "OathAtmosphere/Wallet/OathWalletEngine.swift",
-      "sha256": "cdd37ba5790ca3c09eab2b0b03e5a5e83d6b47cc3ea66293de02c2b1376ea946"
+      "sha256": "14b1c7563eaadb73fb1f14d7c89a80770926c71924dd29b85ae02113208084f9"
     },
     {
       "path": "OathAtmosphere/Wallet/OathPrivateKeyImport.swift",
@@ -36,7 +36,7 @@
     },
     {
       "path": "OathAtmosphere/Wallet/OathSolanaWallet.swift",
-      "sha256": "4a2fc4bd1431eb8a8419bb797a1b9132dcb88c3ce79215d83002f0ac2092a685"
+      "sha256": "329f2ee36a39e5a2d99033d9fb86c3da6066cabf874420e17ba02de312773bba"
     },
     {
       "path": "OathAtmosphere/Wallet/OathBitcoinWallet.swift",
@@ -44,11 +44,11 @@
     },
     {
       "path": "OathAtmosphere/Import/OathRecoveryPhraseScreen.swift",
-      "sha256": "6dc77cd30deafb02fe9aac2ea3a739e30ff9103f371ae09ecd33f2b234f0fdc4"
+      "sha256": "0826a0f70433712d82bc12e7be03433f3c22674ad0ee73746ed80f8041d89dcd"
     },
     {
       "path": "OathAtmosphere/Home/OathWalletSheets.swift",
-      "sha256": "5c1d734ec239965415dbdf62bdc80fbb59b888c06ac93d9314a168b6783c4e0d"
+      "sha256": "e2c9b99eab66afca386d88cf3f928ad71b20a2f464b46760b5fb894ccaeb4f5f"
     },
     {
       "path": "OathAtmosphere/Wallet/OathPassphraseWalletModel.swift",
@@ -56,7 +56,7 @@
     },
     {
       "path": "Packages/OathDatabase/Sources/OathDatabase/SolanaReceive.swift",
-      "sha256": "b70d4d1920fb40726e82d31edd2a1f94cc9ef09c88017d104bd3ebbb5ec64672"
+      "sha256": "119bde78ccdab309dfc4dd0ec390565aa1005f76b1abaffe6cdce964a1c87a0d"
     },
     {
       "path": "Packages/WalletCore/registry-4.8.4.json",
@@ -103,6 +103,5 @@
     "physical device tests",
     "live funded transfers",
     "all source-wallet versions or configurations"
-  ],
-  "sourceReference": "d039b009d8c81b0497f2ac7e6abebfdf54ff8612"
+  ]
 }

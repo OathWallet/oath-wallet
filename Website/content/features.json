@@ -1,9 +1,9 @@
 {
   "format": 1,
-  "version": "5.0.2",
-  "build": 104,
-  "sourceCommit": "d039b009d8c81b0497f2ac7e6abebfdf54ff8612",
-  "reviewed": "2026-11-06",
+  "version": "5.1.1",
+  "build": 111,
+  "sourceCommit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
+  "reviewed": "2026-11-26",
   "features": [
     {
       "slug": "revoke-token-approvals",
@@ -18,7 +18,7 @@
         "path": "/help/assets/guide-permission-list.webp",
         "alt": "Oath token-access screen with example permissions grouped by network",
         "caption": "Actual app screen with synthetic allowances. This capture does not show a completed revocation.",
-        "version": "Oath 4.0.3",
+        "version": "Historical app capture",
         "width": 1320,
         "height": 2868,
         "sha256": "82fb2d8c820e4faf3443eaaaf686708fa749737f5ae436cea4f3f58e5fcb44c2"
@@ -145,7 +145,7 @@
         },
         {
           "path": "Packages/OathAnkr/Sources/OathAnkr/PermissionDiscovery.swift",
-          "sha256": "b9056f439d0d22b16cf3b71fc341c5af1c54993b524d9627b528958800b66255"
+          "sha256": "7c3ac391fb86724f8acd92ffec7ea744a0e722489a78fb8b8440e621d5305466"
         }
       ],
       "legacyIds": [
@@ -177,7 +177,7 @@
         "path": "/help/assets/guide-help-backup-password.webp",
         "alt": "Oath Encrypt Your Backup screen with empty password and confirmation fields",
         "caption": "Actual app screen with empty password fields. This capture does not demonstrate a completed iCloud upload.",
-        "version": "Oath 4.0.3",
+        "version": "Historical app capture",
         "width": 1320,
         "height": 2868,
         "sha256": "5418c387ed5fd39aae644704bdb69567d0ce29c81d96abd55967ae518845a879"
@@ -197,7 +197,7 @@
         }
       ],
       "scopeTitle": "Know what your backup covers.",
-      "scopeIntro": "Backup availability depends on the wallet type, app version and iCloud Drive access. This page describes Oath 5.0.2 (104).",
+      "scopeIntro": "Backup availability depends on the wallet type, app version and iCloud Drive access. This page describes Oath 5.1.1 (111).",
       "scope": [
         {
           "label": "Eligible active wallets",
@@ -288,15 +288,15 @@
         },
         {
           "path": "OathAtmosphere/Wallet/OathWalletVault.swift",
-          "sha256": "1b0b5fcd4d6fdd57e59c97008c16e52b7f282544e195a5259f8a6159bf5f8852"
+          "sha256": "79638c12f299491f0a2574176f2940f28b0ad352e341f2cae30a72af6ca72f88"
         },
         {
           "path": "OathAtmosphere/Wallet/OathVaultEnvelope.swift",
-          "sha256": "227900c01f8eab10d5f0e629d1ff2230378fd2cec95372f7e501d95914ee461d"
+          "sha256": "c100513bc9b44145ae511f1e98f8640831b179fa475b698c279cd9152eb1cc38"
         },
         {
           "path": "Packages/OathCloudBackup/Sources/OathCloudBackup/BackupDocument.swift",
-          "sha256": "fb791336a451172f0f66bf10000cda2aef7dd43f613493a8113619ab5c61bf72"
+          "sha256": "81ca119c005ef509cb47408cd22103f9269b6dbc2f770456258987d02fbf914d"
         }
       ],
       "legacyIds": [
@@ -325,7 +325,7 @@
         "path": "/help/assets/guide-wc-connect.webp",
         "alt": "Oath WalletConnect proposal showing the website, selected wallet, networks and connection permissions",
         "caption": "Actual app screen showing an offline sample proposal. It does not establish a live connection, endorsement or completed transaction.",
-        "version": "Oath 4.0.3",
+        "version": "Historical app capture",
         "width": 1320,
         "height": 2868,
         "sha256": "870beb181c6fecad441f3f86b1ec5d4b89b8da89de4d117823a3abc96f40afa2"
@@ -458,7 +458,7 @@
         },
         {
           "path": "OathAtmosphere/Scanner/OathWalletConnectConnections.swift",
-          "sha256": "d74ff884ab46153800c96867d9fe8a4287d389dedc657260d945914809563d52"
+          "sha256": "5918d493e861a207d57763aea60d1271ba029ab7c61edfcbe65d050002546f1b"
         }
       ],
       "legacyIds": [],
@@ -486,14 +486,14 @@
     {
       "id": "every-language",
       "name": "57 app localizations",
-      "summary": "Oath 5.0.2 offers 57 interface localization choices, including Arabic, English, Japanese, and Brazilian and European Portuguese. The release registry gives the name and code of every choice.",
+      "summary": "Oath 5.1.1 offers 57 interface localization choices, including Arabic, English, Japanese, and Brazilian and European Portuguese. The release registry gives the name and code of every choice.",
       "url": "https://help.oathwallet.org/articles/language",
       "lookupTerms": [
         "language",
         "languages",
         "localizations"
       ],
-      "source_url": "https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/Design/Localization/languages.json"
+      "source_url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/Design/Localization/languages.json"
     },
     {
       "id": "open-source",
@@ -508,7 +508,7 @@
     {
       "id": "bitcoin-address-types",
       "name": "Bitcoin address options",
-      "summary": "Compatible Bitcoin wallets support Taproot, Native SegWit, nested SegWit and Legacy, depending on the imported material. Capabilities vary by network. Oath 5.0.2 does not support Silent Payments receiving or discovery; see the Silent Payments guide before relying on that feature.",
+      "summary": "Compatible Bitcoin wallets support Taproot, Native SegWit, nested SegWit and Legacy, depending on the imported material. Capabilities vary by network. Oath 5.1.1 does not support Silent Payments receiving or discovery; see the Silent Payments guide before relying on that feature.",
       "url": "https://help.oathwallet.org/articles/bitcoin-address-types",
       "lookupTerms": [
         "bitcoin address",

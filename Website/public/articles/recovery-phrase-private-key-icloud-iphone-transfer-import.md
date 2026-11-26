@@ -8,7 +8,7 @@ Match the recovery format, network and required passphrase to the original walle
 
 ## Guide source version
 
-Checked against [Oath 5.0.0 (102) source](https://github.com/OathWallet/oath-wallet/tree/7eabd04a6f3273fa4ed7ce4108ac4ac683b2a108). Older screenshots are illustrative.
+Checked against [Oath 5.1.1 (111) source](https://github.com/OathWallet/oath-wallet/tree/87c783cf929c4282ba50daf2cc056f25c6a4d469). Older screenshots are illustrative.
 
 ## Recovery phrase
 
@@ -24,10 +24,10 @@ Choose Import private key and the matching network. Ethereum & EVM groups compat
 
 ## iCloud backup
 
-Restore an eligible .oathbackup file with the password that encrypted it. Keep iCloud Drive available for download. Electrum and aezeed wallets are excluded from iCloud export in 5.0.0. The old passkey and nearby-device transfer instructions are not the current flow.
+Restore an eligible .oathbackup file with the password that encrypted it. Keep iCloud Drive available for download. Electrum and aezeed wallets are excluded from iCloud export in this release. The old passkey and nearby-device transfer instructions are not the current flow.
 
 ## Confirm the result
 
 Compare a known receiving address on the original network. Allow balances and history to refresh. If it differs, stop and check the original format, account path and passphrase before deleting the source wallet or assuming funds are missing.
 
-Read the [security model](https://oathwallet.org/security), [Help Center](https://help.oathwallet.org/), and [release verification record](https://github.com/OathWallet/oath-wallet/releases/tag/v5.0.0-build102-r3).
+Read the [security model](https://oathwallet.org/security), [Help Center](https://help.oathwallet.org/), and [release verification record](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111-r3).

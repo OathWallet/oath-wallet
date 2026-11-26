@@ -39,15 +39,15 @@ test('provider identities are sourced and News retains private-path restrictions
  assert.ok(news.includes('Disallow: /'));assert.ok(news.includes('Allow: /llms.txt$'));
 });
 test('release facts keep the App Store version, unknown build and reviewed source separate',()=>{
- assert.equal(currentStatus.published_source.version,'5.1.1');assert.equal(currentStatus.published_source.build,111);assert.equal(currentStatus.app_store.version,'5.1.0');assert.equal(currentStatus.app_store.build,null);
- assert.equal(currentStatus.guide_source.version,'5.0.2');assert.equal(currentStatus.guide_source.build,104);
- assert.equal(currentStatus.source_commit,null);assert.equal(currentStatus.security_review.independent_certification,false);
+ assert.equal(currentStatus.published_source.version,'5.1.1');assert.equal(currentStatus.published_source.build,111);assert.equal(currentStatus.app_store.version,null);assert.equal(currentStatus.app_store.build,null);
+ assert.equal(currentStatus.guide_source.version,'5.1.1');assert.equal(currentStatus.guide_source.build,111);
+ assert.equal(currentStatus.source_commit,currentStatus.published_source.source_commit);assert.equal(currentStatus.security_review.independent_certification,false);
 });
 test('MCP legacy clients retain initialization and current clients discover capabilities',async()=>{
  for(const v of versions.slice(1)){
   const r=await rpc('initialize',{protocolVersion:v,capabilities:{},clientInfo:{name:'legacy',version:'1'}},v);
   assert.equal(r.status,200);assert.equal(r.body.result.protocolVersion,v);
-  assert.equal((await rpc('tools/call',{name:'get_release_status'},v)).body.result.structuredContent.app_store.version,'5.1.0');
+  assert.equal((await rpc('tools/call',{name:'get_release_status'},v)).body.result.structuredContent.app_store.version,null);
  }
  const r=await rpc('server/discover');assert.equal(r.status,200);assert.deepEqual(r.body.result.supportedVersions,versions);assert.equal(r.body.result.resultType,'complete');
  assert.equal((await rpc('not/a/method')).status,404);
@@ -60,7 +60,7 @@ test('MCP rejects inconsistent modern headers, unsupported versions and foreign 
  assert.equal((await rpc('tools/list',{},'2026-07-28',{Origin:'https://untrusted.invalid'})).status,403);
  assert.equal((await rpc('tools/list',{},'2026-07-28',{Accept:'text/html'})).status,406);
  const name='get_release_status',encoded='=?base64?'+Buffer.from(name).toString('base64')+'?=';
- assert.equal((await rpc('tools/call',{name},'2026-07-28',{'Mcp-Name':encoded})).body.result.structuredContent.version,'5.1.0');
+ assert.equal((await rpc('tools/call',{name},'2026-07-28',{'Mcp-Name':encoded})).body.result.structuredContent.version,'5.1.1');
 });
 test('MCP resource pagination covers every editorial and catalog identity once',async()=>{
  const seen=new Set();let cursor;let pages=0;

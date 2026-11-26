@@ -8,7 +8,7 @@ import evidence from '../Reports/wallet-migrations/compatibility.json' with {typ
 const root=new URL('../../',import.meta.url);
 const read=p=>readFile(new URL(p,root),'utf8');
 test('migration scope is tied to the distributed release and exact reviewed source',async()=>{
- const distribution=JSON.parse(await read('releases/'+migrations.version+'-distribution.json'));
+ const distribution=JSON.parse(await read('Website/content/published-source-release.json'));
  assert.equal((distribution.source_reference ?? distribution.source_commit),migrations.sourceCommit);
  assert.equal((evidence.sourceReference ?? evidence.sourceCommit),migrations.sourceCommit);
  assert.equal(evidence.version,migrations.version);
@@ -34,7 +34,7 @@ test('every migration guide is discoverable from both features views and retains
   assert.ok(html.includes('role="region" aria-label="Article table" tabindex="0"'),'Overflowing tables need keyboard access');
   assert.ok(body.includes(migrations.sourceCommit));
   assert.ok(body.includes('## What we verified'));
-  assert.ok(body.includes('5.0.2 (104)'));
+  assert.ok(body.includes('5.1.1 (111)'));
   assert.ok(!/<(?:input|textarea|iframe)\b/i.test(html),'Recovery guide must not collect recovery material');
   assert.ok(!body.includes('abandon abandon'),'Public test recovery material belongs in test fixtures, not user instructions');
  }

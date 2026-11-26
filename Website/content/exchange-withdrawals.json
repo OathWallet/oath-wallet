@@ -1,9 +1,9 @@
 {
-  "reviewedOn": "2026-11-09",
+  "reviewedOn": "2026-11-26",
   "releasedApp": {
-    "version": "5.0.2",
-    "build": 104,
-    "sourceCommit": "d039b009d8c81b0497f2ac7e6abebfdf54ff8612"
+    "version": "5.1.1",
+    "build": 111,
+    "sourceCommit": "87c783cf929c4282ba50daf2cc056f25c6a4d469"
   },
   "verification": "Current official exchange documentation, issuer references and released Oath source reviewed. No authenticated exchange eligibility checks or funded withdrawals performed. Screenshots are actual app captures with mock data.",
   "guides": [

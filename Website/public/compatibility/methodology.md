@@ -1,12 +1,12 @@
 [Home](https://oathwallet.org/) / [Compatibility Lab](https://oathwallet.org/compatibility) / Methods
 
-Oath Wallet Compatibility Lab · 2026-11-11
+Oath Wallet Compatibility Lab · 2026-11-26
 
 # A result is only as useful as its evidence.
 
 How Oath reviews wallet recovery: pinned versions, public fixtures, reproducible checks and clear boundaries between source, core tests and observed behavior.
 
-[Compatibility matrix](https://oathwallet.org/compatibility)[Results · 2026-11-09](https://oathwallet.org/compatibility/2026-11-09)[Methods & reproduction](https://oathwallet.org/compatibility/methodology)
+[Compatibility matrix](https://oathwallet.org/compatibility)[Results · 2026-11-26](https://oathwallet.org/compatibility/2026-11-26)[Methods & reproduction](https://oathwallet.org/compatibility/methodology)
 
 Keep your recovery material private. This is a reference, not an import tool. It never asks for a recovery phrase or private key. Use the installed wallet’s recovery flow; never send recovery material with a correction or support request.
 
@@ -49,9 +49,9 @@ The runner uses only public fixtures already in the repository. Package installa
 ```sh
 git clone https://github.com/OathWallet/oath-wallet.git oath-lab
 cd oath-lab
-git worktree add --detach ../oath-5.0.2 d039b009d8c81b0497f2ac7e6abebfdf54ff8612
+git worktree add --detach ../oath-release 87c783cf929c4282ba50daf2cc056f25c6a4d469
 npm ci --prefix Website/compatibility --ignore-scripts
-node Website/compatibility/run.mjs ../oath-5.0.2 ../oath-lab-results
+node Website/compatibility/run.mjs ../oath-release ../oath-lab-results
 ```
 [Runner, pinned npm lockfile and reproduction notes](https://github.com/OathWallet/oath-wallet/tree/main/Website/compatibility). The runner accepts only the recorded clean source revision and refuses to overwrite an existing successful result. For an exact reproduction, use the tooling commit recorded in that folder’s history.
 
@@ -63,7 +63,7 @@ A failing or incomplete run is not evidence of compatibility. Review the error a
 
 ## Check an Electrum restore in the installed apps
 
-This is a procedure for reviewers. The November 9 edition records core tests and public fixtures. Installed-app observations belong in a separately dated result.
+This is a procedure for reviewers. The current edition records core tests and public fixtures. Installed-app observations belong in a separately dated result.
 
 - Record the Electrum version and OS, the Oath App Store version and the iOS version. Create a new, unfunded single-signature Standard or SegWit Electrum test wallet. Record its account type and whether a seed extension was used.
 - In Electrum’s Addresses view, record receiving addresses at indexes 0 and 1 and the first change address. Use only this disposable wallet throughout.

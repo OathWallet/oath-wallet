@@ -45,7 +45,7 @@ test('asset-first search and chain-first search use the right canonical destinat
  assert.ok(manifest.shortcuts.every(s=>s.artwork&&html.includes(s.artwork)));
  const networkHTML=await read('/networks.html');
  assert.equal((networkHTML.match(/class="network-tile"/g)||[]).length,6);
- assert.equal((networkHTML.match(/class="network-directory-row"[^>]*><img[^>]*loading="lazy"/g)||[]).length,42);
+ assert.equal((networkHTML.match(/class="network-directory-row"[^>]*><img[^>]*loading="lazy"/g)||[]).length,45);
  assert.doesNotMatch(networkHTML, /class="network-tile"[^>]*><img[^>]*loading="lazy"/);
 });
 
@@ -65,19 +65,19 @@ test('edge cache keeps search and Markdown separate and survives asset read fail
 
 test('accepted snapshot exactly matches the approved Git release after native-alias filtering',async()=>{
  const evidence=JSON.parse(await readFile(new URL('../content/release-evidence.json',import.meta.url)));
- const distribution=JSON.parse(await readFile(new URL(`../../releases/${source.version}-distribution.json`,import.meta.url)));
- assert.equal(source.revision,evidence.source_commit);assert.equal(source.revision,(distribution.source_reference ?? distribution.source_commit));assert.equal(distribution.status,'READY_FOR_DISTRIBUTION');
+ const distribution=JSON.parse(await readFile(new URL('../content/published-source-release.json',import.meta.url)));
+ assert.equal(source.revision,evidence.source_commit);assert.equal(source.revision,(distribution.source_reference ?? distribution.source_commit));assert.equal(distribution.source_tag,'v5.1.1-build111');
  const raw=execFileSync('git',['show',source.revision+':Packages/OathAnkr/Sources/OathAnkr/Resources/TokenDiscoverySeed.json'],{cwd:new URL('../../',import.meta.url),maxBuffer:20*1024*1024});
- assert.equal(digest(raw),source.sha256);assert.deepEqual(source.entries,JSON.parse(raw).entries.filter(e=>!nativeAlias(e)));
+ assert.equal(digest(raw),source.sha256);assert.deepEqual(source.entries,JSON.parse(raw).entries.filter(e=>source.enabled.includes(e.network)&&!nativeAlias(e)));
 });
 
 test('every catalog identity and route is unique, pinned, escaped and in the sitemap',async()=>{
- assert.equal(rows.length,manifest.count);assert.equal(rows.length,32135);
- assert.equal(source.rawCount,32136);assert.equal(source.excludedNativeAliases.length,1);
+ assert.equal(rows.length,manifest.count);assert.equal(rows.length,32211);
+ assert.equal(source.rawCount,32332);assert.equal(source.excludedNativeAliases.length,1);
  assert.equal(new Set(rows.map(identity)).size,rows.length);
  assert.equal(new Set(rows.map(r=>r.path)).size,rows.length);
  assert.equal(new Set(rows.map(r=>r.coinID)).size,manifest.coinCount);
- assert.equal(Object.keys(manifest.networks).length,38);
+ assert.equal(Object.keys(manifest.networks).length,41);
  assert.ok(!manifest.enabled.includes('cronos'));
  const sitemap=await sitemapURLs(),all=new Set(sitemap.map(u=>new URL(u).pathname+new URL(u).search));
  assert.equal(sitemap.length,new Set(sitemap).size);

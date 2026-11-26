@@ -93,7 +93,7 @@ function documentMetadata(r){
   const title=asset?tokenPageTitle(asset,network):coin?tokenPageTitle(coin):`${network?network.name+' tokens':'Token directory'}${page>1?' — page '+page:''} | Oath`;
   const summary=answer?.description||(asset?`${asset.name} (${asset.symbol}) on ${network.name}: exact token identity, receiving steps, fee requirements and transfer limitations. Compare networks before sending.`:coin?`Compare ${coin.name} (${coin.symbol}) across ${coin.assets.length} networks. Choose the exact network to check its token identifier, receiving steps and fee requirements.`:`Browse page ${page} of ${network?network.name+' token entries':'the released Oath token catalog'}. Check exact networks and token identifiers; catalog inclusion is not issuer verification or individually tested sending.`);
   const updated=answer?.updated||priorityUpdated(r.path);
-  return {title,summary,language:'en',app_version:source.version,source_date:source.sourceDate,...updated?{updated_at:updated}:{}};
+  return {title,summary,language:'en',app_version:source.version,app_build:source.build,source_date:source.sourceDate,...updated?{updated_at:updated}:{}};
 }
 for(let offset=0;offset<allURLs.length;offset+=100){
   const page=1+offset/100;

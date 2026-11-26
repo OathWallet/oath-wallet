@@ -26,9 +26,9 @@ test('all marketing and editorial pages use the canonical header and complete ne
   assert.doesNotMatch(html,/<header class="site-header"|<footer class="site-footer"/);
   checked++;
  }
- assert.equal(checked,84+compatibility.pages.length+decisionGuides.pages.length+features.features.length+published.articles.filter(a=>a.github_editorial).length,`checked ${checked} current pages`);
+ assert.equal(checked,87+compatibility.pages.length+decisionGuides.pages.length+features.features.length+published.articles.filter(a=>a.github_editorial).length,`checked ${checked} current pages`);
  for(const n of catalog.networks){assert.ok(chrome.footer.includes(`href="https://oathwallet.org/networks/${n.slug}"`));assert.ok(chrome.footer.includes(`src="${n.icon.replace(/([^/]+)\.webp$/, 'responsive/$1-56.webp')}"`));}
- assert.equal((chrome.footer.match(/href="https:\/\/oathwallet.org\/networks\//g)||[]).length,42);
+ assert.equal((chrome.footer.match(/href="https:\/\/oathwallet.org\/networks\//g)||[]).length,45);
 });
 test('Help Center serves the shared controller and every footer logo without relaxing its policy',async()=>{
  const env={ASSETS:{fetch:async req=>new Response(new URL(req.url).pathname)}};

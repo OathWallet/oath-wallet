@@ -1,6 +1,6 @@
 {
-  "reviewed": "2026-10-31",
-  "sourceCommit": "6ff671b3e8f2ca8b8388ddebbf95f783a6ea0c7a",
+  "reviewed": "2026-11-26",
+  "sourceCommit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
   "networks": [
     {
       "id": "bitcoin",
@@ -619,7 +619,7 @@
       "chainId": 1514,
       "headline": "Story, in your wallet.",
       "intro": "Receive, send and manage assets on Story with Oath for iPhone and iPad. Keep your network, address and fee details in view.",
-      "receive": "Oath\u2019s Story account uses chain ID 1514. Check current network and service availability before transferring; a renamed or migrated ecosystem is not automatically the same destination.",
+      "receive": "Oath’s Story account uses chain ID 1514. Check current network and service availability before transferring; a renamed or migrated ecosystem is not automatically the same destination.",
       "send": "Keep IP available for network fees. For tokens, check the contract and amount, then review the destination and estimated fee in Oath.",
       "walletConnect": true,
       "connection": "Connect to compatible Story dApps through WalletConnect. The website must request a network and signing method supported by Oath. Review every connection and signing request in the app.",
@@ -673,6 +673,54 @@
       "connection": "Connect to compatible X Layer dApps through WalletConnect. The website must request a network and signing method supported by Oath. Review every connection and signing request in the app.",
       "icon": "/assets/networks/xlayer.webp",
       "sourceIconSHA256": "a113198643ccb266b886c04e64aab340b18bff47ed81c2d06281caaac6aabd51"
+    },
+    {
+      "id": "plasma",
+      "slug": "plasma",
+      "name": "Plasma",
+      "symbol": "XPL",
+      "group": "EVM",
+      "chainId": 9745,
+      "headline": "Plasma, in your wallet.",
+      "intro": "Receive, send and manage supported Plasma assets in Oath. Match the selected account, network and asset before using its receiving details.",
+      "receive": "Open Receive and choose Plasma. Check that the sending service uses the same network and token identifier.",
+      "send": "Review the destination, selected Plasma asset and estimated network fee in Oath. The native fee asset for this account is XPL.",
+      "walletConnect": true,
+      "connection": "Connect only to compatible dApps and review the requested accounts, network and signing action before approving.",
+      "icon": "/assets/networks/plasma.webp",
+      "sourceIconSHA256": "ada38aa4a2711f8fe1ae828823be39f195b6857bde6b381166cce88c0636679d"
+    },
+    {
+      "id": "worldchain",
+      "slug": "worldchain",
+      "name": "World Chain",
+      "symbol": "ETH",
+      "group": "EVM",
+      "chainId": 480,
+      "headline": "World Chain, in your wallet.",
+      "intro": "Receive, send and manage supported World Chain assets in Oath. Match the selected account, network and asset before using its receiving details.",
+      "receive": "Open Receive and choose World Chain. Check that the sending service uses the same network and token identifier.",
+      "send": "Review the destination, selected World Chain asset and estimated network fee in Oath. The native fee asset for this account is ETH.",
+      "walletConnect": true,
+      "connection": "Connect only to compatible dApps and review the requested accounts, network and signing action before approving.",
+      "icon": "/assets/networks/worldchain.webp",
+      "sourceIconSHA256": "d3d7f8cc1737c28f54908b09e18b59842d7b49b7851d05d940ac599f27e7ee8d"
+    },
+    {
+      "id": "elysium",
+      "slug": "elysium",
+      "name": "Elysium",
+      "symbol": "HYPE",
+      "group": "EVM",
+      "chainId": 99901,
+      "headline": "Elysium, in your wallet.",
+      "intro": "Receive, send and manage supported Elysium assets in Oath. Match the selected account, network and asset before using its receiving details.",
+      "receive": "Open Receive and choose Elysium. Check that the sending service uses the same network and token identifier.",
+      "send": "Review the destination, selected Elysium asset and estimated network fee in Oath. The native fee asset for this account is HYPE.",
+      "walletConnect": true,
+      "connection": "Connect only to compatible dApps and review the requested accounts, network and signing action before approving.",
+      "icon": "/assets/networks/elysium.webp",
+      "sourceIconSHA256": "bdc0ca5f8b6759f9edfe3065d69bea9bd8e06aebfc5e0e3fab158749b9acf09f"
     }
   ]
 }

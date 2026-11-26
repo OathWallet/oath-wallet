@@ -975,6 +975,74 @@ Review Oath’s final fee and account requirements before confirming. This page 
 
 [Full USDC identity and receiving guide](https://oathwallet.org/tokens/usdc/xrp-ledger) · [XRP Ledger fee requirements](https://oathwallet.org/networks/fees#xrp-ledger)
 
+Plasma · USDC
+
+### USDC on Plasma
+
+**Token contract**
+
+`0x2d661c89d812261039af9764eceaaee884f5f67f`
+
+**Catalog asset ID**
+
+usd-coin
+
+**Fee asset on this network**
+
+XPL on Plasma
+
+This token identifier is not your receiving address. Copy your own receiving address from Oath. Never send funds to the contract, mint or issuer above.
+
+#### Receive in Oath
+
+- Open your wallet in Oath and choose Receive.
+- Select Plasma and find USDC (USDC). Match the full identifier, not just the symbol.
+- Copy the receiving address or show its QR code. Include any required memo or tag, and confirm that the sender supports this exact network and asset.
+
+Open Receive and choose Plasma. Check that the sending service uses the same network and token identifier.
+
+#### Prepare for a later send
+
+Review the destination, selected Plasma asset and estimated network fee in Oath. The native fee asset for this account is XPL.
+
+Review Oath’s final fee and account requirements before confirming. This page does not quote live fees or check your balance. Catalog inclusion does not establish that every token can be sent; account type, token restrictions and extensions can limit transfers.
+
+[Full USDC identity and receiving guide](https://oathwallet.org/tokens/usdc/plasma) · [Plasma fee requirements](https://oathwallet.org/networks/fees#plasma)
+
+World Chain · USDC
+
+### USDC on World Chain
+
+**Token contract**
+
+`0x79a02482a880bce3f13e09da970dc34db4cd24d1`
+
+**Catalog asset ID**
+
+usd-coin
+
+**Fee asset on this network**
+
+ETH on World Chain
+
+This token identifier is not your receiving address. Copy your own receiving address from Oath. Never send funds to the contract, mint or issuer above.
+
+#### Receive in Oath
+
+- Open your wallet in Oath and choose Receive.
+- Select World Chain and find USDC (USDC). Match the full identifier, not just the symbol.
+- Copy the receiving address or show its QR code. Include any required memo or tag, and confirm that the sender supports this exact network and asset.
+
+Open Receive and choose World Chain. Check that the sending service uses the same network and token identifier.
+
+#### Prepare for a later send
+
+Review the destination, selected World Chain asset and estimated network fee in Oath. The native fee asset for this account is ETH.
+
+Review Oath’s final fee and account requirements before confirming. This page does not quote live fees or check your balance. Catalog inclusion does not establish that every token can be sent; account type, token restrictions and extensions can limit transfers.
+
+[Full USDC identity and receiving guide](https://oathwallet.org/tokens/usdc/worldchain) · [World Chain fee requirements](https://oathwallet.org/networks/fees#worldchain)
+
 ## If the network or token does not match
 
 Stop before sending. An identical EVM address does not join balances across networks. Importing the same keys does not bridge tokens. A matching symbol does not establish that two contracts are the same asset.
@@ -988,8 +1056,8 @@ If a transfer has already been broadcast, keep its public transaction ID and che
 - [Tether supported protocols](https://tether.to/en/supported-protocols/)
 - [Circle USDC contract addresses](https://developers.circle.com/stablecoins/usdc-contract-addresses)
 
-Catalog scope: Oath 5.0.2 (104), snapshot 2026-10-30. Catalog inclusion describes discovery; it is not issuer verification, a safety endorsement or a test of every transfer. Sender support and issuer availability can change.
+Catalog scope: Oath 5.1.1 (111), snapshot 2026-11-26. Catalog inclusion describes discovery; it is not issuer verification, a safety endorsement or a test of every transfer. Sender support and issuer availability can change.
 
-Guidance updated 2026-11-06. [How Oath reviews product guidance](https://oathwallet.org/about#editorial) · [Released catalog source](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/Packages/OathAnkr/Sources/OathAnkr/Resources/TokenDiscoverySeed.json).
+Guidance updated 2026-11-06. [How Oath reviews product guidance](https://oathwallet.org/about#editorial) · [Released catalog source](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/Packages/OathAnkr/Sources/OathAnkr/Resources/TokenDiscoverySeed.json).
 
 [Choose a USDT or USDC network](https://oathwallet.org/networks/choose-token-network)[Find the fee asset](https://oathwallet.org/networks/fees)[Browse all tokens](https://oathwallet.org/tokens)[Check a transfer’s status](https://help.oathwallet.org/articles/transaction-status)

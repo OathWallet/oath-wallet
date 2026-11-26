@@ -30,7 +30,7 @@ Use WalletConnect to review the website, accounts and networks it requests. Chec
 
 ### I want to use my own language
 
-The app offers 57 localization choices, including Arabic, English, Japanese, and Brazilian and European Portuguese. The choices include regional variants. [Check the complete list for 5.0.2](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/Design/Localization/languages.json) or [change the app language](https://help.oathwallet.org/articles/language).
+The app offers 57 localization choices, including Arabic, English, Japanese, and Brazilian and European Portuguese. The choices include regional variants. [Check the complete list for 5.1.1](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/Design/Localization/languages.json) or [change the app language](https://help.oathwallet.org/articles/language).
 
 ## What Oath does
 
@@ -52,7 +52,7 @@ Follow the [official Oath Wallet account](https://x.com/OathWallet) and [Marco V
 
 ## Open source and review scope
 
-The [public source repository](https://github.com/OathWallet/oath-wallet) includes the code, license, review scope and security policy. The current source references were checked on November 5, 2026 against version 5.0.2 (104), tag v5.0.2-build104. The GitHub release records the source checks, host tests and unsigned iOS build.
+The [public source repository](https://github.com/OathWallet/oath-wallet) includes the code, license, review scope and security policy. The current source references were checked on November 26, 2026 against version 5.1.1 (111), tag v5.1.1-build111. The GitHub release records the source checks, host tests and unsigned iOS build.
 
 Public source does not establish an independent security audit or prove that a particular App Store binary matches that source. [Read the security evidence and limitations](/security), including the release-specific Silent Payments restrictions.
 

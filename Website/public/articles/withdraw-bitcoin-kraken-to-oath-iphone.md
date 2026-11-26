@@ -51,7 +51,7 @@ A broadcast transaction may initially have no confirmations. Inclusion in a bloc
 
 ![Oath Bitcoin asset screen with a mock balance and sample received and sent activity](https://articles.oathwallet.org/assets/articles/editorials/withdraw-bitcoin-kraken-to-oath-iphone/oath-bitcoin.webp)
 
-Actual Oath 5.0.2 (104) simulator capture with mock balances, prices and activity. This is an illustration of the receiving wallet’s asset screen, not a completed Kraken withdrawal. Never send funds using an address from an example image.
+Historical Oath simulator capture with mock balances, prices and activity. This is an illustration of the receiving wallet’s asset screen, not a completed Kraken withdrawal. Never send funds using an address from an example image.
 
 ## If Kraken shows Pending, On hold or Failed
 
@@ -71,7 +71,7 @@ If the correct output is confirmed but Oath is not showing it, refresh the selec
 
 ## Review and next steps
 
-Reviewed **November 9, 2026** against the linked Kraken documentation and [Oath 5.0.2 (104) receiving implementation](https://github.com/OathWallet/oath-wallet/blob/d039b009d8c81b0497f2ac7e6abebfdf54ff8612/OathAtmosphere/Home/OathReceiveSheet.swift). The screenshot is an actual simulator capture with mock data. We did not execute a funded Kraken withdrawal or test an individual Kraken account’s eligibility.
+Source references updated **November 26, 2026**. The original external-documentation review was on **November 9, 2026**. The references cover the linked Kraken documentation and [Oath 5.1.1 (111) receiving implementation](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Home/OathReceiveSheet.swift). The screenshot is an actual simulator capture with mock data. We did not execute a funded Kraken withdrawal or test an individual Kraken account’s eligibility.
 
 Oath publishes this independent guide without implying a Kraken partnership. Share only the public transaction information needed for a support investigation; keep recovery credentials and exchange authentication codes private.
 

@@ -6,18 +6,16 @@ This guide explains how to find, read and cite Oath's public product documentati
 
 Oath is a self-custody cryptocurrency wallet for iPhone and iPad. The user controls the wallet's recovery material. Oath's website provides product explanations, network and token guides, Help Center instructions, policies and dated articles. Use the [official App Store listing](https://apps.apple.com/app/id6780187283) to check availability and requirements for a particular device and storefront. Do not infer an Android app, browser extension or desktop wallet from a website page.
 
-Latest source release: Oath Wallet 5.1.1, build 111.
-Current App Store listing: Oath Wallet 5.1.0. Checked 2026-11-25 (us storefront). The approved build number is not publicly verified.
+Current release: Oath Wallet 5.1.1, build 111.
 
-- [App Store listing](https://apps.apple.com/app/id6780187283) and [distribution evidence](https://itunes.apple.com/lookup?id=6780187283&country=us).
+- [Release notes and source](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111).
+- [App Store availability](https://apps.apple.com/app/id6780187283).
 - [Machine-readable release metadata](https://oathwallet.org/release-status.json).
-- [Published source release 5.1.1, build 111](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111).
-- [Guide source 5.0.2, build 104](https://github.com/OathWallet/oath-wallet/releases/tag/v5.0.2-build104).
 - [Published security review](https://github.com/OathWallet/oath-wallet-security-review).
 
 Review scope: maintainer-commissioned, Codex-led security review. The whole-wallet review remains incomplete. Findings, fixes and tests apply to their recorded source commits; later releases do not automatically inherit coverage. No independent security-company certification or independently reproduced App Store binary match is established.
 
-Each result retains its tested source revision. Historical articles, screenshots and catalog snapshots retain their recorded versions.
+Historical screenshots illustrate workflows and retain their capture dates. Storefront availability is shown by the App Store; the website release label does not assert approval or binary correspondence.
 
 
 ## Choose the right source
