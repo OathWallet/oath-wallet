@@ -1,9 +1,9 @@
 {
   "format": 1,
-  "version": "912836a4e0ae8179",
-  "prefix": "/token-artwork-data/912836a4e0ae8179",
-  "entries": 31793,
-  "reviewed": "2026-11-06",
+  "version": "53bddb5098adbf8d",
+  "prefix": "/token-artwork-data/53bddb5098adbf8d",
+  "entries": 31866,
+  "reviewed": "2026-11-26",
   "networks": {
     "aptos": 61,
     "arbitrum": 3139,
@@ -13,6 +13,7 @@
     "bnb": 4466,
     "celo": 63,
     "chiliz": 63,
+    "elysium": 0,
     "ethereum": 6024,
     "fantom": 135,
     "filecoin": 6,
@@ -24,6 +25,7 @@
     "monad": 195,
     "near": 82,
     "optimism": 944,
+    "plasma": 34,
     "polkadot": 2,
     "polygon": 851,
     "robinhood": 1381,
@@ -36,11 +38,13 @@
     "sui": 159,
     "taiko": 6,
     "telos": 8,
+    "thorchain": 0,
     "ton": 906,
     "tron": 94,
     "unichain": 39,
+    "worldchain": 27,
     "xlayer": 762,
-    "xrpl": 21,
+    "xrpl": 33,
     "zerog": 8
   }
 }
