@@ -67,7 +67,7 @@ If the correct output is confirmed but Oath is not showing it, refresh the selec
 
 ## Review and next steps
 
-Source references updated **November 26, 2026**. The original external-documentation review was on **November 9, 2026**. The references cover the linked Kraken documentation and [Oath 5.1.1 (111) receiving implementation](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Home/OathReceiveSheet.swift). The screenshot is an actual simulator capture with mock data. We did not execute a funded Kraken withdrawal or test an individual Kraken account’s eligibility.
+Source references updated **November 26, 2026**. The original external-documentation review was on **November 9, 2026**. The references cover the linked Kraken documentation and [Oath 5.1.2 (112) receiving implementation](https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Home/OathReceiveSheet.swift). The screenshot is an actual simulator capture with mock data. We did not execute a funded Kraken withdrawal or test an individual Kraken account’s eligibility.
 
 Oath publishes this independent guide without implying a Kraken partnership. Share only the public transaction information needed for a support investigation; keep recovery credentials and exchange authentication codes private.
 

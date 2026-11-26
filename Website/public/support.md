@@ -16,7 +16,7 @@ _Getting started_ — Yes. Choose Import wallet and use the original BIP39, Elec
 
 ### Can I create my own recovery phrase with dice?
 
-_Getting started_ — The 5.1.1 source creates standard wallets with a 12-word BIP39 phrase. The earlier dice, coin-flip and typed-digit creation controls are not included in this release.
+_Getting started_ — The 5.1.2 source creates standard wallets with a 12-word BIP39 phrase. The earlier dice, coin-flip and typed-digit creation controls are not included in this release.
 
 ### What if I lose my iPhone?
 

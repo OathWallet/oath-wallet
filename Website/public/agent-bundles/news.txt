@@ -1,10 +1,10 @@
 # Oath public editorial documentation
 
-Current release: Oath Wallet 5.1.1, build 111.
-Release: https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111
+Current release: Oath Wallet 5.1.2, build 112.
+Release: https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.2-build112
 App Store availability: https://apps.apple.com/app/id6780187283
 Release metadata: https://oathwallet.org/release-status.json
-Guide source: 5.1.1 (111); https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111
+Guide source: 5.1.2 (112); https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.2-build112
 Published security review: https://github.com/OathWallet/oath-wallet-security-review
 Review scope: maintainer-commissioned, Codex-led security review. The whole-wallet review remains incomplete. Findings, fixes and tests apply to their recorded source commits; later releases do not automatically inherit coverage. No independent security-company certification or independently reproduced App Store binary match is established.
 Historical captures illustrate workflows; their dates do not establish current runtime coverage.
@@ -14,7 +14,7 @@ This bundle contains editorial and Help documents. Token catalog documents are p
 ---
 
 Canonical: https://news.oathwallet.org/
-Current Oath release: 5.1.1 (build 111).
+Current Oath release: 5.1.2 (build 112).
 Updated: 2026-11-25
 
 # Oath Notes — The Oath Wallet newsletter

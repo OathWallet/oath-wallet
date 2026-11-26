@@ -17,8 +17,8 @@ test('ten reviewed guides have visible unique answers, examples, sources and com
  assert.deepEqual(Object.keys(guidance.pages).filter(p=>guidance.pages[p].overview).sort(),[...paths,'/networks/tron','/networks/sui'].sort());
  assert.equal(new Set(paths.map(p=>guidance.pages[p].overview.answer)).size,10);
  for(const path of paths){
-  const page=guidance.pages[path];assert.equal(page.version,'5.1.1');assert.equal(page.build,111);
-  assert.equal(page.sourceCommit,'87c783cf929c4282ba50daf2cc056f25c6a4d469');
+  const page=guidance.pages[path];assert.equal(page.version,'5.1.2');assert.equal(page.build,112);
+  assert.equal(page.sourceCommit,'9f2d6b04335736059dfd6b2a77de6eb2ce4f364e');
   const r=await get(path);assert.equal(r.status,200,path);assert.equal(r.headers.get('X-Robots-Tag'),null);
   const html=await r.text(),md=await(await get(path+'.md')).text();
   assert.equal((html.match(/<h1\b/g)||[]).length,1,path);

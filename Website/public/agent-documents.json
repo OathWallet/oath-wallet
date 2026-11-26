@@ -4,12 +4,12 @@
     "schema_version": 2,
     "checked_on": "2026-11-26",
     "name": "Oath Wallet",
-    "version": "5.1.1",
-    "build": 111,
+    "version": "5.1.2",
+    "build": 112,
     "distribution_status": "SOURCE_RELEASE_PUBLISHED",
-    "release_url": "https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111",
-    "source_commit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
-    "distribution_evidence_url": "https://github.com/OathWallet/oath-wallet/releases/download/v5.1.1-build111/5.1.1-source.json",
+    "release_url": "https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.2-build112",
+    "source_commit": "9f2d6b04335736059dfd6b2a77de6eb2ce4f364e",
+    "distribution_evidence_url": "https://github.com/OathWallet/oath-wallet/releases/download/v5.1.2-build112/5.1.2-source.json",
     "app_store": {
       "version": null,
       "build": null,
@@ -22,20 +22,20 @@
       "scope": "Check the official App Store listing for availability in your storefront. Website version and build labels identify the published Oath release."
     },
     "published_source": {
-      "version": "5.1.1",
-      "build": 111,
-      "source_commit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
-      "source_tag": "v5.1.1-build111",
-      "release_url": "https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111",
-      "published_at": "2026-11-26T09:22:07Z",
+      "version": "5.1.2",
+      "build": 112,
+      "source_commit": "9f2d6b04335736059dfd6b2a77de6eb2ce4f364e",
+      "source_tag": "v5.1.2-build112",
+      "release_url": "https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.2-build112",
+      "published_at": "2026-11-26T17:41:59Z",
       "checked_on": "2026-11-26",
-      "scope": "Oath Wallet 5.1.1, build 111 source release. App Store availability is recorded separately. Dated guides and reviews retain their original evidence scope."
+      "scope": "Oath Wallet 5.1.2, build 112 source release. App Store availability is recorded separately. Dated guides and reviews retain their original evidence scope."
     },
     "guide_source": {
-      "version": "5.1.1",
-      "build": 111,
-      "source_commit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
-      "release_url": "https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111",
+      "version": "5.1.2",
+      "build": 112,
+      "source_commit": "9f2d6b04335736059dfd6b2a77de6eb2ce4f364e",
+      "release_url": "https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.2-build112",
       "scope": "Pinned source used by the existing product guides; not a verified match to the current App Store binary."
     },
     "security_review": {
@@ -59,10 +59,10 @@
       "limitations": "The whole-wallet review remains incomplete. Findings, fixes and tests apply to their recorded source commits; later releases do not automatically inherit coverage. No independent security-company certification or independently reproduced App Store binary match is established."
     },
     "source_evidence": {
-      "version": "5.1.1",
-      "build": 111,
+      "version": "5.1.2",
+      "build": 112,
       "reviewed_on": "2026-11-26",
-      "source_url": "https://github.com/OathWallet/oath-wallet/tree/87c783cf929c4282ba50daf2cc056f25c6a4d469",
+      "source_url": "https://github.com/OathWallet/oath-wallet/tree/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e",
       "scope": "Pinned source excerpts, not an independent audit or confirmation of the current App Store version.",
       "app_store_url": "https://apps.apple.com/app/id6780187283"
     },
@@ -76,10 +76,10 @@
     }
   },
   "source_evidence": {
-    "version": "5.1.1",
-    "build": 111,
+    "version": "5.1.2",
+    "build": 112,
     "reviewed_on": "2026-11-26",
-    "source_url": "https://github.com/OathWallet/oath-wallet/tree/87c783cf929c4282ba50daf2cc056f25c6a4d469",
+    "source_url": "https://github.com/OathWallet/oath-wallet/tree/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e",
     "scope": "Pinned source excerpts, not an independent audit or confirmation of the current App Store version.",
     "app_store_url": "https://apps.apple.com/app/id6780187283"
   },
@@ -101,10 +101,19 @@
     },
     {
       "language": "en",
+      "url": "https://oathwallet.org/compatibility/2026-11-26-build112",
+      "markdown_url": "https://oathwallet.org/compatibility/2026-11-26-build112.md",
+      "title": "Wallet Compatibility Results — Oath 5.1.2 (112) | Oath",
+      "summary": "Oath 5.1.2 compatibility evidence: 14 reference-library checks, four source assertions and 14 passing Bitcoin host tests, with exact scope and skipped tests.",
+      "kind": "compatibility",
+      "updated_at": "2026-11-26"
+    },
+    {
+      "language": "en",
       "url": "https://oathwallet.org/compatibility/2026-11-26",
       "markdown_url": "https://oathwallet.org/compatibility/2026-11-26.md",
       "title": "Wallet Compatibility Results — November 2026 | Oath",
-      "summary": "Oath 5.1.1 compatibility evidence: 14 reference-library checks, four source assertions and 14 passing Bitcoin host tests, with exact scope and skipped tests.",
+      "summary": "Dated compatibility evidence for Oath 5.1.1 (111), retained with its original source revision and test scope.",
       "kind": "compatibility",
       "updated_at": "2026-11-26"
     },
@@ -143,8 +152,8 @@
       "summary": "Check discovered token approvals in Oath for iPhone. Review supported EVM, TRON and Solana access, estimate network fees and verify supported revocations.",
       "kind": "feature",
       "updated_at": "2026-11-26",
-      "app_version": "5.1.1",
-      "app_build": 111
+      "app_version": "5.1.2",
+      "app_build": 112
     },
     {
       "language": "en",
@@ -154,8 +163,8 @@
       "summary": "Back up eligible Oath wallets to iCloud Drive with password encryption. Learn what is supported, how to confirm uploads and what you need to restore.",
       "kind": "feature",
       "updated_at": "2026-11-26",
-      "app_version": "5.1.1",
-      "app_build": 111
+      "app_version": "5.1.2",
+      "app_build": 112
     },
     {
       "language": "en",
@@ -165,8 +174,8 @@
       "summary": "Use WalletConnect with Oath on iPhone. Review the dApp, wallet, networks and permissions, then approve supported requests individually.",
       "kind": "feature",
       "updated_at": "2026-11-26",
-      "app_version": "5.1.1",
-      "app_build": 111
+      "app_version": "5.1.2",
+      "app_build": 112
     },
     {
       "language": "en",
@@ -751,7 +760,7 @@
       "summary": "Start with a new wallet, then give it a name and color you recognize.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -762,7 +771,7 @@
       "summary": "Bring an existing wallet into Oath using supported BIP39, Electrum or aezeed recovery words and any required passphrase.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -773,7 +782,7 @@
       "summary": "Use the camera to import a compatible recovery phrase without typing every word.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -784,7 +793,7 @@
       "summary": "Import the key for a particular network or the shared Ethereum & EVM group.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -795,7 +804,7 @@
       "summary": "Choose the correct network before entering key material. Oath validates both format and key structure.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -806,7 +815,7 @@
       "summary": "Protect entry to Oath with the same six-digit keypad used to unlock it.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -817,7 +826,7 @@
       "summary": "Use the Wallet, History and Search icons, and find the controls for your active wallet.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -828,7 +837,7 @@
       "summary": "Keep separate wallets in the same app without replacing the one you already use.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -839,7 +848,7 @@
       "summary": "Use the glass name capsule above your balance to select another wallet or add one.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -850,7 +859,7 @@
       "summary": "Give each wallet a visual identity that is easy to recognize.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -861,7 +870,7 @@
       "summary": "Put frequently used wallets where you want them in the list.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -872,7 +881,7 @@
       "summary": "Remove a wallet from the active list while keeping a short recovery window.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -883,7 +892,7 @@
       "summary": "Bring a wallet back before its retention window expires.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -894,7 +903,7 @@
       "summary": "Clear wallets from Recently Deleted when you no longer need their local copies.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -905,7 +914,7 @@
       "summary": "Derive a separate wallet from the same recovery phrase plus an exact passphrase.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -916,7 +925,7 @@
       "summary": "Start an encrypted backup for every active wallet from one screen.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -927,7 +936,7 @@
       "summary": "Create an encrypted recovery file for a particular wallet.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -938,7 +947,7 @@
       "summary": "The password for an iCloud backup is separate from your app passcode and BIP-39 passphrase.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -949,7 +958,7 @@
       "summary": "Recover a wallet from an encrypted Oath backup file.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -960,7 +969,7 @@
       "summary": "Read the per-wallet result instead of assuming a switched-on toggle means success.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -971,7 +980,7 @@
       "summary": "Check the Apple Account, storage and backup file before retrying.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -982,7 +991,7 @@
       "summary": "Open the recovery words for a phrase-based wallet when you need an offline backup.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -993,7 +1002,7 @@
       "summary": "Reveal the recovery key for a selected account only when you need it.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1004,7 +1013,7 @@
       "summary": "Use recovery material or an encrypted iCloud backup before removing the old installation.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1015,7 +1024,7 @@
       "summary": "Use your app passcode or enabled biometrics to open the app.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1026,7 +1035,7 @@
       "summary": "Require authentication to enter Oath.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1037,7 +1046,7 @@
       "summary": "Replace your Oath unlock code without changing your wallet addresses.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1048,7 +1057,7 @@
       "summary": "Use the device’s biometric authentication for faster access.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1059,7 +1068,7 @@
       "summary": "Change how Oath authenticates you from the security screen.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1070,7 +1079,7 @@
       "summary": "Control how long Oath stays unlocked after moving to the background.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1081,7 +1090,7 @@
       "summary": "End the current unlocked session without waiting for the automatic delay.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1092,7 +1101,7 @@
       "summary": "Cover the app’s preview when switching between apps.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1103,7 +1112,7 @@
       "summary": "Temporarily replace visible amounts with dots.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1114,7 +1123,7 @@
       "summary": "Keep recovery options separate from the app lock.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1125,7 +1134,7 @@
       "summary": "Erase local app data and return to setup.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1136,7 +1145,7 @@
       "summary": "View one asset’s value, quantity, market information and activity.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1147,7 +1156,7 @@
       "summary": "Oath shows token quantities and a local-currency valuation.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1158,7 +1167,7 @@
       "summary": "Request updated data without leaving your wallet.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1169,7 +1178,7 @@
       "summary": "Find an asset by its name, symbol, network or saved token address.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1180,7 +1189,7 @@
       "summary": "Look up a supported contract or mint address and review its details before adding it.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1191,7 +1200,7 @@
       "summary": "Check the wallet, network, address and lookup result before assuming funds are missing.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1202,7 +1211,7 @@
       "summary": "The list prioritizes portfolio value instead of alphabetical order alone.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1213,7 +1222,7 @@
       "summary": "View the latest available market quote and its recent movement.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1224,7 +1233,7 @@
       "summary": "Check the network, symbol, type and token identity.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1235,7 +1244,7 @@
       "summary": "Understand account activation, minimum balances and storage on Stellar, XRP Ledger, Solana, TRON, NEAR and Gram (TON). Oath does not charge an activation fee.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-21T13:29:43.572099+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1246,7 +1255,7 @@
       "summary": "Share the receiving address for the wallet and network you intend to use.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1257,7 +1266,7 @@
       "summary": "Use Oath’s receive actions instead of retyping a long address.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1268,7 +1277,7 @@
       "summary": "The example logos illustrate tokens on a network; they are not a limit on what its address can receive.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1279,7 +1288,7 @@
       "summary": "Select the receiving format compatible with the service sending you BTC.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1290,7 +1299,7 @@
       "summary": "HD wallets derive multiple addresses rather than reusing one address forever.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1301,7 +1310,7 @@
       "summary": "Match the Solana account derived by the wallet you are recovering.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1312,7 +1321,7 @@
       "summary": "Prevent address and network mismatches before the sender broadcasts.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1323,7 +1332,7 @@
       "summary": "See the direction, time and amount for an asset’s transactions.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1334,7 +1343,7 @@
       "summary": "Review the useful details without navigating raw blockchain data.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1345,7 +1354,7 @@
       "summary": "Use status to distinguish a submitted transaction from a settled one.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1356,7 +1365,7 @@
       "summary": "These labels are shown only when the app has evidence of the corresponding transaction state.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1367,7 +1376,7 @@
       "summary": "See a transaction’s available fee converted to your chosen currency.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1378,7 +1387,7 @@
       "summary": "Use the small copy controls beside shortened identifiers.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1389,7 +1398,7 @@
       "summary": "Open the public network record inside Oath’s native browser.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1400,7 +1409,7 @@
       "summary": "Export a receipt-style image or a link to the explorer.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1411,7 +1420,7 @@
       "summary": "Choose the right wallet, network, recipient and amount, then review and authorize a transfer.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1422,7 +1431,7 @@
       "summary": "Save a person’s name first, then add network-specific addresses.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1433,7 +1442,7 @@
       "summary": "Associate a public address with the correct network.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1444,7 +1453,7 @@
       "summary": "Keep contact names, address labels and network entries up to date.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1455,7 +1464,7 @@
       "summary": "Clear address-book entries you no longer need.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1466,7 +1475,7 @@
       "summary": "Search the saved address book before opening a contact’s details.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1477,7 +1486,7 @@
       "summary": "Show portfolio values, prices and available fees in your preferred local currency.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1488,7 +1497,7 @@
       "summary": "Choose an available language for Oath’s interface.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1499,7 +1508,7 @@
       "summary": "Choose a fixed appearance or follow the device’s setting.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1510,7 +1519,7 @@
       "summary": "Choose an Oath icon from the available alternatives.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1521,7 +1530,7 @@
       "summary": "Inspect token allowances, NFT access, connected apps and supported account-control permissions for the selected wallet.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1532,7 +1541,7 @@
       "summary": "Websites and explorer links open in a native iOS browser inside the app.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1543,7 +1552,7 @@
       "summary": "Suggest a specific improvement and explain how it would help.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1554,7 +1563,7 @@
       "summary": "Give enough detail for the problem to be reproduced without exposing secrets.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1565,7 +1574,7 @@
       "summary": "Email the team at care@oathwallet.org.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1576,7 +1585,7 @@
       "summary": "Open Oath’s published information from the About screen.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1587,7 +1596,7 @@
       "summary": "Receive, send and inspect Bitcoin Cash assets using the correct account and network.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1598,7 +1607,7 @@
       "summary": "Receive, send and inspect Dogecoin assets using the correct account and network.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1609,7 +1618,7 @@
       "summary": "Receive, send and inspect Litecoin assets using the correct account and network.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1620,7 +1629,7 @@
       "summary": "Receive, send and inspect Solana assets using the correct account and network.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1631,7 +1640,7 @@
       "summary": "Receive, send and inspect TRON assets using the correct account and network.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1642,7 +1651,7 @@
       "summary": "Receive, send and inspect Gram assets using the correct account and network.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1653,7 +1662,7 @@
       "summary": "Receive, send and inspect Aptos assets using the correct account and network.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1664,7 +1673,7 @@
       "summary": "Receive, send and inspect Sui Network assets using the correct account and network.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1675,7 +1684,7 @@
       "summary": "Receive, send and inspect NEAR Protocol assets using the correct account and network.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1686,7 +1695,7 @@
       "summary": "Receive, send and inspect XRP Ledger assets using the correct account and network.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1697,7 +1706,7 @@
       "summary": "Receive, send and inspect Stellar assets using the correct account and network.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1708,7 +1717,7 @@
       "summary": "One wallet can show the same public address across EVM networks while tracking each network separately.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1719,7 +1728,7 @@
       "summary": "Arc uses USDC as its native asset in the app’s network integration.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1730,7 +1739,7 @@
       "summary": "Find the Robinhood Chain account separately from an exchange account or other EVM networks.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1741,7 +1750,7 @@
       "summary": "Use the viewfinder button to bring QR text into asset search without typing it.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T17:33:34.237657+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1752,7 +1761,7 @@
       "summary": "Reach the active wallet’s management screen using the toolbar shortcut that appears after scrolling.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T17:33:34.237657+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1763,7 +1772,7 @@
       "summary": "Recognize each wallet by its color and check its available value beside the disclosure arrow.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T17:33:34.237657+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1774,7 +1783,7 @@
       "summary": "Review available coin and token activity together across the active wallet’s networks.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T17:33:34.237657+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1785,7 +1794,7 @@
       "summary": "Find a transaction using information you already know, within the active wallet’s available history.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T17:33:34.237657+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1796,7 +1805,7 @@
       "summary": "Narrow activity by network, asset, direction, status, date and quantity without changing the underlying records.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T17:33:34.237657+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1807,7 +1816,7 @@
       "summary": "Move from an asset’s five-entry preview to a dedicated history for that exact asset and account.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T17:33:34.237657+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1818,7 +1827,7 @@
       "summary": "Understand why suspicious or unverified token entries can be absent from your activity lists.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T17:33:34.237657+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1829,7 +1838,7 @@
       "summary": "Distinguish a rounded fiat amount, a zero-value contract action and a hidden spam transfer.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T17:33:34.237657+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1840,7 +1849,7 @@
       "summary": "Learn why automatic discovery can omit a token and what changes when you choose to track it.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T17:33:34.237657+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1851,7 +1860,7 @@
       "summary": "The native checkmark replaces text Done controls in supported screens and sheets.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T17:33:34.237657+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1862,7 +1871,7 @@
       "summary": "Protect changes to app security with a separate authentication step.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T17:33:34.237657+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1873,7 +1882,7 @@
       "summary": "Find a feature’s instructions inside Oath and return to the app when you are finished.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-12T17:33:34.237657+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1884,7 +1893,7 @@
       "summary": "See why the maximum you can send may be lower than the total displayed on Home.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-16T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1895,7 +1904,7 @@
       "summary": "Include the extra reference an exchange or shared receiving account needs to credit your transfer.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-16T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1906,7 +1915,7 @@
       "summary": "Understand Replace by fee and the optional public on-chain message before sending.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-16T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1917,7 +1926,7 @@
       "summary": "Work out whether the problem is validation, fees, authorization, provider access or an uncertain submission.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-16T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1928,7 +1937,7 @@
       "summary": "Approve the intended website, wallet and networks before responding to a dApp request.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-16T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1939,7 +1948,7 @@
       "summary": "End a WalletConnect session and separately review any on-chain permissions you granted.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-16T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1950,7 +1959,7 @@
       "summary": "Understand which asset you pay, which asset you expect, and the network and limits you are authorizing.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-16T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1961,7 +1970,7 @@
       "summary": "Use the decoded details to understand a contract request while keeping the exact technical payload available.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-16T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1972,7 +1981,7 @@
       "summary": "Tell a login challenge apart from a message, token approval or spending authorization.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-16T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1983,7 +1992,7 @@
       "summary": "Review Solana requests on the exact mainnet, Devnet or Testnet cluster approved for the session.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-16T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -1994,7 +2003,7 @@
       "summary": "Check RUNE transfers, deposits and readable cross-chain swap instructions separately.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-16T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -2005,7 +2014,7 @@
       "summary": "Remove a supported permission and verify that access is actually gone on-chain.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-16T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -2016,7 +2025,7 @@
       "summary": "Select a group of permissions, review the batch and check each result independently.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-16T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -2027,7 +2036,7 @@
       "summary": "Use scan status to distinguish checked, partial, unavailable and unindexed network results.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-16T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -2038,7 +2047,7 @@
       "summary": "Look up a specific supported permission when you know the exact contract and spender.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-16T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -2049,7 +2058,7 @@
       "summary": "Separate an existing allowance from a signature that may authorize future spending.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-16T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -2060,7 +2069,7 @@
       "summary": "Confirm each permission removal rather than assuming a completed queue means every item succeeded.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-16T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -2071,7 +2080,7 @@
       "summary": "Recognize permissions that affect more than a single token allowance.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-16T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -2082,7 +2091,7 @@
       "summary": "Understand the final-wallet reset and clear Recently Deleted only after protecting your recovery options.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-16T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -2093,7 +2102,7 @@
       "summary": "Unlock normally and let Oath prepare compatible existing wallets without creating replacements.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-16T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -2104,7 +2113,7 @@
       "summary": "Read the observed change under the portfolio total without mistaking deposits for investment profit.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-16T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -2115,7 +2124,7 @@
       "summary": "Narrow the portfolio by network and available asset filters without changing ownership.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-16T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -2126,7 +2135,7 @@
       "summary": "Distinguish token identity, balance, artwork and market data when searching by contract or mint.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-16T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -2137,7 +2146,7 @@
       "summary": "Choose whether Oath provides tactile feedback for supported controls and outcomes.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-16T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -2148,7 +2157,7 @@
       "summary": "Receive RUNE, send on THORChain and distinguish a direct transfer from a dApp swap.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-16T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -2159,7 +2168,7 @@
       "summary": "Find the correct HyperEVM account, native fee asset and tokens without confusing other EVM deployments.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-16T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -2170,7 +2179,7 @@
       "summary": "Find the correct Monad account, native fee asset and tokens without confusing other EVM deployments.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-16T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -2181,7 +2190,7 @@
       "summary": "Find the correct Unichain account, native fee asset and tokens without confusing other EVM deployments.",
       "updated_at": "2026-10-28T00:00:00Z",
       "published_at": "2026-10-16T12:00:00+00:00",
-      "app_version": "Oath 5.1.1 (111)",
+      "app_version": "Oath 5.1.2 (112)",
       "kind": "help"
     },
     {
@@ -2317,7 +2326,7 @@
       "url": "https://articles.oathwallet.org/backup-restore-oath-wallet",
       "markdown_url": "https://articles.oathwallet.org/backup-restore-oath-wallet.md",
       "title": "Backup and Restore in Oath: Files, Passwords and Recovery Words",
-      "summary": "Choose a recovery method supported by 5.1.1 and verify it before replacing or erasing your phone.",
+      "summary": "Choose a recovery method supported by 5.1.2 and verify it before replacing or erasing your phone.",
       "updated_at": "2026-11-26T00:00:00Z",
       "published_at": "2026-08-30T22:33:18.253+00:00",
       "kind": "article"
@@ -2527,7 +2536,7 @@
       "url": "https://articles.oathwallet.org/oath-wallet-release-history",
       "markdown_url": "https://articles.oathwallet.org/oath-wallet-release-history.md",
       "title": "Oath Wallet release history and current version",
-      "summary": "Oath Wallet 5.1.1, build 111: release notes, current source evidence, product guides and the official download link.",
+      "summary": "Oath Wallet 5.1.2, build 112: release notes, current source evidence, product guides and the official download link.",
       "updated_at": "2026-11-26T00:00:00Z",
       "published_at": "2026-11-06T11:11:26Z",
       "kind": "article"

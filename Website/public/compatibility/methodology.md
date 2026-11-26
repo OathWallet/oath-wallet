@@ -6,7 +6,7 @@ Oath Wallet Compatibility Lab · 2026-11-26
 
 How Oath reviews wallet recovery: pinned versions, public fixtures, reproducible checks and clear boundaries between source, core tests and observed behavior.
 
-[Compatibility matrix](https://oathwallet.org/compatibility)[Results · 2026-11-26](https://oathwallet.org/compatibility/2026-11-26)[Methods & reproduction](https://oathwallet.org/compatibility/methodology)
+[Compatibility matrix](https://oathwallet.org/compatibility)[Results · 2026-11-26-build112](https://oathwallet.org/compatibility/2026-11-26-build112)[Methods & reproduction](https://oathwallet.org/compatibility/methodology)
 
 Keep your recovery material private. This is a reference, not an import tool. It never asks for a recovery phrase or private key. Use the installed wallet’s recovery flow; never send recovery material with a correction or support request.
 
@@ -49,7 +49,7 @@ The runner uses only public fixtures already in the repository. Package installa
 ```sh
 git clone https://github.com/OathWallet/oath-wallet.git oath-lab
 cd oath-lab
-git worktree add --detach ../oath-release 87c783cf929c4282ba50daf2cc056f25c6a4d469
+git worktree add --detach ../oath-release 9f2d6b04335736059dfd6b2a77de6eb2ce4f364e
 npm ci --prefix Website/compatibility --ignore-scripts
 node Website/compatibility/run.mjs ../oath-release ../oath-lab-results
 ```
@@ -70,7 +70,7 @@ This is a procedure for reviewers. The current edition records core tests and pu
 - Restore the same test wallet inside Oath using its Electrum import and the matching extension. Compare the same Bitcoin address type, branch and index. Mark an address unavailable if the installed UI cannot show it. A matching balance is insufficient evidence.
 - Publish versions, steps, public test addresses, and a match, mismatch or unobserved result for each row. Include any unexpected behavior. Keep all seed words, extensions, private keys and wallet files out of the report. No transfer is needed.
 
-[Read the Electrum restoration guide](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone) and compare your observations with the [dated core results](https://oathwallet.org/compatibility/2026-11-26).
+[Read the Electrum restoration guide](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone) and compare your observations with the [dated core results](https://oathwallet.org/compatibility/2026-11-26-build112).
 
 ## Version and correction policy
 

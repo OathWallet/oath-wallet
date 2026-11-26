@@ -1,6 +1,6 @@
 # Released token catalog
 
-The accepted snapshot is `source.json.gz`, extracted from the annotated tag in `content/published-source-release.json`. The tag must match the recorded source revision. The current release is **5.1.1 (111)**, with 32,211 token entries, 20,043 asset groups and 41 token-capable networks. Source bytes, release version/build, revision, date, enabled networks and exclusions are recorded. Historical artwork is retained only for exact identities still present in the accepted catalog; new missing artwork uses initials.
+The accepted snapshot is `source.json.gz`, extracted from the annotated tag in `content/published-source-release.json`. The tag must match the recorded source revision. The current release is **5.1.2 (112)**, with 32,211 token entries, 20,043 asset groups and 41 token-capable networks. Source bytes, release version/build, revision, date, enabled networks and exclusions are recorded. Historical artwork is retained only for exact identities still present in the accepted catalog; new missing artwork uses initials.
 
 `routes.json` is a permanent identity ledger. Its compact array format avoids mistaking public token IDs for credential settings. Never delete retired identities or reuse their paths. Network plus canonical contract/mint/issuer/reference is the identity. The provider asset ID groups networks; the symbol does not. USDT and USDC reserve readable aliases. A changed provider grouping fails the refresh and requires an explicit migration review.
 

@@ -1,8 +1,8 @@
 {
-  "checkedAt": "2026-11-26T09:54:08.151Z",
-  "version": "5.1.1",
-  "build": 111,
-  "sourceCommit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
+  "checkedAt": "2026-11-26T17:34:19.181Z",
+  "version": "5.1.2",
+  "build": 112,
+  "sourceCommit": "9f2d6b04335736059dfd6b2a77de6eb2ce4f364e",
   "walletCore": "4.8.4",
   "method": "Released-source path comparison plus upstream Wallet Core WASM public fixtures. This does not execute the iOS app importer.",
   "checks": [
@@ -44,11 +44,11 @@
     },
     {
       "path": "OathAtmosphere/Import/OathRecoveryPhraseScreen.swift",
-      "sha256": "0826a0f70433712d82bc12e7be03433f3c22674ad0ee73746ed80f8041d89dcd"
+      "sha256": "5e6cfe585706bbf4abdbe2d97ea36eafc0595f85ae2e872c33a7c53df0ed382b"
     },
     {
       "path": "OathAtmosphere/Home/OathWalletSheets.swift",
-      "sha256": "e2c9b99eab66afca386d88cf3f928ad71b20a2f464b46760b5fb894ccaeb4f5f"
+      "sha256": "ecef0d0f02576d1c8ac0d9800ce5e58b4cbc1176578f7195f2bfffbe3c4e0a71"
     },
     {
       "path": "OathAtmosphere/Wallet/OathPassphraseWalletModel.swift",

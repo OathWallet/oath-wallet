@@ -6,9 +6,9 @@ This guide explains how to find, read and cite Oath's public product documentati
 
 Oath is a self-custody cryptocurrency wallet for iPhone and iPad. The user controls the wallet's recovery material. Oath's website provides product explanations, network and token guides, Help Center instructions, policies and dated articles. Use the [official App Store listing](https://apps.apple.com/app/id6780187283) to check availability and requirements for a particular device and storefront. Do not infer an Android app, browser extension or desktop wallet from a website page.
 
-Current release: Oath Wallet 5.1.1, build 111.
+Current release: Oath Wallet 5.1.2, build 112.
 
-- [Release notes and source](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111).
+- [Release notes and source](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.2-build112).
 - [App Store availability](https://apps.apple.com/app/id6780187283).
 - [Machine-readable release metadata](https://oathwallet.org/release-status.json).
 - [Published security review](https://github.com/OathWallet/oath-wallet-security-review).

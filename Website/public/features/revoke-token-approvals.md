@@ -100,18 +100,18 @@ Review the WalletConnect session separately. Disconnecting stops that session’
 - [Find the fee asset for your network](https://oathwallet.org/networks/fees)
 - [Check pending, confirmed or failed activity](https://help.oathwallet.org/articles/transaction-status)
 
-Guidance reviewed for Oath 5.1.1 (111); updated 2026-11-26. [How we review guides](https://oathwallet.org/about#editorial).
+Guidance reviewed for Oath 5.1.2 (112); updated 2026-11-26. [How we review guides](https://oathwallet.org/about#editorial).
 
 
 ## Release and source details
 
-Feature scope reviewed for Oath 5.1.1 (111) on 2026-11-26. Screens are historical app captures; appearance can differ from this release.
+Feature scope reviewed for Oath 5.1.2 (112) on 2026-11-26. Screens are historical app captures; appearance can differ from this release.
 
-[Release notes and checks](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111)
+[Release notes and checks](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.2-build112)
 
-- [OathPermissionService.swift](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Permissions/OathPermissionService.swift)
-- [Permissions.swift](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/Packages/OathAnkr/Sources/OathAnkr/Permissions.swift)
-- [PermissionDiscovery.swift](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/Packages/OathAnkr/Sources/OathAnkr/PermissionDiscovery.swift)
+- [OathPermissionService.swift](https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Permissions/OathPermissionService.swift)
+- [Permissions.swift](https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/Packages/OathAnkr/Sources/OathAnkr/Permissions.swift)
+- [PermissionDiscovery.swift](https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/Packages/OathAnkr/Sources/OathAnkr/PermissionDiscovery.swift)
 
 Source review and sample screens do not establish a completed live transaction or backup.
 

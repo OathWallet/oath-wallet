@@ -1,8 +1,8 @@
 {
   "format": 1,
-  "version": "5.1.1",
-  "build": 111,
-  "sourceCommit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
+  "version": "5.1.2",
+  "build": 112,
+  "sourceCommit": "9f2d6b04335736059dfd6b2a77de6eb2ce4f364e",
   "reviewed": "2026-11-26",
   "features": [
     {
@@ -197,7 +197,7 @@
         }
       ],
       "scopeTitle": "Know what your backup covers.",
-      "scopeIntro": "Backup availability depends on the wallet type, app version and iCloud Drive access. This page describes Oath 5.1.1 (111).",
+      "scopeIntro": "Backup availability depends on the wallet type, app version and iCloud Drive access. This page describes Oath 5.1.2 (112).",
       "scope": [
         {
           "label": "Eligible active wallets",
@@ -486,14 +486,14 @@
     {
       "id": "every-language",
       "name": "57 app localizations",
-      "summary": "Oath 5.1.1 offers 57 interface localization choices, including Arabic, English, Japanese, and Brazilian and European Portuguese. The release registry gives the name and code of every choice.",
+      "summary": "Oath 5.1.2 offers 57 interface localization choices, including Arabic, English, Japanese, and Brazilian and European Portuguese. The release registry gives the name and code of every choice.",
       "url": "https://help.oathwallet.org/articles/language",
       "lookupTerms": [
         "language",
         "languages",
         "localizations"
       ],
-      "source_url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/Design/Localization/languages.json"
+      "source_url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/Design/Localization/languages.json"
     },
     {
       "id": "open-source",
@@ -508,7 +508,7 @@
     {
       "id": "bitcoin-address-types",
       "name": "Bitcoin address options",
-      "summary": "Compatible Bitcoin wallets support Taproot, Native SegWit, nested SegWit and Legacy, depending on the imported material. Capabilities vary by network. Oath 5.1.1 does not support Silent Payments receiving or discovery; see the Silent Payments guide before relying on that feature.",
+      "summary": "Compatible Bitcoin wallets support Taproot, Native SegWit, nested SegWit and Legacy, depending on the imported material. Capabilities vary by network. Oath 5.1.2 does not support Silent Payments receiving or discovery; see the Silent Payments guide before relying on that feature.",
       "url": "https://help.oathwallet.org/articles/bitcoin-address-types",
       "lookupTerms": [
         "bitcoin address",

@@ -18,7 +18,7 @@ const escape=s=>s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>',
 test('feature claims and unchanged screenshots retain pinned release provenance',async()=>{
  assert.equal(catalog.sourceCommit,(distribution.source_reference ?? distribution.source_commit));
  assert.equal(catalog.version,distribution.version);assert.equal(catalog.build,distribution.build);
- assert.equal(distribution.source_tag,'v5.1.1-build111');
+ assert.equal(distribution.source_tag,'v5.1.2-build112');
  assert.equal(catalog.features.length,3);
  assert.equal(new Set(catalog.features.map(f=>f.path)).size,3);
  for(const f of catalog.features){

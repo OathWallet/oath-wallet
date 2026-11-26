@@ -8,11 +8,11 @@ Choose access controls deliberately and keep a separate recovery method.
 
 ## Guide source version
 
-Checked against [Oath 5.1.1 (111) source](https://github.com/OathWallet/oath-wallet/tree/87c783cf929c4282ba50daf2cc056f25c6a4d469). Older screenshots are illustrative.
+Checked against [Oath 5.1.2 (112) source](https://github.com/OathWallet/oath-wallet/tree/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e). Older screenshots are illustrative.
 
 ## App passcode
 
-The app passcode controls local access. In 5.1.1, enabled passcode protection derives a wrapping key using PBKDF2-HMAC-SHA256 with 600,000 rounds. It does not replace recovery words or decrypt an iCloud file protected with a different backup password.
+The app passcode controls local access. In 5.1.2, enabled passcode protection derives a wrapping key using PBKDF2-HMAC-SHA256 with 600,000 rounds. It does not replace recovery words or decrypt an iCloud file protected with a different backup password.
 
 ## Biometrics
 
@@ -26,4 +26,4 @@ Select the delay offered in Security settings: immediately, one minute, five min
 
 Use the app-switcher privacy setting where available, and protect the phone’s own passcode. Do not erase or reinstall as a way to fix a forgotten recovery credential: removal discards the installation key. Verify an independent supported backup first.
 
-Read the [security model](https://oathwallet.org/security), [Help Center](https://help.oathwallet.org/), and [release verification record](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111-r3).
+Read the [security model](https://oathwallet.org/security), [Help Center](https://help.oathwallet.org/), and [release verification record](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.2-build112-r3).

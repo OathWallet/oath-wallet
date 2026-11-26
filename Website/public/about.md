@@ -1,7 +1,7 @@
 # About Oath Wallet — Team, Open Source & Official Links
 
 <!-- current-release:start -->
-Latest source release: [Oath 5.1.1 · Build 111](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111).
+Latest source release: [Oath 5.1.2 · Build 112](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.2-build112).
 <!-- current-release:end -->
 
 Oath Wallet is a free, open-source Bitcoin and crypto wallet for iPhone and iPad.
@@ -18,7 +18,7 @@ You can create a wallet without providing an email, phone number or identity doc
 
 ### I already use Electrum for Bitcoin
 
-Oath can restore supported Electrum seed formats. Identify the original account type and seed extension, then compare a known receiving address before using the restored wallet. The dated lab edition shows which receive and change addresses were checked using public fixtures. [See the Electrum guide](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone) and [review the compatibility results](https://oathwallet.org/compatibility/2026-11-26).
+Oath can restore supported Electrum seed formats. Identify the original account type and seed extension, then compare a known receiving address before using the restored wallet. The dated lab edition shows which receive and change addresses were checked using public fixtures. [See the Electrum guide](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone) and [review the compatibility results](https://oathwallet.org/compatibility/2026-11-26-build112).
 
 ### I want to receive USDT on TRON
 
@@ -30,7 +30,7 @@ Use WalletConnect to review the website, accounts and networks it requests. Chec
 
 ### I want to use my own language
 
-The app offers 57 localization choices, including Arabic, English, Japanese, and Brazilian and European Portuguese. The choices include regional variants. [Check the complete list for 5.1.1](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/Design/Localization/languages.json) or [change the app language](https://help.oathwallet.org/articles/language).
+The app offers 57 localization choices, including Arabic, English, Japanese, and Brazilian and European Portuguese. The choices include regional variants. [Check the complete list for 5.1.2](https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/Design/Localization/languages.json) or [change the app language](https://help.oathwallet.org/articles/language).
 
 ## What Oath does
 
@@ -52,7 +52,7 @@ Follow the [official Oath Wallet account](https://x.com/OathWallet) and [Marco V
 
 ## Open source and review scope
 
-The [public source repository](https://github.com/OathWallet/oath-wallet) includes the code, license, review scope and security policy. The current source references were checked on November 26, 2026 against version 5.1.1 (111), tag v5.1.1-build111. The GitHub release records the source checks, host tests and unsigned iOS build.
+The [public source repository](https://github.com/OathWallet/oath-wallet) includes the code, license, review scope and security policy. The current source references were checked on November 26, 2026 against version 5.1.2 (112), tag v5.1.2-build112. The GitHub release records the source checks, host tests and unsigned iOS build.
 
 Public source does not establish an independent security audit or prove that a particular App Store binary matches that source. [Read the security evidence and limitations](/security), including the release-specific Silent Payments restrictions.
 

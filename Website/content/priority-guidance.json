@@ -1,7 +1,7 @@
 {
   "updated": "2026-11-26",
-  "version": "5.1.1",
-  "build": 111,
+  "version": "5.1.2",
+  "build": 112,
   "pages": {
     "/networks/tron": {
       "title": "When a transfer needs a closer look",
@@ -50,9 +50,9 @@
         }
       ],
       "updated": "2026-11-26",
-      "version": "5.1.1",
-      "build": 111,
-      "sourceCommit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
+      "version": "5.1.2",
+      "build": 112,
+      "sourceCommit": "9f2d6b04335736059dfd6b2a77de6eb2ce4f364e",
       "overview": {
         "title": "Receiving TRX or USDT on TRON?",
         "answer": "For native TRX, open Receive and choose TRON. For a USDT withdrawal, select USDT on TRON in Oath and confirm that the sending service uses TRON (TRC20). Compare the destination before submitting.",
@@ -99,9 +99,9 @@
     },
     "/tokens/usdt/tron": {
       "updated": "2026-11-26",
-      "version": "5.1.1",
-      "build": 111,
-      "sourceCommit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
+      "version": "5.1.2",
+      "build": 112,
+      "sourceCommit": "9f2d6b04335736059dfd6b2a77de6eb2ce4f364e",
       "title": "Questions before you transfer",
       "overview": {
         "title": "Receive USDT on TRON, step by step.",
@@ -181,16 +181,16 @@
           "label": "TRON: Energy and Bandwidth"
         },
         {
-          "label": "Oath 5.1.1: receiving flow",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Home/OathReceiveSheet.swift"
+          "label": "Oath 5.1.2: receiving flow",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Home/OathReceiveSheet.swift"
         },
         {
-          "label": "Oath 5.1.1: asset details and activity",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Assets/OathAssetDetailScreen.swift"
+          "label": "Oath 5.1.2: asset details and activity",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Assets/OathAssetDetailScreen.swift"
         },
         {
-          "label": "Oath 5.1.1: supported send flows",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Send/OathSendModel.swift"
+          "label": "Oath 5.1.2: supported send flows",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Send/OathSendModel.swift"
         }
       ],
       "capture": "usdt-tron",
@@ -252,16 +252,16 @@
         "caption": "Existing app capture with sample data. Appearance can differ in newer releases; this image is not a completed transfer.",
         "sha256": "8e0ca56059a82ac4c010553a0fdcff1676a30be70180ae024ba62a3b864fece5"
       },
-      "version": "5.1.1",
-      "build": 111,
-      "sourceCommit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
+      "version": "5.1.2",
+      "build": 112,
+      "sourceCommit": "9f2d6b04335736059dfd6b2a77de6eb2ce4f364e",
       "updated": "2026-11-26"
     },
     "/tokens/usdc/base": {
       "updated": "2026-11-26",
-      "version": "5.1.1",
-      "build": 111,
-      "sourceCommit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
+      "version": "5.1.2",
+      "build": 112,
+      "sourceCommit": "9f2d6b04335736059dfd6b2a77de6eb2ce4f364e",
       "title": "Questions before you transfer",
       "overview": {
         "title": "Receive USDC on Base with the right network.",
@@ -341,16 +341,16 @@
           "label": "Base: execution and L1 security fees"
         },
         {
-          "label": "Oath 5.1.1: receiving flow",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Home/OathReceiveSheet.swift"
+          "label": "Oath 5.1.2: receiving flow",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Home/OathReceiveSheet.swift"
         },
         {
-          "label": "Oath 5.1.1: asset details and activity",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Assets/OathAssetDetailScreen.swift"
+          "label": "Oath 5.1.2: asset details and activity",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Assets/OathAssetDetailScreen.swift"
         },
         {
-          "label": "Oath 5.1.1: supported send flows",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Send/OathSendModel.swift"
+          "label": "Oath 5.1.2: supported send flows",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Send/OathSendModel.swift"
         }
       ],
       "capture": "usdc-base",
@@ -369,9 +369,9 @@
     },
     "/networks/solana": {
       "updated": "2026-11-26",
-      "version": "5.1.1",
-      "build": 111,
-      "sourceCommit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
+      "version": "5.1.2",
+      "build": 112,
+      "sourceCommit": "9f2d6b04335736059dfd6b2a77de6eb2ce4f364e",
       "title": "Questions before you transfer",
       "overview": {
         "title": "Receive SOL and Solana tokens in the intended account.",
@@ -447,16 +447,16 @@
           "label": "Solana: token accounts"
         },
         {
-          "label": "Oath 5.1.1: receiving flow",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Home/OathReceiveSheet.swift"
+          "label": "Oath 5.1.2: receiving flow",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Home/OathReceiveSheet.swift"
         },
         {
-          "label": "Oath 5.1.1: asset details and activity",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Assets/OathAssetDetailScreen.swift"
+          "label": "Oath 5.1.2: asset details and activity",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Assets/OathAssetDetailScreen.swift"
         },
         {
-          "label": "Oath 5.1.1: supported send flows",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Send/OathSendModel.swift"
+          "label": "Oath 5.1.2: supported send flows",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Send/OathSendModel.swift"
         }
       ],
       "capture": "solana",
@@ -475,9 +475,9 @@
     },
     "/tokens/usdc/solana": {
       "updated": "2026-11-26",
-      "version": "5.1.1",
-      "build": 111,
-      "sourceCommit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
+      "version": "5.1.2",
+      "build": 112,
+      "sourceCommit": "9f2d6b04335736059dfd6b2a77de6eb2ce4f364e",
       "title": "Questions before you transfer",
       "overview": {
         "title": "Receive USDC on Solana, with the mint checked.",
@@ -557,16 +557,16 @@
           "label": "Solana: token accounts and associated token accounts"
         },
         {
-          "label": "Oath 5.1.1: receiving flow",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Home/OathReceiveSheet.swift"
+          "label": "Oath 5.1.2: receiving flow",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Home/OathReceiveSheet.swift"
         },
         {
-          "label": "Oath 5.1.1: asset details and activity",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Assets/OathAssetDetailScreen.swift"
+          "label": "Oath 5.1.2: asset details and activity",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Assets/OathAssetDetailScreen.swift"
         },
         {
-          "label": "Oath 5.1.1: supported send flows",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Send/OathSendModel.swift"
+          "label": "Oath 5.1.2: supported send flows",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Send/OathSendModel.swift"
         }
       ],
       "capture": "usdc-solana",
@@ -585,9 +585,9 @@
     },
     "/networks/ethereum": {
       "updated": "2026-11-26",
-      "version": "5.1.1",
-      "build": 111,
-      "sourceCommit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
+      "version": "5.1.2",
+      "build": 112,
+      "sourceCommit": "9f2d6b04335736059dfd6b2a77de6eb2ce4f364e",
       "title": "Questions before you transfer",
       "overview": {
         "title": "One Ethereum account, distinct assets and fees.",
@@ -659,20 +659,20 @@
           "label": "Ethereum: gas and transaction fees"
         },
         {
-          "label": "Oath 5.1.1: WalletConnect service",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Scanner/OathWalletConnectService.swift"
+          "label": "Oath 5.1.2: WalletConnect service",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Scanner/OathWalletConnectService.swift"
         },
         {
-          "label": "Oath 5.1.1: receiving flow",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Home/OathReceiveSheet.swift"
+          "label": "Oath 5.1.2: receiving flow",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Home/OathReceiveSheet.swift"
         },
         {
-          "label": "Oath 5.1.1: asset details and activity",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Assets/OathAssetDetailScreen.swift"
+          "label": "Oath 5.1.2: asset details and activity",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Assets/OathAssetDetailScreen.swift"
         },
         {
-          "label": "Oath 5.1.1: supported send flows",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Send/OathSendModel.swift"
+          "label": "Oath 5.1.2: supported send flows",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Send/OathSendModel.swift"
         }
       ],
       "capture": "ethereum",
@@ -691,9 +691,9 @@
     },
     "/tokens/usdc/ethereum": {
       "updated": "2026-11-26",
-      "version": "5.1.1",
-      "build": 111,
-      "sourceCommit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
+      "version": "5.1.2",
+      "build": 112,
+      "sourceCommit": "9f2d6b04335736059dfd6b2a77de6eb2ce4f364e",
       "title": "Questions before you transfer",
       "overview": {
         "title": "Receive USDC on Ethereum, with ETH ready for fees.",
@@ -773,16 +773,16 @@
           "label": "Ethereum: gas and transaction fees"
         },
         {
-          "label": "Oath 5.1.1: receiving flow",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Home/OathReceiveSheet.swift"
+          "label": "Oath 5.1.2: receiving flow",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Home/OathReceiveSheet.swift"
         },
         {
-          "label": "Oath 5.1.1: asset details and activity",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Assets/OathAssetDetailScreen.swift"
+          "label": "Oath 5.1.2: asset details and activity",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Assets/OathAssetDetailScreen.swift"
         },
         {
-          "label": "Oath 5.1.1: supported send flows",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Send/OathSendModel.swift"
+          "label": "Oath 5.1.2: supported send flows",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Send/OathSendModel.swift"
         }
       ],
       "capture": "usdc-ethereum",
@@ -801,9 +801,9 @@
     },
     "/networks/bitcoin": {
       "updated": "2026-11-26",
-      "version": "5.1.1",
-      "build": 111,
-      "sourceCommit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
+      "version": "5.1.2",
+      "build": 112,
+      "sourceCommit": "9f2d6b04335736059dfd6b2a77de6eb2ce4f364e",
       "title": "Questions before you transfer",
       "overview": {
         "title": "Receive Bitcoin on iPhone with the account checked.",
@@ -879,20 +879,20 @@
           "label": "Bitcoin developer guide: payments and confirmations"
         },
         {
-          "label": "Oath 5.1.1: Bitcoin send review",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Send/OathBitcoinSendModel.swift"
+          "label": "Oath 5.1.2: Bitcoin send review",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Send/OathBitcoinSendModel.swift"
         },
         {
-          "label": "Oath 5.1.1: receiving flow",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Home/OathReceiveSheet.swift"
+          "label": "Oath 5.1.2: receiving flow",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Home/OathReceiveSheet.swift"
         },
         {
-          "label": "Oath 5.1.1: asset details and activity",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Assets/OathAssetDetailScreen.swift"
+          "label": "Oath 5.1.2: asset details and activity",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Assets/OathAssetDetailScreen.swift"
         },
         {
-          "label": "Oath 5.1.1: supported send flows",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Send/OathSendModel.swift"
+          "label": "Oath 5.1.2: supported send flows",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Send/OathSendModel.swift"
         }
       ],
       "capture": "bitcoin",
@@ -911,9 +911,9 @@
     },
     "/tokens/usdt": {
       "updated": "2026-11-26",
-      "version": "5.1.1",
-      "build": 111,
-      "sourceCommit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
+      "version": "5.1.2",
+      "build": 112,
+      "sourceCommit": "9f2d6b04335736059dfd6b2a77de6eb2ce4f364e",
       "title": "Questions before you transfer",
       "overview": {
         "title": "A USDT wallet starts with the right network.",
@@ -993,16 +993,16 @@
           "label": "TRON: Energy and Bandwidth"
         },
         {
-          "label": "Oath 5.1.1: receiving flow",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Home/OathReceiveSheet.swift"
+          "label": "Oath 5.1.2: receiving flow",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Home/OathReceiveSheet.swift"
         },
         {
-          "label": "Oath 5.1.1: asset details and activity",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Assets/OathAssetDetailScreen.swift"
+          "label": "Oath 5.1.2: asset details and activity",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Assets/OathAssetDetailScreen.swift"
         },
         {
-          "label": "Oath 5.1.1: supported send flows",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Send/OathSendModel.swift"
+          "label": "Oath 5.1.2: supported send flows",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Send/OathSendModel.swift"
         }
       ],
       "capture": "receive-usdt-tron",
@@ -1021,9 +1021,9 @@
     },
     "/tokens/usdc": {
       "updated": "2026-11-26",
-      "version": "5.1.1",
-      "build": 111,
-      "sourceCommit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
+      "version": "5.1.2",
+      "build": 112,
+      "sourceCommit": "9f2d6b04335736059dfd6b2a77de6eb2ce4f364e",
       "title": "Questions before you transfer",
       "overview": {
         "title": "Choose a USDC network before sharing an address.",
@@ -1115,16 +1115,16 @@
           "label": "Ethereum: gas and transaction fees"
         },
         {
-          "label": "Oath 5.1.1: receiving flow",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Home/OathReceiveSheet.swift"
+          "label": "Oath 5.1.2: receiving flow",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Home/OathReceiveSheet.swift"
         },
         {
-          "label": "Oath 5.1.1: asset details and activity",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Assets/OathAssetDetailScreen.swift"
+          "label": "Oath 5.1.2: asset details and activity",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Assets/OathAssetDetailScreen.swift"
         },
         {
-          "label": "Oath 5.1.1: supported send flows",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Send/OathSendModel.swift"
+          "label": "Oath 5.1.2: supported send flows",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Send/OathSendModel.swift"
         }
       ],
       "capture": "receive-usdc-base",
@@ -1171,9 +1171,9 @@
           "label": "Check pending, confirmed or failed activity"
         }
       ],
-      "version": "5.1.1",
-      "build": 111,
-      "sourceCommit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
+      "version": "5.1.2",
+      "build": 112,
+      "sourceCommit": "9f2d6b04335736059dfd6b2a77de6eb2ce4f364e",
       "updated": "2026-11-26"
     },
     "/features/icloud-wallet-backup": {
@@ -1206,9 +1206,9 @@
           "label": "Import a compatible Trust Wallet account"
         }
       ],
-      "version": "5.1.1",
-      "build": 111,
-      "sourceCommit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
+      "version": "5.1.2",
+      "build": 112,
+      "sourceCommit": "9f2d6b04335736059dfd6b2a77de6eb2ce4f364e",
       "updated": "2026-11-26"
     },
     "/features/walletconnect": {
@@ -1241,16 +1241,16 @@
           "label": "Find the fee asset for your network"
         }
       ],
-      "version": "5.1.1",
-      "build": 111,
-      "sourceCommit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
+      "version": "5.1.2",
+      "build": 112,
+      "sourceCommit": "9f2d6b04335736059dfd6b2a77de6eb2ce4f364e",
       "updated": "2026-11-26"
     },
     "/networks/bitcoin-cash": {
       "updated": "2026-11-26",
-      "version": "5.1.1",
-      "build": 111,
-      "sourceCommit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
+      "version": "5.1.2",
+      "build": 112,
+      "sourceCommit": "9f2d6b04335736059dfd6b2a77de6eb2ce4f364e",
       "title": "Questions before you transfer",
       "overview": {
         "title": "Receive Bitcoin Cash with BCH selected on both sides.",
@@ -1326,20 +1326,20 @@
           "url": "https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/cashaddr.md"
         },
         {
-          "label": "Oath 5.1.1: Bitcoin Cash address handling",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/Packages/OathBitcoin/Sources/OathBitcoin/CashAddress.swift"
+          "label": "Oath 5.1.2: Bitcoin Cash address handling",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/Packages/OathBitcoin/Sources/OathBitcoin/CashAddress.swift"
         },
         {
-          "label": "Oath 5.1.1: receiving flow",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Home/OathReceiveSheet.swift"
+          "label": "Oath 5.1.2: receiving flow",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Home/OathReceiveSheet.swift"
         },
         {
-          "label": "Oath 5.1.1: asset details and activity",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Assets/OathAssetDetailScreen.swift"
+          "label": "Oath 5.1.2: asset details and activity",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Assets/OathAssetDetailScreen.swift"
         },
         {
-          "label": "Oath 5.1.1: supported send flows",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Send/OathSendModel.swift"
+          "label": "Oath 5.1.2: supported send flows",
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Send/OathSendModel.swift"
         }
       ],
       "capture": "bitcoin-cash",
@@ -1358,9 +1358,9 @@
     },
     "/networks/sui": {
       "updated": "2026-11-26",
-      "version": "5.1.1",
-      "build": 111,
-      "sourceCommit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
+      "version": "5.1.2",
+      "build": 112,
+      "sourceCommit": "9f2d6b04335736059dfd6b2a77de6eb2ce4f364e",
       "description": "Find your Sui Mainnet receiving address in Oath on iPhone. Copy it or share your QR code, check the sender’s network and understand SUI gas fees.",
       "title": "Before the sender confirms",
       "overview": {
@@ -1399,8 +1399,8 @@
           "url": "https://www.docs.sui.io/onchain-finance/asset-custody/wallets/what-is-a-wallet"
         },
         {
-          "label": "Oath 5.1.1 release source",
-          "url": "https://github.com/OathWallet/oath-wallet/tree/87c783cf929c4282ba50daf2cc056f25c6a4d469"
+          "label": "Oath 5.1.2 release source",
+          "url": "https://github.com/OathWallet/oath-wallet/tree/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e"
         }
       ],
       "images": [
@@ -1417,9 +1417,9 @@
     },
     "/tokens/texas-instruments-xstock": {
       "updated": "2026-11-26",
-      "version": "5.1.1",
-      "build": 111,
-      "sourceCommit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
+      "version": "5.1.2",
+      "build": 112,
+      "sourceCommit": "9f2d6b04335736059dfd6b2a77de6eb2ce4f364e",
       "title": "Recognize TXNx in Oath",
       "questions": [
         {
@@ -1447,9 +1447,9 @@
     },
     "/tokens/texas-instruments-xstock/ethereum": {
       "updated": "2026-11-26",
-      "version": "5.1.1",
-      "build": 111,
-      "sourceCommit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
+      "version": "5.1.2",
+      "build": 112,
+      "sourceCommit": "9f2d6b04335736059dfd6b2a77de6eb2ce4f364e",
       "title": "Recognize TXNx in Oath",
       "questions": [
         {
@@ -1477,8 +1477,8 @@
     },
     "/networks/fantom": {
       "updated": "2026-11-26",
-      "version": "5.1.1",
-      "build": 111,
+      "version": "5.1.2",
+      "build": 112,
       "pageTitle": "How to Get FTM on Fantom Opera: Receive FTM in Oath",
       "description": "Receive native FTM on Fantom Opera in Oath. Match chain ID 250 before withdrawing, check who pays gas and see what to do when a service only offers Sonic.",
       "receive": {
@@ -1525,15 +1525,15 @@
         },
         {
           "label": "Oath’s released Receive screen",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Home/OathReceiveSheet.swift"
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Home/OathReceiveSheet.swift"
         }
       ],
-      "sourceCommit": "87c783cf929c4282ba50daf2cc056f25c6a4d469"
+      "sourceCommit": "9f2d6b04335736059dfd6b2a77de6eb2ce4f364e"
     },
     "/networks/aptos": {
       "updated": "2026-11-26",
-      "version": "5.1.1",
-      "build": 111,
+      "version": "5.1.2",
+      "build": 112,
       "pageTitle": "Aptos Wallet on iPhone – Find Your Address and Receive APT",
       "description": "Find your Aptos address in Oath on iPhone, copy it or show its QR code, and receive native APT. Check the withdrawal network and look up the transfer on Aptos Mainnet.",
       "receive": {
@@ -1575,15 +1575,15 @@
         },
         {
           "label": "Oath’s released Receive screen",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Home/OathReceiveSheet.swift"
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Home/OathReceiveSheet.swift"
         }
       ],
-      "sourceCommit": "87c783cf929c4282ba50daf2cc056f25c6a4d469"
+      "sourceCommit": "9f2d6b04335736059dfd6b2a77de6eb2ce4f364e"
     },
     "/networks/polkadot": {
       "updated": "2026-11-26",
-      "version": "5.1.1",
-      "build": 111,
+      "version": "5.1.2",
+      "build": 112,
       "pageTitle": "Polkadot Wallet for iPhone: Send DOT to a Polkadot.js Account",
       "description": "Use Oath on iPhone to receive DOT on Polkadot Asset Hub. Copy a Polkadot.js account address, review the DOT fee and check the transfer on the same chain.",
       "receive": {
@@ -1634,10 +1634,10 @@
         },
         {
           "label": "How the released Oath app checks a DOT transfer",
-          "url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/Packages/OathAnkr/Sources/OathAnkr/PolkadotSendClient.swift"
+          "url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/Packages/OathAnkr/Sources/OathAnkr/PolkadotSendClient.swift"
         }
       ],
-      "sourceCommit": "87c783cf929c4282ba50daf2cc056f25c6a4d469"
+      "sourceCommit": "9f2d6b04335736059dfd6b2a77de6eb2ce4f364e"
     }
   }
 }

@@ -60,7 +60,7 @@ Binance describes these stages in [Why hasn’t my withdrawal arrived?](https://
 
 ## Review and next steps
 
-Source references updated **November 26, 2026**. The original external-documentation review was on **November 9, 2026**. The references cover the linked exchange documentation, token issuer information and [Oath 5.1.1 (111) receiving implementation](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Home/OathReceiveSheet.swift). The image shows the real app with mock data. We did not perform a funded Binance withdrawal for this guide or verify availability inside an individual Binance account.
+Source references updated **November 26, 2026**. The original external-documentation review was on **November 9, 2026**. The references cover the linked exchange documentation, token issuer information and [Oath 5.1.2 (112) receiving implementation](https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Home/OathReceiveSheet.swift). The image shows the real app with mock data. We did not perform a funded Binance withdrawal for this guide or verify availability inside an individual Binance account.
 
 Oath publishes this guide independently; it does not imply a Binance partnership. Use the exchange’s official app or support links for account verification. Neither this page nor an Oath support conversation needs your recovery phrase, private key or exchange authentication code.
 

@@ -1,6 +1,6 @@
 You can use a compatible Trust Wallet recovery phrase in Oath without sending your coins anywhere. Oath derives the supported accounts from the same recovery material. The assets stay on their original networks, and Trust Wallet can still access them.
 
-This guide covers the account conventions below in Oath 5.1.1 (111). It does not promise that every wallet, account or asset shown in Trust Wallet will appear in Oath.
+This guide covers the account conventions below in Oath 5.1.2 (112). It does not promise that every wallet, account or asset shown in Trust Wallet will appear in Oath.
 
 ## Check your starting wallet
 
@@ -54,7 +54,7 @@ Importing keeps the same keys. If you want a wallet with new keys, create a new 
 
 ## What we verified
 
-Checked November 26, 2026 against [Oath 5.1.1 (111) source](https://github.com/OathWallet/oath-wallet/tree/87c783cf929c4282ba50daf2cc056f25c6a4d469). We compared the released account paths with [Trust Wallet Core 4.8.4's registry](https://github.com/trustwallet/wallet-core/blob/4.8.4/registry.json), ran public address vectors with that version's host library, and checked Oath's [Solana path selection](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/Packages/OathDatabase/Sources/OathDatabase/SolanaReceive.swift). These checks establish the stated derivation compatibility, not a live transfer test or a test of every Trust Wallet release.
+Checked November 26, 2026 against [Oath 5.1.2 (112) source](https://github.com/OathWallet/oath-wallet/tree/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e). We compared the released account paths with [Trust Wallet Core 4.8.4's registry](https://github.com/trustwallet/wallet-core/blob/4.8.4/registry.json), ran public address vectors with that version's host library, and checked Oath's [Solana path selection](https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/Packages/OathDatabase/Sources/OathDatabase/SolanaReceive.swift). These checks establish the stated derivation compatibility, not a live transfer test or a test of every Trust Wallet release.
 
 [Get Oath for iPhone](https://apps.apple.com/us/app/oath-bitcoin-crypto-wallet/id6780187283) · [Use a MetaMask wallet in Oath](https://articles.oathwallet.org/use-metamask-wallet-in-oath) · [Restore an Electrum Bitcoin wallet](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone)
 
@@ -74,6 +74,6 @@ Historical Oath app screenshot with sample data. Compare the network and full re
 
 ## Compare the versioned evidence
 
-The [Wallet Compatibility Lab](https://oathwallet.org/compatibility) separates source review, reference-library checks and tests of Oath’s released Bitcoin core. [Read the November 9, 2026 results](https://oathwallet.org/compatibility/2026-11-26) for the exact account types, source revision, passing checks and limitations. Installed third-party apps and funded migrations were not tested in that edition.
+The [Wallet Compatibility Lab](https://oathwallet.org/compatibility) separates source review, reference-library checks and tests of Oath’s released Bitcoin core. [Read the November 9, 2026 results](https://oathwallet.org/compatibility/2026-11-26-build112) for the exact account types, source revision, passing checks and limitations. Installed third-party apps and funded migrations were not tested in that edition.
 
-[First ordinary Trust Wallet EVM account in the dated lab results](https://oathwallet.org/compatibility/2026-11-26#trust-evm).
+[First ordinary Trust Wallet EVM account in the dated lab results](https://oathwallet.org/compatibility/2026-11-26-build112#trust-evm).

@@ -4,11 +4,11 @@ Oath Editorial · Originally published 2026-08-30 · Updated November 2, 2026
 
 https://articles.oathwallet.org/backup-restore-oath-wallet
 
-Choose a recovery method supported by 5.1.1 and verify it before replacing or erasing your phone.
+Choose a recovery method supported by 5.1.2 and verify it before replacing or erasing your phone.
 
 ## Guide source version
 
-Checked against [Oath 5.1.1 (111) source](https://github.com/OathWallet/oath-wallet/tree/87c783cf929c4282ba50daf2cc056f25c6a4d469). Older screenshots are illustrative.
+Checked against [Oath 5.1.2 (112) source](https://github.com/OathWallet/oath-wallet/tree/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e). Older screenshots are illustrative.
 
 ## Choose the recovery material
 
@@ -30,4 +30,4 @@ Enable iCloud Drive for the Apple Account holding the file. Choose Restore from 
 
 Oath cannot reset a forgotten backup password. If the original wallet still opens, create a new supported backup and retain its password. Removing the app does not delete separate iCloud files. Do not erase the old phone until the replacement wallet and recovery material are verified.
 
-Read the [security model](https://oathwallet.org/security), [Help Center](https://help.oathwallet.org/), and [release verification record](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111-r3).
+Read the [security model](https://oathwallet.org/security), [Help Center](https://help.oathwallet.org/), and [release verification record](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.2-build112-r3).

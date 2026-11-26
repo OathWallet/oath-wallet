@@ -6,11 +6,11 @@ Oath Wallet Compatibility Lab · 2026-11-26
 
 Compare Trust Wallet, MetaMask and Electrum account recovery with Oath. Explore versioned derivation results, Bitcoin address types, methods and limitations.
 
-[Compatibility matrix](https://oathwallet.org/compatibility)[Results · 2026-11-26](https://oathwallet.org/compatibility/2026-11-26)[Methods & reproduction](https://oathwallet.org/compatibility/methodology)
+[Compatibility matrix](https://oathwallet.org/compatibility)[Results · 2026-11-26-build112](https://oathwallet.org/compatibility/2026-11-26-build112)[Methods & reproduction](https://oathwallet.org/compatibility/methodology)
 
 **Reviewed release**
 
-Oath 5.1.1 (111)
+Oath 5.1.2 (112)
 
 **Reference-library checks**
 
@@ -24,13 +24,13 @@ Oath 5.1.1 (111)
 
 Not performed
 
-Keep your recovery material private. This is a reference, not an import tool. It never asks for a recovery phrase or private key. Use the installed wallet’s recovery flow; never send recovery material with a correction or support request.12 scoped comparisons · edition 2026-11-26
+Keep your recovery material private. This is a reference, not an import tool. It never asks for a recovery phrase or private key. Use the installed wallet’s recovery flow; never send recovery material with a correction or support request.12 scoped comparisons · edition 2026-11-26-build112
 
 ## Start with the account you have.
 
 A wallet name alone cannot establish compatibility. Read the account type, path and limitation together. Each result links to its dated evidence.
 
-Account restoration scope against Oath 5.1.1; not a blanket wallet certification
+Account restoration scope against Oath 5.1.2; not a blanket wallet certification
 
 Wallet / account
 
@@ -40,7 +40,7 @@ Evidence
 
 Key limitation
 
-Trust Wallet[First ordinary EVM account](https://oathwallet.org/compatibility/2026-11-26#trust-evm)
+Trust Wallet[First ordinary EVM account](https://oathwallet.org/compatibility/2026-11-26-build112#trust-evm)
 
 Default path aligns
 
@@ -48,7 +48,7 @@ Reference-library checks
 
 Covers the first ordinary BIP39 account. It does not establish every Trust Wallet app version, account index, token discovery result or smart account.
 
-Trust Wallet[Bitcoin native SegWit, account 0](https://oathwallet.org/compatibility/2026-11-26#trust-bitcoin)
+Trust Wallet[Bitcoin native SegWit, account 0](https://oathwallet.org/compatibility/2026-11-26-build112#trust-bitcoin)
 
 Default path aligns
 
@@ -56,7 +56,7 @@ Oath core host tests
 
 Other address types have separate core checks below. This is not a balance-discovery or funded-transfer test of Trust Wallet.
 
-Trust Wallet[First TRON account](https://oathwallet.org/compatibility/2026-11-26#trust-tron)
+Trust Wallet[First TRON account](https://oathwallet.org/compatibility/2026-11-26-build112#trust-tron)
 
 Default path aligns
 
@@ -64,7 +64,7 @@ Reference-library checks
 
 A matching address does not verify every TRC-20 contract, available TRX/resources or sending behavior.
 
-Trust Wallet[Solana account convention](https://oathwallet.org/compatibility/2026-11-26#trust-solana)
+Trust Wallet[Solana account convention](https://oathwallet.org/compatibility/2026-11-26-build112#trust-solana)
 
 Different defaults; compare the address
 
@@ -72,7 +72,7 @@ Reference-library checks
 
 Use the matching account convention in Oath and compare its public address with the original wallet. An automatic match or full historical-account discovery was not tested.
 
-MetaMask[First ordinary EVM account](https://oathwallet.org/compatibility/2026-11-26#metamask-first)
+MetaMask[First ordinary EVM account](https://oathwallet.org/compatibility/2026-11-26-build112#metamask-first)
 
 First-account derivation agrees
 
@@ -80,7 +80,7 @@ Reference-library checks
 
 Only ordinary phrase-derived EVM accounts are covered. Social-login recovery, hardware wallets, smart accounts and non-EVM/Snap accounts are outside this result.
 
-MetaMask[Later or separately imported EVM account](https://oathwallet.org/compatibility/2026-11-26#metamask-later)
+MetaMask[Later or separately imported EVM account](https://oathwallet.org/compatibility/2026-11-26-build112#metamask-later)
 
 A different account needs its own key or matching path
 
@@ -88,7 +88,7 @@ Reference-library checks
 
 This does not show that phrase import automatically restores all accounts. An individual key covers one account, not the other accounts derived from the phrase or a separately imported key.
 
-Electrum[Electrum-generated standard seed](https://oathwallet.org/compatibility/2026-11-26#electrum-standard)
+Electrum[Electrum-generated standard seed](https://oathwallet.org/compatibility/2026-11-26-build112#electrum-standard)
 
 Legacy derivation fixtures pass
 
@@ -96,7 +96,7 @@ Oath core host tests
 
 This is Electrum’s own versioned seed format, not a BIP39 phrase merely used inside Electrum. No installed Electrum app or funded migration was exercised.
 
-Electrum[Electrum-generated SegWit seed](https://oathwallet.org/compatibility/2026-11-26#electrum-segwit)
+Electrum[Electrum-generated SegWit seed](https://oathwallet.org/compatibility/2026-11-26-build112#electrum-segwit)
 
 Native SegWit derivation fixtures pass
 
@@ -104,7 +104,7 @@ Oath core host tests
 
 Do not infer the seed format from the address prefix alone. Multisig and Lightning state are outside this ordinary single-wallet result.
 
-Electrum[Old Electrum seed encoding](https://oathwallet.org/compatibility/2026-11-26#electrum-old)
+Electrum[Old Electrum seed encoding](https://oathwallet.org/compatibility/2026-11-26-build112#electrum-old)
 
 Old-format fixtures pass
 
@@ -112,7 +112,7 @@ Oath core host tests
 
 Old seeds do not support an extra seed extension in this implementation. An encrypted wallet-file password is not the same as a seed extension.
 
-Electrum[Standard or SegWit seed with extension](https://oathwallet.org/compatibility/2026-11-26#electrum-extension)
+Electrum[Standard or SegWit seed with extension](https://oathwallet.org/compatibility/2026-11-26-build112#electrum-extension)
 
 Normalization and account isolation checks pass
 
@@ -120,7 +120,7 @@ Oath core host tests
 
 The website cannot recover a forgotten extension. Oath 5.1.1 excludes Electrum-derived wallets from its encrypted iCloud export; retain the original seed and extension backup privately.
 
-Electrum[2FA / TrustedCoin or custom multisig](https://oathwallet.org/compatibility/2026-11-26#electrum-two-factor)
+Electrum[2FA / TrustedCoin or custom multisig](https://oathwallet.org/compatibility/2026-11-26-build112#electrum-two-factor)
 
 Outside this migration scope
 
@@ -128,7 +128,7 @@ Limited checks; migration unverified
 
 Do not use this row as a supported migration procedure. TrustedCoin interaction, original 2FA protection and custom multisig recovery were not validated end to end.
 
-Other account types[Hardware, smart accounts, social login, custom scripts](https://oathwallet.org/compatibility/2026-11-26#other-accounts)
+Other account types[Hardware, smart accounts, social login, custom scripts](https://oathwallet.org/compatibility/2026-11-26-build112#other-accounts)
 
 Not evaluated
 
@@ -138,7 +138,7 @@ No installed-app compatibility claim is made for hardware pairing, smart-account
 
 No comparisons match both filters. Reset the filters to see every result.
 
-[Download comparison CSV](https://oathwallet.org/compatibility/2026-11-26.csv) · [Download full evidence JSON](https://oathwallet.org/compatibility/2026-11-26.json)
+[Download comparison CSV](https://oathwallet.org/compatibility/2026-11-26-build112.csv) · [Download full evidence JSON](https://oathwallet.org/compatibility/2026-11-26-build112.json)
 
 Why an address can change
 
@@ -217,7 +217,7 @@ Single-key P2TR · starts with bc1p
 
 Here, `change` is 0 for receiving and 1 for change. Additional tests cover compressed versus uncompressed single keys, extended-key version families and rejection of invalid inputs. These helper tests do not establish a watch-only public-key import feature in the app.
 
-[Inspect the exact test inventory](https://oathwallet.org/compatibility/2026-11-26#test-inventory)
+[Inspect the exact test inventory](https://oathwallet.org/compatibility/2026-11-26-build112#test-inventory)
 
 ## Ready to check your starting wallet?
 
@@ -243,4 +243,4 @@ Read the recovery steps, supported scope and backup limitations.
 
 ## Keep a result you can cite.
 
-[Edition 2026-11-26](https://oathwallet.org/compatibility/2026-11-26) includes every result, the exact versions, test inventory and limits. [Read the methods and reproduce the run.](https://oathwallet.org/compatibility/methodology)
+[Edition 2026-11-26-build112](https://oathwallet.org/compatibility/2026-11-26-build112) includes every result, the exact versions, test inventory and limits. [Read the methods and reproduce the run.](https://oathwallet.org/compatibility/methodology)

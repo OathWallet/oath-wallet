@@ -32,10 +32,11 @@ test('published page copy contains no retired Oath release labels or mismatched 
       const path=new URL(item.name+(item.isDirectory()?'/':''),dir);
       if(item.isDirectory()){await inspect(path);continue;}
       if(!/\.(html|md)$/.test(item.name))continue;
+      if(path.pathname.includes('/compatibility/2026-11-26.'))continue;
       let text=await readFile(path,'utf8');
       text=text.replace(/<script\b[^>]*>[\s\S]*?<\/script>|<style\b[^>]*>[\s\S]*?<\/style>|<!--[\s\S]*?-->/gi,'');
       text=text.replace(/<[^>]+>/g,' ').replace(/\]\(https?:\/\/[^)]+\)/g,']').replace(/https?:\/\/[^\s<>]+/g,'');
-      const match=retired.exec(text)??/\b5\.1\.1\s*\((?!111\))\d+\)|\bbuild\s+(?!111\b)\d+/i.exec(text);
+      const match=retired.exec(text)??/\b5\.1\.2\s*\((?!112\))\d+\)|\bbuild\s+(?!112\b)\d+/i.exec(text);
       if(match)failures.push(path.pathname.slice(root.pathname.length)+': '+text.slice(Math.max(0,match.index-40),match.index+80).replace(/\s+/g,' '));
     }
   }

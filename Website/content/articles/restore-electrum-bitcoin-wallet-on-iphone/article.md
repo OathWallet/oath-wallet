@@ -1,4 +1,4 @@
-Oath can restore supported Electrum Bitcoin seed formats on iPhone. This guide covers ordinary Electrum Standard, native SegWit and old-format deterministic seeds in Oath 5.1.1 (111). Recovery rebuilds the Bitcoin account; it does not move BTC to a new address or restore everything stored in an Electrum wallet file.
+Oath can restore supported Electrum Bitcoin seed formats on iPhone. This guide covers ordinary Electrum Standard, native SegWit and old-format deterministic seeds in Oath 5.1.2 (112). Recovery rebuilds the Bitcoin account; it does not move BTC to a new address or restore everything stored in an Electrum wallet file.
 
 Before starting, identify the original wallet's seed type and whether it used a seed extension. Keep your Electrum installation, wallet file and independent recovery copy available until you have checked recovery.
 
@@ -36,7 +36,7 @@ This recovery is Bitcoin-only. It does not recover other coins, Bitcoin Cash for
 
 The phrase alone does not recreate Lightning channel state, custom labels, contacts, invoice records, frozen-coin choices, plugins or arbitrary metadata from the Electrum wallet file. A seed-only import must not be treated as Lightning-channel recovery. Keep the original software and any channel backups for that separate process.
 
-Oath 5.1.1 excludes Electrum wallets from its encrypted iCloud export flow. Keep a separate offline backup of the original seed and, where required, the extension. An Oath app passcode does not replace those recovery materials. See [Oath's backup scope](https://oathwallet.org/features/icloud-wallet-backup).
+Oath 5.1.2 excludes Electrum wallets from its encrypted iCloud export flow. Keep a separate offline backup of the original seed and, where required, the extension. An Oath app passcode does not replace those recovery materials. See [Oath's backup scope](https://oathwallet.org/features/icloud-wallet-backup).
 
 ## Why might the balance look incomplete?
 
@@ -48,7 +48,7 @@ There is no Bitcoin network fee for importing a seed. Sending BTC afterward requ
 
 ## What we verified
 
-Checked November 26, 2026 against [Oath 5.1.1 (111) source](https://github.com/OathWallet/oath-wallet/tree/87c783cf929c4282ba50daf2cc056f25c6a4d469). We ran its [Electrum host tests](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/Packages/OathBitcoin/Tests/OathBitcoinTests/ElectrumMnemonicTests.swift): five checks passed, and the opt-in Bitcoin Core funding/transfer check was skipped. The public reference suite compares 132 receive/change addresses across 22 fixtures and also tests extension isolation and bounded discovery. The suite includes additional seed types beyond the ordinary-wallet instructions in this guide.
+Checked November 26, 2026 against [Oath 5.1.2 (112) source](https://github.com/OathWallet/oath-wallet/tree/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e). We ran its [Electrum host tests](https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/Packages/OathBitcoin/Tests/OathBitcoinTests/ElectrumMnemonicTests.swift): five checks passed, and the opt-in Bitcoin Core funding/transfer check was skipped. The public reference suite compares 132 receive/change addresses across 22 fixtures and also tests extension isolation and bounded discovery. The suite includes additional seed types beyond the ordinary-wallet instructions in this guide.
 
 These are offline recovery and source checks. They are not an iPhone runtime test, a live funded transfer or a guarantee that every historical Electrum wallet configuration will recover through this route.
 
@@ -70,6 +70,6 @@ Historical Oath app screenshot with sample data. The address options depend on t
 
 ## Compare the versioned evidence
 
-The [Wallet Compatibility Lab](https://oathwallet.org/compatibility) separates source review, reference-library checks and tests of Oath’s released Bitcoin core. [Read the November 9, 2026 results](https://oathwallet.org/compatibility/2026-11-26) for the exact account types, source revision, passing checks and limitations. Installed third-party apps and funded migrations were not tested in that edition.
+The [Wallet Compatibility Lab](https://oathwallet.org/compatibility) separates source review, reference-library checks and tests of Oath’s released Bitcoin core. [Read the November 9, 2026 results](https://oathwallet.org/compatibility/2026-11-26-build112) for the exact account types, source revision, passing checks and limitations. Installed third-party apps and funded migrations were not tested in that edition.
 
-[Electrum native SegWit seed findings in the dated lab results](https://oathwallet.org/compatibility/2026-11-26#electrum-segwit).
+[Electrum native SegWit seed findings in the dated lab results](https://oathwallet.org/compatibility/2026-11-26-build112#electrum-segwit).

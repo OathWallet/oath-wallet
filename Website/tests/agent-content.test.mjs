@@ -72,7 +72,7 @@ test('private routes, redirects and cross-origin MCP protections remain intact',
 
 test('release status stays consistent across all hosts, generated files and MCP',async()=>{
  const distribution=JSON.parse(await readFile(new URL('../content/published-source-release.json',import.meta.url),'utf8'));
- assert.equal(currentStatus.version,'5.1.1');assert.equal(currentStatus.build,111);assert.equal(currentStatus.schema_version,2);assert.equal(currentStatus.guide_source.version,distribution.version);
+ assert.equal(currentStatus.version,'5.1.2');assert.equal(currentStatus.build,112);assert.equal(currentStatus.schema_version,2);assert.equal(currentStatus.guide_source.version,distribution.version);
  assert.equal(currentStatus.source_commit,distribution.source_commit);assert.equal(currentStatus.guide_source.source_commit,distribution.source_commit);assert.equal(currentStatus.distribution_status,'SOURCE_RELEASE_PUBLISHED');
  assert.equal(currentStatus.review.status,'in_progress');assert.equal(currentStatus.review.independent_certification,false);
  assert.match(currentStatus.review.coverage_url,/scope\/inventory\.json$/);

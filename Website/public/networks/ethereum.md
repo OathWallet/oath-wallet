@@ -45,7 +45,7 @@ Only send using the network the recipient explicitly supports. A matching addres
 
 Features depend on the app version, network, wallet type and the service you connect to. Check the available actions in your installed app before transferring.
 
-[Network catalog](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Import/OathImportCatalog.swift) · Updated 2026-11-26. Source review is not confirmation of App Store availability.
+[Network catalog](https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Import/OathImportCatalog.swift) · Updated 2026-11-26. Source review is not confirmation of App Store availability.
 
 [Get Oath for iPhone and iPad](https://apps.apple.com/app/id6780187283) · [All networks](https://oathwallet.org/networks)
 
@@ -98,12 +98,12 @@ Check the transaction on Base and the corresponding Base account in Oath. The Et
 App steps checked against the linked release source; token identities and network requirements checked against the sources below. Screenshots show the actual app interface with mock data, not completed live transfers.
 
 - [Ethereum: gas and transaction fees](https://ethereum.org/en/developers/docs/gas/)
-- [Oath 5.1.1: WalletConnect service](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Scanner/OathWalletConnectService.swift)
-- [Oath 5.1.1: receiving flow](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Home/OathReceiveSheet.swift)
-- [Oath 5.1.1: asset details and activity](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Assets/OathAssetDetailScreen.swift)
-- [Oath 5.1.1: supported send flows](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Send/OathSendModel.swift)
+- [Oath 5.1.2: WalletConnect service](https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Scanner/OathWalletConnectService.swift)
+- [Oath 5.1.2: receiving flow](https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Home/OathReceiveSheet.swift)
+- [Oath 5.1.2: asset details and activity](https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Assets/OathAssetDetailScreen.swift)
+- [Oath 5.1.2: supported send flows](https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Send/OathSendModel.swift)
 
-Guidance reviewed for Oath 5.1.1 (111); updated 2026-11-26. [How we review guides](https://oathwallet.org/about#editorial).
+Guidance reviewed for Oath 5.1.2 (112); updated 2026-11-26. [How we review guides](https://oathwallet.org/about#editorial).
 
 <!-- token-catalog:start -->
 ## Tokens on Ethereum

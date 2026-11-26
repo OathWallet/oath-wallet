@@ -1,7 +1,7 @@
 # Oath — Made for your independence.
 
 <!-- current-release:start -->
-Latest source release: [Oath 5.1.1 · Build 111](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111).
+Latest source release: [Oath 5.1.2 · Build 112](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.2-build112).
 <!-- current-release:end -->
 
 Oath is a self-custody Bitcoin and crypto wallet for iPhone and iPad. You control your wallet credentials, review fees before confirming, and manage supported assets without a trading marketplace.
@@ -14,7 +14,7 @@ Oath is a self-custody Bitcoin and crypto wallet for iPhone and iPad. You contro
 - **You hold the keys.** Most crypto apps want you to trade. Oath wants you to own. No tickers shouting, no casino lights, no one holding your coins for you. Just your money, kept.
 - **Private keys stay protected.** Oath encrypts your wallet keys on your device. You unlock your wallet to use them when you need to sign.
 - **You choose what to approve.** Review the accounts and networks a dApp requests before connecting. When it asks you to sign, you can review the request and decline it.
-- **Trace a release to its source.** Match the version and build number to the release record on GitHub, then inspect the linked source. A build record alone can’t verify an exact copy of the binary on your phone. [View the release record](https://github.com/OathWallet/oath-wallet/blob/main/releases/5.1.1.md).
+- **Trace a release to its source.** Match the version and build number to the release record on GitHub, then inspect the linked source. A build record alone can’t verify an exact copy of the binary on your phone. [View the release record](https://github.com/OathWallet/oath-wallet/blob/main/releases/5.1.2.md).
 - **A wallet in your language.** Oath supports more than 50 languages. Read the prompts, check an address and review a transfer in the language you know best.
 
 [Is Oath right for me?](https://oathwallet.org/about#wallet-fit)

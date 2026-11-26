@@ -8,7 +8,7 @@ To receive BTC in Oath, open Receive and choose Bitcoin. A standard seed wallet 
 
 ## Guide source version
 
-Reviewed against Oath 5.1.1 (111) on November 16, 2026. The walkthrough uses historical screenshots. Check the available address types in your own wallet.
+Reviewed against Oath 5.1.2 (112) on November 16, 2026. The walkthrough uses historical screenshots. Check the available address types in your own wallet.
 
 ## Choose a Bitcoin receiving address
 
@@ -38,19 +38,19 @@ A single private key cannot recreate a sequence of HD addresses. An account-leve
 
 ## Recognize unsupported addresses
 
-Oath 5.1.1 does not receive or discover Bitcoin Silent Payments (sp1). A Taproot address beginning with bc1p is a different format. If a recovery format is unsupported, keep access to the original wallet.
+Oath 5.1.2 does not receive or discover Bitcoin Silent Payments (sp1). A Taproot address beginning with bc1p is a different format. If a recovery format is unsupported, keep access to the original wallet.
 
 
 ## Before sharing an address
 
 Choose Bitcoin mainnet on both sides, compare the complete destination and check the fee in the sending wallet. Use only an address displayed by your own wallet. Keep recovery words, private keys and backup passwords private, including when contacting support.
 
-Sources: [Receive screen](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Home/OathReceiveSheet.swift) · [Bitcoin address derivation](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/Packages/OathBitcoin/Sources/OathBitcoin/BitcoinKeys.swift) · [BIP44 account and address indexes](https://bips.dev/44/) · [BIP84 Native SegWit](https://bips.dev/84/) · [BIP86 Taproot](https://bips.dev/86/) · [Release record](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111).
+Sources: [Receive screen](https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Home/OathReceiveSheet.swift) · [Bitcoin address derivation](https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/Packages/OathBitcoin/Sources/OathBitcoin/BitcoinKeys.swift) · [BIP44 account and address indexes](https://bips.dev/44/) · [BIP84 Native SegWit](https://bips.dev/84/) · [BIP86 Taproot](https://bips.dev/86/) · [Release record](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.2-build112).
 
 <!-- oath-walkthrough:start -->
 ## Bitcoin: know the address and recovery scope — visual walkthrough transcript
 
-Guidance for Oath 5.1.1 (111). Included screenshots are historical examples. This is an illustrated guide, not a recording of a current App Store test.
+Guidance for Oath 5.1.2 (112). Included screenshots are historical examples. This is an illustrated guide, not a recording of a current App Store test.
 
 ### 1. Match the address family
 

@@ -80,6 +80,6 @@ test('decision filters preserve entries and announce the result count',async()=>
  assert.equal(panel.hidden,false);assert.equal(status.textContent,'3 entries shown');filter.value='usd-coin';filter.change();assert.equal(cards.filter(c=>!c.hidden).length,1);assert.equal(status.textContent,'1 entry shown');filter.value='';filter.change();assert.equal(cards.filter(c=>!c.hidden).length,3);
 });
 test('release history and migration pages retain accountable versioned evidence',async()=>{
- const release=await read('/articles/oath-wallet-release-history.html');assert.match(release,/5\.1\.1 \(111\)/);assert.match(release,/5\.1\.1-source\.json/);assert.match(release,/about#editorial/);assert.doesNotMatch(release,/5\.0\.3.*(?:available|released)/);assert.match(await read('/about.html'),/What a reviewed guide means/);
+ const release=await read('/articles/oath-wallet-release-history.html');assert.match(release,/5\.1\.2 \(112\)/);assert.match(release,/5\.1\.2-source\.json/);assert.match(release,/about#editorial/);assert.doesNotMatch(release,/5\.0\.3.*(?:available|released)/);assert.match(await read('/about.html'),/What a reviewed guide means/);
  for(const slug of ['move-from-trust-wallet-to-oath','use-metamask-wallet-in-oath','restore-electrum-bitcoin-wallet-on-iphone']){const html=await read('/articles/'+slug+'.html');assert.match(html,/Historical.*app screenshot with sample data/);assert.match(html,/networks\/fees/);assert.match(html,/oath-wallet-release-history/);}
 });

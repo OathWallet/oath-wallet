@@ -7,12 +7,21 @@ import {runInNewContext} from 'node:vm';
 import worker from '../src/index.js';
 import {documents} from '../src/agent-content.js';
 import catalog from '../content/compatibility/catalog.json' with {type:'json'};
-import edition from '../content/compatibility/2026-11-26.json' with {type:'json'};
+import edition from '../content/compatibility/2026-11-26-build112.json' with {type:'json'};
+import previousEdition from '../content/compatibility/2026-11-26.json' with {type:'json'};
 import {validateEdition,matrixCSV} from '../compatibility/validate.mjs';
 const root=new URL('../public/',import.meta.url),origin='https://oathwallet.org';
 const read=path=>readFile(new URL('.'+path,root),'utf8');
 const env={ASSETS:{async fetch(req){try{const p=new URL(req.url).pathname;const body=await read(p);return new Response(req.method==='HEAD'?null:body,{headers:{'Content-Type':p.endsWith('.html')?'text/html':'text/plain'}});}catch{return new Response(null,{status:404});}}}};
 const get=(path,options)=>worker.fetch(new Request(origin+path,options),env);
+test('earlier dated evidence retains its original release while current evidence matches 5.1.2',()=>{
+ validateEdition(previousEdition);
+ assert.equal(previousEdition.evidence.versions.oath,'5.1.1');
+ assert.equal(previousEdition.evidence.versions.build,111);
+ assert.notEqual(previousEdition.evidence.versions.sourceCommit,edition.evidence.versions.sourceCommit);
+ const mismatch=structuredClone(edition);mismatch.evidence.versions.build=111;
+ assert.throws(()=>validateEdition(mismatch));
+});
 test('earlier compatibility URLs redirect to the current release edition',async()=>{
  for(const suffix of ['','.html','.md','.json','.csv','/']){
   const response=await get('/compatibility/2026-11-09'+suffix);
@@ -59,7 +68,7 @@ test('lab routes expose canonical HTML and Markdown without recovery collection'
 test('data exports preserve evidence, canonical headers and method boundaries',async()=>{
  for(const ext of ['json','csv']){
   const path='/compatibility/'+edition.edition+'.'+ext,response=await get(path);
-  assert.equal(response.status,200);assert.match(response.headers.get('Link'),/2026-11-26>; rel="canonical"/);
+  assert.equal(response.status,200);assert.match(response.headers.get('Link'),/2026-11-26-build112>; rel="canonical"/);
   assert.equal(response.headers.get('X-Content-Type-Options'),'nosniff');
   assert.match(response.headers.get('Content-Type'),ext==='json'?/application\/json/:/text\/csv/);
   if(ext==='json')assert.deepEqual(await response.json(),edition);else assert.equal(await response.text(),matrixCSV(edition));
@@ -68,7 +77,7 @@ test('data exports preserve evidence, canonical headers and method boundaries',a
   assert.equal((await get('/compatibility/2099-01-01.'+ext)).status,404);
  }
  const d=structuredClone(edition);d.rows[0].result='=1+1';assert.ok(matrixCSV(d).includes('"\'=1+1"'));
- const unavailable=await worker.fetch(new Request(origin+'/compatibility/2026-11-26.json'),{ASSETS:{fetch:async()=>new Response(null,{status:503})}});assert.equal(unavailable.status,503);
+ const unavailable=await worker.fetch(new Request(origin+'/compatibility/2026-11-26-build112.json'),{ASSETS:{fetch:async()=>new Response(null,{status:503})}});assert.equal(unavailable.status,503);
 });
 test('filters intersect, announce empty results and reset without secret input',async()=>{
  const event=o=>Object.assign(o,{events:{},addEventListener(n,fn){this.events[n]=fn;}});

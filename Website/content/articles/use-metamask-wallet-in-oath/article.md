@@ -1,6 +1,6 @@
 Oath can derive the first ordinary EVM account from a compatible MetaMask Secret Recovery Phrase. You can also import an individual EVM private key for a software account. Both routes access an existing address; they do not send funds, change networks or remove MetaMask's access.
 
-This guide covers ordinary EVM accounts in Oath 5.1.1 (111). MetaMask can contain several kinds of accounts, so identify the account you actually need before importing anything.
+This guide covers ordinary EVM accounts in Oath 5.1.2 (112). MetaMask can contain several kinds of accounts, so identify the account you actually need before importing anything.
 
 ## Choose the right import route
 
@@ -49,7 +49,7 @@ There is no network fee to derive an address from recovery material. Later sends
 
 ## What we verified
 
-Checked November 26, 2026 against [Oath 5.1.1 (111) source](https://github.com/OathWallet/oath-wallet/tree/87c783cf929c4282ba50daf2cc056f25c6a4d469). Source review covers the [default EVM derivation](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Wallet/OathWalletEngine.swift) and [private-key import](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Wallet/OathPrivateKeyImport.swift). Offline public vectors check the first EVM address, distinguish the next account, and reproduce that account's address from its individual key. This is derivation evidence, not a live transfer test or verification of smart-account behavior.
+Checked November 26, 2026 against [Oath 5.1.2 (112) source](https://github.com/OathWallet/oath-wallet/tree/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e). Source review covers the [default EVM derivation](https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Wallet/OathWalletEngine.swift) and [private-key import](https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Wallet/OathPrivateKeyImport.swift). Offline public vectors check the first EVM address, distinguish the next account, and reproduce that account's address from its individual key. This is derivation evidence, not a live transfer test or verification of smart-account behavior.
 
 [Get Oath for iPhone](https://apps.apple.com/us/app/oath-bitcoin-crypto-wallet/id6780187283) · [Move from Trust Wallet](https://articles.oathwallet.org/move-from-trust-wallet-to-oath) · [Restore an Electrum Bitcoin wallet](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone)
 
@@ -70,6 +70,6 @@ Historical Oath app screenshot with sample data. Check the exact network as well
 
 ## Compare the versioned evidence
 
-The [Wallet Compatibility Lab](https://oathwallet.org/compatibility) separates source review, reference-library checks and tests of Oath’s released Bitcoin core. [Read the November 9, 2026 results](https://oathwallet.org/compatibility/2026-11-26) for the exact account types, source revision, passing checks and limitations. Installed third-party apps and funded migrations were not tested in that edition.
+The [Wallet Compatibility Lab](https://oathwallet.org/compatibility) separates source review, reference-library checks and tests of Oath’s released Bitcoin core. [Read the November 9, 2026 results](https://oathwallet.org/compatibility/2026-11-26-build112) for the exact account types, source revision, passing checks and limitations. Installed third-party apps and funded migrations were not tested in that edition.
 
-[Later MetaMask accounts and indexes in the dated lab results](https://oathwallet.org/compatibility/2026-11-26#metamask-later).
+[Later MetaMask accounts and indexes in the dated lab results](https://oathwallet.org/compatibility/2026-11-26-build112#metamask-later).

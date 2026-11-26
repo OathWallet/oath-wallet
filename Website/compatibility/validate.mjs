@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import release from '../content/published-source-release.json' with {type:'json'};
+import catalog from '../content/compatibility/catalog.json' with {type:'json'};
 export function validateEdition(data) {
  assert.equal(data.schemaVersion,1);
- assert.match(data.edition,/^\d{4}-\d{2}-\d{2}$/);
+ assert.match(data.edition,/^\d{4}-\d{2}-\d{2}(?:-build[1-9]\d*)?$/);
  const e=data.evidence;
- assert.equal(e.versions.oath,release.version); assert.equal(e.versions.build,release.build);
+ assert.match(e.versions.oath,/^\d+\.\d+\.\d+$/); assert.ok(Number.isInteger(e.versions.build)&&e.versions.build>0);
+ if(data.edition===catalog.latest){assert.equal(e.versions.oath,release.version);assert.equal(e.versions.build,release.build);}
  assert.match(e.versions.sourceCommit,/^[a-f0-9]{40}$/);
  assert.equal(e.versions.walletCore,'4.8.4');
  assert.equal(e.referenceLibrary.checks.length,18);
@@ -38,7 +40,7 @@ export function validateEdition(data) {
  assert.doesNotMatch(json,/abandon abandon|(?:xprv|yprv|zprv)[1-9A-HJ-NP-Za-km-z]{40,}|\/Users\/|\/Volumes\/|"(?:mnemonic|privateKey|seedHex|password)"\s*:/i);
  assert.ok(e.notPerformed.length>=5);
  assert.ok(data.changes.length>0);
- assert.equal(data.evidence.versions.sourceCommit,release.source_commit);
+ if(data.edition===catalog.latest)assert.equal(data.evidence.versions.sourceCommit,release.source_commit);
  return data;
 }
 export function matrixCSV(data){

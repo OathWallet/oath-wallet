@@ -1,7 +1,7 @@
 # Oath features
 
 <!-- current-release:start -->
-Latest source release: [Oath 5.1.1 · Build 111](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111).
+Latest source release: [Oath 5.1.2 · Build 112](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.2-build112).
 <!-- current-release:end -->
 
 Everything you need. Nothing you don’t.
@@ -41,7 +41,7 @@ The full source code is public on GitHub at https://github.com/OathWallet/oath-w
 
 ## 05. Bitcoin address options
 
-Compatible Bitcoin wallets support Taproot, Native SegWit, nested SegWit and Legacy, depending on the imported material. Capabilities vary by network. Oath 5.1.1 does not support Silent Payments receiving or discovery; see the Silent Payments guide before relying on that feature.
+Compatible Bitcoin wallets support Taproot, Native SegWit, nested SegWit and Legacy, depending on the imported material. Capabilities vary by network. Oath 5.1.2 does not support Silent Payments receiving or discovery; see the Silent Payments guide before relying on that feature.
 
 ## 06. Token approvals
 

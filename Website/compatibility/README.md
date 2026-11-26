@@ -1,12 +1,12 @@
 # Oath release compatibility evidence
 
-The current edition checks Oath **5.1.1 (111)** at source tag `v5.1.1-build111`.
-Accepted evidence is in `../content/compatibility/2026-11-26.json`: 18 reference/source checks and 14 passing Mac host tests, with the funded test skipped.
+The current edition checks Oath **5.1.2 (112)** at source tag `v5.1.2-build112`.
+Accepted evidence is in `../content/compatibility/2026-11-26-build112.json`: 18 reference/source checks and 14 passing Mac host tests, with the funded test skipped.
 
 Images are historical captures. No installed third-party app, simulator, physical device or funded-transfer check is claimed.
 
 ```sh
-git worktree add --detach ../oath-release v5.1.1-build111
+git worktree add --detach ../oath-release v5.1.2-build112
 npm ci --prefix Website/compatibility --ignore-scripts
 node Website/compatibility/run.mjs ../oath-release ../oath-lab-results
 ```

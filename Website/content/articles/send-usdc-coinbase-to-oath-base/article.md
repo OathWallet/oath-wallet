@@ -62,7 +62,7 @@ Avoid sending again to “unstick” the first withdrawal. A second successful s
 
 ## Review and next steps
 
-Source references updated **November 26, 2026**. The original external-documentation review was on **November 9, 2026**. The references cover Coinbase’s consumer-account documentation, Circle’s token identity and [Oath 5.1.1 (111) receiving code](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Home/OathReceiveSheet.swift). The screenshot uses mock data in the real app. This was a documentation and released-source review, not a funded Coinbase withdrawal or an individual account eligibility test.
+Source references updated **November 26, 2026**. The original external-documentation review was on **November 9, 2026**. The references cover Coinbase’s consumer-account documentation, Circle’s token identity and [Oath 5.1.2 (112) receiving code](https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Home/OathReceiveSheet.swift). The screenshot uses mock data in the real app. This was a documentation and released-source review, not a funded Coinbase withdrawal or an individual account eligibility test.
 
 This is Oath’s independent guide, not a Coinbase endorsement. Use official support for exchange account restrictions. Never share a recovery phrase, private key, password or two-factor code with support or this website.
 

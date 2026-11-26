@@ -1,6 +1,7 @@
 {
-  "latest": "2026-11-26",
+  "latest": "2026-11-26-build112",
   "editions": [
+    "2026-11-26-build112",
     "2026-11-26"
   ],
   "pages": [
@@ -12,10 +13,17 @@
       "updated": "2026-11-26"
     },
     {
-      "path": "/compatibility/2026-11-26",
+      "path": "/compatibility/2026-11-26-build112",
       "heading": "The current edition. Every result in view.",
-      "title": "Wallet Compatibility Results — November 2026 | Oath",
-      "description": "Oath 5.1.1 compatibility evidence: 14 reference-library checks, four source assertions and 14 passing Bitcoin host tests, with exact scope and skipped tests.",
+      "title": "Wallet Compatibility Results \u2014 Oath 5.1.2 (112) | Oath",
+      "description": "Oath 5.1.2 compatibility evidence: 14 reference-library checks, four source assertions and 14 passing Bitcoin host tests, with exact scope and skipped tests.",
+      "updated": "2026-11-26"
+    },
+    {
+      "path": "/compatibility/2026-11-26",
+      "heading": "Previous edition. Original recorded results.",
+      "title": "Wallet Compatibility Results \u2014 November 2026 | Oath",
+      "description": "Dated compatibility evidence for Oath 5.1.1 (111), retained with its original source revision and test scope.",
       "updated": "2026-11-26"
     },
     {

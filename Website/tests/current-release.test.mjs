@@ -17,7 +17,7 @@ function component(overrides={}) {
  return context.subject;
 }
 test('current source evidence agrees with the interactive code viewer and metadata',()=>{
- assert.equal(evidence.version,'5.1.1');assert.equal(evidence.build,111);
+ assert.equal(evidence.version,'5.1.2');assert.equal(evidence.build,112);
  assert.equal(data.security.reviewed_source_commit,evidence.source_commit);
  assert.equal(data.security.reviewed_on,evidence.reviewed_on);
  const files=JSON.parse(security.match(/const FILES = (\[[\s\S]*?\]);/)[1]);
@@ -34,8 +34,8 @@ test('current guides agree across article text, HTML, feeds and modification dat
   const a=data.articles.find(a=>a.url.endsWith('/'+slug));const item=feed.items.find(a=>a.url.endsWith('/'+slug));
   assert.ok(a&&item,slug);assert.equal(item.title,a.title);assert.equal(item.date_modified,a.updated_at);
   const bitcoin=slug==='bitcoin-settings-oath-address-types-indexes-complete-guide';
-  const checked=bitcoin?{date:'2026-11-26',version:'5.1.1',revision:evidence.source_commit}:
-    {date:'2026-11-26',version:'5.1.1',revision:'87c783cf929c4282ba50daf2cc056f25c6a4d469'};
+  const checked=bitcoin?{date:'2026-11-26',version:'5.1.2',revision:evidence.source_commit}:
+    {date:'2026-11-26',version:'5.1.2',revision:'9f2d6b04335736059dfd6b2a77de6eb2ce4f364e'};
   assert.equal(a.updated_at.slice(0,10),checked.date);
   for(const text of [html,md,item.content_html])assert.ok(text.includes(checked.version),slug);
   assert.match(html,/Guide source version/);
@@ -53,11 +53,11 @@ test('build-verification article feed matches the current article and release',a
  assert.equal(item.date_modified,metadata.updated_at);
  assert.match(item.date_modified,/2026-11-26/);
  assert.equal(item.content_html,html.split('<div class="article-body">')[1].split('<div class="article-end">')[0].trim());
- assert.match(item.content_html,/5\.1\.1/);
+ assert.match(item.content_html,/5\.1\.2/);
  assert.doesNotMatch(item.content_html,/4\.1\.14|build 86/);
 });
 test('help release and historical screenshots keep separate versions',()=>{
- for(const article of help.articles){assert.equal(article.app_version,'Oath 5.1.1 (111)');assert.equal(article.screenshot_version,'Historical app capture');assert.ok(!article.tags.some(t=>t.includes('4.0.3')));}
+ for(const article of help.articles){assert.equal(article.app_version,'Oath 5.1.2 (112)');assert.equal(article.screenshot_version,'Historical app capture');assert.ok(!article.tags.some(t=>t.includes('4.0.3')));}
 });
 test('website version references omit review-status UI and distribution claims',async()=>{
  const copies=await Promise.all(['public/security.html','public/security.md','public/about.html','public/about.md','public/index.html','public/index.md','public/llms.txt','public/llms-full.txt','public/oath-data.json','public/agent-documents.json','public/articles/feed.json'].map(read));
@@ -65,9 +65,9 @@ test('website version references omit review-status UI and distribution claims',
  for(const copy of copies){
   assert.doesNotMatch(copy,/Waiting for Review|App Store Connect listed|Version 4\.1\.2 is available|app-review-status/);
  }
- assert.equal(data.facts.source_version,'5.1.1 (111)');
- assert.equal(data.facts.app_version,'5.1.1');
- assert.equal(data.facts.app_build,111);
+ assert.equal(data.facts.source_version,'5.1.2 (112)');
+ assert.equal(data.facts.app_version,'5.1.2');
+ assert.equal(data.facts.app_build,112);
  assert.equal(data.facts.app_store_review_status,undefined);
  assert.equal(data.facts.app_store_version,undefined);
  assert.equal(data.security.source_correspondence.delivery_receipt,undefined);

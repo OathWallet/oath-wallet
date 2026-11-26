@@ -34,7 +34,7 @@ test('every migration guide is discoverable from both features views and retains
   assert.ok(html.includes('role="region" aria-label="Article table" tabindex="0"'),'Overflowing tables need keyboard access');
   assert.ok(body.includes(migrations.sourceCommit));
   assert.ok(body.includes('## What we verified'));
-  assert.ok(body.includes('5.1.1 (111)'));
+  assert.ok(body.includes('5.1.2 (112)'));
   assert.ok(!/<(?:input|textarea|iframe)\b/i.test(html),'Recovery guide must not collect recovery material');
   assert.ok(!body.includes('abandon abandon'),'Public test recovery material belongs in test fixtures, not user instructions');
  }

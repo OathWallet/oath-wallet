@@ -398,8 +398,8 @@ The fee depends on the transaction’s size and selected inputs. Use Oath’s fe
 - [Base network fees](https://docs.base.org/specifications/transactions/network-fees)
 - [Solana transaction fees](https://solana.com/docs/core/fees)
 
-Catalog scope: Oath 5.1.1 (111), snapshot 2026-11-26. Catalog inclusion describes discovery; it is not issuer verification, a safety endorsement or a test of every transfer. Sender support and issuer availability can change.
+Catalog scope: Oath 5.1.2 (112), snapshot 2026-11-26. Catalog inclusion describes discovery; it is not issuer verification, a safety endorsement or a test of every transfer. Sender support and issuer availability can change.
 
-Guidance updated 2026-11-06. [How Oath reviews product guidance](https://oathwallet.org/about#editorial) · [Released catalog source](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/Packages/OathAnkr/Sources/OathAnkr/Resources/TokenDiscoverySeed.json).
+Guidance updated 2026-11-06. [How Oath reviews product guidance](https://oathwallet.org/about#editorial) · [Released catalog source](https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/Packages/OathAnkr/Sources/OathAnkr/Resources/TokenDiscoverySeed.json).
 
 [Choose a USDT or USDC network](https://oathwallet.org/networks/choose-token-network)[Find the fee asset](https://oathwallet.org/networks/fees)[Browse all tokens](https://oathwallet.org/tokens)[Check a transfer’s status](https://help.oathwallet.org/articles/transaction-status)

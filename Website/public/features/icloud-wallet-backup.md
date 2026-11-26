@@ -22,7 +22,7 @@ Check that each upload completed. Preparing, queued and uploading states are sti
 
 ## Know what your backup covers.
 
-Backup availability depends on the wallet type, app version and iCloud Drive access. This page describes Oath 5.1.1 (111).
+Backup availability depends on the wallet type, app version and iCloud Drive access. This page describes Oath 5.1.2 (112).
 
 ### Eligible active wallets
 
@@ -94,19 +94,19 @@ No. Check the supported scope above. Electrum and aezeed wallets are excluded in
 - [Check Electrum recovery compatibility](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone)
 - [Import a compatible Trust Wallet account](https://articles.oathwallet.org/move-from-trust-wallet-to-oath)
 
-Guidance reviewed for Oath 5.1.1 (111); updated 2026-11-26. [How we review guides](https://oathwallet.org/about#editorial).
+Guidance reviewed for Oath 5.1.2 (112); updated 2026-11-26. [How we review guides](https://oathwallet.org/about#editorial).
 
 
 ## Release and source details
 
-Feature scope reviewed for Oath 5.1.1 (111) on 2026-11-26. Screens are historical app captures; appearance can differ from this release.
+Feature scope reviewed for Oath 5.1.2 (112) on 2026-11-26. Screens are historical app captures; appearance can differ from this release.
 
-[Release notes and checks](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111)
+[Release notes and checks](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.2-build112)
 
-- [OathCloudBackupService.swift](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Wallet/OathCloudBackupService.swift)
-- [OathWalletVault.swift](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Wallet/OathWalletVault.swift)
-- [OathVaultEnvelope.swift](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/OathAtmosphere/Wallet/OathVaultEnvelope.swift)
-- [BackupDocument.swift](https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/Packages/OathCloudBackup/Sources/OathCloudBackup/BackupDocument.swift)
+- [OathCloudBackupService.swift](https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Wallet/OathCloudBackupService.swift)
+- [OathWalletVault.swift](https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Wallet/OathWalletVault.swift)
+- [OathVaultEnvelope.swift](https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/OathAtmosphere/Wallet/OathVaultEnvelope.swift)
+- [BackupDocument.swift](https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/Packages/OathCloudBackup/Sources/OathCloudBackup/BackupDocument.swift)
 
 Source review and sample screens do not establish a completed live transaction or backup.
 

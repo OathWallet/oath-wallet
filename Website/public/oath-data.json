@@ -29,18 +29,18 @@
       "checked_on": "2026-11-06",
       "source_url": "https://itunes.apple.com/lookup?id=6780187283&country=us"
     },
-    "source_version": "5.1.1 (111)",
-    "app_version": "5.1.1",
-    "app_build": 111,
+    "source_version": "5.1.2 (112)",
+    "app_version": "5.1.2",
+    "app_build": 112,
     "published_source": {
-      "version": "5.1.1",
-      "build": 111,
-      "source_commit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
-      "source_tag": "v5.1.1-build111",
-      "release_url": "https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111",
-      "published_at": "2026-11-26T09:22:07Z",
+      "version": "5.1.2",
+      "build": 112,
+      "source_commit": "9f2d6b04335736059dfd6b2a77de6eb2ce4f364e",
+      "source_tag": "v5.1.2-build112",
+      "release_url": "https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.2-build112",
+      "published_at": "2026-11-26T17:41:59Z",
       "checked_on": "2026-11-26",
-      "scope": "Oath Wallet 5.1.1, build 111 source release. App Store availability is recorded separately. Dated guides and reviews retain their original evidence scope."
+      "scope": "Oath Wallet 5.1.2, build 112 source release. App Store availability is recorded separately. Dated guides and reviews retain their original evidence scope."
     },
     "source_version_scope": "Current published release source; historical captures retain their dates."
   },
@@ -51,8 +51,8 @@
       "summary": "Check discovered token approvals in Oath for iPhone. Review supported EVM, TRON and Solana access, estimate network fees and verify supported revocations.",
       "url": "https://oathwallet.org/features/revoke-token-approvals",
       "guide": "https://help.oathwallet.org/articles/revoke-token-access",
-      "app_version": "5.1.1",
-      "build": 111,
+      "app_version": "5.1.2",
+      "build": 112,
       "reviewed_on": "2026-11-26",
       "legacyIds": [
         "evm-access"
@@ -131,8 +131,8 @@
       "summary": "Back up eligible Oath wallets to iCloud Drive with password encryption. Learn what is supported, how to confirm uploads and what you need to restore.",
       "url": "https://oathwallet.org/features/icloud-wallet-backup",
       "guide": "https://help.oathwallet.org/articles/backup-all-wallets",
-      "app_version": "5.1.1",
-      "build": 111,
+      "app_version": "5.1.2",
+      "build": 112,
       "reviewed_on": "2026-11-26",
       "legacyIds": [
         "passkey-restore"
@@ -168,7 +168,7 @@
           ]
         }
       ],
-      "limitations": "Backup availability depends on the wallet type, app version and iCloud Drive access. This page describes Oath 5.1.1 (111).",
+      "limitations": "Backup availability depends on the wallet type, app version and iCloud Drive access. This page describes Oath 5.1.2 (112).",
       "steps": [
         "Use the Apple Account that will hold the backup, enable iCloud Drive and check available storage. Open Settings → Backup in Oath.",
         "Start Back Up All Wallets and choose a strong password of at least eight characters. Keep it somewhere you can reach without this phone.",
@@ -199,8 +199,8 @@
       "summary": "Use WalletConnect with Oath on iPhone. Review the dApp, wallet, networks and permissions, then approve supported requests individually.",
       "url": "https://oathwallet.org/features/walletconnect",
       "guide": "https://help.oathwallet.org/articles/connect-dapp",
-      "app_version": "5.1.1",
-      "build": 111,
+      "app_version": "5.1.2",
+      "build": 112,
       "reviewed_on": "2026-11-26",
       "legacyIds": [],
       "lookupTerms": [
@@ -287,14 +287,14 @@
     {
       "id": "every-language",
       "name": "57 app localizations",
-      "summary": "Oath 5.1.1 offers 57 interface localization choices, including Arabic, English, Japanese, and Brazilian and European Portuguese. The release registry gives the name and code of every choice.",
+      "summary": "Oath 5.1.2 offers 57 interface localization choices, including Arabic, English, Japanese, and Brazilian and European Portuguese. The release registry gives the name and code of every choice.",
       "url": "https://help.oathwallet.org/articles/language",
       "lookupTerms": [
         "language",
         "languages",
         "localizations"
       ],
-      "source_url": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/Design/Localization/languages.json"
+      "source_url": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/Design/Localization/languages.json"
     },
     {
       "id": "open-source",
@@ -309,7 +309,7 @@
     {
       "id": "bitcoin-address-types",
       "name": "Bitcoin address options",
-      "summary": "Compatible Bitcoin wallets support Taproot, Native SegWit, nested SegWit and Legacy, depending on the imported material. Capabilities vary by network. Oath 5.1.1 does not support Silent Payments receiving or discovery; see the Silent Payments guide before relying on that feature.",
+      "summary": "Compatible Bitcoin wallets support Taproot, Native SegWit, nested SegWit and Legacy, depending on the imported material. Capabilities vary by network. Oath 5.1.2 does not support Silent Payments receiving or discovery; see the Silent Payments guide before relying on that feature.",
       "url": "https://help.oathwallet.org/articles/bitcoin-address-types",
       "lookupTerms": [
         "bitcoin address",
@@ -352,7 +352,7 @@
     {
       "category": "Getting started",
       "q": "Can I create my own recovery phrase with dice?",
-      "a": "The 5.1.1 source creates standard wallets with a 12-word BIP39 phrase. The earlier dice, coin-flip and typed-digit creation controls are not included in this release."
+      "a": "The 5.1.2 source creates standard wallets with a 12-word BIP39 phrase. The earlier dice, coin-flip and typed-digit creation controls are not included in this release."
     },
     {
       "category": "Backup & recovery",
@@ -483,7 +483,7 @@
     },
     {
       "title": "Oath Wallet release history and current version",
-      "excerpt": "Oath Wallet 5.1.1, build 111: release notes, current source evidence, product guides and the official download link.",
+      "excerpt": "Oath Wallet 5.1.2, build 112: release notes, current source evidence, product guides and the official download link.",
       "category": "Product updates",
       "author_name": "Oath Editorial",
       "published_at": "2026-11-06T11:11:26Z",
@@ -950,7 +950,7 @@
     },
     {
       "title": "Backup and Restore in Oath: Files, Passwords and Recovery Words",
-      "excerpt": "Choose a recovery method supported by 5.1.1 and verify it before replacing or erasing your phone.",
+      "excerpt": "Choose a recovery method supported by 5.1.2 and verify it before replacing or erasing your phone.",
       "category": "Security",
       "author_name": "Oath Editorial",
       "published_at": "2026-08-30T22:33:18.253+00:00",
@@ -1045,8 +1045,8 @@
     }
   ],
   "security": {
-    "reviewed_source_version": "5.1.1 (111)",
-    "reviewed_source_commit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
+    "reviewed_source_version": "5.1.2 (112)",
+    "reviewed_source_commit": "9f2d6b04335736059dfd6b2a77de6eb2ce4f364e",
     "reviewed_on": "2026-11-26",
     "mnemonic": "BIP39, Electrum and aezeed retain distinct validation and derivation rules",
     "storage": "AES-GCM local vault; device-only Keychain and protected installation key; passcode key derivation uses PBKDF2-HMAC-SHA256 with 600,000 rounds",
@@ -1054,20 +1054,20 @@
     "independent_audit": "Not established by the published source release",
     "app_store_binary_match": "The release record covers source and unsigned build checks. An independently reproduced comparison with the distributed App Store binary remains outstanding.",
     "silent_payments": "Receiving and discovery are not supported in this release.",
-    "source": "https://github.com/OathWallet/oath-wallet/blob/87c783cf929c4282ba50daf2cc056f25c6a4d469/README.md",
+    "source": "https://github.com/OathWallet/oath-wallet/blob/9f2d6b04335736059dfd6b2a77de6eb2ce4f364e/README.md",
     "scope": "https://github.com/OathWallet/oath-wallet/blob/main/Documentation/SecurityModel.md",
     "reporting_policy": "https://github.com/OathWallet/oath-wallet/security/policy",
     "source_correspondence": {
       "status": "source-tagged",
       "confirmed_on": "2026-11-26",
-      "statement": "The public source tag identifies version 5.1.1, build 111.",
-      "source_verification": "https://github.com/OathWallet/oath-wallet/releases/download/v5.1.1-build111/5.1.1-source.json",
+      "statement": "The public source tag identifies version 5.1.2, build 112.",
+      "source_verification": "https://github.com/OathWallet/oath-wallet/releases/download/v5.1.2-build112/5.1.2-source.json",
       "readme": "https://github.com/OathWallet/oath-wallet#release-verification"
     },
-    "technical_examples_scope": "Six source excerpts verified against 5.1.1 (111) on 2026-11-26.",
+    "technical_examples_scope": "Six source excerpts verified against 5.1.2 (112) on 2026-11-26.",
     "page_updated_on": "2026-11-26",
-    "release_record": "https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111",
-    "release_source_commit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
+    "release_record": "https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.2-build112",
+    "release_source_commit": "9f2d6b04335736059dfd6b2a77de6eb2ce4f364e",
     "published_review": {
       "kind": "maintainer-commissioned, Codex-led security review",
       "status": "in_progress",

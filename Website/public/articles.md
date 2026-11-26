@@ -22,7 +22,7 @@ English · Published 2026-11-09 · Updated 2026-11-26
 
 ## [Oath Wallet release history and current version](https://articles.oathwallet.org/oath-wallet-release-history)
 
-Oath Wallet 5.1.1, build 111: release notes, current source evidence, product guides and the official download link.
+Oath Wallet 5.1.2, build 112: release notes, current source evidence, product guides and the official download link.
 
 English · Published 2026-11-06 · Updated 2026-11-26
 
@@ -220,7 +220,7 @@ English · Published 2026-08-30 · Updated 2026-08-30
 
 ## [Backup and Restore in Oath: Files, Passwords and Recovery Words](https://oathwallet.org/articles/backup-restore-oath-wallet)
 
-Choose a recovery method supported by 5.1.1 and verify it before replacing or erasing your phone.
+Choose a recovery method supported by 5.1.2 and verify it before replacing or erasing your phone.
 
 English · Published 2026-08-30 · Updated 2026-11-26
 
