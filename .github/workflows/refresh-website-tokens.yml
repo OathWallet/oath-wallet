@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['Website/content/release-evidence.json', 'releases/*-distribution.json']
+    paths: ['Website/content/published-source-release.json', 'Website/content/release-evidence.json']
 permissions:
   contents: write
   pull-requests: write
@@ -24,7 +24,7 @@ jobs:
           node-version: '24'
           cache: npm
           cache-dependency-path: Website/package-lock.json
-      - name: Regenerate only from an approved distribution record
+      - name: Regenerate only from a verified published source tag
         working-directory: Website
         run: npm ci && npm run refresh:tokens
       - name: Propose the validated catalog update
@@ -38,9 +38,9 @@ jobs:
           git switch -c "$branch"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'Refresh website from the approved app catalog'
+          git commit -m 'Refresh website from the published app catalog'
           git push origin "$branch"
-          printf '%s\n' 'Regenerates the token website from the pinned, Apple-approved app distribution record. Stable identities and URL history are preserved; malformed or regrouped identities stop the refresh.' '' 'Validation: website build and unit tests passed. The normal Website checks workflow is dispatched for this branch. Publication follows the existing Deploy website workflow after merge.' > /tmp/token-refresh-body.txt
+          printf '%s\n' 'Regenerates the token website from the verified published GitHub source tag. Stable identities and URL history are preserved; malformed or regrouped identities stop the refresh. Storefront availability is recorded separately.' '' 'Validation: website build and unit tests passed. The normal Website checks workflow is dispatched for this branch. Publication follows the existing Deploy website workflow after merge.' > /tmp/token-refresh-body.txt
           gh workflow run website-checks.yml --ref "$branch"
           # Some repositories prohibit GITHUB_TOKEN from opening pull requests.
           # Preserve that security setting and provide the checked review branch.
