@@ -70,7 +70,7 @@ This is a procedure for reviewers. The current edition records core tests and pu
 - Restore the same test wallet inside Oath using its Electrum import and the matching extension. Compare the same Bitcoin address type, branch and index. Mark an address unavailable if the installed UI cannot show it. A matching balance is insufficient evidence.
 - Publish versions, steps, public test addresses, and a match, mismatch or unobserved result for each row. Include any unexpected behavior. Keep all seed words, extensions, private keys and wallet files out of the report. No transfer is needed.
 
-[Read the Electrum restoration guide](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone) and compare your observations with the [dated core results](https://oathwallet.org/compatibility/2026-11-09).
+[Read the Electrum restoration guide](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone) and compare your observations with the [dated core results](https://oathwallet.org/compatibility/2026-11-26).
 
 ## Version and correction policy
 

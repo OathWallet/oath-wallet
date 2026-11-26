@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto';
 import reviews from '../content/reviewed-xstocks.json' with {type:'json'};
 import captures from '../content/captures/priority-2026-11-10.json' with {type:'json'};
 import networks from '../content/networks.json' with {type:'json'};
+import compatibility from '../content/compatibility/catalog.json' with {type:'json'};
 import {guidePreview} from '../src/xstock-guides.js';
 import {stripCloudflareLabyrinth} from './cloudflare-html.mjs';
 
@@ -36,7 +37,7 @@ export async function verifySearchRelease(){
   for(const [slug,terms] of [['sui',['How to receive SUI on iPhone',captures.images[0].path]],['tron',['withdraw-usdt-binance-to-oath-tron',captures.images[1].path]],['bitcoin-cash',['Receive Bitcoin Cash']]]){
     const path='/networks/'+slug;await page(origin+path,'networks',[...terms,guidePreview(path)]);
   }
-  const edition='/compatibility/2026-11-09';
+  const edition='/compatibility/'+compatibility.latest;
   const html=await page(origin+edition,'guides',['Cite this edition','"Dataset"','"DataDownload"']);
   const graph=[...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].flatMap(m=>JSON.parse(m[1])['@graph']||[]);
   for(const distribution of graph.find(n=>n['@type']==='Dataset').distribution){

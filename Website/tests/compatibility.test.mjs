@@ -13,6 +13,14 @@ const root=new URL('../public/',import.meta.url),origin='https://oathwallet.org'
 const read=path=>readFile(new URL('.'+path,root),'utf8');
 const env={ASSETS:{async fetch(req){try{const p=new URL(req.url).pathname;const body=await read(p);return new Response(req.method==='HEAD'?null:body,{headers:{'Content-Type':p.endsWith('.html')?'text/html':'text/plain'}});}catch{return new Response(null,{status:404});}}}};
 const get=(path,options)=>worker.fetch(new Request(origin+path,options),env);
+test('earlier compatibility URLs redirect to the current release edition',async()=>{
+ for(const suffix of ['','.html','.md','.json','.csv','/']){
+  const response=await get('/compatibility/2026-11-09'+suffix);
+  assert.equal(response.status,308);
+  const currentSuffix=['.html','/'].includes(suffix)?'':suffix;
+  assert.equal(response.headers.get('Location'),origin+'/compatibility/'+catalog.latest+currentSuffix);
+ }
+});
 test('accepted compatibility edition retains exact released sources and truthful execution layers',()=>{
  validateEdition(edition);
  for(const source of edition.evidence.sources){const data=execFileSync('git',['show',edition.evidence.versions.sourceCommit+':'+source.path],{cwd:new URL('../../',import.meta.url)});assert.equal(createHash('sha256').update(data).digest('hex'),source.sha256,source.path);}

@@ -14,6 +14,7 @@ HELP = 'https://help.oathwallet.org'
 ARTICLES = 'https://articles.oathwallet.org'
 NEWS = 'https://news.oathwallet.org'
 WWW = 'https://www.oathwallet.org'
+COMPATIBILITY_EDITION = json.loads((Path(__file__).resolve().parents[1] / 'content/compatibility/catalog.json').read_text())['latest']
 
 
 class Direct(HTTPRedirectHandler):
@@ -113,8 +114,8 @@ def main():
             (MAIN + '/site.webmanifest', 'application/manifest+json'),
             (MAIN + '/og/guide-tron.png', 'image/png'),
             (MAIN + '/llms-full.txt', 'text/plain'),
-            (MAIN + '/compatibility/2026-11-09.csv', 'text/csv'),
-            (MAIN + '/compatibility/2026-11-09.json', 'application/json'),
+            (MAIN + '/compatibility/' + COMPATIBILITY_EDITION + '.csv', 'text/csv'),
+            (MAIN + '/compatibility/' + COMPATIBILITY_EDITION + '.json', 'application/json'),
             (MAIN + '/token-data/' + manifest['version'] + '/manifest.json', 'application/json'),
             (HELP + '/search?q=backup', 'text/html'),
             (HELP + '/help/site-chrome.css', 'text/css'),

@@ -18,7 +18,7 @@ You can create a wallet without providing an email, phone number or identity doc
 
 ### I already use Electrum for Bitcoin
 
-Oath can restore supported Electrum seed formats. Identify the original account type and seed extension, then compare a known receiving address before using the restored wallet. The dated lab edition shows which receive and change addresses were checked using public fixtures. [See the Electrum guide](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone) and [review the compatibility results](https://oathwallet.org/compatibility/2026-11-09).
+Oath can restore supported Electrum seed formats. Identify the original account type and seed extension, then compare a known receiving address before using the restored wallet. The dated lab edition shows which receive and change addresses were checked using public fixtures. [See the Electrum guide](https://articles.oathwallet.org/restore-electrum-bitcoin-wallet-on-iphone) and [review the compatibility results](https://oathwallet.org/compatibility/2026-11-26).
 
 ### I want to receive USDT on TRON
 
