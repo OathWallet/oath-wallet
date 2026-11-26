@@ -26,7 +26,7 @@ test('every current release identity agrees with the published version, build an
 
 test('published page copy contains no retired Oath release labels or mismatched build labels',async()=>{
   const root=new URL('../public/',import.meta.url),failures=[];
-  const retired=/(?<![\w.])v?(?:4\.0\.(?:0|3)|4\.1\.(?:2|3|14|15)|5\.0\.\d+|5\.1\.0)(?!\w|\.\d)/;
+  const retired=/(?<![\w.])v?(?:4\.0\.(?:0|3)|4\.1\.(?:2|3|14|15)|5\.0\.\d+|5\.1\.[01])(?!\w|\.\d)/;
   async function inspect(dir){
     for(const item of await readdir(dir,{withFileTypes:true})){
       const path=new URL(item.name+(item.isDirectory()?'/':''),dir);

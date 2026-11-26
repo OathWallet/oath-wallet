@@ -490,7 +490,7 @@
       "path": "Same seed format and exact extension",
       "result": "Normalization and account isolation checks pass",
       "scope": "Oath core tests check extension normalization and distinct account results. Restoring the original wallet requires the same extension used to create it.",
-      "limitation": "The website cannot recover a forgotten extension. Oath 5.1.1 excludes Electrum-derived wallets from its encrypted iCloud export; retain the original seed and extension backup privately.",
+      "limitation": "The website cannot recover a forgotten extension. Oath 5.1.2 (112) excludes Electrum-derived wallets from its encrypted iCloud export; retain the original seed and extension backup privately.",
       "evidenceLevel": "core",
       "checks": [
         "ElectrumMnemonicTests.testExtensionsNormalizationAndIsolation"

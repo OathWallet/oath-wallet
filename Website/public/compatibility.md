@@ -118,7 +118,7 @@ Normalization and account isolation checks pass
 
 Oath core host tests
 
-The website cannot recover a forgotten extension. Oath 5.1.1 excludes Electrum-derived wallets from its encrypted iCloud export; retain the original seed and extension backup privately.
+The website cannot recover a forgotten extension. Oath 5.1.2 (112) excludes Electrum-derived wallets from its encrypted iCloud export; retain the original seed and extension backup privately.
 
 Electrum[2FA / TrustedCoin or custom multisig](https://oathwallet.org/compatibility/2026-11-26-build112#electrum-two-factor)
 
