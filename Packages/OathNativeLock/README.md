@@ -1,6 +1,6 @@
 # OathNativeLock
 
-Current release: [4.1.15 (99) verification record](../../releases/4.1.15.md). Historical checks below describe their original scope; they are not an independent audit of this release.
+Current release: [5.1.1 (111) verification record](../../releases/5.1.1.md). Historical checks below describe their original scope; they are not an independent audit of this release.
 
 
 Scene-local UIKit presentation for an app-owned passcode, using
@@ -19,15 +19,15 @@ active scene. Only verified authentication may change `isLocked` to false.
 
 For a cold launch, mount `NativeInitialLock` as an overlay in the first view
 hierarchy instead of scheduling a modal after Home appears. It contains the
-same native blur/keypad controller as a UIKit child. Keep the overlay mounted
+same native lock controller as a UIKit child. Keep the overlay mounted
 until its `onUnlocked` callback completes the native reveal, then use
 `NativeLockPresentation` for subsequent locks above retained screens and sheets.
-The inline cover leaves status-bar style with SwiftUI's root and its native
-toolbar preferences. Delegating style to the inline lock child leaves dark
+The inline cover leaves status-bar style with SwiftUI's root and the app's
+selected appearance. Delegating style to the inline lock child leaves dark
 icons cached after unlock on affected systems. The modal lock captures its own
 appearance, releases that capture before dismissal, and invalidates the native
-presenter's appearance when handing control back. `Tools/StatusBarRegression`
-checks rendered contrast through both transitions using local sample views.
+presenter's appearance when handing control back. No artwork-based status-bar
+color preference is applied by the app.
 The app resolves its local route and saved appearance with UIKit's short
 [asynchronous scene restoration extension](https://developer.apple.com/videos/play/wwdc2021/10057/?time=795)
 before exposing the window. Database and Keychain reads remain asynchronous;
@@ -44,10 +44,13 @@ The presenter follows the scene's own modal chain, waits for ongoing transitions
 ends text editing, and presents above the topmost screen. It blocks interactive
 dismissal and isolates accessibility focus. Locking is immediate. Unlocking
 uses a 0.18-second, ease-out UIKit dissolve of its blur and foreground by default,
-then removes only the transparent lock modal. The app passes `animatesUnlock: false`
-after a successful protected biometric read: Face ID already provides success
-feedback, so its path removes the lock without an additional animation wait.
-Both paths retain the same foreground/visibility and stale-completion guards.
+then removes only the transparent lock modal. Passing `greetingBackground`
+installs an opaque color before the first protected frame and selects a 0.26-second
+dissolve. For automatic Face ID, Oath shows the selected wallet's icon and
+greeting, then starts authentication when the entrance animation completes.
+An explicit biometric unlock
+from the keypad uses `animatesUnlock: false` for immediate removal. All routes
+share foreground, visibility, and stale-completion guards.
 Once authenticated, a visible foreground scene begins
 the reveal immediately, including while Face ID is still dismissing. Apple's
 [`foregroundInactive`](https://developer.apple.com/documentation/uikit/uiscene/activationstate-swift.enum/foregroundinactive)
@@ -82,7 +85,8 @@ unlocked vault. An in-memory screen survives a normal
 background/foreground visit. After process termination, the app mounts Home as
 the default background using only its saved SQL display metadata, matched to the
 existing vault identity. That read does not decrypt the wallet or authorize an
-operation. Home, its blur, and the keypad mount together for the first frame.
+operation. Home and the lock cover mount together. The cover displays the
+greeting for automatic Face ID or the keypad for passcode entry.
 Home stays disabled and hidden from accessibility until the reveal completes.
 Missing legacy metadata falls back to the same Home layout and does not prevent
 passcode entry. There is no intermediate welcome artwork or loading view for

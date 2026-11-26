@@ -6,14 +6,16 @@ import OathDatabase
 struct OathWalletSwitcherSheet: View {
     let session: OathWalletSession
     let startsAtAddWallet: Bool
-    let onCreate: (UUID) -> Void
-    let onCreated: (String) -> Void
-    let onCustomize: (String) -> Void
     @Environment(\.dismiss) private var dismiss
     @Environment(\.oathLocalizer) private var strings
     @Environment(\.scenePhase) private var scenePhase
     @Environment(OathAppSettings.self) private var settings
     private enum Route: Hashable { case removalPasscode, importPhrase, privateKeyChains, privateKey(OathPrivateKeyChoice), multisig, restoreList, restorePassword }
+    private struct Customization {
+        let walletID: String
+        let mode: OathWalletCustomizationScreen.Mode
+    }
+    @State private var customization: Customization?
     @State private var path = NavigationPath()
     @State private var restoresFromICloud = false
     @State private var restore = OathCloudRestoreModel()
@@ -24,45 +26,41 @@ struct OathWalletSwitcherSheet: View {
     @State private var balances = OathWalletListBalances()
 
     @State private var editing = false
-    @State private var rows = OathWalletManagementSnapshot()
-    @State private var savingOrder = false
+    @State private var pendingOrder: [String]?
     @State private var removal: OathWalletRemovalModel
     @State private var showsRemovalPasscode = false
-    @State private var addWalletContentHeight: CGFloat = 0
-    @State private var addWalletTopInset: CGFloat = 0
+    @State private var entryPresentation = OathWalletEntryPresentation()
 
-    init(session: OathWalletSession, startsAtAddWallet: Bool = false, onCreate: @escaping (UUID) -> Void, onCreated: @escaping (String) -> Void,
-         onCustomize: @escaping (String) -> Void) {
+    init(session: OathWalletSession, startsAtAddWallet: Bool = false) {
         self.session = session
         self.startsAtAddWallet = startsAtAddWallet
-        self.onCreate = onCreate
-        self.onCreated = onCreated
-        self.onCustomize = onCustomize
+        if startsAtAddWallet, let id = session.pendingCustomizationID {
+            _customization = State(initialValue: Customization(walletID: id, mode: .setup))
+        }
         _removal = State(initialValue: OathWalletRemovalModel(session: session))
     }
 
     private var actionsEnabled: Bool {
-        session.isUnlocked && !session.changingWallet && work == nil && !savingOrder && !removal.busy && !removal.confirming
+        session.isUnlocked && !session.changingWallet && work == nil && pendingOrder == nil && !removal.busy && !removal.confirming
     }
 
-    private var source: OathWalletManagementSnapshot {
-        .init(wallets: session.wallets, deletedCount: session.recentlyDeletedWallets.count)
+    private var rootTitle: OathStringKey {
+        if customization != nil { return .customizeWallet }
+        return startsAtAddWallet ? .addWallet : .wallets
     }
 
-    private var presentationDetent: PresentationDetent {
-        guard startsAtAddWallet, path.isEmpty else { return .large }
-        guard addWalletContentHeight > 0 else { return .medium }
-        // Include the actual native navigation/grabber inset. The system adds
-        // the bottom safe area to the detent; counting it here adds blank space.
-        return .height(ceil(addWalletContentHeight + addWalletTopInset))
+    private var requiresCustomization: Bool {
+        guard let customization else { return false }
+        return customization.mode != .edit
     }
 
     var body: some View {
         OathWalletSettingsScreen(session: session, switcherPath: $path,
-            dismissDisabled: work != nil || savingOrder || removal.busy || removal.confirming || restore.phase == .saving) { onWalletSettings, onRecentlyDeleted in
+            dismissDisabled: requiresCustomization || work != nil || pendingOrder != nil || removal.busy || removal.confirming || restore.phase == .saving) { onWalletSettings, onRecentlyDeleted in
             AnyView(switcherNavigationRoot(onWalletSettings: onWalletSettings, onRecentlyDeleted: onRecentlyDeleted))
         }
-        .presentationDetents([presentationDetent])
+        .environment(\.oathWalletEntryPresentation, startsAtAddWallet ? entryPresentation : nil)
+        .environment(\.oathAutofocusPresentation, startsAtAddWallet ? entryPresentation.autofocus : nil)
         .presentationDragIndicator(.visible)
         .oathNativeLocalization()
         .oathHapticFeedback(.error, trigger: failed, when: failed)
@@ -97,9 +95,6 @@ struct OathWalletSwitcherSheet: View {
             OathDoneButton { removal.notice = nil }
         } message: { if let notice = removal.notice { Text(strings.text(notice)) } }
         .onDisappear { work?.cancel(); work = nil; restore.stop(); removal.cancel() }
-        .onChange(of: source, initial: true) { _, updated in
-            if !savingOrder { rows = updated }
-        }
         .onChange(of: removal.phase) { _, phase in
             if phase == .passcode, !showsRemovalPasscode {
                 showsRemovalPasscode = true
@@ -121,7 +116,7 @@ struct OathWalletSwitcherSheet: View {
         }
         .onChange(of: session.isUnlocked) { _, unlocked in
             if !unlocked { stopRestore(); removal.cancel(); editing = false }
-            else if let id = session.pendingCustomizationID { onCreated(id) }
+            else if let id = session.pendingCustomizationID { showCreatedWallet(id) }
             else if restoresFromICloud { restore.start() }
         }
         .onChange(of: scenePhase) { _, phase in
@@ -133,16 +128,14 @@ struct OathWalletSwitcherSheet: View {
     private func switcherNavigationRoot(onWalletSettings: @escaping (String) -> Void,
                                         onRecentlyDeleted: @escaping () -> Void) -> some View {
         Group {
-            if startsAtAddWallet {
+            if let customization {
+                OathWalletCustomizationScreen(session: session, walletID: customization.walletID,
+                    mode: customization.mode, autofocusName: !startsAtAddWallet) { dismiss() }
+                    .id(customization.walletID)
+            } else if startsAtAddWallet {
                 ScrollView {
-                    addWalletActions
-                        .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) {
-                            addWalletContentHeight = $0
-                        }
+                    addWalletActions.oathWalletEntryContent()
                 }
-                    .onGeometryChange(for: CGFloat.self, of: { $0.safeAreaInsets.top }) {
-                        addWalletTopInset = $0
-                    }
                     .scrollBounceBehavior(.basedOnSize)
                     .disabled(!actionsEnabled)
             } else {
@@ -150,15 +143,17 @@ struct OathWalletSwitcherSheet: View {
             }
         }
             .background(Color(uiColor: OathSurfaceColors.canvas))
-            .navigationTitle(strings.text(startsAtAddWallet ? .addWallet : .wallets))
+            .navigationTitle(strings.text(rootTitle))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    OathCloseButton { dismiss() }
-                        .disabled(!actionsEnabled)
-                        .accessibilityIdentifier("wallets.close")
+                if !requiresCustomization {
+                    ToolbarItem(placement: .topBarLeading) {
+                        OathCloseButton { dismiss() }
+                            .disabled(!actionsEnabled)
+                            .accessibilityIdentifier("wallets.close")
+                    }
                 }
-                if !startsAtAddWallet {
+                if !startsAtAddWallet && customization == nil {
                 ToolbarItem(placement: .topBarTrailing) {
                     Group {
                         if editing {
@@ -181,23 +176,26 @@ struct OathWalletSwitcherSheet: View {
                         title: .removeWallets, identifier: "wallets.remove.passcode", onSubmit: removal.submit)
                         .navigationBarBackButtonHidden(removal.confirming)
                 case .importPhrase:
-                    OathAdditionalWalletImportPage(session: session, onImported: onCreated)
+                    OathAdditionalWalletImportPage(session: session, onImported: showCreatedWallet)
+                        .navigationBarTitleDisplayMode(.inline)
                 case .privateKeyChains:
                     OathChooseChainScreen { path.append(Route.privateKey($0)) }
+                        .oathWalletEntryContent(.large)
                 case .privateKey(let choice):
                     OathPrivateKeyImportScreen(choice: choice, isAllowed: session.isUnlocked) { key, requestID in
                         let id = try await session.addWallet(requestID: requestID, privateKey: key)
                         try Task.checkCancellation()
-                        if session.isUnlocked { onCreated(id) }
+                        if session.isUnlocked { showCreatedWallet(id) }
                     }
                 case .multisig:
-                    OathAdditionalMultisigPages(session: session, path: $path, onCreated: onCreated)
+                    OathAdditionalMultisigPages(session: session, path: $path, onCreated: showCreatedWallet)
                 case .restoreList:
                     ScrollView {
                         OathCloudRestoreList(model: restore) { entry in
                             restore.choose(entry)
                             if restore.selected != nil { path.append(Route.restorePassword) }
                         }
+                        .oathWalletEntryContent()
                     }
                     .navigationTitle(strings.text(.restoreICloud))
                     .navigationBarTitleDisplayMode(.inline)
@@ -206,9 +204,10 @@ struct OathWalletSwitcherSheet: View {
                         OathCloudRestorePasswordPage(model: restore) { restored in
                             try await session.restoreWallet(restored)
                             try Task.checkCancellation()
-                            if let id = session.pendingCustomizationID { onCreated(id) }
+                            if let id = session.pendingCustomizationID { showCreatedWallet(id) }
                             else { dismiss() }
                         }
+                        .oathWalletEntryContent()
                     }
                     .navigationTitle(strings.text(.restoreICloud))
                     .navigationBarTitleDisplayMode(.inline)
@@ -238,7 +237,8 @@ struct OathWalletSwitcherSheet: View {
 
     private func walletList(onWalletSettings: @escaping (String) -> Void,
                             onRecentlyDeleted: @escaping () -> Void) -> some View {
-        OathWalletFamilyList(tree: WalletTree(rows.wallets), editing: editing, enabled: actionsEnabled,
+        let rows = OathWalletManagementSnapshot(session: session, pendingOrder: pendingOrder)
+        return OathWalletFamilyList(tree: rows.tree, editing: editing, enabled: actionsEnabled,
             allowsSelectionWhileEditing: true, reorderingRequiresEditing: true, deleteTitle: strings.text(.delete), onMove: move,
             onDelete: { id in
                 guard actionsEnabled, scenePhase != .background else { return }
@@ -253,7 +253,7 @@ struct OathWalletSwitcherSheet: View {
             }, contextMenu: { id in
                 UIMenu(children: [
                     UIAction(title: strings.text(.customizeWallet), image: UIImage(systemName: "paintpalette")) { _ in
-                        openWallet(id, using: onCustomize)
+                        openWallet(id) { customization = Customization(walletID: $0, mode: .edit) }
                     },
                     UIAction(title: strings.text(.walletDetails), image: UIImage(systemName: "slider.horizontal.3")) { _ in
                         openWallet(id, using: onWalletSettings)
@@ -285,7 +285,11 @@ struct OathWalletSwitcherSheet: View {
 
     private var addWalletActions: some View {
         OathWalletActions(identifier: "wallets",
-                        onCreate: { if actionsEnabled { onCreate(createRequestID) } },
+                        onCreate: {
+                            if actionsEnabled, customization == nil {
+                                customization = Customization(walletID: createRequestID.uuidString, mode: .create(createRequestID))
+                            }
+                        },
                         onCreateMultisig: { path.append(Route.multisig) },
                         onImport: { path.append(Route.importPhrase) },
                         onImportPrivateKey: { path.append(Route.privateKeyChains) },
@@ -296,16 +300,21 @@ struct OathWalletSwitcherSheet: View {
                         })
     }
 
+    private func showCreatedWallet(_ id: String) {
+        guard session.isUnlocked, customization?.walletID != id else { return }
+        // The wallet is committed. Drop its input pages and finish setup in this sheet.
+        customization = Customization(walletID: id, mode: .setup)
+        path = NavigationPath()
+    }
+
     private func move(_ proposed: [String]) {
         guard editing, actionsEnabled, scenePhase != .background else { return }
-        let tree = WalletTree(rows.wallets)
+        let tree = WalletTree(session.wallets)
         let ids = tree.reordering(proposed).flattened.map(\.id)
         guard ids != tree.flattened.map(\.id) else { return }
-        let records = Dictionary(uniqueKeysWithValues: rows.wallets.map { ($0.id, $0) })
-        rows.wallets = ids.compactMap { records[$0] }
-        savingOrder = true
+        pendingOrder = ids
         Task {
-            defer { savingOrder = false; rows = source }
+            defer { pendingOrder = nil }
             await OathDiagnostics.$operationID.withValue(UUID()) {
                 do { try await session.reorderWallets(ids) }
                 catch is CancellationError { /* Lock or session transition cancels the local reorder. */ }
@@ -401,13 +410,11 @@ struct OathAdditionalWalletImportPage: View {
     }
 }
 
-/// The switcher hands off after its sheet has dismissed. Import and Customize
-/// share one native navigation stack; no PIN setup is repeated.
+/// Entry points for onboarding and scanned additional wallets.
 enum OathAdditionalWalletDestination: Identifiable {
-    case create(UUID), createMultisig, importPhrase, importPrivateKey, customize(String)
+    case createMultisig, importPhrase, importPrivateKey, customize(String)
     var id: String {
         switch self {
-        case .create(let request): "create-" + request.uuidString
         case .createMultisig: "create-multisig"
         case .importPhrase: "import"
         case .importPrivateKey: "import-private-key"
@@ -438,7 +445,6 @@ struct OathAdditionalWalletFlow: View {
         NavigationStack(path: $path) {
             Group {
                 switch start {
-                case .create(let request): customize(request.uuidString, mode: .create(request))
                 case .createMultisig: EmptyView()
                 case .importPhrase:
                     OathAdditionalWalletImportPage(session: session, scannedPhrase: scannedPhrase) { id in path.append(.customize(id)) }
@@ -479,13 +485,13 @@ struct OathAdditionalWalletFlow: View {
             guard unlocked, let id = session.pendingCustomizationID, !path.contains(.customize(id)) else { return }
             switch start {
             case .importPhrase, .importPrivateKey: path.append(.customize(id))
-            case .create, .createMultisig, .customize: break
+            case .createMultisig, .customize: break
             }
         }
     }
 
-    private func customize(_ id: String, mode: OathWalletCustomizationScreen.Mode = .setup) -> some View {
-        OathWalletCustomizationScreen(session: session, walletID: id, mode: mode) { dismiss() }
+    private func customize(_ id: String) -> some View {
+        OathWalletCustomizationScreen(session: session, walletID: id, mode: .setup) { dismiss() }
             .oathWalletCustomizationNavigation()
             .navigationBarBackButtonHidden()
     }

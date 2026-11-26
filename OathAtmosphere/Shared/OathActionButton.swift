@@ -1,12 +1,12 @@
 import SwiftUI
 
-enum OathActionAppearance { case primary, secondary, destructiveSecondary, text }
+enum OathActionAppearance { case primary, secondary, destructiveSecondary, wallet, text }
 
 /// Generic toolbar confirmations are native checkmarks. Step navigation, wallet
 /// imports and financial submissions keep explicit labels so their actions stay clear.
 enum OathToolbarActionKind { case confirmation, navigation, walletImport, transaction }
 
-/// Full-width native glass button, matching Welcome. Place in oathBottomActions,
+/// Full-width shared action, matching Welcome. Place in oathBottomActions,
 /// not a bottom toolbar: screen actions need the extra-large button treatment.
 /// Keep the same activation guards as consent/signing toolbar actions.
 struct OathBottomAction: View {
@@ -164,9 +164,11 @@ struct OathDoneButton: View {
     }
 }
 
-/// Native welcome-screen metrics: extra-large capsule, shared typography and
-/// system content insets. Do not add vertical padding or a fixed label height.
+/// Shared welcome-screen actions. The style owns the surface and content insets;
+/// labels remain free to grow for localization and accessibility text sizes.
 struct OathActionButton: View {
+    static let successAccent = Color(red: 0.07, green: 0.45, blue: 0.28)
+
     let title: String
     var icon: String? = nil
     var appearance: OathActionAppearance = .primary
@@ -180,7 +182,7 @@ struct OathActionButton: View {
 
     private var actionAccent: Color? { role == .destructive ? .red : accent }
     private var actionForeground: Color? {
-        if appearance == .destructiveSecondary { return foreground ?? .white }
+        if appearance == .destructiveSecondary || appearance == .wallet { return foreground ?? .white }
         return role == .destructive && appearance != .primary ? .red : foreground
     }
 
@@ -194,6 +196,58 @@ struct OathActionButton: View {
         }
         .oathActionStyle(appearance, accent: actionAccent, foreground: actionForeground)
         .oathInteractionBlocked(isInteractionBlocked)
+    }
+}
+
+/// The monochrome surface shared by Home and Asset Detail.
+private struct OathWalletActionStyle: ButtonStyle {
+    let foreground: Color
+    let borderShape: ButtonBorderShape
+    let controlSize: ControlSize
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var fill: LinearGradient {
+        if colorScheme == .dark {
+            LinearGradient(stops: [
+                .init(color: Color(white: 0x3F / 255.0), location: 0),
+                .init(color: Color(white: 0x32 / 255.0), location: 0.26),
+                .init(color: Color(white: 0x2A / 255.0), location: 0.5),
+                .init(color: Color(white: 0x25 / 255.0), location: 0.85)
+            ], startPoint: .top, endPoint: .bottom)
+        } else {
+            LinearGradient(colors: [Color(white: 0x2A / 255.0), Color(white: 0x11 / 255.0)],
+                           startPoint: .top, endPoint: .bottom)
+        }
+    }
+
+    private var border: LinearGradient {
+        if colorScheme == .dark {
+            // The rim lets the charcoal show through between its two highlights.
+            let highlight = Color.white.opacity(0.165)
+            return LinearGradient(colors: [highlight, .white.opacity(0), highlight],
+                                  startPoint: UnitPoint(x: 0.475, y: -0.04),
+                                  endPoint: UnitPoint(x: 0.525, y: 0.98))
+        }
+        return LinearGradient(colors: [Color(white: 0x4E / 255.0), Color(white: 0x39 / 255.0)],
+                              startPoint: .top, endPoint: .bottom)
+    }
+
+    func makeBody(configuration: Configuration) -> some View {
+        let pressed = isEnabled && configuration.isPressed
+        configuration.label
+            .foregroundStyle(foreground)
+            .oathActionDimensions(controlSize)
+            .background {
+                borderShape.fill(fill)
+                    .overlay { borderShape.strokeBorder(border, lineWidth: 2) }
+                    .overlay { borderShape.fill(.black.opacity(pressed ? 0.12 : 0)) }
+            }
+            .contentShape(borderShape)
+            .opacity(isEnabled ? 1 : 0.5)
+            .scaleEffect(pressed && !reduceMotion ? 0.985 : 1)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.14), value: pressed)
     }
 }
 
@@ -218,10 +272,14 @@ struct OathActionLabel: View {
     var icon: String? = nil
     var isWorking = false
     var progressColor: Color = .white
+    @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
         HStack(spacing: OathActionMetrics.labelSpacing) {
-            if isWorking { ProgressView().controlSize(.small).tint(progressColor) }
+            if isWorking {
+                ProgressView().controlSize(.small)
+                    .tint(isEnabled ? progressColor : Color(uiColor: .secondaryLabel))
+            }
             else if let icon { Image(systemName: icon).accessibilityHidden(true) }
             Text(title)
         }
@@ -231,57 +289,112 @@ struct OathActionLabel: View {
     }
 }
 
+private extension View {
+    func oathActionDimensions(_ controlSize: ControlSize) -> some View {
+        let fullWidth = controlSize == .extraLarge
+        return padding(.horizontal, fullWidth ? 24 : 10)
+            .padding(.vertical, fullWidth ? 16 : 10)
+            .frame(maxWidth: .infinity, minHeight: fullWidth ? 58 : 44)
+    }
+}
+
+/// Shared opaque surface: a gentle vertical gradient and a tonal inset rim.
+/// This is drawing only; Button retains activation, focus and accessibility,
+/// while OathButton continues to own haptics and guarded action delivery.
+private struct OathFilledButtonStyle: ButtonStyle {
+    let surface: Color
+    let foreground: Color
+    let borderShape: ButtonBorderShape
+    let controlSize: ControlSize
+    var isNeutral = false
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
+
+    @ViewBuilder private var rim: some View {
+        if isNeutral || !isEnabled {
+            // A thin neutral edge follows the white/charcoal surface. The old
+            // two-point white highlight was too bright on dark buttons.
+            let color: Color = colorScheme == .dark ? .white : .black
+            let opacity = colorScheme == .dark ? 0.10 : 0.08
+            borderShape.strokeBorder(color.opacity(isEnabled ? opacity : 0.04), lineWidth: 1)
+        } else {
+            // Derive the edge from the actual accent, including destructive
+            // actions. Keep it saturated instead of washing it out with white.
+            borderShape.strokeBorder(surface, lineWidth: 2)
+                .brightness(0.08)
+                .saturation(1.15)
+        }
+    }
+
+    func makeBody(configuration: Configuration) -> some View {
+        let pressed = isEnabled && configuration.isPressed
+        configuration.label
+            .foregroundStyle(isEnabled ? foreground : Color(uiColor: .secondaryLabel))
+            .oathActionDimensions(controlSize)
+            .background {
+                borderShape.fill(isEnabled ? surface : Color(uiColor: .systemGray5))
+                    .overlay {
+                        if isEnabled {
+                            borderShape.fill(LinearGradient(stops: [
+                                .init(color: .white.opacity(0.08), location: 0),
+                                .init(color: .clear, location: 0.55),
+                                .init(color: .black.opacity(0.04), location: 1)
+                            ], startPoint: .top, endPoint: .bottom))
+                        }
+                    }
+                    .overlay {
+                        rim
+                    }
+                    .overlay {
+                        borderShape.fill(.black.opacity(pressed ? 0.08 : 0))
+                    }
+            }
+            .contentShape(borderShape)
+            .scaleEffect(pressed && !reduceMotion ? 0.985 : 1)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.14), value: pressed)
+    }
+}
+
 private struct OathActionStyle: ViewModifier {
     let appearance: OathActionAppearance
     let accent: Color?
     let foreground: Color?
-    @Environment(\.colorScheme) private var colorScheme
-
-    // A raised charcoal surface in Dark Mode, including the system's elevated
-    // and increased-contrast variants. Keep neutral actions independent of tint.
-    private var secondarySurface: Color { Color(uiColor: .tertiarySystemBackground) }
+    let borderShape: ButtonBorderShape
+    let controlSize: ControlSize
 
     func body(content: Content) -> some View {
-        nativeButton(content)
-            .controlSize(.extraLarge)
-            .buttonBorderShape(.capsule)
+        styledButton(content)
+            .controlSize(controlSize)
+            .buttonBorderShape(borderShape)
             .oathFont(.body, weight: .medium)
     }
 
-    @ViewBuilder private func nativeButton(_ content: Content) -> some View {
+    @ViewBuilder private func styledButton(_ content: Content) -> some View {
         switch appearance {
         case .primary:
-            if #available(iOS 26, *) {
-                content.buttonStyle(.glassProminent).buttonSizing(.flexible)
-                    .tint(accent ?? OathOnboardingColors.blue)
-                    .foregroundStyle(foreground ?? .white)
-            } else {
-                content.buttonStyle(.borderedProminent)
-                    .tint(accent ?? OathOnboardingColors.blue)
-                    .foregroundStyle(foreground ?? .white)
-            }
+            content.buttonStyle(OathFilledButtonStyle(
+                surface: accent ?? OathOnboardingColors.blue,
+                foreground: foreground ?? .white,
+                borderShape: borderShape, controlSize: controlSize
+            ))
         case .destructiveSecondary:
-            if #available(iOS 26, *) {
-                content.buttonStyle(.glass(.regular.tint(.red))).buttonSizing(.flexible)
-                    .foregroundStyle(foreground ?? .white)
-            } else {
-                content.buttonStyle(.bordered).tint(.red)
-                    .foregroundStyle(.red)
-            }
+            content.buttonStyle(OathFilledButtonStyle(
+                surface: .red, foreground: foreground ?? .white,
+                borderShape: borderShape, controlSize: controlSize
+            ))
         case .secondary:
-            if #available(iOS 26, *) {
-                // Clear glass can read as a black cutout on dark canvases.
-                // Regular glass supplies the native depth and edge treatment.
-                content.buttonStyle(.glass(colorScheme == .dark ? .regular.tint(secondarySurface) : .clear))
-                    .buttonSizing(.flexible)
-                    .foregroundStyle(foreground ?? .primary)
-            } else if colorScheme == .dark {
-                content.buttonStyle(.borderedProminent).tint(secondarySurface)
-                    .foregroundStyle(foreground ?? .primary)
-            } else {
-                content.buttonStyle(.bordered).tint(accent ?? .primary)
-                    .foregroundStyle(foreground ?? .primary)
-            }
+            // Use Oath's white/charcoal palette, independent of wallet accents
+            // and the blue default tint supplied by OathBottomAction.
+            content.buttonStyle(OathFilledButtonStyle(
+                surface: Color(uiColor: OathSurfaceColors.card),
+                foreground: foreground ?? .primary,
+                borderShape: borderShape, controlSize: controlSize, isNeutral: true
+            ))
+        case .wallet:
+            content.buttonStyle(OathWalletActionStyle(
+                foreground: foreground ?? .white, borderShape: borderShape, controlSize: controlSize
+            ))
         case .text:
             // Preserve the welcome screen's quiet More Options treatment while
             // retaining native control insets and the same extra-large height.
@@ -339,8 +452,11 @@ extension View {
     }
 
     func oathActionStyle(_ appearance: OathActionAppearance = .primary,
-                         accent: Color? = nil, foreground: Color? = nil) -> some View {
-        modifier(OathActionStyle(appearance: appearance, accent: accent, foreground: foreground))
+                         accent: Color? = nil, foreground: Color? = nil,
+                         borderShape: ButtonBorderShape = .capsule,
+                         controlSize: ControlSize = .extraLarge) -> some View {
+        modifier(OathActionStyle(appearance: appearance, accent: accent, foreground: foreground,
+                                borderShape: borderShape, controlSize: controlSize))
     }
 
     /// existingInset accounts for a form's padding instead of adding it twice.

@@ -22,8 +22,8 @@ actor OathAnkrSync {
     private var solana: SolanaSynchronizer?
     private var cronos: CronosBalanceSynchronizer?
     private var epoch = UUID()
-    func refreshCronos(walletID: String) async throws {
-        guard OathImportChain.cronos.isEnabled else { return }
+    func refreshCronos(walletID: String, accountIDs: Set<String>) async throws {
+        guard OathImportChain.cronos.isEnabled, !accountIDs.isEmpty else { return }
         let ticket = epoch
         let db = try await OathDataEnvironment.shared.database()
         guard ticket == epoch, !Task.isCancelled else { throw CancellationError() }
@@ -31,7 +31,7 @@ actor OathAnkrSync {
             cronos = try CronosBalanceSynchronizer(database: db,
                 client: OathTokenRPCConfiguration.bundled().makeEVMSendClient(network: .cronos))
         }
-        try await cronos!.refresh(walletID: walletID)
+        try await cronos!.refresh(walletID: walletID, accountIDs: accountIDs)
     }
     private func synchronizer() async throws -> AnkrSynchronizer {
         if let service { return service }
@@ -43,19 +43,21 @@ actor OathAnkrSync {
         service = created
         return created
     }
-    func refresh(walletID: String) async throws {
+    func refresh(walletID: String, accountIDs: Set<String>) async throws {
+        guard !accountIDs.isEmpty else { return }
         let ticket = epoch
         let service = try await synchronizer()
         guard ticket == epoch, !Task.isCancelled else { throw CancellationError() }
-        let results = try await service.refresh(walletID: walletID)
+        let results = try await service.refresh(walletID: walletID, accountIDs: accountIDs)
         guard ticket == epoch, !Task.isCancelled else { throw CancellationError() }
         try AnkrSyncOutcome.requireCompleteBalances(results)
     }
-    func refreshBalances(walletID: String, networkIDs: Set<String>? = nil) async throws {
+    func refreshBalances(walletID: String, accountIDs: Set<String>, networkIDs: Set<String>? = nil) async throws {
+        guard !accountIDs.isEmpty else { return }
         let ticket = epoch
         let service = try await synchronizer()
         guard ticket == epoch, !Task.isCancelled else { throw CancellationError() }
-        let results = try await service.refreshBalances(walletID: walletID, networkIDs: networkIDs)
+        let results = try await service.refreshBalances(walletID: walletID, accountIDs: accountIDs, networkIDs: networkIDs)
         guard ticket == epoch, !Task.isCancelled else { throw CancellationError() }
         try AnkrSyncOutcome.requireCompleteBalances(results)
     }

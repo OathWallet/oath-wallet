@@ -8,64 +8,28 @@ import GRDB
               vaultReference: id, createdAt: 1, parentWalletID: parent)
     }
 
-    func testTreeGroupsOutOfOrderChildrenAndPreservesIndependentRows() {
+    func testPassphraseWalletsRemainIndependentWithoutLosingProvenance() {
         let tree = WalletTree([wallet("c", parent: "a"), wallet("b"), wallet("a"), wallet("d", parent: "c")])
-        XCTAssertEqual(tree.roots.map(\.id), ["b", "a"])
-        XCTAssertEqual(tree.roots.last?.children.map(\.id), ["c"])
-        XCTAssertEqual(tree.flattened.map(\.id), ["b", "a", "c", "d"])
+        XCTAssertEqual(tree.roots.map(\.id), ["c", "b", "a", "d"])
+        XCTAssertTrue(tree.roots.allSatisfy { $0.children.isEmpty })
+        XCTAssertTrue(tree.rows.allSatisfy { $0.depth == 0 && $0.parentID == nil })
+        XCTAssertEqual(tree.flattened.first?.parentWalletID, "a")
     }
 
-    func testAbsentParentAndCyclesNeverHideWallets() {
+    func testDuplicateMissingAndCyclicParentsNeverHideWallets() {
         let tree = WalletTree([wallet("c", parent: "absent"), wallet("a", parent: "b"),
-                               wallet("b", parent: "a"), wallet("self", parent: "self"), wallet("d", parent: "a")])
-        XCTAssertEqual(Set(tree.roots.map(\.id)), ["a", "b", "c", "self"])
-        XCTAssertEqual(Set(tree.flattened.map(\.id)), ["a", "b", "c", "self", "d"])
-        XCTAssertEqual(tree.flattened.count, 5)
+            wallet("b", parent: "a"), wallet("self", parent: "self"), wallet("d", parent: "a"), wallet("a")])
+        XCTAssertEqual(tree.roots.map(\.id), ["c", "a", "b", "self", "d"])
     }
 
-    func testMoveParentCarriesSubtreeAndChildMovesOnlyAmongSiblings() {
-        let tree = WalletTree([wallet("a"), wallet("b"), wallet("c", parent: "a"),
-                               wallet("d", parent: "a"), wallet("e", parent: "c")])
-        XCTAssertEqual(tree.moving([0], to: 2, parentID: nil), ["b", "a", "c", "e", "d"])
-        XCTAssertEqual(tree.moving([0], to: 2, parentID: "a"), ["a", "d", "c", "e", "b"])
-        XCTAssertEqual(tree.moving([99], to: 0, parentID: "a"), tree.flattened.map(\.id))
-    }
-
-    func testVisibleRowsCarryDepthAndContinuousBranchesWithoutHidingChildren() {
-        let tree = WalletTree([wallet("a"), wallet("b"), wallet("c", parent: "a"),
-                               wallet("d", parent: "a"), wallet("e", parent: "c")])
-        XCTAssertEqual(tree.rows.map(\.id), ["a", "c", "e", "d", "b"])
-        XCTAssertEqual(tree.rows.map(\.depth), [0, 1, 2, 1, 0])
-        XCTAssertEqual(tree.rows.map(\.parentID), [nil, "a", "c", "a", nil])
-        XCTAssertEqual(tree.rows.map(\.continuingAncestorDepths), [[], [], [0], [], []])
-        XCTAssertEqual(tree.rows.map(\.hasChildren), [true, true, false, false, false])
-        XCTAssertEqual(tree.rows.map(\.hasFollowingSibling), [true, true, false, false, false])
-    }
-
-    func testVisibleRowMovePreservesFamiliesAndNeverReparents() {
-        let tree = WalletTree([wallet("a"), wallet("b"), wallet("c", parent: "a"),
-                               wallet("d", parent: "a"), wallet("e", parent: "c")])
-        XCTAssertEqual(tree.movingRows([0], to: 5), ["b", "a", "c", "e", "d"])
-        XCTAssertEqual(tree.movingRows([1], to: 4), ["a", "d", "c", "e", "b"])
-        XCTAssertEqual(tree.movingRows([3], to: 0), ["a", "d", "c", "e", "b"])
-        // A child dropped outside its family stays in that family.
-        XCTAssertEqual(tree.movingRows([2], to: 5), tree.flattened.map(\.id))
-        // A multirow operation across levels cannot split parent and child.
-        XCTAssertEqual(tree.movingRows([0, 1], to: 5), tree.flattened.map(\.id))
+    func testEveryWalletCanMoveIndependentlyAndInvalidMovesKeepAllWallets() {
+        let tree = WalletTree([wallet("a"), wallet("b"), wallet("c", parent: "a"), wallet("d", parent: "c")])
+        XCTAssertEqual(tree.movingRows([0], to: 4), ["b", "c", "d", "a"])
+        XCTAssertEqual(tree.movingRows([2], to: 0), ["c", "a", "b", "d"])
         XCTAssertEqual(tree.movingRows([99], to: 0), tree.flattened.map(\.id))
-    }
-
-    func testNativeSectionOrderMovesWholeFamilyAndKeepsOriginalParents() {
-        let tree = WalletTree([wallet("a"), wallet("c", parent: "a"), wallet("e", parent: "c"),
-                               wallet("d", parent: "a"), wallet("b"), wallet("f", parent: "b")])
-        let moved = tree.reordering(["b", "f", "a", "c", "e", "d"])
-        XCTAssertEqual(moved.flattened.map(\.id), ["b", "f", "a", "c", "e", "d"])
-        // UIKit may propose dropping a child outside its original group. Move
-        // it amongst its siblings only; never adopt the proposed parent.
-        let childMoved = tree.reordering(["d", "b", "f", "a", "c", "e"])
-        XCTAssertEqual(childMoved.flattened.map(\.id), ["b", "f", "a", "d", "c", "e"])
-        XCTAssertEqual(childMoved.rows.first { $0.id == "d" }?.parentID, "a")
-        XCTAssertEqual(childMoved.rows.first { $0.id == "e" }?.parentID, "c")
+        let reordered = tree.reordering(["d", "c", "b", "a"])
+        XCTAssertEqual(reordered.flattened.map(\.id), ["d", "c", "b", "a"])
+        XCTAssertEqual(reordered.flattened.first?.parentWalletID, "c")
     }
 
     func testNativeCollapsedOrStaleSnapshotCannotLoseWallets() {
@@ -94,15 +58,7 @@ import GRDB
         XCTAssertEqual(remaining.map(\.id), ["b", "a", "c"])
     }
 
-    func testMissingOrCyclicParentsHaveRootDepthInVisibleRows() {
-        let tree = WalletTree([wallet("orphan", parent: "absent"),
-                               wallet("a", parent: "b"), wallet("b", parent: "a"), wallet("c", parent: "a")])
-        XCTAssertEqual(tree.rows.map(\.id), ["orphan", "a", "c", "b"])
-        XCTAssertEqual(tree.rows.map(\.depth), [0, 0, 1, 0])
-        XCTAssertEqual(tree.rows.map(\.parentID), [nil, nil, "a", nil])
-    }
-
-    func testParentDeletionDoesNotDeleteChildAndRestoreRegroupsIt() async throws {
+    func testParentDeletionAndRestoreKeepIndependentWallets() async throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: folder) }
         let db = try await OathDatabase.open(at: folder.appendingPathComponent("wallet.sqlite"))
@@ -114,7 +70,7 @@ import GRDB
         XCTAssertEqual(WalletTree(hiddenParent).roots.map(\.id), ["c"])
         try await db.reconcileWalletLifecycle([.init(id: "a", deletedAt: nil)])
         let restored = try await db.wallets()
-        XCTAssertEqual(WalletTree(restored).roots.first?.children.map(\.id), ["c"])
+        XCTAssertEqual(Set(WalletTree(restored).roots.map(\.id)), ["a", "c"])
         try await db.deleteWalletMetadata("a")
         let remaining = try await db.wallets()
         XCTAssertEqual(remaining.map(\.id), ["c"])

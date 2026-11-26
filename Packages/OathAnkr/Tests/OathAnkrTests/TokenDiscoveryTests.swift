@@ -416,8 +416,8 @@ final class TokenDiscoveryTests: XCTestCase, @unchecked Sendable {
             let results = await catalog.search(term, networks: [chain])
             if !results.isEmpty { covered.insert(chain) }
         }
-        // The app disables Cronos; stored identities still retain parser support.
-        XCTAssertEqual(covered, all.subtracting(["cronos"]))
+        // Every enabled token network retains searchable bundled identities.
+        XCTAssertEqual(covered, all)
         let start = ContinuousClock.now
         for term in ["usdt", "usdc", "tether", "link", "wrapped", "ethereum", "pepe", "aave", "dai", "sol"] {
             let result = await catalog.search(term, networks: all)

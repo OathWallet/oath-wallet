@@ -5,12 +5,14 @@ import OathDiagnostics
 /// belong to the IP, not to a wallet, asset, or URLSession. Never used for RPC,
 /// signing, broadcasting, authenticated requests, or account data.
 public actor PublicMarketRequests {
+    public enum Priority: Int, Sendable { case interactive = 0, discovery = 1 }
     public struct Response: Sendable {
         public let data: Data
         public let status: Int
         public let retryAfter: String?
-        public init(data: Data, status: Int, retryAfter: String? = nil) {
-            self.data = data; self.status = status; self.retryAfter = retryAfter
+        public let cacheAllowed: Bool
+        public init(data: Data, status: Int, retryAfter: String? = nil, cacheAllowed: Bool = true) {
+            self.data = data; self.status = status; self.retryAfter = retryAfter; self.cacheAllowed = cacheAllowed
         }
     }
     public static let shared = PublicMarketRequests()
@@ -28,7 +30,7 @@ public actor PublicMarketRequests {
     private var flights: [URL: Flight] = [:]
     private var cooldown: [String: ContinuousClock.Instant] = [:]
     private var next: [String: ContinuousClock.Instant] = [:]
-    private var gates: [String: AnkrPermits] = [:]
+    private var gates: [String: PublicMarketPermit] = [:]
     private let spacing: Duration
     private let transportCooldown: Duration
     public init(spacing: Duration = .milliseconds(2100)) {
@@ -45,7 +47,7 @@ public actor PublicMarketRequests {
               request.httpBody == nil, let url = request.url, url.scheme == "https",
               isPublicMarketURL(url),
               request.allHTTPHeaderFields?.keys.allSatisfy({ ["accept", "user-agent"].contains($0.lowercased()) }) ?? true,
-              url.user == nil, url.password == nil,
+              url.user == nil, url.password == nil, url.port == nil, url.fragment == nil,
               let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
               !(components.queryItems ?? []).contains(where: { $0.name.lowercased().contains("key") }) else { return false }
         return true
@@ -66,7 +68,23 @@ public actor PublicMarketRequests {
         if url.host == "api.coinbase.com" {
             return url.query == nil && url.path.range(of: #"^/v2/prices/[A-Z0-9]+-USD/spot$"#, options: .regularExpression) != nil
         }
+        if url.host == "api.coinlore.net" {
+            return ["/api/tickers", "/api/movers"].contains(url.path)
+        }
+        if url.host == "api.dexpaprika.com" { return url.path == "/tokens/search" }
+        if url.host == "api.llama.fi" {
+            return url.path.range(of: #"^/tvl/[a-z0-9-]+$"#, options: .regularExpression) != nil
+        }
         if url.host == "api.coinpaprika.com" {
+            if url.path == "/v1/tickers", url.query == "quotes=USD" { return true }
+            if url.port == nil, url.fragment == nil,
+               url.path.range(of: #"^/v1/tickers/[a-z0-9][a-z0-9-]{0,127}/historical$"#, options: .regularExpression) != nil,
+               let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems, items.count == 2,
+               let start = items.first(where: { $0.name == "start" })?.value,
+               start.range(of: #"^[0-9]{1,11}$"#, options: .regularExpression) != nil,
+               let interval = items.first(where: { $0.name == "interval" })?.value,
+               ["1h", "1d"].contains(interval) { return true }
+            if url.query == nil, url.path.range(of: #"^/v1/coins/[a-z0-9-]+$"#, options: .regularExpression) != nil { return true }
             return url.query == nil && url.port == nil && url.fragment == nil &&
                 ["/v1/coins/rune-thorchain", "/v1/tickers/rune-thorchain",
                  "/v1/coins/doge-dogecoin", "/v1/tickers/doge-dogecoin",
@@ -93,7 +111,7 @@ public actor PublicMarketRequests {
         return parts.url!
     }
 
-    public func send(_ request: URLRequest, operation: @escaping @Sendable () async throws -> Response) async throws -> Response {
+    public func send(_ request: URLRequest, priority: Priority = .interactive, operation: @escaping @Sendable () async throws -> Response) async throws -> Response {
         guard Self.accepts(request), let originalURL = request.url, let host = originalURL.host else { return try await operation() }
         let url = Self.cacheKey(originalURL)
         try Task.checkCancellation()
@@ -118,11 +136,11 @@ public actor PublicMarketRequests {
                 guard flights.count < 32 else {
                     continuation.resume(throwing: DiagnosticDeferral.publicMarketCapacity); return
                 }
-                let gate = gates[host] ?? AnkrPermits(count: 1); gates[host] = gate
+                let gate = gates[host] ?? PublicMarketPermit(); gates[host] = gate
                 let id = UUID()
                 let task = Task {
                     let result: Result<Response, Error>
-                    do { result = .success(try await self.execute(url, host: host, gate: gate, operation: operation)) }
+                    do { result = .success(try await self.execute(url, host: host, gate: gate, priority: priority, operation: operation)) }
                     catch {
                         // diagnostics: market-flight-propagation
                         // execute records real failures at the request boundary;
@@ -166,21 +184,32 @@ public actor PublicMarketRequests {
         } else { flights[url] = flight }
     }
 
-    private func execute(_ url: URL, host: String, gate: AnkrPermits,
+    private func execute(_ url: URL, host: String, gate: PublicMarketPermit, priority: Priority,
                          operation: @escaping @Sendable () async throws -> Response) async throws -> Response {
-        try await gate.acquire()
+        try await gate.acquire(priority: priority)
         var didRequest = false
         do {
             try Task.checkCancellation()
             if let until = cooldown[host], until > .now { throw DiagnosticDeferral.publicMarketCooldown }
             if let instant = next[host], instant > .now { try await Task.sleep(until: instant, clock: .continuous) }
-            next[host] = .now.advanced(by: ["api.dexscreener.com", "coins.llama.fi"].contains(host) ? min(spacing, .milliseconds(500)) : spacing)
+            let interval: Duration
+            if spacing == .zero { interval = .zero } // Deterministic host tests.
+            else { switch host {
+            case "api.geckoterminal.com": interval = max(spacing, .milliseconds(7500))
+            case "api.dexscreener.com": interval = max(spacing, .seconds(1))
+            case "api.dexpaprika.com", "api.llama.fi": interval = max(spacing, .seconds(10))
+            case "coins.llama.fi": interval = min(spacing, .milliseconds(500))
+            default: interval = spacing
+            } }
+            next[host] = .now.advanced(by: interval)
             didRequest = true
             let response = try await operation()
             try Task.checkCancellation()
             if response.status == 429 {
                 cooldown[host] = .now.advanced(by: .seconds(Self.retryDelay(response.retryAfter)))
-            } else if response.status == 200, response.data.count <= 16 * 1024 * 1024 {
+            } else if response.status == 402 {
+                cooldown[host] = .now.advanced(by: .seconds(86400))
+            } else if response.status == 200, response.cacheAllowed, response.data.count <= 16 * 1024 * 1024 {
                 let lifetime: Double = url.path == "/api/v3/coins/list" || host == "tokens.coingecko.com" || VerifiedEVMTokenCatalog.independentURLs.contains(url) ? 3600 : 30
                 retain(response, for: url, lifetime: lifetime)
             }
@@ -238,5 +267,30 @@ public actor PublicMarketRequests {
             if let date = formatter.date(from: header) { return min(3600, max(60, date.timeIntervalSince(now))) }
         }
         return 60
+    }
+}
+
+/// FIFO within each lane; queued discovery never overtakes a wallet quote.
+actor PublicMarketPermit {
+    private var occupied = false
+    private var waiters: [(UUID, PublicMarketRequests.Priority, CheckedContinuation<Void, Error>)] = []
+    func acquire(priority: PublicMarketRequests.Priority) async throws {
+        try Task.checkCancellation()
+        if !occupied { occupied = true; return }
+        let id = UUID()
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                if Task.isCancelled { continuation.resume(throwing: CancellationError()) }
+                else { waiters.append((id, priority, continuation)) }
+            }
+        } onCancel: { Task { await self.cancel(id) } }
+    }
+    func release() {
+        guard let index = waiters.indices.min(by: { waiters[$0].1.rawValue < waiters[$1].1.rawValue }) else { occupied = false; return }
+        waiters.remove(at: index).2.resume()
+    }
+    private func cancel(_ id: UUID) {
+        guard let index = waiters.firstIndex(where: { $0.0 == id }) else { return }
+        waiters.remove(at: index).2.resume(throwing: CancellationError())
     }
 }

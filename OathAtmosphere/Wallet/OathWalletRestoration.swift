@@ -11,6 +11,56 @@ struct OathWalletRestorationMetadata: Codable, Sendable {
     var legacyPassphrase: Bool? = nil
 }
 
+extension OathWalletSecret {
+    func derivationAccounts(includingRemoved: Bool = false) throws -> [BackupWallet.Account] {
+        var accounts = restoration?.accounts ?? OathImportChain.allCases.map {
+            BackupWallet.Account(network: $0.id, derivationPath: $0.walletPath, index: 0)
+        }
+        let evm = additionalEVMAccounts ?? [], solana = additionalSolanaAccounts ?? []
+        guard evm.isEmpty && solana.isEmpty || (!isLocalMnemonic && !isMultisig && privateKey == nil),
+              evm.count <= 32, solana.count <= 32 else { throw OathWalletError.corruptVault }
+        var identities = Set(accounts.map { $0.network + ":" + String($0.index) })
+        var paths = Set(accounts.map { $0.network + ":" + $0.derivationPath })
+        for (family, additions) in [(HDAccountFamily.evm, evm), (.solana, solana)] {
+            for addition in additions {
+                guard addition.index >= 0, addition.index < 2_147_483_648,
+                      try family.canonicalPath(addition.path) == addition.path,
+                      !addition.networks.isEmpty, Set(addition.networks).count == addition.networks.count else {
+                    throw OathWalletError.corruptVault
+                }
+                for network in addition.networks {
+                    guard (family == .solana ? network == "solana" : OathImportChain(rawValue: network)?.isEVM == true),
+                          identities.insert(network + ":" + String(addition.index)).inserted,
+                          paths.insert(network + ":" + addition.path).inserted else { throw OathWalletError.corruptVault }
+                    accounts.append(.init(network: network, derivationPath: addition.path, index: addition.index,
+                        solanaPathOnly: family == .solana ? true : nil))
+                }
+            }
+        }
+        guard accounts.count <= 1_024 else { throw OathWalletError.corruptVault }
+        let removed = removedHDAccounts ?? []
+        guard removed.count <= 66, Set(removed).count == removed.count else { throw OathWalletError.corruptVault }
+        for selection in removed {
+            guard try selection.family.canonicalPath(selection.path) == selection.path,
+                  accounts.contains(where: { selection.matches(network: $0.network, path: $0.derivationPath) }),
+                  accounts.contains(where: { account in
+                      selection.family.owns(network: account.network) && !removed.contains(where: { $0.matches(network: account.network, path: account.derivationPath) })
+                  }) else { throw OathWalletError.corruptVault }
+        }
+        return includingRemoved ? accounts : accounts.filter { account in
+            !removed.contains(where: { $0.matches(network: account.network, path: account.derivationPath) })
+        }
+    }
+
+    func solanaPathOnly(account: AccountRecord) -> Bool {
+        guard account.networkID == "solana" else { return false }
+        return additionalSolanaAccounts?.contains(where: { $0.index == account.accountIndex && $0.path == account.derivationPath }) == true ||
+            restoration?.accounts.contains(where: { $0.network == "solana" && $0.index == account.accountIndex &&
+                $0.derivationPath == account.derivationPath && $0.solanaPathOnly == true }) == true
+    }
+
+}
+
 /// Prepared off the UI thread. Only validated recovery material and derived
 /// public addresses can reach the vault's atomic restore operation.
 struct OathRestoredWallet: Sendable {
@@ -26,9 +76,15 @@ struct OathRestoredWallet: Sendable {
             throw CloudBackupError.invalidDocument
         }
         var accountIDs = Set<String>()
-        var restoredAccounts = backup.accounts
-        for (position, account) in backup.accounts.enumerated() {
-            guard let chain = OathImportChain(rawValue: account.network),
+        for account in backup.accounts {
+            if account.solanaPathOnly == true {
+                guard backup.privateKey == nil, account.network == "solana",
+                      (try? HDAccountFamily.solana.canonicalPath(account.derivationPath)) == account.derivationPath,
+                      account.solanaReceivePath == nil || account.solanaReceivePath == account.derivationPath else {
+                    throw CloudBackupError.invalidDocument
+                }
+            }
+            guard OathImportChain(rawValue: account.network) != nil,
                   account.index >= 0, account.index < 2_147_483_648,
                   accountIDs.insert(account.network + ":" + String(account.index)).inserted else {
                 throw CloudBackupError.invalidDocument
@@ -69,11 +125,7 @@ struct OathRestoredWallet: Sendable {
             } else if backup.privateKey != nil {
                 guard account.derivationPath == "imported", account.index == 0 else { throw CloudBackupError.invalidDocument }
             } else {
-                guard let path = Self.restoredPath(account.derivationPath, chain: chain) else {
-                    throw CloudBackupError.invalidDocument
-                }
-                restoredAccounts[position] = .init(network: account.network, derivationPath: path, index: account.index,
-                    solanaReceivePath: account.solanaReceivePath == account.derivationPath ? path : account.solanaReceivePath)
+                guard Self.validPath(account.derivationPath) else { throw CloudBackupError.invalidDocument }
             }
             if let path = account.solanaReceivePath {
                 let index = SolanaDerivation.accountIndex(in: account.derivationPath) ?? account.index
@@ -165,7 +217,7 @@ struct OathRestoredWallet: Sendable {
             parentWalletID: passphrase != nil && backup.parentWalletID != backup.id ? backup.parentWalletID : nil,
             // A new iCloud restore gets its own localized Restored Wallet name.
             // Keeping the automatic marker in ciphertext also survives SQL repair.
-            restoration: .init(name: "", colorHex: backup.colorHex, accounts: restoredAccounts, legacyPassphrase: backup.legacyPassphrase),
+            restoration: .init(name: "", colorHex: backup.colorHex, accounts: backup.accounts, legacyPassphrase: backup.legacyPassphrase),
             bitcoinMultisig: backup.bitcoinMultisig, tronMultisig: backup.tronMultisig, solanaMultisig: backup.solanaMultisig, xrplMultisig: backup.xrplMultisig, evmMultisig: backup.evmMultisig, tonMultisig: backup.tonMultisig, thorchainMultisig: backup.thorchainMultisig, nearMultisig: backup.nearMultisig, suiMultisig: backup.suiMultisig, aptosMultisig: backup.aptosMultisig, stellarMultisig: backup.stellarMultisig)
         let profile = try OathWalletEngine.profile(for: secret)
         // SQL enforces one address per network per wallet. Reject conflicting
@@ -179,30 +231,16 @@ struct OathRestoredWallet: Sendable {
         self.secret = secret
     }
 
-    private static func restoredPath(_ path: String, chain: OathImportChain) -> String? {
-        guard path.utf8.count <= 128 else { return nil }
-        let hardenedOnly: Bool
-        switch chain {
-        case .aptos, .near, .solana, .polkadot, .stellar, .sui, .ton: hardenedOnly = true
-        default: hardenedOnly = false
-        }
+    private static func validPath(_ path: String) -> Bool {
+        guard path.utf8.count <= 128 else { return false }
         let components = path.split(separator: "/", omittingEmptySubsequences: false)
-        // An old Ed25519 path made entirely of skipped steps recovered the root.
-        // Accept its canonical spelling so that a repaired backup restores again.
-        if hardenedOnly && path == "m" { return path }
-        guard components.first == "m", (2...11).contains(components.count) else { return nil }
-        guard components.dropFirst().allSatisfy({ part in
+        guard components.first == "m", (2...11).contains(components.count) else { return false }
+        return components.dropFirst().allSatisfy { part in
             let digits = part.last == "'" ? part.dropLast() : part[...]
             guard !digits.isEmpty, digits.utf8.allSatisfy({ (48...57).contains($0) }),
                   let index = UInt32(digits), index < 0x8000_0000 else { return false }
             return true
-        }) else { return nil }
-        guard hardenedOnly else { return path }
-        // Wallet Core 4.8.4 skips unsupported non-hardened Ed25519 steps without
-        // reporting failure. Preserve the recovered key of an existing backup,
-        // but never persist a path that falsely claims those steps succeeded.
-        let effective = components.dropFirst().filter { $0.last == "'" }
-        return (["m"] + effective.map(String.init)).joined(separator: "/")
+        }
     }
 }
 
@@ -212,4 +250,14 @@ struct OathRestoredWalletSetupStore: OathPasscodeSaving {
     func save(_ digits: [UInt8]) async throws {
         try await vault.createRestoredWallet(digits: digits, restoration: restoration)
     }
+}
+
+extension HDAccountFamily {
+    func owns(network: String) -> Bool {
+        self == .solana ? network == "solana" : OathImportChain(rawValue: network)?.isEVM == true
+    }
+}
+
+extension HomeAccountSelection {
+    func matches(network: String, path: String) -> Bool { self.path == path && family.owns(network: network) }
 }

@@ -129,7 +129,7 @@ import GRDB
                 DROP TABLE hiddenAssets;
                 DELETE FROM grdb_migrations WHERE identifier IN
                     ('v66_asset_visibility_and_shared_tracking','v67_wallet_scoped_token_tracking');
-                DROP TABLE trackedAssets; DELETE FROM grdb_migrations WHERE identifier='v8_tracked_tokens';
+                DROP TABLE trackedAssets; DELETE FROM grdb_migrations WHERE identifier IN ('v8_tracked_tokens','v113_explicit_home_tokens');
                 """)
         }
         let upgraded = try await OathDatabase.open(at: url)
@@ -139,7 +139,7 @@ import GRDB
         XCTAssertEqual(wallet.holdings.first { $0.assetID == "ethereum:native" }?.amountAtomic, "1234567890123456789")
         XCTAssertTrue(wallet.holdings.contains { $0.assetID == "ethereum:fixture" })
     }
-    func testVisibilityIsWalletScopedDurableAndDoesNotChangeValuation() async throws {
+    func testVisibilityIsWalletScopedDurableAndExcludesHiddenValuation() async throws {
         let (db, url) = try await fixture()
         defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         try await db.trackAsset(token(), walletID: "one")
@@ -158,7 +158,8 @@ import GRDB
         let second = try await reopened.snapshot(walletID: "two", currency: "USD")
         XCTAssertEqual(first.hiddenAssetIDs, ["ethereum:native", "ethereum:fixture"])
         XCTAssertTrue(second.hiddenAssetIDs.isEmpty)
-        XCTAssertEqual(first.totalFiat, before.totalFiat)
+        XCTAssertEqual(before.totalFiat, Decimal(string: "1.234567"))
+        XCTAssertEqual(first.totalFiat, 0)
         XCTAssertEqual(first.holdings, before.holdings)
         var observer = reopened.observeHiddenAssets(walletID: "one").makeAsyncIterator()
         let hidden = try await observer.next()
@@ -169,6 +170,7 @@ import GRDB
         try await reopened.setAssetHidden(false, assetID: "ethereum:native", walletID: "one")
         let shown = try await reopened.snapshot(walletID: "one", currency: "USD")
         XCTAssertTrue(shown.hiddenAssetIDs.isEmpty)
+        XCTAssertEqual(shown.totalFiat, before.totalFiat)
     }
 
     func testLaterWalletAndAccountsDoNotInheritAnotherWalletsSelections() async throws {

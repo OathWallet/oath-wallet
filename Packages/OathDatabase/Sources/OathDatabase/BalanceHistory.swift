@@ -20,8 +20,11 @@ public struct BalanceSnapshotAsset: Codable, Equatable, Sendable {
     public let fiatValue: String?
     public let balanceObservedAt: Double?
     public let priceObservedAt: Double?
+    /// Absent in older events. Preserve their original totals when no visibility
+    /// projection is needed, while allowing a later unhide to restore this asset.
+    public let excludedFromTotal: Bool?
 
-    init(_ holding: Holding) {
+    init(_ holding: Holding, excludedFromTotal: Bool = false) {
         accountID = holding.accountID; assetID = holding.assetID
         networkID = holding.networkID; reference = holding.reference
         symbol = holding.symbol; decimals = holding.decimals
@@ -29,6 +32,7 @@ public struct BalanceSnapshotAsset: Codable, Equatable, Sendable {
         exchangeRate = holding.exchangeRate
         fiatValue = holding.fiatDisplayValue.map { NSDecimalNumber(decimal: $0).stringValue }
         balanceObservedAt = holding.balanceObservedAt; priceObservedAt = holding.priceObservedAt
+        self.excludedFromTotal = excludedFromTotal ? true : nil
     }
 }
 
@@ -122,6 +126,14 @@ public struct BalanceDaySummary: Equatable, Sendable {
     public let interval: DateInterval
     public let opening: BalanceSnapshotRecord?
     public let latest: BalanceSnapshotRecord?
+    public var hiddenAssetIDs: Set<String> = []
+
+    /// Home and history observations can arrive in either order after a hide.
+    /// Never compare totals valued with different visibility choices.
+    public func change(for snapshot: WalletSnapshot) -> BalanceDayChange? {
+        guard walletID == snapshot.wallet.id, hiddenAssetIDs == snapshot.hiddenAssetIDs else { return nil }
+        return change(current: snapshot.totalFiat, currency: snapshot.currency, exchangeRate: snapshot.displayExchangeRate)
+    }
 
     public var change: BalanceDayChange? {
         // Initial discovery is excluded. Thereafter compare the same displayed
@@ -214,15 +226,18 @@ extension OathDatabase {
             let hadBaseline = try Bool.fetchOne(db, sql: """
                 SELECT EXISTS(SELECT 1 FROM balanceSnapshots WHERE walletID=? AND comparisonReady=1)
                 """, arguments: [walletID]) == true
-            let observedEmpty = snapshot.holdings.contains { $0.balanceObservedAt != nil && $0.nativeDisplayValue == 0 }
-                && snapshot.holdings.allSatisfy { $0.amountAtomic == nil || $0.nativeDisplayValue == 0 }
+            let valued = snapshot.valuationHoldings
+            let observedEmpty = valued.contains { $0.balanceObservedAt != nil && $0.nativeDisplayValue == 0 }
+                && valued.allSatisfy { $0.amountAtomic == nil || $0.nativeDisplayValue == 0 }
             let hasValue = snapshot.valuationComplete || snapshot.totalFiat > 0 || observedEmpty
             let ready = hadBaseline || (settled && hasValue)
-            let assets = snapshot.holdings.map(BalanceSnapshotAsset.init)
+            // Retain all per-asset evidence so unhiding can restore the same
+            // historical comparison without rewriting events or guessing prices.
+            let assets = snapshot.holdings.map { BalanceSnapshotAsset($0, excludedFromTotal: snapshot.hiddenAssetIDs.contains($0.assetID)) }
             return try Self.appendBalance(db, walletID: walletID, currency: snapshot.currency,
                 total: snapshot.totalFiat, complete: snapshot.valuationComplete, ready: ready,
                 holdings: try JSONEncoder().encode(assets), reason: reason,
-                eventID: eventID, date: Date(), usdTotal: snapshot.holdings.compactMap(\.usdDisplayValue).reduce(0, +))
+                eventID: eventID, date: Date(), usdTotal: valued.compactMap(\.usdDisplayValue).reduce(0, +))
         }
     }
 
@@ -298,22 +313,28 @@ extension OathDatabase {
         }
     }
 
-    public func balanceDay(walletID: String, currency: String, interval: DateInterval) async throws -> BalanceDaySummary {
-        try await pool.read { try Self.balanceDay($0, walletID: walletID, currency: currency, interval: interval) }
+    public func balanceDay(walletID: String, currency: String, interval: DateInterval, homeScope: Bool = false) async throws -> BalanceDaySummary {
+        try await pool.read { try Self.balanceDay($0, walletID: walletID, currency: currency, interval: interval, homeScope: homeScope) }
     }
 
-    public func observeBalanceDay(walletID: String, currency: String, interval: DateInterval) -> AsyncThrowingStream<BalanceDaySummary, Error> {
-        stream { try Self.balanceDay($0, walletID: walletID, currency: currency, interval: interval) }
+    public func observeBalanceDay(walletID: String, currency: String, interval: DateInterval, homeScope: Bool = false) -> AsyncThrowingStream<BalanceDaySummary, Error> {
+        stream { try Self.balanceDay($0, walletID: walletID, currency: currency, interval: interval, homeScope: homeScope) }
     }
 
     private static func balanceDay(_ db: Database, walletID: String, currency: String,
-                                   interval: DateInterval) throws -> BalanceDaySummary {
+                                   interval: DateInterval, homeScope: Bool) throws -> BalanceDaySummary {
         try Validation.currency(currency)
         guard interval.start.timeIntervalSince1970.isFinite, interval.end.timeIntervalSince1970.isFinite,
               interval.duration > 0 else { throw StoreError.invalidValue("balance day") }
         var opening: BalanceSnapshotRecord?, latest: BalanceSnapshotRecord?
+        var hidden: Set<String> = []
         if try canRecordBalance(db, walletID: walletID) {
-            let columns = "id,eventID,walletID,currency,amount,usdAmount,valuationComplete,comparisonReady,recordedAt,reason"
+            let ids = homeScope ? try homeAccountIDs(db, walletID: walletID) : nil
+            hidden = try hiddenAssetIDs(db, walletID: walletID)
+            // Only two indexed rows are read. Their per-asset evidence supports
+            // both current account selection and hide/unhide, including events
+            // recorded while an asset was hidden.
+            let columns = "id,eventID,walletID,currency,amount,usdAmount,valuationComplete,comparisonReady,recordedAt,reason,holdingsJSON"
             let eligible = "walletID=? AND (usdAmount IS NOT NULL OR currency=?)"
             // Carry the last known balance across the range boundary. Otherwise
             // the first transfer after midnight becomes its own opening balance.
@@ -331,10 +352,132 @@ extension OathDatabase {
                 SELECT \(columns) FROM balanceSnapshots WHERE \(eligible) AND recordedAt<?
                 ORDER BY recordedAt DESC,id DESC LIMIT 1
                 """, arguments: [walletID, currency, interval.end.timeIntervalSince1970])
+            opening = try opening?.scoped(to: ids, excluding: hidden)
+            latest = try latest?.scoped(to: ids, excluding: hidden)
             let rate = currency == "USD" ? Decimal(1) : try Self.exchangeRates(db)?.rate(for: currency)
             opening = opening?.converted(to: currency, rate: rate)
             latest = latest?.converted(to: currency, rate: rate)
         }
-        return BalanceDaySummary(walletID: walletID, currency: currency, interval: interval, opening: opening, latest: latest)
+        return BalanceDaySummary(walletID: walletID, currency: currency, interval: interval,
+                                 opening: opening, latest: latest, hiddenAssetIDs: hidden)
+    }
+}
+
+/// Small, currency-normalized values for the Home chart. Historical asset evidence
+/// stays in the database; no holdings JSON escapes into the rendering package.
+public struct BalanceChartHistory: Equatable, Sendable {
+    public struct Point: Equatable, Sendable {
+        public let date: Date
+        public let total: Decimal
+    }
+    public let walletID: String
+    public let currency: String
+    public let interval: DateInterval
+    public let exchangeRate: Decimal?
+    public let accountIDs: Set<String>
+    public let hiddenAssetIDs: Set<String>
+    public let points: [Point]
+}
+
+extension OathDatabase {
+    public func balanceChartHistory(walletID: String, currency: String, interval: DateInterval,
+                                    homeScope: Bool = false, now: Date = Date()) async throws -> BalanceChartHistory {
+        try await pool.read {
+            try Self.balanceChartHistory($0, walletID: walletID, currency: currency, interval: interval, homeScope: homeScope, now: now)
+        }
+    }
+
+    public func observeBalanceChartHistory(walletID: String, currency: String, interval: DateInterval,
+                                           homeScope: Bool = false) -> AsyncThrowingStream<BalanceChartHistory, Error> {
+        stream {
+            try Self.balanceChartHistory($0, walletID: walletID, currency: currency, interval: interval, homeScope: homeScope, now: Date())
+        }
+    }
+
+    private static func balanceChartHistory(_ db: Database, walletID: String, currency: String,
+                                            interval: DateInterval, homeScope: Bool, now: Date) throws -> BalanceChartHistory {
+        try Validation.currency(currency)
+        guard interval.start.timeIntervalSince1970.isFinite, interval.end.timeIntervalSince1970.isFinite,
+              interval.duration > 0, now.timeIntervalSince1970.isFinite else { throw StoreError.invalidValue("balance chart interval") }
+        let end = min(interval.end, max(interval.start, now))
+        var start = interval.start
+        var points: [BalanceChartHistory.Point] = []
+        var hidden: Set<String> = [], accountIDs: Set<String> = []
+        var rate: Decimal?
+        if try canRecordBalance(db, walletID: walletID) {
+            let ids = homeScope ? try homeAccountIDs(db, walletID: walletID) : nil
+            let allAccountIDs = try Set(accounts(db, walletID: walletID).map(\.id))
+            accountIDs = ids ?? allAccountIDs
+            hidden = try hiddenAssetIDs(db, walletID: walletID)
+            rate = currency == "USD" ? Decimal(1) : try exchangeRates(db)?.rate(for: currency)
+            let eligible = "walletID=? AND (usdAmount IS NOT NULL OR currency=?) AND comparisonReady=1"
+            // Starting at the earliest retained observation makes All useful while
+            // leaving shorter ranges anchored to their actual calendar boundary.
+            if interval.start.timeIntervalSince1970 == 0,
+               let earliest = try Double.fetchOne(db, sql: "SELECT recordedAt FROM balanceSnapshots WHERE \(eligible) ORDER BY recordedAt,id LIMIT 1", arguments: [walletID, currency]) {
+                start = min(end, Date(timeIntervalSince1970: earliest))
+            }
+            func append(_ record: BalanceSnapshotRecord?) throws {
+                guard let record, let scoped = try record.scoped(to: ids, excluding: hidden),
+                      let total = scoped.converted(to: currency, rate: rate)?.total else { return }
+                let point = BalanceChartHistory.Point(date: max(start, Date(timeIntervalSince1970: record.recordedAt)), total: total)
+                if points.last?.date == point.date { points.removeLast() }
+                points.append(point)
+            }
+            let opening = try BalanceSnapshotRecord.fetchOne(db, sql: """
+                SELECT * FROM balanceSnapshots WHERE \(eligible) AND recordedAt<=? AND recordedAt<?
+                ORDER BY recordedAt DESC,id DESC LIMIT 1
+                """, arguments: [walletID, currency, start.timeIntervalSince1970, interval.end.timeIntervalSince1970])
+            try append(opening)
+            if points.isEmpty {
+                try append(BalanceSnapshotRecord.fetchOne(db, sql: """
+                    SELECT * FROM balanceSnapshots WHERE \(eligible) AND recordedAt>=? AND recordedAt<=? AND recordedAt<?
+                    ORDER BY recordedAt,id LIMIT 1
+                    """, arguments: [walletID, currency, start.timeIntervalSince1970, end.timeIntervalSince1970, interval.end.timeIntervalSince1970]))
+            }
+            // At most 128 indexed seeks + one baseline. Decode one bucket at a
+            // time, never load a year of large holdings blobs into memory. Each
+            // bucket contributes its last observation, not an invented average.
+            let step = end.timeIntervalSince(start) / 128
+            if step > 0 {
+                for bucket in 0..<128 {
+                    let lower = start.timeIntervalSince1970 + Double(bucket) * step
+                    let upper = bucket == 127 ? end.timeIntervalSince1970 : lower + step
+                    try append(BalanceSnapshotRecord.fetchOne(db, sql: """
+                        SELECT * FROM balanceSnapshots WHERE \(eligible) AND recordedAt>? AND recordedAt<=? AND recordedAt<?
+                        ORDER BY recordedAt DESC,id DESC LIMIT 1
+                        """, arguments: [walletID, currency, lower, upper, interval.end.timeIntervalSince1970]))
+                }
+            }
+        }
+        return BalanceChartHistory(walletID: walletID, currency: currency,
+            interval: DateInterval(start: start, end: end), exchangeRate: rate, accountIDs: accountIDs,
+            hiddenAssetIDs: hidden, points: points)
+    }
+}
+
+private extension BalanceSnapshotRecord {
+    func scoped(to ids: Set<String>?, excluding hidden: Set<String>) throws -> Self? {
+        // Totals-only legacy rows cannot prove an account or visible asset's
+        // value. They remain valid only for the original unfiltered portfolio.
+        guard let all = try assets() else { return ids == nil && hidden.isEmpty ? self : nil }
+        if ids == nil, hidden.isEmpty, !all.contains(where: { $0.excludedFromTotal == true }) { return self }
+        let accounts = ids.map { ids in all.filter { ids.contains($0.accountID) } } ?? all
+        guard ids == nil || !accounts.isEmpty else { return nil }
+        let selected = accounts.filter { !hidden.contains($0.assetID) }
+        var total: Decimal = 0
+        var complete = true
+        for asset in selected {
+            if let value = asset.fiatValue.flatMap({ Decimal(string: $0, locale: Locale(identifier: "en_US_POSIX")) }) {
+                total += value
+            } else if asset.amountAtomic != "0" { complete = false }
+        }
+        guard !total.isNaN else { return nil }
+        let data = try JSONEncoder().encode(selected)
+        let amount = NSDecimalNumber(decimal: total).stringValue
+        let usd = try OathDatabase.balanceUSD(amount: amount, currency: currency, holdings: data, fallbackRate: nil)
+        return Self(id: id, eventID: eventID, walletID: walletID, currency: currency, amount: amount,
+            usdAmount: usd, valuationComplete: complete, comparisonReady: comparisonReady,
+            holdingsJSON: data, recordedAt: recordedAt, reason: reason)
     }
 }

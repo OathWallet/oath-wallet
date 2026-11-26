@@ -1,277 +1,398 @@
 import SwiftUI
 import WebKit
-import OathDiagnostics
+import OathBrowser
 
 struct OathBrowserScreen: View {
+    let controller: OathBrowserController
     let session: OathWalletSession
-    @Bindable var tabs: OathBrowserSession
-    let selected: Bool
-    private var model: OathBrowserModel { tabs.current }
-    @State private var bookmarks = OathBrowserBookmarks()
-    @State private var pendingNewTabAddress = false
-    @State private var connections = false
-    @State private var clearWebsiteData = false
-    @State private var pendingPair: URL?
+    let namespace: Namespace.ID
+    let onExit: @MainActor () -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.oathLocalizer) private var strings
-    @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.openURL) private var openURL
-    private var usable: Bool { selected && scenePhase == .active && session.isUnlocked && !session.changingWallet && !session.resetting }
-    private var browsing: Bool {
-        usable && tabs.sheet == nil && !connections && !clearWebsiteData && model.externalURL == nil &&
-        !OathWalletConnectService.shared.presentationOpen
+    @State private var editingAddress = false
+    private struct ApprovalPresentation: Identifiable { let id: UUID }
+    private var reviewPresentation: Binding<ApprovalPresentation?> {
+        let requestID = controller.approvalCancelled ? nil : controller.approvalID
+        return .init(get: { requestID.map(ApprovalPresentation.init) }, set: { value in
+            if value == nil, controller.approvalID == requestID { controller.cancelApproval() }
+        })
     }
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                if model.loading { ProgressView(value: model.progress).tint(OathOnboardingColors.blue).accessibilityLabel(strings.text(.browserTitle)) }
-                if let issue = model.issue {
-                    HStack {
-                        Text(strings.text(issue)).oathFont(.footnote).frame(maxWidth: .infinity, alignment: .leading)
-                        OathButton(strings.text(.tryAgain)) { model.reload() }.disabled(model.url == nil)
-                    }.padding().accessibilityIdentifier("browser.error")
-                }
-                if let view = model.webView {
-                    // A new website store must mount its new WKWebView even if
-                    // clear/reopen are coalesced into one SwiftUI update.
-                    BrowserWebView(view: view).id(ObjectIdentifier(view)).accessibilityIdentifier("browser.web")
-                }
-                else { startPage }
-            }
-            .background(Color(uiColor: OathSurfaceColors.canvas).ignoresSafeArea())
-            .modifier(OathBrowserBottomBarInset(tabs: tabs))
-            .navigationTitle(strings.text(.browserTitle))
-            .navigationBarTitleDisplayMode(.inline)
+    @ViewBuilder var body: some View {
+        let previewID = controller.openedFromPreview && !reduceMotion ? controller.selectedID : nil
+        if #available(iOS 27, *) {
+            let transition = previewID.map { AnyNavigationTransition(.zoom(sourceID: $0, in: namespace)) }
+            page.navigationTransition(transition ?? AnyNavigationTransition(.automatic))
+        } else if #available(iOS 18, *), let tabID = previewID {
+            page.navigationTransition(.zoom(sourceID: tabID, in: namespace))
+        } else {
+            page
+        }
+    }
+    private var page: some View {
+        browserPage
+            .modifier(OathBrowserAddressToolbar(tab: controller.selected, origin: displayedOrigin, editingAddress: $editingAddress,
+                submit: controller.navigate, showTabs: {
+                    prepareReturn(to: controller.selected)
+                    controller.showTabOverview()
+                }))
+            .navigationBarBackButtonHidden(true)
+            .toolbar(.visible, for: .bottomBar)
+            .toolbarBackground(.hidden, for: .bottomBar)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    OathButton { model.back() } label: { Image(systemName: "chevron.backward") }
-                        .disabled(!model.canGoBack).accessibilityLabel(strings.text(.back)).accessibilityIdentifier("browser.back")
+                    Button(strings.text(.back), systemImage: "chevron.backward") {
+                        prepareReturn(to: controller.navigation.path.dropLast().last == .tabs ? controller.selected : nil)
+                        onExit()
+                    }
+                        .labelStyle(.iconOnly)
+                        .accessibilityIdentifier("BackButton")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        OathButton { model.forward() } label: { Label(strings.text(.browserForward), systemImage: "chevron.forward") }.disabled(!model.canGoForward)
-                        OathButton { model.reload() } label: { Label(strings.text(.browserReload), systemImage: "arrow.clockwise") }.disabled(model.webView == nil)
-                        OathButton { tabs.sheet = .bookmark } label: { Label(strings.text(.browserAddBookmark), systemImage: "bookmark") }.disabled(model.url == nil || !bookmarks.loaded)
-                        OathButton { tabs.sheet = .bookmarks } label: { Label(strings.text(.browserBookmarks), systemImage: "book") }
-                        if let url = model.url { ShareLink(item: url) { Label(strings.text(.receiveShare), systemImage: "square.and.arrow.up") } }
-                        OathButton { connections = true } label: { Label(strings.text(.walletConnect), systemImage: "link") }
-                        OathButton { tabs.sheet = .pair } label: { Label(strings.text(.wcAddConnection), systemImage: "plus") }
-                        OathButton { clearWebsiteData = true } label: { Label(strings.text(.browserClearData), systemImage: "trash") }
-                    } label: { Image(systemName: "ellipsis") }
-                    .accessibilityLabel(strings.text(.browserTitle)).accessibilityIdentifier("browser.menu")
+                        Button(strings.text(.browserLibrary), systemImage: "book") { controller.presentLibrary(true) }
+                            .accessibilityIdentifier("browser.library")
+                        if let tab = controller.selected {
+                            if !tab.isPrivate {
+                                Button(strings.text(.browserAddBookmark), systemImage: "bookmark") { controller.bookmark(tab) }
+                                    .disabled(!tab.canBookmark)
+                            }
+                            if controller.permission(tab) != nil { Button(strings.text(.scannerWCDisconnect), systemImage: "link.badge.plus", role: .destructive) { controller.disconnect(tab) } }
+                            Button(strings.text(.browserConnections), systemImage: "link") { OathWalletLinkInbox.shared.receive(URL(string: "oathwallet://wc")!) }
+                            ShareLink(item: tab.displayedURL) { Label(strings.text(.browserShare), systemImage: "square.and.arrow.up") }
+                            Button(strings.text(.browserReload), systemImage: "arrow.clockwise") { tab.failure = nil; tab.webView?.reload() }
+                        }
+                    } label: { Image(systemName: "ellipsis") }.accessibilityLabel(strings.text(.browserMenu))
+                        .accessibilityIdentifier("browser.menu")
                 }
             }
-            .sheet(item: $tabs.sheet, onDismiss: finishSheet) { selection in
-                if selection == .tabs {
-                    OathBrowserTabsSheet(tabs: tabs) {
-                        guard tabs.add() != nil else { return }
-                        pendingNewTabAddress = true
-                        tabs.sheet = nil
+            .oathNativeAppBar(title: displayedOrigin.isEmpty ? strings.text(.browserTitle) : displayedOrigin,
+                              subtitle: controller.selected?.isPrivate == true ? strings.text(.browserPrivate) : nil)
+            .onChange(of: controller.selectedID) { editingAddress = false }
+            .onChange(of: controller.showsTabOverview) { if controller.showsTabOverview { editingAddress = false } }
+            .sheet(item: reviewPresentation) { presentation in
+                OathBrowserApprovalSheet(controller: controller, session: session, requestID: presentation.id)
+                    .onDisappear { if controller.approvalID == presentation.id { controller.cancelApproval() } }
+            }
+            .alert(strings.text(.browserPrivateConnection), isPresented: Binding(get: { controller.privateWalletConnectURL != nil }, set: { if !$0 { controller.privateWalletConnectURL = nil } })) {
+                Button(strings.text(.cancel), role: .cancel) { controller.privateWalletConnectURL = nil }
+                Button(strings.text(.browserContinue)) { controller.confirmPrivateWalletConnect() }
+            } message: { Text(strings.text(.browserPrivateConnectionDetail)) }
+            .confirmationDialog(strings.text(.browserOpenTab), isPresented: Binding(get: { controller.popupURL != nil }, set: { if !$0 { controller.popupURL = nil } }), titleVisibility: .visible) {
+                if let url = controller.popupURL {
+                    Button(url.host ?? strings.text(.browserOpenTab)) { controller.popupURL = nil; controller.open(url, newTab: true) }
+                }
+                Button(strings.text(.cancel), role: .cancel) { controller.popupURL = nil }
+            }
+    }
+
+    @ViewBuilder private var browserPage: some View {
+        if let tab = controller.selected {
+            ZStack {
+                OathBrowserWebView(controller: controller, tab: tab)
+                    .id(tab.id)
+                    .ignoresSafeArea(.container, edges: .vertical)
+                if let failure = tab.failure {
+                    ContentUnavailableView {
+                        Label(strings.text(.browserPageUnavailable), systemImage: "globe")
+                    } description: { Text(failure) } actions: {
+                        Button(strings.text(.tryAgain)) { tab.failure = nil; tab.webView?.reload() }
+                    }.background(Color(uiColor: OathSurfaceColors.groupedCanvas))
+                }
+            }.overlay(alignment: .top) {
+                if tab.progress > 0 && tab.progress < 1 { ProgressView(value: tab.progress).tint(.blue).accessibilityLabel(strings.text(.exploreLoading)) }
+            }
+        } else { Color(uiColor: OathSurfaceColors.groupedCanvas) }
+    }
+
+    private var displayedOrigin: String {
+        guard let url = controller.selected?.displayedURL, let host = url.host else { return "" }
+        if let port = url.port, port != 443 { return "\(host):\(port)" }
+        return host
+    }
+
+    private func prepareReturn(to previewTab: OathBrowserTab?) {
+        guard #available(iOS 18, *), let webView = controller.selected?.webView else { return }
+        var responder: UIResponder? = webView
+        while let current = responder {
+            if let owner = current as? UIViewController,
+               let page = owner.navigationController?.topViewController,
+               webView.isDescendant(of: page.view) {
+                if let previewTab, !reduceMotion {
+                    page.preferredTransition = .zoom { [weak previewTab] context in
+                        guard let source = context.sourceViewController.viewIfLoaded else { return nil }
+                        source.layoutIfNeeded()
+                        guard let preview = previewTab?.previewView, preview.isDescendant(of: source) else { return nil }
+                        return preview
                     }
-                } else if selection == .bookmarks {
-                    NavigationStack {
-                        ScrollView { bookmarkList.padding(.vertical, 12) }
-                            .background(Color(uiColor: OathSurfaceColors.canvas).ignoresSafeArea())
-                            .navigationTitle(strings.text(.browserBookmarks)).navigationBarTitleDisplayMode(.inline)
-                            .toolbar { ToolbarItem(placement: .topBarLeading) { OathCloseButton { tabs.sheet = nil } } }
-                    }.presentationDetents([.large]).presentationDragIndicator(.visible).oathLanguage(strings.language)
-                } else if selection == .pair {
-                    OathBrowserPairSheet { url in pendingPair = url; tabs.sheet = nil }
                 } else {
-                    OathBrowserBookmarkEditor(bookmarks: bookmarks, url: model.url, title: model.title)
+                    page.preferredTransition = nil
+                }
+                return
+            }
+            responder = current.next
+        }
+    }
+}
+
+struct OathBrowserAddressToolbar: ViewModifier {
+    let tab: OathBrowserTab?
+    let origin: String
+    @Binding var editingAddress: Bool
+    let submit: (String) -> Void
+    let showTabs: () -> Void
+    @Environment(\.oathLocalizer) private var strings
+
+    @ViewBuilder func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content
+                .modifier(OathBrowserAddressSearch(url: tab?.displayedURL, origin: origin,
+                    placeholder: strings.text(.browserSearchOrAddress), presented: $editingAddress, submit: submit))
+                .toolbar {
+                    if tab != nil && !editingAddress {
+                        historyButtons
+                        ToolbarSpacer(.fixed, placement: .bottomBar)
+                    }
+                    DefaultToolbarItem(kind: .search, placement: .bottomBar)
+                    if !editingAddress {
+                        ToolbarSpacer(.fixed, placement: .bottomBar)
+                        tabsButton
+                    }
+                }
+        } else {
+            GeometryReader { viewport in
+                content.toolbar {
+                    if tab != nil && !editingAddress { historyButtons }
+                    ToolbarItem(placement: .bottomBar) {
+                        OathBrowserAddressField(url: tab?.displayedURL, origin: origin,
+                            placeholder: strings.text(.browserSearchOrAddress), editing: $editingAddress, submit: submit)
+                            .frame(width: max(70, viewport.size.width - (editingAddress || tab == nil ? 96 : 190)), height: 40)
+                    }
+                    if editingAddress {
+                        ToolbarItem(placement: .bottomBar) {
+                            Button(strings.text(.close), systemImage: "xmark") { editingAddress = false }
+                        }
+                    } else { tabsButton }
                 }
             }
-            .sheet(isPresented: $connections) {
-                NavigationStack {
-                    OathWalletConnectPage(session: session)
-                        .toolbar { ToolbarItem(placement: .topBarLeading) { OathCloseButton { connections = false } } }
-                }.presentationDetents([.large]).presentationDragIndicator(.visible).oathLanguage(strings.language)
-            }
-            .confirmationDialog(strings.text(.browserClearData), isPresented: $clearWebsiteData, titleVisibility: .visible) {
-                OathButton(strings.text(.clear), role: .destructive) { tabs.reset() }
-            } message: { Text(strings.text(.browserClearDataDetail)) }
-            .confirmationDialog(strings.text(.wcOpenWebsite), isPresented: Binding(get: { model.externalURL != nil }, set: { if !$0 { model.externalURL = nil } }), titleVisibility: .visible) {
-                if let url = model.externalURL {
-                    OathButton(strings.text(.wcOpenWebsite)) { model.externalURL = nil; openURL(url) }
-                }
-            } message: {
-                Text(String((model.externalURL?.absoluteString ?? "").prefix(2_048)))
-                    .environment(\.layoutDirection, .leftToRight)
-            }
-            .alert(model.dialog?.host ?? "", isPresented: Binding(get: { model.dialog != nil }, set: { if !$0 { model.resolveDialog(accept: false) } })) {
-                if model.dialog?.kind == .prompt {
-                    TextField("", text: Binding(get: { model.dialogText }, set: { model.dialogText = $0 }))
-                }
-                if model.dialog?.kind != .alert { OathButton(strings.text(.cancel), role: .cancel) { model.resolveDialog(accept: false) } }
-                OathButton(strings.text(.done)) { model.resolveDialog(accept: true) }
-            } message: { Text(model.dialog?.message ?? "") }
-            .onAppear { bookmarks.load(); tabs.setActive(browsing); configurePage() }
-            .onChange(of: browsing, initial: true) { _, value in
-                tabs.setActive(value); configurePage()
-            }
-            .onChange(of: tabs.selectedID) { _, _ in configurePage(); tabs.setActive(browsing) }
-            .onChange(of: session.isUnlocked) { _, unlocked in if !unlocked { suspend() } }
-            .onChange(of: session.changingWallet) { _, changing in if changing { suspend() } }
-            .onChange(of: session.displayedProfile?.id) { _, _ in
-                // Also cover a fast switch whose intermediate changing flag is
-                // coalesced into one SwiftUI update.
-                suspend(); tabs.setActive(browsing); configurePage()
-            }
-            .onChange(of: session.resetting) { _, resetting in if resetting { suspend() } }
-            .onDisappear { tabs.setActive(false) }
-            .oathNativeLocalization()
         }
     }
 
-    private var startPage: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                OathSettingsFooter { Text(strings.text(.browserPrivateDetail)) }
-                OathSettingsSectionRule()
-                OathSettingsFooter { Text(strings.text(.browserBookmarks)).oathFont(.headline) }
-                bookmarkList
-            }.padding(.vertical, 12).frame(maxWidth: 700).frame(maxWidth: .infinity)
+    private var historyButtons: some ToolbarContent {
+        ToolbarItemGroup(placement: .bottomBar) {
+            Button(strings.text(.browserBack), systemImage: "chevron.backward") { tab?.webView?.goBack() }
+                .disabled(tab?.canGoBack != true)
+                .accessibilityIdentifier("browser.back")
+            Button(strings.text(.browserForward), systemImage: "chevron.forward") { tab?.webView?.goForward() }
+                .disabled(tab?.canGoForward != true)
+                .accessibilityIdentifier("browser.forward")
         }
     }
-    private var bookmarkList: some View {
-        VStack(spacing: 0) {
-                if bookmarks.failed {
-                    OathSettingsFooter { Text(strings.text(.preferencesSaveFailed)) }
-                    OathButton(strings.text(.tryAgain)) { bookmarks.load() }.padding()
-                } else if bookmarks.items.isEmpty {
-                    OathSettingsFooter { Text(strings.text(.browserNoBookmarks)) }
+
+    private var tabsButton: some ToolbarContent {
+        ToolbarItem(placement: .bottomBar) {
+            Button(strings.text(.browserTabs), systemImage: "square.on.square", action: showTabs)
+                .accessibilityIdentifier("browser.tabs")
+        }
+    }
+
+}
+
+@available(iOS 26, *)
+private struct OathBrowserAddressSearch: ViewModifier {
+    let url: URL?
+    let origin: String
+    let placeholder: String
+    @Binding var presented: Bool
+    let submit: (String) -> Void
+    @State private var draft = ""
+    @State private var selection: TextSelection?
+    @FocusState private var focused: Bool
+
+    private var prompt: String {
+        presented || origin.isEmpty ? placeholder : origin
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .searchable(text: $draft, isPresented: $presented, prompt: prompt)
+            .searchFocused($focused)
+            .searchSelection($selection)
+            .keyboardType(.webSearch)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .submitLabel(.go)
+            .onSubmit(of: .search) {
+                let address = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+                presented = false
+                if !address.isEmpty { submit(address) }
+            }
+            .onChange(of: focused) {
+                guard focused else { return }
+                draft = url?.absoluteString ?? ""
+                selection = TextSelection(range: draft.startIndex..<draft.endIndex)
+            }
+            .onChange(of: presented) {
+                if !presented { draft = ""; selection = nil }
+            }
+    }
+}
+
+struct OathBrowserAddressField: UIViewRepresentable {
+    let url: URL?
+    let origin: String
+    let placeholder: String
+    @Binding var editing: Bool
+    let submit: (String) -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    func makeUIView(context: Context) -> UISearchTextField {
+        let field = UISearchTextField()
+        field.delegate = context.coordinator
+        field.font = .preferredFont(forTextStyle: .subheadline)
+        field.adjustsFontForContentSizeCategory = true
+        field.textAlignment = origin.isEmpty ? .natural : .center
+        field.keyboardType = .webSearch
+        field.returnKeyType = .go
+        field.autocapitalizationType = .none
+        field.autocorrectionType = .no
+        field.spellCheckingType = .no
+        field.smartQuotesType = .no
+        field.smartDashesType = .no
+        field.clearButtonMode = .whileEditing
+        field.accessibilityIdentifier = "browser.address"
+        field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        return field
+    }
+
+    func updateUIView(_ field: UISearchTextField, context: Context) {
+        context.coordinator.parent = self
+        if field.placeholder != placeholder {
+            field.placeholder = placeholder
+            field.accessibilityLabel = placeholder
+        }
+        if !editing && field.isFirstResponder { field.resignFirstResponder() }
+        if !field.isFirstResponder && field.text != origin { field.text = origin }
+    }
+
+    final class Coordinator: NSObject, UITextFieldDelegate {
+        var parent: OathBrowserAddressField
+        init(_ parent: OathBrowserAddressField) { self.parent = parent }
+
+        func textFieldDidBeginEditing(_ field: UITextField) {
+            parent.editing = true
+            let address = parent.url?.absoluteString ?? ""
+            field.textAlignment = .natural
+            field.text = address
+            // Apply the selection after UIKit places the caret for the activating tap.
+            DispatchQueue.main.async { [weak field] in
+                guard let field, field.isFirstResponder, field.text == address else { return }
+                field.selectedTextRange = field.textRange(from: field.beginningOfDocument, to: field.endOfDocument)
+            }
+        }
+
+        func textFieldDidEndEditing(_ field: UITextField) {
+            parent.editing = false
+            field.textAlignment = parent.origin.isEmpty ? .natural : .center
+            field.text = parent.origin
+        }
+
+        func textFieldShouldReturn(_ field: UITextField) -> Bool {
+            let address = field.text ?? ""
+            field.resignFirstResponder()
+            if !address.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { parent.submit(address) }
+            return false
+        }
+    }
+}
+
+private struct OathBrowserWebView: UIViewRepresentable {
+    let controller: OathBrowserController
+    let tab: OathBrowserTab
+    func makeUIView(context: Context) -> WKWebView { controller.ensureWebView(tab) }
+    func updateUIView(_ uiView: WKWebView, context: Context) {}
+}
+
+extension View {
+    func oathBrowserLibrary(isPresented: Binding<Bool>, controller: OathBrowserController) -> some View {
+        modifier(OathBrowserLibraryPresentation(isPresented: isPresented, controller: controller))
+    }
+}
+
+private struct OathBrowserLibraryPresentation: ViewModifier {
+    @Binding var isPresented: Bool
+    let controller: OathBrowserController
+    @State private var afterDismiss: (() -> Void)?
+
+    func body(content: Content) -> some View {
+        content.sheet(isPresented: $isPresented, onDismiss: {
+            let action = afterDismiss
+            afterDismiss = nil
+            if controller.isForeground, controller.session?.isUnlocked == true { action?() }
+        }) {
+            OathBrowserLibrary(controller: controller) { action in
+                // Let the sheet finish its native dismissal before any push or pop.
+                afterDismiss = action
+                isPresented = false
+            }
+        }
+    }
+}
+
+private struct OathBrowserLibrary: View {
+    let controller: OathBrowserController
+    let dismissThen: (@escaping () -> Void) -> Void
+    @State private var clearing = false
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.oathLocalizer) private var strings
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    Button(strings.text(.browserTabs), systemImage: "square.on.square") {
+                        dismissThen { controller.showTabOverview() }
+                    }.accessibilityIdentifier("browser.library.tabs")
+                } footer: {
+                    if controller.privateMode { Text(strings.text(.browserPrivateDetail)) }
                 }
-                ForEach(bookmarks.items) { bookmark in
-                    OathButton { tabs.sheet = nil; tabs.setActive(usable); model.open(bookmark.url.absoluteString) } label: {
-                        OathSettingsRow(title: bookmark.title, icon: "bookmark", value: bookmark.url.host)
-                    }
-                    .buttonStyle(OathSettingsRowButtonStyle())
-                    .contextMenu {
-                        OathButton(strings.text(.delete), role: .destructive) {
-                            do { try bookmarks.remove(bookmark.id) }
-                            catch {
-                                if !(error is OathBrowserBookmarks.Failure) {
-                                    OathDiagnostics.record(error, component: "browser", operation: "remove_bookmark")
-                                }
-                                model.issue = .preferencesSaveFailed
-                            }
+                if !controller.privateMode {
+                    Section(strings.text(.browserBookmarks)) {
+                        if controller.archive.bookmarks.isEmpty { Text(strings.text(.browserNoBookmarks)).foregroundStyle(.secondary) }
+                        ForEach(controller.archive.bookmarks) { page in
+                            Button { dismissThen { controller.open(page.url) } } label: { pageLabel(page) }
+                                .accessibilityIdentifier("browser.library.bookmark")
+                                .swipeActions { Button(strings.text(.delete), role: .destructive) { controller.removeBookmark(page.id) } }
                         }
                     }
-                    .accessibilityIdentifier("browser.bookmark")
+                    Section(strings.text(.browserHistory)) {
+                        ForEach(controller.archive.history.prefix(100)) { page in
+                            Button { dismissThen { controller.open(page.url) } } label: { pageLabel(page) }
+                                .contextMenu {
+                                    Button(strings.text(.browserRemoveFromRecents), systemImage: "trash", role: .destructive) {
+                                        controller.removeVisit(page.id)
+                                    }
+                                }
+                        }
+                    }
                 }
-        }.frame(maxWidth: 700).frame(maxWidth: .infinity)
-    }
-    private func configurePage() {
-        let browser = model, wallet = session
-        model.walletLink = { [weak browser, weak wallet] url, host in
-            guard browser?.active == true, wallet?.isUnlocked == true,
-                  wallet?.changingWallet == false, wallet?.resetting == false,
-                  !OathWalletConnectService.shared.presentationOpen else { return }
-            OathWalletLinkInbox.shared.receive(url, browserHost: host)
+                Section {
+                    Button(strings.text(.browserConnections), systemImage: "link") { dismissThen { OathWalletLinkInbox.shared.receive(URL(string: "oathwallet://wc")!) } }
+                    Button(strings.text(.browserClear), role: .destructive) { clearing = true }
+                } footer: { Text(strings.text(.browserClearDetail)) }
+            }
+            .toolbar { ToolbarItem(placement: .topBarTrailing) {
+                OathCloseButton { dismiss() }.accessibilityIdentifier("browser.library.close")
+            } }
+            .oathNativeAppBar(title: strings.text(.browserLibrary))
+            .confirmationDialog(strings.text(.browserClear), isPresented: $clearing, titleVisibility: .visible) {
+                Button(strings.text(.browserClear), role: .destructive) { dismissThen { Task { await controller.clearBrowsingData() } } }
+            } message: { Text(strings.text(.browserClearDetail)) }
         }
     }
-    private func suspend() {
-        tabs.setActive(false); tabs.reset()
-        connections = false; pendingPair = nil; pendingNewTabAddress = false
-    }
-    private func finishSheet() {
-        if pendingNewTabAddress {
-            pendingNewTabAddress = false
-            if usable { tabs.setActive(browsing); tabs.focusAddress() }
-        } else { deliverPendingPair() }
-    }
-    private func deliverPendingPair() {
-        guard let url = pendingPair else { return }
-        pendingPair = nil
-        guard usable, !OathWalletConnectService.shared.presentationOpen else { return }
-        OathWalletLinkInbox.shared.receive(url, browserHost: OathBrowserPolicy.connectionAuthority(model.url))
-    }
-}
-
-private struct BrowserWebView: UIViewRepresentable {
-    let view: WKWebView
-    func makeUIView(context: Context) -> WKWebView { view }
-    func updateUIView(_ uiView: WKWebView, context: Context) { }
-}
-
-private struct OathBrowserBookmarkEditor: View {
-    let bookmarks: OathBrowserBookmarks
-    @State private var address: String
-    @State private var title: String
-    @State private var focused = false
-    @State private var titleFocused = false
-    @State private var failed = false
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.oathLocalizer) private var strings
-    init(bookmarks: OathBrowserBookmarks, url: URL?, title: String) {
-        self.bookmarks = bookmarks
-        _address = State(initialValue: url?.absoluteString ?? ""); _title = State(initialValue: title)
-    }
-    private var target: URL? {
-        guard let url = OathBrowserPolicy.website(address, allowsBareHost: true), case .website = OathBrowserPolicy.destination(url) else { return nil }
-        return url
-    }
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 16) {
-                    OathTextInput(text: $title, focused: $titleFocused, title: strings.text(.contactName),
-                        identifier: "browser.bookmark.title").oathInputRow()
-                    OathTextInput(text: $address, focused: $focused, title: strings.text(.browserAddress),
-                        identifier: "browser.url.input", address: true, onSubmit: submit).oathInputRow()
-                    if failed { Text(strings.text(.preferencesSaveFailed)).foregroundStyle(.red) }
-                    Text(strings.text(.browserPrivateDetail)).oathFont(.footnote).foregroundStyle(.secondary)
-                }.padding(20).frame(maxWidth: 700).frame(maxWidth: .infinity)
-            }
-            .background(Color(uiColor: OathSurfaceColors.canvas).ignoresSafeArea())
-            .navigationTitle(strings.text(.browserAddBookmark)).navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) { OathCloseButton { dismiss() } }
-                ToolbarItem(placement: .topBarTrailing) { OathDoneButton { submit() }.disabled(target == nil).accessibilityIdentifier("browser.url.confirm") }
-            }
-            .onAppear { focused = true }
-            .oathNativeLocalization()
-        }.presentationDetents([.large]).presentationDragIndicator(.visible).oathLanguage(strings.language)
-    }
-    private func submit() {
-        guard let target else { return }
-        do { try bookmarks.save(title: title, url: target); dismiss() }
-        catch {
-            // Invalid input/full bookmark storage are expected form states.
-            if !(error is OathBrowserBookmarks.Failure) {
-                OathDiagnostics.record(error, component: "browser", operation: "save_bookmark")
-            }
-            failed = true
+    private func pageLabel(_ page: BrowserPageRecord) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(verbatim: page.displayTitle).oathFont(.body).foregroundStyle(.primary).lineLimit(1)
+            Text(page.url.host ?? "").oathFont(.caption).foregroundStyle(.secondary).lineLimit(1)
         }
-    }
-}
-
-private struct OathBrowserPairSheet: View {
-    let connect: (URL) -> Void
-    @State private var text = ""
-    @State private var focused = false
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.oathLocalizer) private var strings
-    private var target: URL? {
-        guard let url = URL(string: text.trimmingCharacters(in: .whitespacesAndNewlines)),
-              let route = OathWalletLink.parse(url), route.isWalletConnect else { return nil }
-        return url
-    }
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 16) {
-                OathTextInput(text: $text, focused: $focused, title: strings.text(.browserPairingLink), identifier: "browser.pair.input", address: true)
-                    .oathInputRow()
-                Text(strings.text(.scannerWCAccountsPermission)).oathFont(.footnote).foregroundStyle(.secondary)
-                Spacer()
-            }.padding(20)
-            .background(Color(uiColor: OathSurfaceColors.canvas).ignoresSafeArea())
-            .navigationTitle(strings.text(.walletConnect)).navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) { OathCloseButton { dismiss() } }
-                ToolbarItem(placement: .topBarTrailing) {
-                    OathDoneButton { if let target { connect(target) } }.disabled(target == nil)
-                }
-            }.onAppear { focused = true }.oathNativeLocalization()
-        }.presentationDetents([.large]).presentationDragIndicator(.visible).oathLanguage(strings.language)
     }
 }

@@ -3,7 +3,7 @@ import GRDB
 @testable import OathDatabase
 
 @MainActor final class PortfolioFilterPersistenceTests: XCTestCase {
-    private let networks = ["ethereum", "solana", "tron", "ton", "aptos", "sui", "near", "xrpl", "stellar", "arc", "robinhood", "hyperevm", "monad", "unichain"]
+    private let networks = ["ethereum", "solana", "tron", "ton", "aptos", "sui", "near", "xrpl", "stellar", "polkadot", "arc", "robinhood", "hyperevm", "monad", "unichain"]
 
     private func fixture() async throws -> (OathDatabase, URL) {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("portfolio-filters-" + UUID().uuidString).appendingPathComponent("db.sqlite")
@@ -25,7 +25,7 @@ import GRDB
         var selection = PortfolioFilter()
         selection.hidesZeroBalances = true; selection.hidesUnverifiedTokens = false
         selection.groupsTokensByChain = true
-        selection.sort = .highestValue; selection.kind = .tokens
+        selection.sort = .highestValue
         selection.networkIDs = ["ethereum", "solana"]; selection.minimumValue = 1.25
         selection.maximumValue = 500; selection.rangeCurrency = "USD"
         try await store.savePortfolioFilter(selection, walletID: "first")
@@ -52,7 +52,6 @@ import GRDB
         var selection = PortfolioFilter()
         selection.groupsTokensByChain = true
         selection.hidesZeroBalances = true
-        selection.kind = .coins
         selection.networkIDs = ["ethereum"]
         var legacy = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(selection)) as? [String: Any])
         legacy["onlyWithActivity"] = true
@@ -63,7 +62,7 @@ import GRDB
 
         let snapshot = try await store.snapshot(walletID: "first", currency: "USD")
         XCTAssertEqual(snapshot.assetFilter, selection)
-        XCTAssertEqual(snapshot.assetFilter.activeCount, 3)
+        XCTAssertEqual(snapshot.assetFilter.activeCount, 2)
         let visible = snapshot.assetFilter.applying(to: snapshot.holdings, currency: "USD")
         XCTAssertEqual(visible.map(\.assetID), ["ethereum:native"])
         XCTAssertEqual(visible.first?.transactionCount, 0)
@@ -75,6 +74,58 @@ import GRDB
         XCTAssertNil(fields["onlyWithActivity"])
         let restored = try await store.portfolioFilter(walletID: "first")
         XCTAssertEqual(restored, selection)
+    }
+
+    func testRetiredAssetTypeIsIgnoredOnReadAndRemovedOnSaveWithoutResettingPreferences() async throws {
+        let (store, url) = try await fixture()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        try await store.pool.write { db in
+            try AssetRecord(id: "ethereum:token", networkID: "ethereum", reference: "token",
+                            name: "Token", symbol: "TEST", decimals: 6).insert(db)
+            for assetID in ["ethereum:native", "ethereum:token"] {
+                try BalanceRecord(accountID: "first:ethereum", assetID: assetID, networkID: "ethereum",
+                                  amountAtomic: "1000000", observedAt: 1, source: "fixture").insert(db)
+            }
+            try db.execute(sql: "INSERT INTO ankrAssets(accountID,assetID,detail,balanceUsd,fetchedAt,onlyWhitelisted) VALUES('first:ethereum','ethereum:token',?,'',1,1)", arguments: [Data()])
+        }
+        var configured = PortfolioFilter()
+        configured.sort = .nameAscending
+        configured.networkIDs = ["ethereum"]
+        configured.hidesZeroBalances = true
+        configured.groupsTokensByChain = true
+        for selection in [PortfolioFilter(), configured] {
+            for retiredKind in ["all", "coins", "tokens", "unknown-legacy-value"] {
+                var legacy = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(selection)) as? [String: Any])
+                legacy["kind"] = retiredKind
+                let data = try JSONSerialization.data(withJSONObject: legacy)
+                try await store.pool.write { db in
+                    try db.execute(sql: "INSERT OR REPLACE INTO walletPortfolioFilters(walletID,selection,hidesUnverifiedTokens) VALUES('first',?,1)", arguments: [data])
+                }
+
+                let snapshot = try await store.snapshot(walletID: "first", currency: "USD")
+                XCTAssertEqual(snapshot.assetFilter, selection, retiredKind)
+                XCTAssertEqual(snapshot.assetFilter.activeCount, selection.activeCount, retiredKind)
+                let visible = snapshot.assetFilter.applying(to: snapshot.holdings, currency: "USD")
+                XCTAssertTrue(visible.contains { $0.assetID == "ethereum:native" }, retiredKind)
+                XCTAssertTrue(visible.contains { $0.assetID == "ethereum:token" }, retiredKind)
+                if selection.networkIDs.isEmpty {
+                    XCTAssertEqual(visible.count, networks.count + 1)
+                } else {
+                    XCTAssertEqual(visible.count, 2)
+                }
+
+                try await store.savePortfolioFilter(snapshot.assetFilter, walletID: "first")
+                let saved = try await store.pool.read { db in
+                    try Data.fetchOne(db, sql: "SELECT selection FROM walletPortfolioFilters WHERE walletID='first'")
+                }
+                let fields = try XCTUnwrap(JSONSerialization.jsonObject(with: XCTUnwrap(saved)) as? [String: Any])
+                XCTAssertNil(fields["kind"])
+                let restored = try await store.portfolioFilter(walletID: "first")
+                XCTAssertEqual(restored, selection)
+            }
+        }
+        let otherWallet = try await store.portfolioFilter(walletID: "second")
+        XCTAssertEqual(otherWallet, .init())
     }
 
     func testAllChainInventoriesRevealAndRehideWithoutChangingVerificationOrOtherWallet() async throws {
@@ -102,8 +153,8 @@ import GRDB
                         try db.execute(sql: "INSERT INTO nearHoldings(accountID,reference,assetID,amountAtomic,observedAt,blockHeight,verified) VALUES(?,'unlisted',?,'1234567',1,1,0)", arguments: [account, assetID])
                     } else if network == "xrpl" {
                         try db.execute(sql: "INSERT INTO xrplHoldings(accountID,reference,assetID,amountAtomic,signedAmount,observedAt,checkpoint,verified) VALUES(?,'unlisted',?,'1234567','1234567',1,1,0)", arguments: [account, assetID])
-                    } else if network == "stellar" {
-                        try db.execute(sql: "INSERT INTO stellarHoldings(accountID,reference,assetID,amountAtomic,observedAt,checkpoint,verified) VALUES(?,'unlisted',?,'1234567',1,1,0)", arguments: [account, assetID])
+                    } else if ["stellar", "polkadot"].contains(network) {
+                        try db.execute(sql: "INSERT INTO \(network)Holdings(accountID,reference,assetID,amountAtomic,observedAt,checkpoint,verified) VALUES(?,'unlisted',?,'1234567',1,1,0)", arguments: [account, assetID])
                     } else {
                         let table = ["monad", "unichain"].contains(network) ? "indexedEVMHoldings" : network + "Holdings"
                         try db.execute(sql: "INSERT INTO \(table)(accountID,reference,assetID,detail,amountAtomic,observedAt,checkpoint,verified) VALUES(?,'unlisted',?,?,'1234567',1,1,0)", arguments: [account, assetID, Data()])
@@ -127,6 +178,15 @@ import GRDB
         XCTAssertEqual(rehidden.holdings, hidden.holdings)
         let trust = try await store.pool.read { try Int.fetchOne($0, sql: "SELECT COUNT(*) FROM tokenHistoryTrust WHERE reference='unlisted'") }
         XCTAssertEqual(trust, 0, "Visibility must never manufacture verification")
+        for network in chains {
+            try await store.enableManagedToken(.init(id: network + ":unlisted", networkID: network, reference: "unlisted", name: "Unlisted Token", symbol: "TEST", decimals: 6), walletID: "first")
+        }
+        let management = try await store.managedAssets(walletID: "first", currency: "USD")
+        XCTAssertEqual(management.holdings.filter { $0.reference != "native" }.count, chains.count)
+        XCTAssertTrue(management.holdings.filter { $0.reference != "native" }.allSatisfy { !$0.isVerifiedForHome })
+        XCTAssertEqual(management.matchingCount(filter: .init(), currency: "USD", locale: .current), 0,
+                       "Unverified selections retain the filter, and unused native coins stay off Home")
+
     }
 
     func testInvalidMissingDeletedAndResetWritesAreRejectedAndDeletionCascades() async throws {

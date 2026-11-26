@@ -26,20 +26,34 @@ extension EnvironmentValues {
     }
 }
 
-struct OathWalletSidebarButton: View {
+struct OathWalletSidebarButton<Detail: View>: View {
+    private let detail: Detail
+    private let detailAccessibilityValue: String
     @Environment(\.oathWalletSidebar) private var sidebar
     @Environment(\.oathLocalizer) private var strings
 
+    init(accessibilityValue: String = "", @ViewBuilder detail: () -> Detail) {
+        self.detail = detail()
+        detailAccessibilityValue = accessibilityValue
+    }
+
+    init() where Detail == EmptyView {
+        self.init { EmptyView() }
+    }
+
     var body: some View {
         OathButton(feedback: nil, action: sidebar.open) {
-            // A symbol-only Label uses the toolbar's default symbol size.
-            Image(systemName: "appclip")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 24, height: 24)
+            HStack(spacing: 10) {
+                Image(systemName: "appclip")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 24, height: 24)
+                detail
+            }
         }
         .disabled(!sidebar.walletAvailable)
         .accessibilityLabel(strings.text(.wallets) + ", " + sidebar.walletName)
+        .accessibilityValue(detailAccessibilityValue)
         .accessibilityIdentifier("wallet.sidebar.open")
     }
 }
@@ -49,22 +63,24 @@ struct OathWalletSidebar: View {
     let model: OathWalletSidebarModel
     let balances: OathWalletListBalances
     let onSelect: (String) -> Void
+    let onSelectAccount: (String, HomeAccountSelection?) -> Void
     let onConfirmRemoval: (String) -> Void
     @Environment(OathAppSettings.self) private var settings
     @Environment(\.oathLocalizer) private var strings
 
+    @State private var accountGroups: [HDAccountFamily: [String: [EVMAccountGroup]]] = [:]
     @State private var editMode = EditMode.inactive
     @State private var pendingOrder: [String]?
     @State private var orderFailed = false
     @State private var contactWarning = false
     @State private var walletToDelete: WalletRecord?
+    @State private var accountDetails: OathHDAccountDestination?
 
-    private var canReorder: Bool { session.wallets.count >= 2 }
+    private var canReorder: Bool { WalletTree(session.wallets).sections.contains { $0.wallets.count > 1 } }
 
     var body: some View {
         NavigationStack {
             Group {
-                #if compiler(>=6.4.2)
                 if #available(iOS 27.2, *) {
                     sidebarContent
                         .toolbarTitleDisplayMode(.inline)
@@ -72,9 +88,6 @@ struct OathWalletSidebar: View {
                 } else {
                     sidebarContent.toolbarTitleDisplayMode(.inlineLarge)
                 }
-                #else
-                sidebarContent.toolbarTitleDisplayMode(.inlineLarge)
-                #endif
             }
             .navigationTitle(strings.text(.wallets))
             .toolbar {
@@ -88,21 +101,37 @@ struct OathWalletSidebar: View {
             .oathNativeLocalization()
         }
         .accessibilityIdentifier("wallet.sidebar")
+        .sheet(item: $accountDetails) { destination in
+            OathHDAccountDetails(session: session, destination: destination)
+        }
+        .task(id: session.isUnlocked) {
+            guard session.isUnlocked else { return }
+            await OathDiagnostics.$operationID.withValue(UUID()) {
+                do {
+                    let db = try await session.vault.database()
+                    for try await values in db.observeAccountGroups() {
+                        guard !Task.isCancelled else { return }
+                        if accountGroups != values { accountGroups = values }
+                    }
+                } catch {
+                    guard !Task.isCancelled else { return }
+                    OathDiagnostics.record(error, component: "wallet_list", operation: "observe_accounts")
+                }
+            }
+        }
     }
 
     private var sidebarContent: some View {
         let tree = WalletTree(session.wallets)
         let ordered = pendingOrder.map { tree.reordering($0) } ?? tree
-        let standard = WalletTree(ordered.roots.filter { $0.wallet.kind != "privateKey" }.flatMap(\.flattened))
-        let keys = WalletTree(ordered.roots.filter { $0.wallet.kind == "privateKey" }.flatMap(\.flattened))
+        let sections = ordered.sections
         return VStack(spacing: 0) {
             List {
-                walletGroup(standard, other: keys, first: true)
-                if !standard.roots.isEmpty && !keys.roots.isEmpty {
-                    OathSettingsSectionRule().accessibilityHidden(true)
-                        .listRowInsets(EdgeInsets()).listRowSeparator(.hidden).listRowBackground(Color.clear)
+                ForEach(sections) { section in
+                    OathWalletSectionHeader(category: section.category, title: strings.text(section.category.titleKey),
+                                            showsDivider: section.id != sections.first?.id)
+                    walletGroup(section.tree, category: section.category, sections: sections)
                 }
-                walletGroup(keys, other: standard, first: false)
                 if !session.recentlyDeletedWallets.isEmpty && (!settings.hideRecentlyDeletedInSwitcher || session.wallets.isEmpty) {
                     OathRecentlyDeletedWalletsRow(count: session.recentlyDeletedWallets.count) {
                         model.navigate(.recentlyDeleted)
@@ -152,6 +181,7 @@ struct OathWalletSidebar: View {
                 editMode = .inactive
                 contactWarning = false
                 walletToDelete = nil
+                accountDetails = nil
             }
         }
         .alert(strings.text(.walletRemovalTitle), isPresented: Binding(
@@ -173,42 +203,93 @@ struct OathWalletSidebar: View {
         }
     }
 
-    private func walletGroup(_ group: WalletTree, other: WalletTree, first: Bool) -> some View {
-        ForEach(group.rows) { entry in walletRow(entry) }
-            .onMove(perform: editMode.isEditing ? { offsets, destination in
-                guard pendingOrder == nil, session.isUnlocked, !session.changingWallet else { return }
-                let old = group.flattened.map(\.id)
-                let new = group.movingRows(offsets, to: destination)
-                guard old != new else { return }
-                let rest = other.flattened.map(\.id)
-                let ids = first ? new + rest : rest + new
-                guard Set(ids) == Set(session.wallets.map(\.id)) else { return }
-                pendingOrder = ids
-                Task {
-                    defer { pendingOrder = nil }
-                    await OathDiagnostics.$operationID.withValue(UUID()) {
-                        do { try await session.reorderWallets(ids) }
-                        catch is CancellationError { /* Drawer or session closed. */ }
-                        catch {
-                            OathDiagnostics.record(error, component: "wallet_list", operation: "reorder_sidebar")
-                            orderFailed = true
+    @ViewBuilder private func walletGroup(_ group: WalletTree, category: WalletListCategory, sections: [WalletListSection]) -> some View {
+        if editMode.isEditing {
+            ForEach(group.rows) { entry in
+                walletRow(entry, hasChildren: false).moveDisabled(group.roots.count < 2)
+            }
+                .onMove(perform: editMode.isEditing ? { offsets, destination in
+                    guard pendingOrder == nil, session.isUnlocked, !session.changingWallet else { return }
+                    let old = group.flattened.map(\.id)
+                    let new = group.movingRows(offsets, to: destination)
+                    guard old != new else { return }
+                    let ids = sections.flatMap { $0.category == category ? new : $0.wallets.map(\.id) }
+                    guard ids.count == session.wallets.count, Set(ids) == Set(session.wallets.map(\.id)) else { return }
+                    pendingOrder = ids
+                    Task {
+                        defer { pendingOrder = nil }
+                        await OathDiagnostics.$operationID.withValue(UUID()) {
+                            do { try await session.reorderWallets(ids) }
+                            catch is CancellationError { /* Drawer or session closed. */ }
+                            catch {
+                                OathDiagnostics.record(error, component: "wallet_list", operation: "reorder_sidebar")
+                                orderFailed = true
+                            }
                         }
                     }
+                } : nil)
+        } else {
+            // One lazy List row per wallet/account; a family VStack eagerly
+            // constructs every child, even when only its parent is on screen.
+            ForEach(listRows(group)) { row in
+                Group {
+                    if let child = row.child {
+                        accountRow(child, parent: row.parent, hasFollowingSibling: row.hasFollowingSibling)
+                    } else {
+                        walletRow(row.parent, hasChildren: row.hasChildren)
+                    }
                 }
-            } : nil)
+                .disabled(!session.isUnlocked || session.changingWallet || model.selectingID != nil)
+                .listRowInsets(EdgeInsets()).listRowSeparator(.hidden).listRowBackground(Color.clear)
+            }
+        }
     }
 
-    private func walletRow(_ entry: WalletTree.Row) -> some View {
-        HStack(spacing: 0) {
-            OathButton(feedback: nil) { onSelect(entry.id) } label: {
-                OathWalletTreeRow(entry: entry) {
-                    OathWalletListRow(wallet: entry.wallet, session: session, balances: balances,
-                                      showsDisclosure: false, compact: true)
-                }
+    private struct ListRow: Identifiable {
+        let parent: WalletTree.Row
+        var child: AccountChild?
+        var hasChildren = false
+        var hasFollowingSibling = false
+        var id: String { parent.id + ":" + (child?.id.identity ?? "root") }
+    }
+
+    private func listRows(_ group: WalletTree) -> [ListRow] {
+        group.rows.flatMap { entry in
+            let children = accountChildren(entry)
+            return [ListRow(parent: entry, hasChildren: !children.isEmpty)] + children.map { child in
+                ListRow(parent: entry, child: child, hasFollowingSibling: child.id != children.last?.id)
             }
-            .buttonStyle(OathSettingsRowButtonStyle())
-            .disabled(editMode.isEditing)
-            if !editMode.isEditing {
+        }
+    }
+
+    private struct AccountChild: Identifiable {
+        let family: HDAccountFamily
+        let account: EVMAccountGroup
+        var id: HomeAccountSelection { .init(family: family, path: account.path) }
+    }
+
+    private func accountChildren(_ entry: WalletTree.Row) -> [AccountChild] {
+        guard !editMode.isEditing, ["hd", "imported", "passphrase"].contains(entry.wallet.kind) else { return [] }
+        return HDAccountFamily.allCases.flatMap { family -> [AccountChild] in
+            let accounts = accountGroups[family]?[entry.id] ?? []
+            // Each type owns its tree visibility. Adding a Solana account must
+            // not expose a lone EVM account (and vice versa).
+            guard accounts.count >= 2 else { return [] }
+            return accounts.map { AccountChild(family: family, account: $0) }
+        }
+    }
+
+    private func walletRow(_ entry: WalletTree.Row, hasChildren: Bool) -> some View {
+        HStack(spacing: 0) {
+            if editMode.isEditing {
+                // Reordering is not a disabled wallet. Keep the regular content
+                // without a selection button; native List owns the move handle.
+                walletRowContent(entry, hasChildren: hasChildren)
+            } else {
+                OathButton(feedback: nil) { onSelect(entry.id) } label: {
+                    walletRowContent(entry, hasChildren: hasChildren)
+                }
+                .buttonStyle(OathSettingsRowButtonStyle())
                 walletAccessory(entry)
                     .frame(width: 44, height: 44)
                     .padding(.trailing, 8)
@@ -216,6 +297,46 @@ struct OathWalletSidebar: View {
         }
         .disabled(!session.isUnlocked || session.changingWallet || model.selectingID != nil)
         .listRowInsets(EdgeInsets()).listRowSeparator(.hidden).listRowBackground(Color.clear)
+    }
+
+    private func walletRowContent(_ entry: WalletTree.Row, hasChildren: Bool) -> some View {
+        OathWalletTreeRow(entry: entry, hasChildren: hasChildren) {
+            OathWalletListRow(wallet: entry.wallet, session: session, balances: balances,
+                              showsDisclosure: false, compact: true,
+                              representsSelectedAccount: representsSelectedSingleAccount(entry))
+        }
+    }
+
+    private func representsSelectedSingleAccount(_ entry: WalletTree.Row) -> Bool {
+        guard let selected = session.selectedHomeAccount,
+              let accounts = accountGroups[selected.family]?[entry.id], accounts.count == 1 else { return false }
+        // A formerly visible account can become the only remaining account of
+        // its type. Keep the selection checkmark on its wallet when hiding it.
+        return accounts[0].path == selected.path
+    }
+
+    private func accountRow(_ child: AccountChild, parent: WalletTree.Row, hasFollowingSibling: Bool) -> some View {
+        let selected = session.displayedProfile?.id.uuidString == parent.id && session.selectedHomeAccount == child.id
+        return OathButton(feedback: nil) {
+            guard accountDetails == nil else { return }
+            onSelectAccount(parent.id, child.id)
+        } label: {
+            OathWalletTreeRow(childOf: parent, hasFollowingSibling: hasFollowingSibling) {
+                OathHDAccountSummary(wallet: parent.wallet, account: child.account, family: child.family,
+                    session: session, balances: balances, selected: selected, showsAddress: false)
+            }
+        }
+        .buttonStyle(OathSettingsRowButtonStyle())
+        .highPriorityGesture(LongPressGesture().onEnded { _ in
+            guard session.isUnlocked, !session.changingWallet, !editMode.isEditing else { return }
+            OathHaptics.shared.play(.selection)
+            accountDetails = .init(wallet: parent.wallet, selection: child.id)
+        })
+        .accessibilityIdentifier("sidebar.account.\(child.family.rawValue).\(child.account.index)")
+        .accessibilityAddTraits(selected ? .isSelected : [])
+        .accessibilityAction(named: strings.text(.hdAccountDetails)) {
+            accountDetails = .init(wallet: parent.wallet, selection: child.id)
+        }
     }
 
     @ViewBuilder private func walletAccessory(_ entry: WalletTree.Row) -> some View {
@@ -308,6 +429,7 @@ struct OathSidebarRemovalPresentation: ViewModifier {
                 }
                 .oathLanguage(strings.language)
                 .presentationDetents([.large])
+                .presentationBackground(Color(uiColor: OathSurfaceColors.canvas))
                 .presentationCompactAdaptation(.sheet)
                 .onAppear { passcodeVisible = true }
             }

@@ -60,9 +60,13 @@ final class OathAutofocusGate {
         animations.removeAll()
     }
 
-    private var ready: Bool {
-        valid && appeared && enabled && active && presentationReady && !delivered && animations.isEmpty
+    // Checked again by native inputs when their deferred responder request runs.
+    // A delivered autofocus callback is not permission to focus a departing page.
+    var permitsResponder: Bool {
+        valid && appeared && enabled && active && presentationReady && animations.isEmpty
     }
+
+    private var ready: Bool { permitsResponder && !delivered }
 
     private func schedule() {
         revision &+= 1

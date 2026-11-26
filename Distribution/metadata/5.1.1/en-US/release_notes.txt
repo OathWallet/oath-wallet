@@ -1,0 +1,3 @@
+Oath 5.1.1 brings EVM and Solana account management, balance history charts, and an updated browser with private tabs, favorites, tab previews, and clearer connection approvals.
+
+This release adds Plasma, World Chain, and Elysium, plus improvements to Home navigation, asset visibility, wallet organization, refresh behavior, import, and fee guidance. It also adds the Vice Sunset app icon and refines welcome and unlock screens.

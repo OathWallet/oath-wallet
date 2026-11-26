@@ -233,44 +233,165 @@ public actor TronClient {
         return token
     }
     public func inventory(owner: String, additionalTokens: [String] = []) async throws -> TronInventory {
+        try await OathDiagnostics.withChain("tron") {
+            try await readInventory(owner: owner, additionalTokens: additionalTokens)
+        }
+    }
+    private func readInventory(owner: String, additionalTokens: [String]) async throws -> TronInventory {
         _ = try TronIdentity.bytes(owner); try await verifyNetwork()
-        // A late response can still contain state read before a send.
+        let tracked = Set(additionalTokens.filter(TronIdentity.isAddress))
+        guard tracked.count <= 30_000 else { throw TronError.incomplete }
+        let ownerHex = String(try TronIdentity.callAddress(owner).dropFirst(2))
+        // Completion time cannot make a state read before finality current.
         let observedAt = Date.now
         async let state = post("wallet/getaccount", ["address": .string(owner), "visible": .bool(true)])
         async let discovery = await OathDiagnostics.attempt("token_discovery") { try await indexed(owner) }
-        let (account, index) = try await (state, discovery)
+        // Saved/tracked contracts do not depend on index discovery or activation.
+        // Structured child tasks retain cancellation and the shared HTTP budgets.
+        async let trackedValues = tokenHoldings(contracts: tracked, known: [:], ownerHex: ownerHex)
+        let account = try await state
         try Task.checkCancellation()
-        let entries = index?["data"].array ?? []
-        guard entries.count <= 1 else { throw TronError.malformed }
         if !account["address"].isNull { guard account["address"].string == owner else { throw TronError.wrongOwner } }
         else { guard account.fields?.isEmpty == true else { throw TronError.malformed } }
-        if let first = entries.first {
-            guard let address = first["address"].string, try TronIdentity.address(address) == owner else { throw TronError.wrongOwner }
-        }
         let native = try TronIdentity.quantity(account["balance"].isNull ? .number("0") : account["balance"])
         guard account["assetV2"].isNull || account["assetV2"].array != nil else { throw TronError.malformed }
-        if let first = entries.first { guard first["trc20"].isNull || first["trc20"].array != nil else { throw TronError.malformed } }
         var known: [String: String] = [:]
         for row in account["assetV2"].array ?? [] {
             guard let id = row["key"].string, TronIdentity.isTRC10(id), known[id] == nil else { throw TronError.malformed }
             known[id] = try TronIdentity.quantity(row["value"])
         }
-        var contracts = Set(additionalTokens.filter(TronIdentity.isAddress))
+        let legacyCount = known.count
+        guard legacyCount + tracked.count <= 30_000 else { throw TronError.incomplete }
+        async let legacyValues = tokenHoldings(contracts: [], known: known, ownerHex: ownerHex)
+        let index = await discovery
+        try Task.checkCancellation()
+        let entries = index?["data"].array ?? []
+        guard entries.count <= 1 else { throw TronError.malformed }
+        if let first = entries.first {
+            guard let address = first["address"].string, try TronIdentity.address(address) == owner else { throw TronError.wrongOwner }
+            guard first["trc20"].isNull || first["trc20"].array != nil else { throw TronError.malformed }
+        }
+        var contracts = Set<String>()
         for item in entries.first?["trc20"].array ?? [] {
             guard let fields = item.fields, fields.count == 1, let pair = fields.first, TronIdentity.isAddress(pair.key) else { throw TronError.malformed }
             _ = try TronIdentity.quantity(pair.value); contracts.insert(pair.key)
         }
-        guard known.count + contracts.count <= 30_000 else { throw TronError.incomplete }
-        // Contract amounts are verified on ANKR; the index is discovery only.
+        var discoveryComplete = index != nil
+        if account["address"].isNull {
+            // TRC-20 receipts do not activate a TRON account. TronGrid can return
+            // data:[] here even when contracts hold funds for this address.
+            // Discover incoming contracts independently of the account object;
+            // amounts still come exclusively from balanceOf, never event sums.
+            let incoming = try await unactivatedTokenContracts(owner: owner)
+            contracts.formUnion(incoming.contracts)
+            discoveryComplete = incoming.complete
+        }
+        guard legacyCount + contracts.union(tracked).count <= 30_000 else { throw TronError.incomplete }
+        // Only new contracts need a second pass. Indexed amounts are never
+        // authoritative, and a tracked/indexed contract is read exactly once.
+        async let discoveredValues = tokenHoldings(contracts: contracts.subtracting(tracked), known: [:], ownerHex: ownerHex)
+        let (saved, legacy, discovered) = try await (trackedValues, legacyValues, discoveredValues)
+        try Task.checkCancellation()
+        let holdings = [TronHolding(token: try await token("native"), amount: native)] + saved.holdings + legacy.holdings + discovered.holdings
+        let failed = Set(saved.failed + legacy.failed + discovered.failed).sorted()
+        let excluded = Set(saved.excluded + legacy.excluded + discovered.excluded).sorted()
+        return .init(owner: owner, holdings: holdings, failedReferences: failed, excludedNFTs: excluded, discoveryComplete: discoveryComplete, observedAt: observedAt,
+                     raw: try JSONEncoder().encode(TronJSON.object(["node": account, "discovery": index ?? .null])))
+    }
+
+    private func unactivatedTokenContracts(owner: String) async throws -> (contracts: Set<String>, complete: Bool) {
+        var contracts = Set<String>()
+        var cursors = Set<String>()
+        // Keep one fixed window across every fingerprint. Include recent,
+        // unconfirmed receipts, since balanceOf reads the latest node state.
+        var params = ["min_timestamp": "0", "max_timestamp": String(Int64(Date().timeIntervalSince1970 * 1000)),
+                      "limit": "200", "order_by": "block_timestamp,desc", "only_to": "true", "only_confirmed": "false"]
+        do {
+            // At most 30,000 indexed records, matching the inventory budget.
+            // Requests retain the shared public-provider pacing/cancellation.
+            // Truncation or a failed later page must preserve earlier findings
+            // and remain incomplete, so storage never clears unseen balances.
+            for _ in 0..<150 {
+                try Task.checkCancellation()
+                let page = try await indexed(owner, path: "/transactions/trc20", params: params)
+                let rows = page["data"].array!
+                guard rows.count <= 200 else { throw TronError.malformed }
+                var found = Set<String>()
+                for row in rows {
+                    guard let type = row["type"].string else { throw TronError.malformed }
+                    // The endpoint also returns approvals. They do not establish
+                    // a token holding; NFT classification stays in tokenHoldings.
+                    if type == "Approval" { continue }
+                    guard type == "Transfer", let recipient = row["to"].string,
+                          try TronIdentity.address(recipient) == owner else { throw TronError.wrongOwner }
+                    guard let reference = row["token_info"]["address"].string else { throw TronError.malformed }
+                    found.insert(try TronIdentity.address(reference))
+                }
+                contracts.formUnion(found)
+                guard !page["meta"]["fingerprint"].isNull else { return (contracts, true) }
+                guard let next = page["meta"]["fingerprint"].string, !next.isEmpty, next.count < 4096,
+                      !rows.isEmpty, cursors.insert(next).inserted else { throw TronError.paginationLoop }
+                params["fingerprint"] = next
+            }
+            throw TronError.incomplete
+        } catch {
+            try Task.checkCancellation()
+            if OathDiagnostics.isExpectedCancellation(error) { throw CancellationError() }
+            OathDiagnostics.record(error, component: "tron_inventory", operation: "unactivated_token_discovery",
+                                   context: ["chain": "tron", "stage": "transfer_index"])
+            return (contracts, false)
+        }
+    }
+
+    private struct InventoryTokens: Sendable {
+        var holdings: [TronHolding] = []
+        var failed: [String] = []
+        var excluded: [String] = []
+    }
+    private func tokenHoldings(contracts: Set<String>, known: [String: String], ownerHex: String) async throws -> InventoryTokens {
         let references = (Array(known.keys) + Array(contracts)).sorted()
-        let ownerHex = String(try TronIdentity.callAddress(owner).dropFirst(2))
-        var holdings = [TronHolding(token: try await token("native"), amount: native)]
-        var failed: [String] = [], excludedNFTs: [String] = []
-        // Twenty tokens per batch, three bounded workers, with individual isolation
-        // if a malformed/reverting token causes its batch to fail.
-        var balances: [String: String] = known
-        let sorted = contracts.sorted()
-        let batches = stride(from: 0, to: sorted.count, by: 20).map { Array(sorted[$0..<min($0+20,sorted.count)]) }
+        guard !references.isEmpty else { return InventoryTokens() }
+        // Metadata and balanceOf are independent reads. Overlap them without
+        // increasing the four-request node limit or the public-provider budget.
+        async let balances = contractBalances(contracts.sorted(), ownerHex: ownerHex)
+        var tokens: [String: TronToken] = [:]
+        var excluded = Set<String>()
+        await withTaskGroup(of: (String, TronToken?, Bool).self) { group in
+            var next = 0
+            func enqueue() {
+                guard next < references.count, !Task.isCancelled else { return }; let ref = references[next]; next += 1
+                group.addTask {
+                    do { return (ref, try await self.token(ref), false) }
+                    catch TronError.nonFungible {
+                        // ERC165-confirmed NFTs are not fungible balance failures.
+                        return (ref, nil, true)
+                    } catch { OathDiagnostics.record(error); return (ref, nil, false) }
+                }
+            }
+            for _ in 0..<4 { enqueue() }
+            for await (ref, token, nft) in group {
+                if let token { tokens[ref] = token }
+                if nft { excluded.insert(ref) }
+                enqueue()
+            }
+        }
+        let (amounts, failures) = try await balances
+        try Task.checkCancellation()
+        let quantities = known.merging(amounts) { _, new in new }
+        var result = InventoryTokens(failed: failures)
+        for ref in references {
+            guard let amount = quantities[ref] else { result.failed.append(ref); continue }
+            if let token = tokens[ref] { result.holdings.append(.init(token: token, amount: amount)) }
+            else if excluded.contains(ref) { result.excluded.append(ref) }
+            else { result.failed.append(ref) }
+        }
+        return result
+    }
+    private func contractBalances(_ contracts: [String], ownerHex: String) async throws -> ([String: String], [String]) {
+        var balances: [String: String] = [:], failed: [String] = []
+        // Twenty tokens per batch, three bounded workers. A failed token keeps
+        // the existing individual-read isolation and is never treated as zero.
+        let batches = stride(from: 0, to: contracts.count, by: 20).map { Array(contracts[$0..<min($0+20,contracts.count)]) }
         try await withThrowingTaskGroup(of: ([String:String],[String]).self) { group in
             var next = 0
             func enqueue() {
@@ -279,29 +400,10 @@ public actor TronClient {
                 group.addTask { try await self.balances(chunk, ownerHex: ownerHex) }
             }
             for _ in 0..<3 { enqueue() }
-            for try await (amounts,errors) in group { balances.merge(amounts) { _,new in new }; failed += errors; enqueue() }
-        }
-        let quantities = balances
-        await withTaskGroup(of: (String, TronHolding?, Bool).self) { group in
-            var next = 0
-            func enqueue() {
-                guard next < references.count, !Task.isCancelled else { return }; let ref = references[next]; next += 1
-                group.addTask {
-                    guard let amount = quantities[ref] else { return (ref,nil,false) }
-                    do { return (ref, TronHolding(token: try await self.token(ref), amount: amount),false) }
-                    catch TronError.nonFungible {
-                        // ERC165 positively identified an NFT. Excluding it from
-                        // fungible balances is normal discovery, not app failure.
-                        return (ref,nil,true)
-                    } catch { OathDiagnostics.record(error); return (ref,nil,false) }
-                }
-            }
-            for _ in 0..<4 { enqueue() }
-            for await (ref, value, nft) in group { if let value { holdings.append(value) } else if nft { excludedNFTs.append(ref) } else { failed.append(ref) }; enqueue() }
+            for try await (amounts, errors) in group { balances.merge(amounts) { _,new in new }; failed += errors; enqueue() }
         }
         try Task.checkCancellation()
-        return .init(owner: owner, holdings: holdings, failedReferences: Array(Set(failed)).sorted(), excludedNFTs: excludedNFTs.sorted(), discoveryComplete: index != nil, observedAt: observedAt,
-                     raw: try JSONEncoder().encode(TronJSON.object(["node": account, "discovery": index ?? .null])))
+        return (balances, failed)
     }
     private func balances(_ chunk: [String], ownerHex: String) async throws -> ([String:String],[String]) {
         let calls = try chunk.map { ref in ("eth_call", [TronJSON.object(["to": .string(try TronIdentity.callAddress(ref)), "from":.string("0x" + ownerHex), "data": .string("0x70a08231" + String(repeating: "0", count: 24) + ownerHex)]), .string("latest")]) }

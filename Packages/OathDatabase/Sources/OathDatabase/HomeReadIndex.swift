@@ -67,7 +67,7 @@ enum HomeReadIndex {
     /// upserts and wallet cleanup otherwise scan entire chain ledgers for FK
     /// checks. Reuse an existing leading key when it already narrows the lookup;
     /// do not add redundant indexes for every possible column combination.
-    private static func indexUncoveredRelationships(_ db: Database) throws {
+    static func indexUncoveredRelationships(_ db: Database) throws {
         let tables = try String.fetchAll(db, sql: "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
         for table in tables {
             let complete = Set(try Row.fetchAll(db, sql: "PRAGMA index_list(\(table.quotedDatabaseIdentifier))")

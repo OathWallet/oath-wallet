@@ -12,6 +12,7 @@ import plistlib
 import struct
 import subprocess
 import tempfile
+import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser(description=__doc__)
@@ -23,6 +24,21 @@ master = (ROOT / 'Design/AppIcons/oath-solid-blue.svg').read_text()
 assert 'Gradient' not in master and 'url(' not in master, 'Default logo must stay flat'
 assert '#247BFF' in master and '#FFFFFF' in master
 assert hashlib.sha256(master.encode()).hexdigest() == manifest['icons'][0]['assets']['svg']['sha256']
+
+# Vice Sunset must remain an editable vector, not a bitmap wrapped in SVG.
+vice = next(icon for icon in manifest['icons'] if icon['id'] == 'vice-sunset')
+vector = ROOT / 'Design/AppIcons' / vice['assets']['svg']['path']
+svg = vector.read_bytes()
+assert hashlib.sha256(svg).hexdigest() == vice['assets']['svg']['sha256']
+tree = ET.fromstring(svg)
+assert tree.attrib['viewBox'] == '0 0 1024 1024'
+assert not any(node.tag.rsplit('}', 1)[-1] in {'image', 'foreignObject', 'script', 'text'} for node in tree.iter())
+for node in tree.iter():
+    for key, value in node.attrib.items():
+        if key.rsplit('}', 1)[-1] == 'href':
+            assert value.startswith('#'), 'SVG must not depend on external or embedded image files'
+canonical = ET.fromstring(master).find('{http://www.w3.org/2000/svg}path').attrib['d']
+assert next(node for node in tree.iter() if node.get('id') == 'oath-mark').attrib['d'] == canonical
 
 with tempfile.TemporaryDirectory(prefix='oath-app-icons-') as temporary:
     work = Path(temporary)
@@ -161,17 +177,23 @@ extension OathAppIcon {
                     str(work / 'Checks.swift'), '-o', str(binary)], check=True)
     rows = json.loads(subprocess.check_output([str(binary)], text=True, timeout=30))
 
-assert len(rows) == len(manifest['icons']) == 10
+assert len(rows) == len(manifest['icons'])
+assert [row['id'] for row in rows[1:]] == manifest['alternate_icon_ids']
 assert rows[0]['id'] == manifest['default_icon_id']
 catalog = json.loads((ROOT / 'OathApp/Resources/Localizable.xcstrings').read_text())['strings']
 locales = {row['code'] for row in json.loads((ROOT / 'Design/Localization/languages.json').read_text())}
-assert len({row['titleKey'] for row in rows}) == 10
+assert len({row['titleKey'] for row in rows}) == len(rows)
 picker = (ROOT / 'OathAtmosphere/Preferences/OathPreferencesPages.swift').read_text()
 summary = (ROOT / 'OathAtmosphere/Home/OathWalletSheets.swift').read_text()
 assert 'title: strings.text(icon.titleKey)' in picker
 assert 'settings.appIcon.map { strings.text($0.titleKey) }' in summary
 assert 'strings.invariant(icon.title)' not in picker
 assert 'strings.invariant($0.title)' not in summary
+# Showcase copy must preserve its localized icon-name placeholder in every language.
+for key, placeholders in [('app_icon.use', 1), ('app_icon.caption', 1), ('app_icon.selected', 0)]:
+    translations = catalog[key]['localizations']
+    assert set(translations) == locales
+    assert all(entry['stringUnit']['value'].count('%@') == placeholders for entry in translations.values())
 for row, icon in zip(rows, manifest['icons']):
     assert row['id'] == icon['id'] and row['title'] == icon['display_name']
     assert row['titleKey'] == 'app_icon.' + row['id'].replace('-', '_')
@@ -194,7 +216,7 @@ assert {p.stem for p in assets.glob('IconPreview-*.imageset') if p.is_dir()} == 
 alternates = ' '.join(r['asset'] for r in rows[1:])
 assert ' '.join((ROOT / 'project.yml').read_text().split()).count(alternates) == 1
 assert (ROOT / 'OathAtmosphere.xcodeproj/project.pbxproj').read_text().count(alternates) == 2
-print('Passed: 10 manifest-matched icons/previews; default, all alternatives, reset, upgrade, failure, concurrency and relaunch selection checks (mock UIKit).')
+print(f'Passed: {len(rows)} manifest-matched icons/previews; default, all alternatives, reset, upgrade, failure, concurrency and relaunch selection checks (mock UIKit).')
 
 if args.app:
     info = plistlib.loads((args.app / 'Info.plist').read_bytes())
@@ -208,4 +230,4 @@ if args.app:
     names = {item.get('Name') for item in compiled}
     assert {r['preview'] for r in rows} <= names
     assert not {'IconPreview-original', 'IconPreview-light', 'IconPreview-dark', 'IconPreview-monochrome'} & names
-    print('Passed: compiled iPhone/iPad icon declarations and all 10 Settings previews; no retired previews.')
+    print(f'Passed: compiled iPhone/iPad icon declarations and all {len(rows)} Settings previews; no retired previews.')

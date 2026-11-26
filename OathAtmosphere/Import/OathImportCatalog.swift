@@ -3,6 +3,7 @@ import Foundation
 /// Shared network catalog for onboarding and local wallet address derivation.
 public enum OathImportChain: String, CaseIterable, Identifiable, Hashable, Codable, Sendable {
     case cronos
+    case plasma, worldchain, elysium
     case aptos, arbitrum, arc, avalanche, base, bitcoin, bitcoincash, bnb, dogecoin
     case iotex, zerog, sei, chiliz, filecoin, ethereum, fantom, flare, gnosis, hyperevm, celo, monad, unichain, linea, litecoin, near, optimism, polygon, robinhood, scroll, solana, somnia, story
     case polkadot, stellar, sui, taiko, telos, thorchain, ton, tron, xlayer, xrpl
@@ -19,6 +20,9 @@ public enum OathImportChain: String, CaseIterable, Identifiable, Hashable, Codab
     public var shortName: String {
         switch self {
         case .cronos: "CRO"
+        case .plasma: "XPL"
+        case .worldchain: "World"
+        case .elysium: "Elysium"
         case .aptos: "APT"
         case .arbitrum: "ARB"
         case .arc: "Arc"
@@ -67,6 +71,9 @@ public enum OathImportChain: String, CaseIterable, Identifiable, Hashable, Codab
     public var name: String {
         switch self {
         case .cronos: "Cronos"
+        case .plasma: "Plasma"
+        case .worldchain: "World Chain"
+        case .elysium: "Elysium"
         case .aptos: "Aptos"
         case .arbitrum: "Arbitrum"
         case .arc: "Arc"
@@ -116,7 +123,7 @@ public enum OathImportChain: String, CaseIterable, Identifiable, Hashable, Codab
     public var supportsTokens: Bool {
         switch self {
         case .bitcoin, .bitcoincash, .dogecoin, .litecoin: false
-        case .cronos: true
+        case .cronos, .plasma, .worldchain, .elysium: true
         case .aptos, .arbitrum, .arc, .avalanche, .base, .bnb, .ethereum, .fantom, .flare, .somnia, .story,
              .gnosis, .linea, .near, .optimism, .polygon, .chiliz, .filecoin, .sei, .zerog, .iotex, .celo, .monad, .unichain, .hyperevm, .robinhood, .scroll, .solana,
              .polkadot, .stellar, .sui, .taiko, .telos, .thorchain, .ton, .tron, .xlayer, .xrpl: true
@@ -126,7 +133,7 @@ public enum OathImportChain: String, CaseIterable, Identifiable, Hashable, Codab
 
     public var isEVM: Bool {
         switch self {
-        case .cronos: true
+        case .cronos, .plasma, .worldchain, .elysium: true
         case .arbitrum, .arc, .avalanche, .base, .bnb, .ethereum, .fantom, .flare, .gnosis,
              .linea, .optimism, .polygon, .chiliz, .filecoin, .sei, .zerog, .iotex, .celo, .monad, .unichain, .hyperevm, .robinhood, .scroll, .somnia, .story, .taiko, .telos, .xlayer: true
         default: false
@@ -137,6 +144,9 @@ public enum OathImportChain: String, CaseIterable, Identifiable, Hashable, Codab
         let aliases: String
         switch self {
         case .cronos: aliases = "CRO Cronos EVM Crypto.com"
+        case .plasma: aliases = "XPL Plasma"
+        case .worldchain: aliases = "ETH WLD World Chain"
+        case .elysium: aliases = "HYPE Kinetiq Elysium"
         case .aptos: aliases = "APT"
         case .arbitrum: aliases = "ARB"
         case .arc: aliases = "USDC"

@@ -15,7 +15,7 @@ private struct OathWalletConnectPresentation: ViewModifier {
     func body(content: Content) -> some View {
         content.background {
             Anchor(session: session,
-                   enabled: scenePhase == .active && session.isUnlocked && !session.changingWallet && !session.resetting,
+                   enabled: OathDAppApprovalGate.shared.browserRequest == nil && scenePhase == .active && session.isUnlocked && !session.changingWallet && !session.resetting,
                    pending: service.needsPresentation || inbox.hasWalletConnectRequest,
                    occupied: service.presentationOpen)
                 .frame(width: 0, height: 0)

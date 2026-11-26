@@ -13,7 +13,8 @@ with tempfile.TemporaryDirectory(prefix="oath-refresh-actions-") as temporary:
     work = Path(temporary)
     source = work / "Sources/RefreshActionCore"
     source.mkdir(parents=True)
-    for name in ["RefreshAction.swift", "BackgroundRefresh.swift", "RefreshCycle.swift"]:
+    for name in ["RefreshAction.swift", "BackgroundRefresh.swift", "RefreshCycle.swift",
+                 "WalletRefreshMotion.swift", "WalletRefreshAurora.swift"]:
         shutil.copy(root / "Packages/OathNativeRefresh/Sources/OathNativeRefresh" / name, source)
     shutil.copytree(root / "Tools/NativeRefreshValidation", work / "Tests/RefreshActionTests",
                     ignore=shutil.ignore_patterns("._*"))
@@ -28,7 +29,7 @@ let package = Package(name: "RefreshActionValidation", platforms: [.macOS(.v14)]
 ''')
     # OathDiagnostics deliberately configures its process-wide outbox once.
     # Give each suite its own process/transport, as the app does at launch.
-    for suite in ["RefreshActionTests.BackgroundRefreshTests", "RefreshActionTests.RefreshActionTests"]:
+    for suite in ["RefreshActionTests.BackgroundRefreshTests", "RefreshActionTests.WalletRefreshBandTests", "RefreshActionTests.RefreshActionTests"]:
         result = subprocess.run(["swift", "test", "--package-path", str(work),
                                  "--scratch-path", "/tmp/oath-refresh-action-host",
                                  "--filter", suite], timeout=120, capture_output=True, text=True)

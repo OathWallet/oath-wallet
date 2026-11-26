@@ -69,7 +69,7 @@ import OathAnkr
         XCTAssertTrue(request?.url.path.contains("/networks/chiliz-chain/tokens/") == true)
     }
     func testEverySupportedTokenNetworkHasContractProviders() {
-        let supported: Set<String> = ["iotex","zerog","ethereum","arbitrum","arc","avalanche","base","bnb","fantom","flare","gnosis","linea","optimism","polygon","filecoin","sei","chiliz","celo","monad","unichain","hyperevm","robinhood","scroll","somnia","story","taiko","telos","xlayer","solana","tron","ton","aptos","sui","near","xrpl","stellar","thorchain"]
+        let supported: Set<String> = ["iotex","zerog","ethereum","arbitrum","arc","avalanche","base","bnb","fantom","flare","gnosis","linea","optimism","polygon","filecoin","sei","chiliz","celo","monad","unichain","hyperevm","robinhood","scroll","somnia","story","taiko","telos","xlayer","solana","tron","ton","aptos","sui","near","xrpl","stellar","thorchain","plasma","worldchain","elysium"]
         XCTAssertEqual(Set(ContractPriceRequest.terminalNetworks.keys), supported)
         for network in supported {
             let asset = MarketAsset(id:network+":fixture",networkID:network,reference:"fixture",decimals:6)

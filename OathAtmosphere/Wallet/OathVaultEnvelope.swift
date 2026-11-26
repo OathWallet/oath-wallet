@@ -57,6 +57,11 @@ struct OathWalletSecret: Codable, Sendable {
     var parentWalletID: UUID? = nil
     var passphraseIndex: Int? = nil
     var restoration: OathWalletRestorationMetadata? = nil
+    /// Account additions are journaled with the seed before their public SQL rows.
+    var additionalEVMAccounts: [EVMAccountDerivation]? = nil
+    var additionalSolanaAccounts: [HDAccountDerivation]? = nil
+    /// Authenticated removals are replayed into public storage after interruption.
+    var removedHDAccounts: [HomeAccountSelection]? = nil
     // Retained only inside authenticated ciphertext until the seven-day expiry.
     var deletedAt: Date? = nil
     var legacy: OathLegacyWalletMetadata? = nil
@@ -84,6 +89,8 @@ struct OathWalletSecret: Codable, Sendable {
     }
 
     var hasValidMaterial: Bool {
+        if additionalEVMAccounts != nil || additionalSolanaAccounts != nil || removedHDAccounts != nil,
+           isLocalMnemonic || isMultisig || privateKey != nil || (try? derivationAccounts()) == nil { return false }
         if let electrum {
             return electrum.isValid && ElectrumMnemonic.kind(mnemonic) == electrum.kind && language == "electrum"
                 && aezeed == nil && !isMultisig && privateKey == nil && passphrase == nil && legacy == nil
@@ -176,15 +183,29 @@ struct OathVaultContents: Codable, Sendable {
     var activeWallets: [OathWalletSecret] { wallets.filter { $0.deletedAt == nil } }
 
     func validate(rootID: UUID) throws {
-        guard (lifecycleVersion == 1 || wallets.first?.id == rootID),
-              lifecycleVersion == nil || lifecycleVersion == 1,
-              Set(wallets.map(\.id)).count == wallets.count,
-              wallets.allSatisfy(\.hasValidMaterial),
-              wallets.allSatisfy({ $0.deletedAt?.timeIntervalSince1970.isFinite != false }),
-              lifecycleVersion == 1 || (wallets.allSatisfy({ $0.deletedAt == nil }) && purgedWalletIDs == nil),
-              Set(purgedWalletIDs ?? []).count == (purgedWalletIDs ?? []).count,
-              Set(purgedWalletIDs ?? []).isDisjoint(with: wallets.map(\.id)) else {
-            throw OathWalletError.corruptVault
+        guard lifecycleVersion == 1 || wallets.first?.id == rootID else {
+            throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "contents_root_identity")
+        }
+        guard lifecycleVersion == nil || lifecycleVersion == 1 else {
+            throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "unsupported_lifecycle_version")
+        }
+        guard Set(wallets.map(\.id)).count == wallets.count else {
+            throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "duplicate_wallet_identity")
+        }
+        guard wallets.allSatisfy(\.hasValidMaterial) else {
+            throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "invalid_material_structure")
+        }
+        guard wallets.allSatisfy({ $0.deletedAt?.timeIntervalSince1970.isFinite != false }) else {
+            throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "invalid_wallet_deletion_date")
+        }
+        guard lifecycleVersion == 1 || (wallets.allSatisfy({ $0.deletedAt == nil }) && purgedWalletIDs == nil) else {
+            throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "lifecycle_metadata_mismatch")
+        }
+        guard Set(purgedWalletIDs ?? []).count == (purgedWalletIDs ?? []).count else {
+            throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "duplicate_purged_identity")
+        }
+        guard Set(purgedWalletIDs ?? []).isDisjoint(with: wallets.map(\.id)) else {
+            throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "purged_identity_still_present")
         }
         if let batch = legacyUpgrade {
             // SQL recovery is authorized only by the authenticated vault's
@@ -193,7 +214,7 @@ struct OathVaultContents: Codable, Sendable {
                   batch.wallets.allSatisfy({ record in
                       guard let id = UUID(uuidString: record.id) else { return false }
                       return record.vaultReference == Self.reference(for: id, rootID: rootID)
-                  }) else { throw OathWalletError.corruptVault }
+                  }) else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "legacy_receipt_membership") }
         }
     }
 
@@ -298,11 +319,11 @@ struct OathVaultEnvelope: Codable, Sendable {
     }
 
     static func seal(_ secret: OathWalletSecret, key: SymmetricKey, salt: Data, iterations: UInt32) throws -> Self {
-        if secret.isLocalMnemonic || secret.isMultisig || secret.legacy != nil || secret.restoration?.legacyPassphrase == true || secret.passphrase != nil || secret.privateKey?.requiresBitcoinV2 == true || secret.privateKey?.requiresDogecoinV2 == true || secret.privateKey?.requiresLitecoinV2 == true || secret.privateKey?.requiresBitcoinCashV2 == true {
+        if secret.removedHDAccounts != nil || secret.additionalEVMAccounts != nil || secret.additionalSolanaAccounts != nil || secret.restoration?.accounts.contains(where: { $0.solanaPathOnly == true }) == true || secret.isLocalMnemonic || secret.isMultisig || secret.legacy != nil || secret.restoration?.legacyPassphrase == true || secret.passphrase != nil || secret.privateKey?.requiresBitcoinV2 == true || secret.privateKey?.requiresDogecoinV2 == true || secret.privateKey?.requiresLitecoinV2 == true || secret.privateKey?.requiresBitcoinCashV2 == true {
             return try seal(OathVaultContents(wallets: [secret]), rootID: secret.id,
                             key: key, salt: salt, iterations: iterations)
         }
-        guard secret.hasValidMaterial else { throw OathWalletError.corruptVault }
+        guard secret.hasValidMaterial else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "invalid_single_wallet_material") }
         var plaintext = try JSONEncoder().encode(secret)
         defer { plaintext.resetBytes(in: plaintext.startIndex..<plaintext.endIndex) }
         guard let sealed = try AES.GCM.seal(plaintext, using: key,
@@ -320,13 +341,13 @@ struct OathVaultEnvelope: Codable, Sendable {
         // before supplying a missing marker that the new format requires.
         try contents.validate(rootID: rootID)
         if contents.lifecycleVersion == nil,
-           contents.requiresLegacyFormat || contents.wallets.contains(where: { $0.isLocalMnemonic || $0.isMultisig }) {
+           contents.requiresLegacyFormat || contents.wallets.contains(where: { $0.isLocalMnemonic || $0.isMultisig || $0.removedHDAccounts != nil || $0.additionalEVMAccounts != nil || $0.additionalSolanaAccounts != nil || $0.restoration?.accounts.contains(where: { $0.solanaPathOnly == true }) == true }) {
             contents.lifecycleVersion = 1
         }
         let ids = contents.wallets.map(\.id)
         // Old binaries must reject passphrase vaults rather than silently
         // ignoring an unknown field and deriving the wrong wallet on recovery.
-        let version = contents.wallets.contains(where: { $0.electrum != nil && $0.isDerivedWallet }) ? 27 : contents.wallets.contains(where: { $0.electrum != nil }) ? 26 : contents.wallets.contains(where: { $0.aezeed != nil }) ? 25 : contents.wallets.contains(where: { $0.evmMultisig != nil }) ? 24 : contents.wallets.contains(where: { $0.bitcoinMultisig?.chainID == "dogecoin" }) ? 23 : contents.wallets.contains(where: { $0.bitcoinMultisig?.chainID == "bitcoincash" }) ? 22 : contents.wallets.contains(where: { $0.bitcoinMultisig?.chainID == "litecoin" }) ? 21 : contents.wallets.contains(where: { $0.tonMultisig != nil }) ? 20 : contents.wallets.contains(where: { $0.thorchainMultisig != nil }) ? 19 : contents.wallets.contains(where: { $0.nearMultisig != nil }) ? 18 : contents.wallets.contains(where: { $0.suiMultisig != nil }) ? 17 : contents.wallets.contains(where: { $0.aptosMultisig != nil }) ? 16 : contents.wallets.contains(where: { $0.stellarMultisig != nil }) ? 15 : contents.wallets.contains(where: { $0.xrplMultisig != nil }) ? 14 : contents.wallets.contains(where: { $0.solanaMultisig != nil }) ? 13 : contents.wallets.contains(where: { $0.tronMultisig != nil }) ? 12 : contents.wallets.contains(where: { $0.bitcoinMultisig != nil }) ? 11 : contents.requiresLegacyFormat ? 10 : contents.lifecycleVersion == 1 ? 9 : contents.wallets.contains { $0.privateKey?.requiresBitcoinCashV2 == true } ? 8 :
+        let version = contents.wallets.contains(where: { $0.removedHDAccounts != nil }) ? 30 : contents.wallets.contains(where: { $0.additionalSolanaAccounts != nil || $0.restoration?.accounts.contains(where: { $0.solanaPathOnly == true }) == true }) ? 29 : contents.wallets.contains(where: { $0.additionalEVMAccounts != nil }) ? 28 : contents.wallets.contains(where: { $0.electrum != nil && $0.isDerivedWallet }) ? 27 : contents.wallets.contains(where: { $0.electrum != nil }) ? 26 : contents.wallets.contains(where: { $0.aezeed != nil }) ? 25 : contents.wallets.contains(where: { $0.evmMultisig != nil }) ? 24 : contents.wallets.contains(where: { $0.bitcoinMultisig?.chainID == "dogecoin" }) ? 23 : contents.wallets.contains(where: { $0.bitcoinMultisig?.chainID == "bitcoincash" }) ? 22 : contents.wallets.contains(where: { $0.bitcoinMultisig?.chainID == "litecoin" }) ? 21 : contents.wallets.contains(where: { $0.tonMultisig != nil }) ? 20 : contents.wallets.contains(where: { $0.thorchainMultisig != nil }) ? 19 : contents.wallets.contains(where: { $0.nearMultisig != nil }) ? 18 : contents.wallets.contains(where: { $0.suiMultisig != nil }) ? 17 : contents.wallets.contains(where: { $0.aptosMultisig != nil }) ? 16 : contents.wallets.contains(where: { $0.stellarMultisig != nil }) ? 15 : contents.wallets.contains(where: { $0.xrplMultisig != nil }) ? 14 : contents.wallets.contains(where: { $0.solanaMultisig != nil }) ? 13 : contents.wallets.contains(where: { $0.tronMultisig != nil }) ? 12 : contents.wallets.contains(where: { $0.bitcoinMultisig != nil }) ? 11 : contents.requiresLegacyFormat ? 10 : contents.lifecycleVersion == 1 ? 9 : contents.wallets.contains { $0.privateKey?.requiresBitcoinCashV2 == true } ? 8 :
             contents.wallets.contains { $0.privateKey?.requiresLitecoinV2 == true } ? 7 :
             contents.wallets.contains { $0.privateKey?.requiresDogecoinV2 == true } ? 6 :
             contents.wallets.contains { $0.privateKey?.requiresBitcoinV2 == true } ? 5 :
@@ -349,14 +370,14 @@ struct OathVaultEnvelope: Codable, Sendable {
         try beforeAttempt()
         let derived = try Self.derive(digits, salt: salt, iterations: iterations)
         guard let protection else { return derived }
-        guard let wrapped = protection.wrappedKey else { throw OathWalletError.corruptVault }
+        guard let wrapped = protection.wrappedKey else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "missing_wrapped_key") }
         var data: Data
         do {
             data = try AES.GCM.open(AES.GCM.SealedBox(combined: wrapped), using: derived,
                                     authenticating: Self.keyAuthenticationData(id))
-        } catch { OathDiagnostics.record(error); throw OathWalletError.wrongPasscode }
+        } catch { OathDiagnostics.record(error, context: ["stage": "key_unwrap"]); throw OathWalletError.wrongPasscode }
         defer { data.resetBytes(in: data.startIndex..<data.endIndex) }
-        guard data.count == 32 else { throw OathWalletError.corruptVault }
+        guard data.count == 32 else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "invalid_unwrapped_key_size") }
         return SymmetricKey(data: data)
     }
 
@@ -397,66 +418,100 @@ struct OathVaultEnvelope: Codable, Sendable {
 
     func open(using key: SymmetricKey) throws -> OathWalletSecret {
         // Retained for version-1 callers. Vault operations use the full contents.
-        guard let first = try openContents(using: key).wallets.first else { throw OathWalletError.corruptVault }
+        guard let first = try openContents(using: key).wallets.first else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "missing_legacy_wallet") }
         return first
     }
 
-    func openContents(using key: SymmetricKey, didAuthenticate: () throws -> Void = {}) throws -> OathVaultContents {
+    func openContents(using key: SymmetricKey, authenticatingLegacyPasscode: Bool = false,
+                      didAuthenticate: () throws -> Void = {}) throws -> OathVaultContents {
         try validate()
         var plaintext: Data
         do {
             plaintext = try AES.GCM.open(AES.GCM.SealedBox(combined: sealed), using: key,
                 authenticating: Self.authenticationData(id, walletIDs: version >= 2 ? walletIDs : nil, version: version))
-        } catch { OathDiagnostics.record(error); throw OathWalletError.wrongPasscode }
+        } catch CryptoKitError.authenticationFailure where authenticatingLegacyPasscode && protection == nil {
+            // diagnostics: legacy-passcode-rejection
+            // A legacy envelope authenticates the candidate PIN here. Rejection
+            // is expected form feedback; attempts were already charged by the
+            // caller. Verified/wrapped keys, biometrics and internal reads use
+            // the reporting path below, even if this flag is passed by mistake.
+            throw OathWalletError.wrongPasscode
+        } catch { OathDiagnostics.record(error, context: ["stage": "vault_decrypt"]); throw OathWalletError.wrongPasscode }
         defer { plaintext.resetBytes(in: plaintext.startIndex..<plaintext.endIndex) }
         try didAuthenticate()
         var contents = try version == 1
             ? OathVaultContents(wallets: [JSONDecoder().decode(OathWalletSecret.self, from: plaintext)])
             : JSONDecoder().decode(OathVaultContents.self, from: plaintext)
         try contents.validate(rootID: id)
-        // Version 10 could omit the lifecycle marker on an authenticated legacy payload.
+        // Older writers could select v10 for legacy restoration metadata while
+        // leaving lifecycleVersion absent. Authentication and all pre-lifecycle
+        // invariants have already passed. Normalize only this writer-produced
+        // shape, in memory, before the ordinary format and membership checks.
         if version == 10, contents.lifecycleVersion == nil, contents.requiresLegacyFormat {
             contents.lifecycleVersion = 1
         }
         guard version >= 9 ? contents.lifecycleVersion == 1 : contents.lifecycleVersion == nil else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "payload_lifecycle_mismatch") }
-        guard version >= 27 || contents.wallets.allSatisfy({ $0.electrum == nil || !$0.isDerivedWallet }) else { throw OathWalletError.corruptVault }
-        guard version >= 26 || contents.wallets.allSatisfy({ $0.electrum == nil }) else { throw OathWalletError.corruptVault }
-        guard version >= 25 || contents.wallets.allSatisfy({ $0.aezeed == nil }) else { throw OathWalletError.corruptVault }
-        guard version >= 24 || contents.wallets.allSatisfy({ $0.evmMultisig == nil }) else { throw OathWalletError.corruptVault }
-        guard version >= 23 || contents.wallets.allSatisfy({ $0.bitcoinMultisig?.chainID != "dogecoin" }) else { throw OathWalletError.corruptVault }
-        guard version >= 22 || contents.wallets.allSatisfy({ $0.bitcoinMultisig?.chainID != "bitcoincash" }) else { throw OathWalletError.corruptVault }
-        guard version >= 21 || contents.wallets.allSatisfy({ $0.bitcoinMultisig?.chainID != "litecoin" }) else { throw OathWalletError.corruptVault }
-        guard version >= 20 || contents.wallets.allSatisfy({ $0.tonMultisig == nil }) else { throw OathWalletError.corruptVault }
-        guard version >= 19 || contents.wallets.allSatisfy({ $0.thorchainMultisig == nil }) else { throw OathWalletError.corruptVault }
-        guard version >= 18 || contents.wallets.allSatisfy({ $0.nearMultisig == nil }) else { throw OathWalletError.corruptVault }
-        guard version >= 17 || contents.wallets.allSatisfy({ $0.suiMultisig == nil }) else { throw OathWalletError.corruptVault }
-        guard version >= 16 || contents.wallets.allSatisfy({ $0.aptosMultisig == nil }) else { throw OathWalletError.corruptVault }
-        guard version >= 15 || contents.wallets.allSatisfy({ $0.stellarMultisig == nil }) else { throw OathWalletError.corruptVault }
-        guard version >= 14 || contents.wallets.allSatisfy({ $0.xrplMultisig == nil }) else { throw OathWalletError.corruptVault }
-        guard version >= 13 || contents.wallets.allSatisfy({ $0.solanaMultisig == nil }) else { throw OathWalletError.corruptVault }
-        guard version >= 12 || contents.wallets.allSatisfy({ $0.tronMultisig == nil }) else { throw OathWalletError.corruptVault }
-        guard version >= 11 || contents.wallets.allSatisfy({ $0.bitcoinMultisig == nil }) else { throw OathWalletError.corruptVault }
-        guard version >= 10 || (contents.legacyBiometricTransition == nil && contents.legacyUpgrade == nil && contents.wallets.allSatisfy({ $0.legacy == nil && $0.restoration?.legacyPassphrase != true })) else { throw OathWalletError.corruptVault }
-        guard version >= 4 || contents.wallets.allSatisfy({ $0.passphrase == nil }) else { throw OathWalletError.corruptVault }
-        guard version >= 5 || contents.wallets.allSatisfy({ $0.privateKey?.requiresBitcoinV2 != true }) else { throw OathWalletError.corruptVault }
-        guard version >= 8 || contents.wallets.allSatisfy({ $0.privateKey?.requiresBitcoinCashV2 != true }) else { throw OathWalletError.corruptVault }
-        guard version >= 7 || contents.wallets.allSatisfy({ $0.privateKey?.requiresLitecoinV2 != true }) else { throw OathWalletError.corruptVault }
-        guard version >= 6 || contents.wallets.allSatisfy({ $0.privateKey?.requiresDogecoinV2 != true }) else { throw OathWalletError.corruptVault }
-        guard contents.wallets.map(\.id) == memberIDs else { throw OathWalletError.corruptVault }
+        guard version >= 30 || contents.wallets.allSatisfy({ $0.removedHDAccounts == nil }) else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "format_account_removals") }
+        guard version >= 29 || contents.wallets.allSatisfy({ $0.additionalSolanaAccounts == nil && $0.restoration?.accounts.contains(where: { $0.solanaPathOnly == true }) != true }) else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "format_solana_accounts") }
+        guard version >= 28 || contents.wallets.allSatisfy({ $0.additionalEVMAccounts == nil }) else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "format_evm_accounts") }
+        guard version >= 27 || contents.wallets.allSatisfy({ $0.electrum == nil || !$0.isDerivedWallet }) else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "format_derived_electrum") }
+        guard version >= 26 || contents.wallets.allSatisfy({ $0.electrum == nil }) else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "format_electrum") }
+        guard version >= 25 || contents.wallets.allSatisfy({ $0.aezeed == nil }) else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "format_aezeed") }
+        guard version >= 24 || contents.wallets.allSatisfy({ $0.evmMultisig == nil }) else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "format_evm_multisig") }
+        guard version >= 23 || contents.wallets.allSatisfy({ $0.bitcoinMultisig?.chainID != "dogecoin" }) else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "format_dogecoin_multisig") }
+        guard version >= 22 || contents.wallets.allSatisfy({ $0.bitcoinMultisig?.chainID != "bitcoincash" }) else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "format_bitcoincash_multisig") }
+        guard version >= 21 || contents.wallets.allSatisfy({ $0.bitcoinMultisig?.chainID != "litecoin" }) else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "format_litecoin_multisig") }
+        guard version >= 20 || contents.wallets.allSatisfy({ $0.tonMultisig == nil }) else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "format_ton_multisig") }
+        guard version >= 19 || contents.wallets.allSatisfy({ $0.thorchainMultisig == nil }) else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "format_thorchain_multisig") }
+        guard version >= 18 || contents.wallets.allSatisfy({ $0.nearMultisig == nil }) else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "format_near_multisig") }
+        guard version >= 17 || contents.wallets.allSatisfy({ $0.suiMultisig == nil }) else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "format_sui_multisig") }
+        guard version >= 16 || contents.wallets.allSatisfy({ $0.aptosMultisig == nil }) else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "format_aptos_multisig") }
+        guard version >= 15 || contents.wallets.allSatisfy({ $0.stellarMultisig == nil }) else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "format_stellar_multisig") }
+        guard version >= 14 || contents.wallets.allSatisfy({ $0.xrplMultisig == nil }) else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "format_xrpl_multisig") }
+        guard version >= 13 || contents.wallets.allSatisfy({ $0.solanaMultisig == nil }) else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "format_solana_multisig") }
+        guard version >= 12 || contents.wallets.allSatisfy({ $0.tronMultisig == nil }) else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "format_tron_multisig") }
+        guard version >= 11 || contents.wallets.allSatisfy({ $0.bitcoinMultisig == nil }) else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "format_bitcoin_multisig") }
+        guard version >= 10 || (contents.legacyBiometricTransition == nil && contents.legacyUpgrade == nil && contents.wallets.allSatisfy({ $0.legacy == nil && $0.restoration?.legacyPassphrase != true })) else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "format_legacy") }
+        guard version >= 4 || contents.wallets.allSatisfy({ $0.passphrase == nil }) else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "format_passphrase") }
+        guard version >= 5 || contents.wallets.allSatisfy({ $0.privateKey?.requiresBitcoinV2 != true }) else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "format_bitcoin_key") }
+        guard version >= 8 || contents.wallets.allSatisfy({ $0.privateKey?.requiresBitcoinCashV2 != true }) else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "format_bitcoincash_key") }
+        guard version >= 7 || contents.wallets.allSatisfy({ $0.privateKey?.requiresLitecoinV2 != true }) else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "format_litecoin_key") }
+        guard version >= 6 || contents.wallets.allSatisfy({ $0.privateKey?.requiresDogecoinV2 != true }) else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "format_dogecoin_key") }
+        guard contents.wallets.map(\.id) == memberIDs else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "member_identity_mismatch") }
         return contents
     }
 
     private func validate() throws {
-        guard (1...27).contains(version), salt.count == 32, iterations == 600_000,
-              sealed.count > 28, (version >= 9 || memberIDs.first == id), Set(memberIDs).count == memberIDs.count,
-              version < 9 || walletIDs != nil,
-              version != 1 || walletIDs == nil else { throw OathWalletError.corruptVault }
+        guard (1...30).contains(version) else {
+            throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "unsupported_envelope_version")
+        }
+        guard salt.count == 32 else {
+            throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "invalid_envelope_salt_size")
+        }
+        guard iterations == 600_000 else {
+            throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "invalid_derivation_rounds")
+        }
+        guard sealed.count > 28 else {
+            throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "truncated_ciphertext")
+        }
+        guard version >= 9 || memberIDs.first == id else {
+            throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "envelope_root_identity")
+        }
+        guard Set(memberIDs).count == memberIDs.count else {
+            throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "duplicate_envelope_member")
+        }
+        guard version < 9 || walletIDs != nil else {
+            throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "missing_envelope_members")
+        }
+        guard version != 1 || walletIDs == nil else {
+            throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "unexpected_legacy_members")
+        }
         if version == 3 || (version >= 4 && protection != nil) {
             guard let protection,
                   (protection.wrappedKey?.count == 60 && protection.deviceKey == nil) ||
                   (protection.wrappedKey == nil && protection.deviceKey?.count == 32 && biometricAccess == false)
-            else { throw OathWalletError.corruptVault }
-        } else if protection != nil { throw OathWalletError.corruptVault }
+            else { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "invalid_key_protection") }
+        } else if protection != nil { throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "unexpected_key_protection") }
     }
 
     private static func derive(_ digits: [UInt8], salt: Data, iterations: UInt32) throws -> SymmetricKey {
@@ -468,7 +523,7 @@ struct OathVaultEnvelope: Codable, Sendable {
 
     private static func authenticationData(_ id: UUID, walletIDs: [UUID]? = nil, version: Int = 2) -> Data {
         if let walletIDs {
-            let format = version >= 27 ? "org.oathwallet.vault.v27:" : version >= 26 ? "org.oathwallet.vault.v26:" : version >= 25 ? "org.oathwallet.vault.v25:" : version >= 11 ? "org.oathwallet.vault.v11:" : version >= 10 ? "org.oathwallet.vault.v10:" : version >= 9 ? "org.oathwallet.vault.v9:" : version >= 8 ? "org.oathwallet.vault.v8:" : version >= 7 ? "org.oathwallet.vault.v7:" : version >= 6 ? "org.oathwallet.vault.v6:" : version >= 5 ? "org.oathwallet.vault.v5:" : (version >= 4 ? "org.oathwallet.vault.v4:" : "org.oathwallet.vault.v2:")
+            let format = version >= 30 ? "org.oathwallet.vault.v30:" : version >= 29 ? "org.oathwallet.vault.v29:" : version >= 28 ? "org.oathwallet.vault.v28:" : version >= 27 ? "org.oathwallet.vault.v27:" : version >= 26 ? "org.oathwallet.vault.v26:" : version >= 25 ? "org.oathwallet.vault.v25:" : version >= 11 ? "org.oathwallet.vault.v11:" : version >= 10 ? "org.oathwallet.vault.v10:" : version >= 9 ? "org.oathwallet.vault.v9:" : version >= 8 ? "org.oathwallet.vault.v8:" : version >= 7 ? "org.oathwallet.vault.v7:" : version >= 6 ? "org.oathwallet.vault.v6:" : version >= 5 ? "org.oathwallet.vault.v5:" : (version >= 4 ? "org.oathwallet.vault.v4:" : "org.oathwallet.vault.v2:")
             return Data((format + id.uuidString + ":" +
                          walletIDs.map(\.uuidString).joined(separator: ":")).utf8)
         }

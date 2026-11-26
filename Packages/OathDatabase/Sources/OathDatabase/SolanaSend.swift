@@ -14,9 +14,17 @@ extension OathDatabase {
         }
     }
 
-    public func solanaSigningAccount(accountID:String) async throws -> AccountRecord {
+    public func solanaSigningAccount(accountID:String, approvedAddress: String? = nil) async throws -> AccountRecord {
         try await pool.read { db in
             guard var account=try AccountRecord.fetchOne(db,key:accountID),account.networkID=="solana" else { throw StoreError.missingRecord }
+            if let approvedAddress {
+                // WalletConnect signs the address approved for this session,
+                // never a subsequently selected Home/Receive address.
+                if let row = try Row.fetchOne(db, sql: "SELECT address,path FROM solanaReceiveAddresses WHERE accountID=? AND address=?", arguments: [accountID, approvedAddress]) {
+                    account.address = row["address"]; account.derivationPath = row["path"]
+                } else if account.address != approvedAddress { throw StoreError.conflictingIdentity }
+                return account
+            }
             if let row=try Row.fetchOne(db,sql:"SELECT address,path FROM solanaReceiveAddresses WHERE accountID=? AND isSelected=1",arguments:[accountID]) {
                 account.address=row["address"];account.derivationPath=row["path"]
             }

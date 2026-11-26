@@ -1039,6 +1039,7 @@ struct OathMultisigChainScreen: View {
                 .accessibilityIdentifier("multisig.chain.xrpl")
             }
             .frame(maxWidth: 600).frame(maxWidth: .infinity)
+            .oathWalletEntryContent()
         }
         .background(Color(uiColor: OathSurfaceColors.canvas).ignoresSafeArea())
         .toolbarBackground(Color(uiColor: OathSurfaceColors.canvas), for: .navigationBar)
@@ -1084,6 +1085,7 @@ struct OathMultisigSetupScreen: View {
             }
             .padding(.vertical, 12)
             .frame(maxWidth: 600, alignment: .leading).frame(maxWidth: .infinity)
+            .oathWalletEntryContent()
         }
         .scrollDismissesKeyboard(.interactively)
         .background(Color(uiColor: OathSurfaceColors.canvas).ignoresSafeArea())

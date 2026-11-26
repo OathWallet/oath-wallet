@@ -31,3 +31,30 @@ extension SendFeeFundingError {
         }
     }
 }
+
+/// Geth/Nitro cap estimation by both the gas limit and what the sender can
+/// afford. The allowance message alone cannot distinguish those two causes.
+/// Keep this local quote evidence out of diagnostics and provider messages.
+struct EVMGasEstimateFunding: Sendable {
+    let nativeBalance: String
+    let value: String
+    let feePerGas: UInt64
+    let gasLimit: UInt64
+
+    func provesShortage(_ message: String?) -> Bool {
+        guard let message, message.utf8.count <= 128, feePerGas > 0 else { return false }
+        let prefix = "gas required exceeds allowance ("
+        guard message.hasPrefix(prefix), message.hasSuffix(")") else { return false }
+        let digits = message.dropFirst(prefix.count).dropLast()
+        guard !digits.isEmpty, digits.allSatisfy({ $0 >= "0" && $0 <= "9" }),
+              let allowance = UInt64(digits), allowance < gasLimit else { return false }
+        // Invalid or mismatched evidence does not classify the rejection; the
+        // original RPC error still reaches its existing reporting boundary.
+        guard let available = try? EVMSendAmount.subtract(nativeBalance, value) else { return false }
+        // Prove allowance == floor((balance - call value) / fee cap), without
+        // truncating wei to Double or overflowing UInt64 on large balances.
+        guard let lower = try? EVMSendAmount.multiply(String(allowance), String(feePerGas)),
+              let upper = try? EVMSendAmount.multiply(String(allowance + 1), String(feePerGas)) else { return false }
+        return !EVMSendAmount.less(available, lower) && EVMSendAmount.less(available, upper)
+    }
+}

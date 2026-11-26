@@ -39,6 +39,7 @@ with tempfile.TemporaryDirectory(prefix="oath-multiwallet-") as temporary:
         "Wallet/OathInstallationVaultStorage.swift", "Wallet/OathInstallationSecurity.swift",
         "Wallet/OathInstallationKeychain.swift", "Wallet/OathDataEnvironment.swift",
         "Passcode/OathPasscodeStore.swift", "Passcode/OathPasscodeSetupModel.swift", "Passcode/OathBiometricSetup.swift",
+        "Passcode/OathAutomaticBiometricPrompt.swift",
         "Passcode/OathBiometricCredentialStore.swift", "Passcode/OathBiometricPresentation.swift", "Passcode/OathDeviceBiometrics.swift",
         "Tokens/OathTokenNetwork.swift",
         "Send/OathSendDiagnostics.swift", "Send/OathSendFailure.swift",
@@ -157,6 +158,7 @@ enum OathWalletEngine {
         let index = SolanaDerivation.accountIndex(in: account.derivationPath) ?? account.accountIndex
         var paths = try SolanaDerivation.allCases.map { try $0.path(accountIndex: index) }
         if !paths.contains(account.derivationPath) { paths.append(account.derivationPath) }
+        if secret.solanaPathOnly(account: account) { paths = [account.derivationPath] }
         return paths.map { .init(path: $0, address: fixtureSolanaAddress(secret, path: $0)) }
     }
     static func create(id: UUID = UUID()) throws -> OathWalletSecret {
@@ -185,7 +187,7 @@ enum OathWalletEngine {
         if let multisig = secret.solanaMultisig { return try multisigProfile(for: secret, material: multisig) }
         if let multisig = secret.tronMultisig { return try multisigProfile(for: secret, material: multisig) }
         if let multisig = secret.bitcoinMultisig { return try multisigProfile(for: secret, material: multisig) }
-        let accounts = secret.restoration?.accounts ?? (secret.privateKey?.networks ?? OathImportChain.allCases).map {
+        let accounts = try (secret.privateKey == nil ? secret.derivationAccounts() : secret.restoration?.accounts) ?? (secret.privateKey?.networks ?? OathImportChain.allCases).map {
             BackupWallet.Account(network: $0.id, derivationPath: secret.privateKey == nil ? $0.walletPath : "imported", index: 0)
         }
         return .init(id: secret.id, addresses: accounts.filter { chains == nil || chains!.contains(OathImportChain(rawValue:$0.network)!) }.map {
@@ -482,12 +484,12 @@ actor OathAnkrSync {
     private var refreshFailure: (any Error)?
     private(set) var completedSolanaRefreshes = 0
     func setRefreshFailure(_ error: (any Error)?) { refreshFailure = error }
-    func refresh(walletID: String) async throws {
+    func refresh(walletID: String, accountIDs: Set<String>? = nil) async throws {
         try Task.checkCancellation()
         if let refreshFailure { throw refreshFailure }
     }
-    func refreshBalances(walletID: String, networkIDs: Set<String>? = nil) async throws { try Task.checkCancellation() }
-    func refreshCronos(walletID: String) async throws { try Task.checkCancellation() }
+    func refreshBalances(walletID: String, accountIDs: Set<String>? = nil, networkIDs: Set<String>? = nil) async throws { try Task.checkCancellation() }
+    func refreshCronos(walletID: String, accountIDs: Set<String>? = nil) async throws { try Task.checkCancellation() }
     func refreshSolana(accountID: String) async throws {
         try Task.checkCancellation(); completedSolanaRefreshes += 1
     }
@@ -513,7 +515,7 @@ actor OathMarketEnvironment {
 struct FixtureMarketService: Sendable {
     // Provider behavior is covered by OathMarketData package tests.
     func refreshNativeQuotes(networkIDs: [String]) async { }
-    func refreshTokenQuotes(walletID: String) async { }
+    func refreshTokenQuotes(walletID: String, accountIDs: Set<String>? = nil) async { }
     func quote(for asset: MarketAsset) async throws { try Task.checkCancellation() }
 }
 """)
@@ -630,6 +632,16 @@ extension OathPostSendBalanceRefresh { func submitted(walletID: String, networkI
     }
 }
 """)
+    if "--account-management" in sys.argv:
+        check = sources / "CheckMultiWallet.swift"
+        check.write_text(check.read_text().replace("@main", ""))
+        shutil.copyfile(root / "Tools/CheckHDAccountManagement.swift", sources / "CheckHDAccountManagement.swift")
+        request = (root / "OathAtmosphere/Tokens/OathTokenSearchModel.swift").read_text()
+        start = request.index("struct OathTokenSearchRequest:")
+        end = request.index("@Observable @MainActor", start)
+        (sources / "OathTokenSearchRequest.swift").write_text("import Foundation\nimport OathDatabase\n" + request[start:end])
+        scope = (root / "OathAtmosphere/Tokens/OathAssetSearchScope.swift").read_text()
+        (sources / "OathAssetSearchScope.swift").write_text(scope)
     if "--lifecycle" in sys.argv:
         shutil.copyfile(root / "Tools/CheckSendFailure.swift", sources / "CheckSendFailure.swift")
         check = sources / "CheckMultiWallet.swift"

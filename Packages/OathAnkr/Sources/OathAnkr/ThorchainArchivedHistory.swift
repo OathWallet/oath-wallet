@@ -32,12 +32,29 @@ extension ThorchainClient {
     static let historyArchive = URL(string: "https://api.viewblock.io/thorchain")!
     private static let archivePermits = AnkrPermits(count: 4)
 
+    static func canRetryArchiveConnection(_ error: any Error) -> Bool {
+        if AnkrReadRetry.transientTransport(error) { return true }
+        let outer = error as NSError
+        guard outer.domain == NSURLErrorDomain, outer.code == URLError.secureConnectionFailed.rawValue else { return false }
+        // Some URLSession handshakes carry only CFNetwork's copy of -1200.
+        // Preserve explicit certificate, stream and other nested failures.
+        let cause = outer.userInfo[NSUnderlyingErrorKey] as? NSError
+        if let cause, cause.domain != "kCFErrorDomainCFNetwork" || cause.code != outer.code || cause.userInfo[NSUnderlyingErrorKey] != nil { return false }
+        return [outer, cause].compactMap { $0 }.allSatisfy { failure in
+            failure.userInfo[NSURLErrorFailingURLPeerTrustErrorKey] == nil &&
+                failure.userInfo["_kCFStreamErrorCodeKey"] == nil &&
+                failure.userInfo[NSMultipleUnderlyingErrorsKey] == nil
+        }
+    }
+
     /// The node's transaction index can be pruned without returning an error.
     /// Always merge this independent archive, including after successful empty
     /// node results. Archive data never supplies balances or signing parameters.
     func archivedHistory(owner: String, height: Int64, lowerHeight: Int64, page: Int) async throws -> ThorchainHistoryPage {
+        var stage = "archive_read"
         do {
             let json = try await archiveRead(path: "addresses/\(owner)/txs", query: [.init(name: "page", value: String(page))])
+            stage = "archive_validation"
             let listing = try Self.archiveListing(json, page: page)
             var events: [ThorchainEvent] = []
             for row in listing.docs {
@@ -49,9 +66,9 @@ extension ThorchainClient {
             return .init(owner: owner, events: events,
                          next: !reachedLower && page < listing.pages ? String(page + 1) : nil, rawCount: listing.docs.count)
         } catch {
-            if error is CancellationError || Task.isCancelled { throw CancellationError() }
-            OathDiagnostics.record(error, component: "ThorchainClient", operation: "archive_history", context: ["chain": "thorchain", "stage": "archive_validation"])
-            throw error
+            if OathDiagnostics.isExpectedCancellation(error) || Task.isCancelled { throw CancellationError() }
+            throw OathDiagnostics.recordedForPropagation(error, component: "ThorchainClient", operation: "archive_history",
+                context: ["chain": "thorchain", "host": "api.viewblock.io", "stage": stage])
         }
     }
 
@@ -59,7 +76,7 @@ extension ThorchainClient {
         try await Self.archivePermits.acquire()
         do {
             try await archiveRequests.reserve()
-            let value = try await read(Self.historyArchive, path: path, query: query)
+            let value = try await readRequest(Self.historyArchive, path: path, query: query, height: nil)
             await Self.archivePermits.release()
             return value
         } catch {

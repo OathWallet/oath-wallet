@@ -66,6 +66,7 @@ public enum StablecoinRestrictionRegistry {
         tokens.filter { $0.network == network }
     }
     static let evmIDs: [String: UInt64] = [
+        "plasma": 9745, "worldchain": 480, "elysium": 99901,
         "ethereum": 1, "arbitrum": 42161, "arc": 5042, "avalanche": 43114,
         "base": 8453, "celo": 42220, "hyperevm": 999, "linea": 59144, "monad": 143,
         "optimism": 10, "polygon": 137, "unichain": 130, "xlayer": 196, "flare": 14

@@ -41,17 +41,32 @@ struct OathAllWalletBackupPage: View {
     }
 
     private var backupContent: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            ForEach(session.wallets, id: \.id) { wallet in
-                let status = model.status(walletID: wallet.id)
-                OathSettingsRow(title: session.walletName(wallet, strings: strings),
-                    accessory: .none, subtitle: strings.text(status.title), isWorking: status.working,
-                    walletIcon: OathWalletListIcon(colorHex: wallet.colorHex))
-                    .accessibilityIdentifier("backup.all.wallet.\(wallet.id)")
-                if let failure = model.failures[wallet.id] ?? model.records[wallet.id]?.failureCode {
-                    OathSettingsFooter { Text(strings.text(OathCloudBackupSection.message(failure))).foregroundStyle(.red) }
-                }
+        let sections = WalletTree(session.wallets).sections
+        return VStack(alignment: .leading, spacing: 0) {
+            ForEach(sections) { section in
+                OathWalletSectionHeader(category: section.category, title: strings.text(section.category.titleKey),
+                                        showsDivider: section.id != sections.first?.id)
+                ForEach(section.wallets, id: \.id) { wallet in backupRow(wallet) }
             }
+            backupProgress
+        }
+    }
+
+    private func backupRow(_ wallet: WalletRecord) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            let status = model.status(walletID: wallet.id)
+            OathSettingsRow(title: session.walletName(wallet, strings: strings),
+                accessory: .none, subtitle: strings.text(status.title), isWorking: status.working,
+                walletIcon: OathWalletListIcon(colorHex: wallet.colorHex))
+                .accessibilityIdentifier("backup.all.wallet.\(wallet.id)")
+            if let failure = model.failures[wallet.id] ?? model.records[wallet.id]?.failureCode {
+                OathSettingsFooter { Text(strings.text(OathCloudBackupSection.message(failure))).foregroundStyle(.red) }
+            }
+        }
+    }
+
+    private var backupProgress: some View {
+        VStack(alignment: .leading, spacing: 0) {
             if model.preparing {
                 HStack(spacing: 12) {
                     ProgressView()

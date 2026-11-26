@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-public enum NativeRefreshIndicator: Sendable { case system, oathLogo, progressRing }
+public enum NativeRefreshIndicator: Sendable { case system, oathLogo, progressRing, walletBand }
 
 public struct NativeRefreshLabels: Equatable, Sendable {
     public let pull, refreshing, succeeded, failed: String

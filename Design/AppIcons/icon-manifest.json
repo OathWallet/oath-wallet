@@ -12,7 +12,8 @@
     "ember",
     "titanium",
     "glacier",
-    "champagne"
+    "champagne",
+    "vice-sunset"
   ],
   "png_export": {
     "width": 1024,
@@ -189,6 +190,23 @@
         "svg": {
           "path": "svg/10-oath-champagne.svg",
           "sha256": "005a8536c3d1b84c1d8016e26a40774e5721f0677dd2e1a4f6787cfdc8fb9ea2"
+        }
+      }
+    },
+    {
+      "id": "vice-sunset",
+      "display_name": "Vice Sunset",
+      "is_default": false,
+      "order": 11,
+      "description": "Lavender-to-pink sunset rings, purple outline, warm highlights and vector palm fronds",
+      "assets": {
+        "png": {
+          "path": "../../OathApp/Assets.xcassets/AppIconViceSunset.appiconset/icon.png",
+          "sha256": "d63a581be86b5882117835759f8fb36761c53d4183772c54950c6e61bfe2c2bb"
+        },
+        "svg": {
+          "path": "svg/11-oath-vice-sunset.svg",
+          "sha256": "52c6408d7f00d8f2d6115e624ff152ef63aec54bbacd5d9f2431fcc1ee884603"
         }
       }
     }

@@ -5,7 +5,7 @@ import XCTest
     let sender = "0x" + String(repeating:"1",count:40), recipient = "0x" + String(repeating:"2",count:40)
     func testEveryEnabledEVMNativeAndTokenPreparesWithoutFeesThenQuotes() async throws {
         let networks = EVMSendNetwork.allCases.filter { !$0.isTestnet && $0 != .cronos && $0 != .arc }
-        XCTAssertEqual(networks.count, 27)
+        XCTAssertEqual(networks.count, 30)
         for network in networks {
             for token in [false,true] {
                 let transport = EVMSendFixtureTransport(network:network)

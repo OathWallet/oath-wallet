@@ -10,6 +10,7 @@
   "celo": "IndexedEVMLedgerTests.testAllIndexedChainsCommitRecoveredVerifiedBalances",
   "chiliz": "IndexedEVMLedgerTests.testAllIndexedChainsCommitRecoveredVerifiedBalances",
   "dogecoin": "BitcoinLedgerTests.testAllUTXOChainsPublishChangedScansWithoutReopening",
+  "elysium": "IndexedEVMLedgerTests.testRPCMainnetsPersistBalancesWithoutStartingIndexerHistory",
   "ethereum": "AnkrVerifiedRefreshTests.testAllSixteenChainsPublishChangedNativeTokenAndFiatWithoutReopening",
   "fantom": "AnkrVerifiedRefreshTests.testAllSixteenChainsPublishChangedNativeTokenAndFiatWithoutReopening",
   "filecoin": "IndexedEVMLedgerTests.testAllIndexedChainsCommitRecoveredVerifiedBalances",
@@ -22,6 +23,7 @@
   "monad": "IndexedEVMLedgerTests.testAllIndexedChainsCommitRecoveredVerifiedBalances",
   "near": "NearPriceSchedulingTests.testChangedNativeAndKnownTokenSurviveDiscoveryFailureWithoutReopening",
   "optimism": "AnkrVerifiedRefreshTests.testAllSixteenChainsPublishChangedNativeTokenAndFiatWithoutReopening",
+  "plasma": "IndexedEVMLedgerTests.testRPCMainnetsPersistBalancesWithoutStartingIndexerHistory",
   "polkadot": "PolkadotRefreshLifetimeTests.testReplacementCancelsAllOldWorkersBeforeInvalidatingTheirTicket",
   "polygon": "AnkrVerifiedRefreshTests.testAllSixteenChainsPublishChangedNativeTokenAndFiatWithoutReopening",
   "robinhood": "RobinhoodLedgerTests.testChangedNativeAndKnownTokenPublishWithoutReopening",
@@ -38,6 +40,7 @@
   "ton": "TonLedgerTests.testNodeRecoveryPersistsBalanceAndPersistentOutagePreservesCache",
   "tron": "TronLedgerTests.testNodeRecoveryPersistsExactBalancesAndOutagePreservesCache",
   "unichain": "IndexedEVMLedgerTests.testAllIndexedChainsCommitRecoveredVerifiedBalances",
+  "worldchain": "IndexedEVMLedgerTests.testRPCMainnetsPersistBalancesWithoutStartingIndexerHistory",
   "xlayer": "AnkrVerifiedRefreshTests.testAllSixteenChainsPublishChangedNativeTokenAndFiatWithoutReopening",
   "xrpl": "XrplLedgerTests.testChangedNativeAndIssuedBalancesPublishWithoutReopening",
   "zerog": "IndexedEVMLedgerTests.testAllIndexedChainsCommitRecoveredVerifiedBalances"

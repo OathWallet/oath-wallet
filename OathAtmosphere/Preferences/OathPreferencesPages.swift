@@ -167,39 +167,20 @@ struct OathCurrencyPage: View {
 struct OathAppIconPage: View {
     @Environment(OathAppSettings.self) private var settings
     @Environment(\.oathLocalizer) private var strings
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var previewID: String? = OathAppIcon.current?.id ?? OathAppIcon.signalBlue.id
     @State private var failed = false
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                ForEach(OathAppIcon.allCases) { icon in
-                    OathButton {
-                        Task {
-                            await OathDiagnostics.$operationID.withValue(UUID()) {
-                                do { try await settings.selectAppIcon(icon) }
-                                catch {
-                                    OathDiagnostics.record(error, component: "app_icon", operation: "change_icon")
-                                    // A dismissed native request leaves the selected icon unchanged.
-                                    if !OathDiagnostics.isExpectedCancellation(error) { failed = true }
-                                }
-                            }
-                        }
-                    } label: {
-                        OathSettingsRow(title: strings.text(icon.titleKey), icon: "app",
-                            accessory: .selection(settings.appIcon == icon), imageAsset: icon.preview)
-                    }
-                    .buttonStyle(OathSettingsRowButtonStyle())
-                    .disabled(settings.changingAppIcon || !UIApplication.shared.supportsAlternateIcons)
-                    .accessibilityAddTraits(settings.appIcon == icon ? .isSelected : [])
-                    .accessibilityIdentifier("preferences.appIcon.\(icon.rawValue)")
-                }
-                if settings.changingAppIcon { ProgressView().padding() }
-                if !UIApplication.shared.supportsAlternateIcons {
-                    Text(strings.text(.appIconUnavailable)).oathFont(.footnote).foregroundStyle(.secondary).padding(20)
-                }
-            }
-            .padding(.vertical, 12).frame(maxWidth: 700).frame(maxWidth: .infinity)
-        }
+        OathAppIconShowcase(choices: OathAppIcon.allCases.map { icon in
+            OathIconShowcaseChoice(id: icon.id, title: strings.text(icon.titleKey),
+                subtitle: strings.format(.appIconCaption, strings.text(icon.titleKey)),
+                useTitle: strings.format(.appIconUse, strings.text(icon.titleKey)), image: Image(icon.preview))
+        }, focusedID: $previewID, installedID: settings.appIcon?.id,
+            changing: settings.changingAppIcon, available: UIApplication.shared.supportsAlternateIcons,
+            title: strings.text(.appIcon), selectedTitle: strings.text(.appIconSelected),
+            unavailableTitle: strings.text(.appIconUnavailable),
+            onApply: select, onBrowse: { OathHaptics.shared.play(.selection) })
         .oathHapticFeedback(.error, trigger: failed, when: failed)
         .alert(strings.text(.appIconChangeFailed), isPresented: $failed) {
             if #available(iOS 26.0, *) {
@@ -213,7 +194,24 @@ struct OathAppIconPage: View {
                     .oathConfirmationControl()
             }
         }
-        .accessibilityIdentifier("preferences.appIcon.list")
         .task { await settings.refreshAppIcon() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { Task { await settings.refreshAppIcon() } }
+        }
+    }
+
+    private func select(_ id: String) {
+        guard let icon = OathAppIcon(rawValue: id), !settings.changingAppIcon,
+              scenePhase == .active, UIApplication.shared.supportsAlternateIcons else { return }
+        Task {
+            await OathDiagnostics.$operationID.withValue(UUID()) {
+                do { try await settings.selectAppIcon(icon) }
+                catch {
+                    OathDiagnostics.record(error, component: "app_icon", operation: "change_icon")
+                    // A dismissed native request leaves the installed badge unchanged.
+                    if !OathDiagnostics.isExpectedCancellation(error) { failed = true }
+                }
+            }
+        }
     }
 }

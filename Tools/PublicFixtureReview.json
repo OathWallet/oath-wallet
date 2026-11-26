@@ -530,11 +530,11 @@
     },
     {
       "path": "Packages/OathAnkr/Tests/OathAnkrTests/TokenDiscoveryTests.swift",
-      "reason": "Public Celo token contract address in a catalog decoding test; not a credential.",
+      "reason": "Public Celo token contract address in a catalog decoding test; not a credential. The coverage assertion now includes Cronos; public token fixtures are unchanged.",
       "fingerprints": [
         "Packages/OathAnkr/Tests/OathAnkrTests/TokenDiscoveryTests.swift:generic-api-key:187"
       ],
-      "sha256": "9c224ad9792d98d92ad778fcc767b12e2e46481e5e2c8d57c31a50c6015a4410"
+      "sha256": "2d8390e54a0412e2469483e20f78166fa91a08df9cef4c16ac9ff554db8c41a8"
     },
     {
       "path": "Packages/OathAnkr/Tests/OathAnkrTests/TonReadRecoveryTests.swift",
@@ -563,8 +563,8 @@
     },
     {
       "path": "Packages/OathDatabase/Sources/OathDatabase/TransactionDetails.swift",
-      "sha256": "1b851ee8bbb62492273aa3c522b479295177043f28eeccd9b23c586699c378b3",
-      "reason": "SQL excluded.conflictKeys assignment text falsely matches generic API key detection; no credential.",
+      "sha256": "ba467a2e2004b2ae9a2ab708fb874c28f324ac7cc380b720d199b4701f0b01ab",
+      "reason": "SQL excluded.conflictKeys assignment text falsely matches generic API key detection; no credential. Reviewed 2026-11-26: only added Plasma, World Chain and Elysium to network classification; existing syntax false-positive content is unchanged.",
       "fingerprints": [
         "Packages/OathDatabase/Sources/OathDatabase/TransactionDetails.swift:generic-api-key:412"
       ]
@@ -791,6 +791,33 @@
       "reason": "Public TRON token contract address used to generate deterministic signing fixtures; no API credentials. Signing keys are fixed repeated bytes.",
       "fingerprints": [
         "Tools/GenerateWalletConnectTronVectors.cjs:generic-api-key:4"
+      ]
+    },
+    {
+      "path": "Packages/OathAnkr/Tests/OathAnkrTests/TronUnactivatedDiscoveryTests.swift",
+      "sha256": "100ab3a7d2dd89d2035b900ba94f1fcd40ac089873eff8aa143ff05e7a1b0f8c",
+      "reason": "Reviewed 2026-11-26: public TRON contract address in a deterministic fixture; not an authentication credential.",
+      "fingerprints": [
+        "Packages/OathAnkr/Tests/OathAnkrTests/TronUnactivatedDiscoveryTests.swift:generic-api-key:16"
+      ]
+    },
+    {
+      "path": "Packages/OathMarketData/Sources/OathMarketData/ExploreDataService.swift",
+      "sha256": "230ba142fbdf4d90110f850db2ecf1af9afb3cac67ca319074768fd1a12468fe",
+      "reason": "Reviewed 2026-11-26: fixed SQLite cache identifiers for public market data; not service keys or authentication credentials.",
+      "fingerprints": [
+        "Packages/OathMarketData/Sources/OathMarketData/ExploreDataService.swift:generic-api-key:171",
+        "Packages/OathMarketData/Sources/OathMarketData/ExploreDataService.swift:generic-api-key:208"
+      ]
+    },
+    {
+      "path": "Packages/OathMarketData/Tests/OathMarketDataTests/ExploreRecoveryTests.swift",
+      "sha256": "bfda1b1472a51ec020099cce5c34a20dca72bba3518d94b8196afdc784cf814c",
+      "reason": "Reviewed 2026-11-26: fixed SQLite cache identifiers for public market data; not service keys or authentication credentials.",
+      "fingerprints": [
+        "Packages/OathMarketData/Tests/OathMarketDataTests/ExploreRecoveryTests.swift:generic-api-key:159",
+        "Packages/OathMarketData/Tests/OathMarketDataTests/ExploreRecoveryTests.swift:generic-api-key:163",
+        "Packages/OathMarketData/Tests/OathMarketDataTests/ExploreRecoveryTests.swift:generic-api-key:188"
       ]
     }
   ]

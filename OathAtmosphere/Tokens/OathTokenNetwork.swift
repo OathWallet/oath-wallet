@@ -15,6 +15,9 @@ struct OathTokenNetwork: Hashable, Sendable {
 
     static var all: [Self] { registered.filter { $0.chain.isEnabled } }
     static let registered: [Self] = [
+        .init(chain: .plasma, chainID: 9745, ankrPath: "plasma", artworkDirectory: "plasma"),
+        .init(chain: .worldchain, chainID: 480, ankrPath: "worldchain", artworkDirectory: "worldchain"),
+        .init(chain: .elysium, chainID: 99901, ankrPath: "elysium", artworkDirectory: "elysium"),
         .init(chain: .cronos, chainID: 25, ankrPath: "", artworkDirectory: "cronos"),
         .init(chain: .ethereum, chainID: 1, ankrPath: "eth", artworkDirectory: "ethereum"),
         .init(chain: .arbitrum, chainID: 42161, ankrPath: "arbitrum", artworkDirectory: "arbitrum"),
@@ -83,7 +86,13 @@ struct OathTokenDefinition: Identifiable, Hashable, Sendable {
     }
 
     static func discovery(_ entry: TokenDiscoveryEntry) -> Self? {
-        guard let chain = OathImportChain(rawValue: entry.network), let network = OathTokenNetwork.find(chain) else { return nil }
+        discovery(networkID: entry.network, reference: entry.reference, name: entry.name, symbol: entry.symbol,
+                  decimals: entry.decimals, logo: entry.logo)
+    }
+
+    static func discovery(networkID: String, reference: String, name: String, symbol: String,
+                          decimals: Int?, logo: String?) -> Self? {
+        guard let chain = OathImportChain(rawValue: networkID), let network = OathTokenNetwork.find(chain) else { return nil }
         let standard: String
         switch chain {
         case .solana: standard = "SPL"
@@ -97,11 +106,11 @@ struct OathTokenDefinition: Identifiable, Hashable, Sendable {
         case .thorchain: standard = "Bank token"
         default: standard = "ERC20"
         }
-        let artworkReference = chain.isEVM ? OathTokenAddress.checksum(entry.reference) : entry.reference
+        let artworkReference = chain.isEVM ? OathTokenAddress.checksum(reference) : reference
         let fallback = URL(string: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/\(network.artworkDirectory)/assets/")?
             .appendingPathComponent(artworkReference).appendingPathComponent("logo.png")
-        return .init(network: network, address: entry.reference, name: entry.name, symbol: entry.symbol,
-            decimals: entry.decimals, standard: standard, logoURL: entry.logo.flatMap(URL.init(string:)) ?? fallback)
+        return .init(network: network, address: reference, name: name, symbol: symbol,
+            decimals: decimals, standard: standard, logoURL: logo.flatMap(URL.init(string:)) ?? fallback)
     }
 }
 

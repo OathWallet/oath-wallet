@@ -12,6 +12,7 @@ final class RefreshPresentation: NSObject {
 
     private struct Pending {
         var policy: RefreshCompletion
+        let releaseOnly: Bool
         let continuation: CheckedContinuation<Void, Never>
     }
 
@@ -29,7 +30,8 @@ final class RefreshPresentation: NSObject {
     /// refresh action return calls endRefreshing. Returning mid-pan races UIKit's
     /// reveal and can remove the indicator before it is displayed.
     func finishPresentation(startedAt: TimeInterval,
-                            minimumDuration: TimeInterval = RefreshCompletion.minimumPresentation) async {
+                            minimumDuration: TimeInterval = RefreshCompletion.minimumPresentation,
+                            releaseOnly: Bool = false) async {
         let id = UUID()
         await withTaskCancellationHandler {
             await withCheckedContinuation { continuation in
@@ -38,7 +40,7 @@ final class RefreshPresentation: NSObject {
                     return
                 }
                 pending[id] = Pending(policy: RefreshCompletion(startedAt: startedAt, minimumDuration: minimumDuration),
-                                      continuation: continuation)
+                                      releaseOnly: releaseOnly, continuation: continuation)
                 if link == nil {
                     let link = CADisplayLink(target: self, selector: #selector(frame))
                     link.add(to: .main, forMode: .common)
@@ -55,7 +57,7 @@ final class RefreshPresentation: NSObject {
         let presented = scroll.layer.presentation()?.bounds.origin.y ?? scroll.contentOffset.y
         for id in Array(pending.keys) {
             guard var wait = pending[id] else { continue }
-            let ready = wait.policy.canFinish(at: CACurrentMediaTime(),
+            let ready = wait.releaseOnly ? !scroll.isTracking && !scroll.isDragging : wait.policy.canFinish(at: CACurrentMediaTime(),
                 tracking: scroll.isTracking, dragging: scroll.isDragging,
                 decelerating: scroll.isDecelerating, modelOffset: scroll.contentOffset.y,
                 presentedOffset: presented)

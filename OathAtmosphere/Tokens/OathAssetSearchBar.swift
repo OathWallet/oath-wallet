@@ -89,7 +89,7 @@ struct OathAssetSearchBar: UIViewRepresentable {
     final class SearchRow: UIView {
         let searchBar = SearchBar()
         let chainButton = UIButton(type: .system)
-        let closeButton = UIButton(type: .close)
+        let closeButton = UIButton(type: .system)
         var action: ((Bool) -> Void)?
         var closeAction: (() -> Void)?
         private var configurationID = ""
@@ -127,8 +127,8 @@ struct OathAssetSearchBar: UIViewRepresentable {
                 searchBar.topAnchor.constraint(equalTo: topAnchor),
                 searchBar.bottomAnchor.constraint(equalTo: bottomAnchor),
                 closeButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
-                closeButton.centerYAnchor.constraint(equalTo: searchBar.searchTextField.centerYAnchor),
-                closeButton.heightAnchor.constraint(equalTo: searchBar.searchTextField.heightAnchor),
+                closeButton.centerYAnchor.constraint(equalTo: centerYAnchor),
+                closeButton.heightAnchor.constraint(equalToConstant: 44),
                 closeButton.widthAnchor.constraint(equalTo: closeButton.heightAnchor)
             ])
             chainButton.addTarget(self, action: #selector(selectChain), for: .touchUpInside)

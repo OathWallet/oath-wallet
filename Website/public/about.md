@@ -1,5 +1,9 @@
 # About Oath Wallet — Team, Open Source & Official Links
 
+<!-- current-release:start -->
+Latest source release: [Oath 5.1.1 · Build 111](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111).
+<!-- current-release:end -->
+
 Oath Wallet is a free, open-source Bitcoin and crypto wallet for iPhone and iPad.
 
 

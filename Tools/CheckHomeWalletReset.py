@@ -29,9 +29,16 @@ def main():
     args.output.mkdir(parents=True, exist_ok=True)
     home = (args.home_source or ROOT / 'OathAtmosphere/Home/OathHomeScreen.swift').read_text()
     start = home.index('    private var homeContent: some View {')
-    end = home.index('.modifier(OathHomeScrollEdgeAppearance())', start)
+    content_end = home.index('    private func walletContent(', start)
+    end = home.find('.modifier(OathWalletHeaderBackground(', start, content_end)
+    if end == -1:
+        end = home.index('\n            }\n        }\n        .background', start)
     boundary = '\n            }'
-    identity = home[home.rindex(boundary, start, end) + len(boundary):end]
+    # Include the entire onChange body when the background modifier is absent.
+    marker = '                // Keep the balance Text alive'
+    identity_start = (home.index(marker, start) if marker in home[start:end]
+                      else home.rindex(boundary, start, end) + len(boundary))
+    identity = home[identity_start:end]
     start = home.index('    private var walletNavigation: some View {')
     start = home.index('                .background {', start)
     appearance = home[start:home.index('                // Asset details', start)]

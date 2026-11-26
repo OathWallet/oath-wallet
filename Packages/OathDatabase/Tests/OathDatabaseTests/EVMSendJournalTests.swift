@@ -72,6 +72,28 @@ import GRDB
         }
         do { try await db.resetUnsentWalletConnectEVM("ordinary-send",walletID:"w1",accountID:"a1");XCTFail("Not a WalletConnect request") } catch {}
     }
+    func testBrowserRequestCanRetryUnsignedButNeverReplaceSignedBytes() async throws {
+        let (db,folder,p)=try await fixture();defer { try? FileManager.default.removeItem(at:folder) }
+        let id="browser:"+String(repeating:"a",count:64)
+        try await draft(id,plan:p,db:db);try await db.queueEVMSend(sendID:id,plan:p)
+        do { try await db.resetUnsentWalletConnectEVM(id,walletID:"w2",accountID:"a2");XCTFail("Must preserve another wallet's draft") } catch {}
+        let stillQueued=try await db.send(id);XCTAssertEqual(stillQueued?.state,"queued")
+        try await db.resetUnsentWalletConnectEVM(id,walletID:"w1",accountID:"a1")
+        let absent=try await db.send(id),oldPlan=try await db.evmSendPlan(sendID:id)
+        XCTAssertNil(absent);XCTAssertNil(oldPlan)
+        try await draft(id,plan:p,db:db);try await db.queueEVMSend(sendID:id,plan:p)
+        let signed=try EVMSendCrypto.sign(p,privateKey:key)
+        try await db.journalEVMSignature(sendID:id,signed:signed)
+        let reopened=try await OathDatabase.open(at:folder.appendingPathComponent("db.sqlite"))
+        for state in ["signed","broadcast"] {
+            if state=="broadcast" { _=try await reopened.transitionSend(id,from:"signed",to:"broadcast") }
+            do { try await reopened.resetUnsentWalletConnectEVM(id,walletID:"w1",accountID:"a1");XCTFail("Signed transaction must never reset") } catch {}
+            let stored=try await reopened.send(id)
+            XCTAssertEqual(stored?.state,state)
+            XCTAssertEqual(try JSONDecoder().decode(EVMSignedSend.self,from:XCTUnwrap(stored?.signedPayload)),signed)
+        }
+        do { try await db.resetUnsentWalletConnectEVM("ordinary-send",walletID:"w1",accountID:"a1");XCTFail("Not a WalletConnect request") } catch {}
+    }
     func testSignatureDurabilityExclusiveSenderAndAcceptedNotFinal() async throws {
         for network in EVMSendNetwork.allCases where !network.isTestnet {
         let (db,folder,p)=try await fixture(network:network);defer { try? FileManager.default.removeItem(at:folder) }

@@ -65,7 +65,7 @@ public enum OathDiagnostics {
             context["chain"] = chain
             if context["chain"] == nil {
                 let source = file.components(separatedBy: "/").last?.lowercased().replacingOccurrences(of: "oath", with: "") ?? ""
-                context["chain"] = ["thorchain", "bitcoincash", "dogecoin", "litecoin", "solana", "aptos", "polkadot", "stellar", "chiliz", "filecoin", "sei", "zerog", "iotex", "celo", "monad", "unichain", "hyperevm", "robinhood", "xrpl", "near", "tron", "ton", "sui", "arc"].first {
+                context["chain"] = ["plasma", "worldchain", "elysium", "thorchain", "bitcoincash", "dogecoin", "litecoin", "solana", "aptos", "polkadot", "stellar", "chiliz", "filecoin", "sei", "zerog", "iotex", "celo", "monad", "unichain", "hyperevm", "robinhood", "xrpl", "near", "tron", "ton", "sui", "arc"].first {
                     source.hasPrefix($0) || function.lowercased().hasPrefix("refresh" + $0)
                 }
             }

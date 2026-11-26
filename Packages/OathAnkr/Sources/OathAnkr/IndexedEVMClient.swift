@@ -39,7 +39,7 @@ public struct IndexedEVMClient: Sendable {
             throw AnkrError.configurationMissing
         }
         self.chain = chain
-        if let key = alchemyAPIKey, !key.isEmpty, ![.zerog, .iotex].contains(chain) {
+        if let key = alchemyAPIKey, !key.isEmpty, ![.zerog, .iotex].contains(chain) && !chain.usesRPCCatalog {
             guard key.count <= 256, key.utf8.allSatisfy({ (48...57).contains($0) || (65...90).contains($0) || (97...122).contains($0) || $0 == 45 || $0 == 95 }) else { throw AnkrError.configurationMissing }
             alchemyEndpoint = URL(string: "https://" + chain.rawValue + "-mainnet.g.alchemy.com/v2")!.appendingPathComponent(key)
         } else { alchemyEndpoint = nil }
@@ -369,6 +369,13 @@ public struct IndexedEVMClient: Sendable {
     }
     private typealias Discovery = ([IndexedEVMToken], [Data], Set<String>, Set<String>)
     private func discover(owner: String) async throws -> Discovery {
+        if chain.usesRPCCatalog {
+            // A finite directory supplies contract candidates only. Balances and
+            // decimals are verified below with block-pinned ANKR eth_call reads.
+            // Custom tokens are merged from the local ledger in the same pass.
+            let tokens = try RPCCatalogTokens.tokens(chain: chain)
+            return (tokens, [], Set(tokens.map(\.reference)), [])
+        }
         if chain == .monad { return try await monadDiscovery(owner: owner) }
         var cursor: String?, visited: Set<String> = [], tokens: [String: IndexedEVMToken] = [:]
         var raw: [Data] = [], missing: [String] = [], seen: Set<String> = []
@@ -622,6 +629,7 @@ public struct IndexedEVMClient: Sendable {
 
     public func history(owner: String, stream: IndexedEVMHistoryStream, cursor: String? = nil,
                         from: Double = 0, through: Double = Date().timeIntervalSince1970) async throws -> IndexedEVMHistoryPage {
+        guard !chain.usesRPCCatalog else { throw AnkrError.configurationMissing }
         if chain == .filecoin, stream == .internalTransactions {
             // EVM receipts do not prove internal value movements. Filecoin's
             // native trace evidence also catches shifted explorer hash links.

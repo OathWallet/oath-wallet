@@ -3,6 +3,14 @@ import OathAnkr
 @testable import OathMarketData
 
 final class NativeCoinPriceTests: XCTestCase {
+    func testRPCMainnetsUseTheirNativeGasAssetsAndDistinctTokenPlatforms() {
+        XCTAssertEqual(MarketIdentity.native["plasma"]?.coinbase, "XPL")
+        XCTAssertEqual(MarketIdentity.native["plasma"]?.gecko, "plasma")
+        XCTAssertEqual(MarketIdentity.native["worldchain"]?.gecko, "ethereum")
+        XCTAssertEqual(MarketIdentity.native["elysium"]?.gecko, "hyperliquid")
+        XCTAssertEqual(MarketIdentity.geckoPlatforms["worldchain"], "world-chain")
+        XCTAssertEqual(MarketIdentity.geckoPlatforms["elysium"], "elysium")
+    }
     private let now = Date(timeIntervalSince1970: 2000)
     private func asset(_ network: String, reference: String = "native", decimals: Int? = nil) -> MarketAsset {
         .init(id: network + ":" + reference, networkID: network, reference: reference, decimals: decimals ?? NativeCoinPrice.supported[network]!.decimals)

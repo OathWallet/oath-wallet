@@ -254,7 +254,7 @@ private actor UnlockTestBiometrics: OathBiometricCredentialStoring {
         if waiting == nil { await withCheckedContinuation { observer = $0 } }
     }
     func releaseRead() { waiting?.resume(); waiting = nil }
-    func read(reason: String) async throws -> Data {
+    func read(reason: String, requiringFreshMatch: Bool) async throws -> Data {
         if hold {
             hold = false
             await withCheckedContinuation {

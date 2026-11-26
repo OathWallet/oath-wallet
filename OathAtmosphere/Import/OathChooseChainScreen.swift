@@ -2,8 +2,8 @@ import OathDiagnostics
 import SwiftUI
 import OathDatabase
 
-/// Import actions with disclosure arrows. The integrating flow handles the
-/// chosen import route; this screen never accepts or stores a private key.
+/// Shared chain selection for import and account management. The integrating
+/// flow handles the chosen route; this screen never accepts or stores a key.
 public struct OathChooseChainScreen: View {
     @Environment(\.oathLocalizer) private var strings
     @Environment(\.colorScheme) private var colorScheme
@@ -11,9 +11,14 @@ public struct OathChooseChainScreen: View {
     @State private var networkRecords: [NetworkRecord] = []
     @State private var loading = true
     @State private var failed = false
+    private let allowedNetworks: [OathImportChain]?
+    private let accessibilityPrefix: String
     private let onChoose: (OathPrivateKeyChoice) -> Void
 
-    public init(onChoose: @escaping (OathPrivateKeyChoice) -> Void) {
+    public init(allowedNetworks: [OathImportChain]? = nil, accessibilityPrefix: String = "import",
+                onChoose: @escaping (OathPrivateKeyChoice) -> Void) {
+        self.allowedNetworks = allowedNetworks
+        self.accessibilityPrefix = accessibilityPrefix
         self.onChoose = onChoose
     }
 
@@ -48,7 +53,7 @@ public struct OathChooseChainScreen: View {
             if !matches.isEmpty {
                 Section {
                     ForEach(matches) { choice in
-                        choiceButton(choice, identifier: "import.choice.\(choice.id)")
+                        choiceButton(choice, identifier: "\(accessibilityPrefix).choice.\(choice.id)")
                     }
                 } header: {
                     Text(strings.text(.chains)).oathFont(.footnote)
@@ -83,7 +88,7 @@ public struct OathChooseChainScreen: View {
         }
         .tint(accent)
         .task { await loadNetworks() }
-        .accessibilityIdentifier("import.chooseChain")
+        .accessibilityIdentifier("\(accessibilityPrefix).chooseChain")
     }
 
     private func loadNetworks() async {
@@ -91,8 +96,16 @@ public struct OathChooseChainScreen: View {
         defer { loading = false }
         do {
             let database = try await OathDataEnvironment.shared.database()
-            networkRecords = try await database.networks()
-        } catch { OathDiagnostics.record(error); failed = true }
+            let records = try await database.networks()
+            guard !Task.isCancelled else { return }
+            networkRecords = records.filter { record in
+                allowedNetworks.map { allowed in allowed.contains { $0.id == record.id } } ?? true
+            }
+        } catch is CancellationError { return }
+        catch {
+            OathDiagnostics.record(error, component: "chain_selection", operation: "load_networks")
+            failed = true
+        }
     }
 
     private func choiceButton(_ choice: OathPrivateKeyChoice, identifier: String) -> some View {

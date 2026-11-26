@@ -20,6 +20,15 @@ extension OathDatabase {
         try await pool.read { try MarketCacheEntry.fetchOne($0, key: key) }
     }
 
+    /// Remove a consumer-validated corrupt entry only if it is still the same
+    /// observation. A concurrent successful refresh must never be erased.
+    public func discardMarketCache(matching entry: MarketCacheEntry) async throws {
+        try await storageWrite { db in
+            guard try MarketCacheEntry.fetchOne(db, key: entry.key) == entry else { return }
+            try MarketCacheEntry.deleteOne(db, key: entry.key)
+        }
+    }
+
     /// Publish the cached quote and the portfolio's USD price atomically.
     /// Returns the observation that won the write transaction. A slower public
     /// provider response is a successful no-op, not a failed account sync. Keep

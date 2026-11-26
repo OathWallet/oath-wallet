@@ -79,7 +79,7 @@ private final class MissingMarketProtocol: URLProtocol, @unchecked Sendable {
         }
         XCTAssertEqual(RateLimitProtocol.counts.count("api.kraken.com"), 4)
     }
-    func testPaprikaAdmissionIsLimitedToVerifiedPublicNativeEndpoints() async throws {
+    func testPaprikaAdmissionIsLimitedToPublicMarketRoutes() async throws {
         RateLimitProtocol.counts.reset()
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [RateLimitProtocol.self]
@@ -93,15 +93,22 @@ private final class MissingMarketProtocol: URLProtocol, @unchecked Sendable {
                 _ = try await transport.data(from: url)
             }
         }
+        let history = "https://api.coinpaprika.com/v1/tickers/btc-bitcoin/historical"
+        for permitted in ["https://api.coinpaprika.com/v1/coins/ltc-litecoin", history + "?start=1795392000&interval=1h",
+                          history + "?start=1795392000&interval=1d"] {
+            _ = try await transport.data(from: URL(string: permitted)!)
+        }
         for url in [
-            "https://api.coinpaprika.com/v1/coins/ltc-litecoin", "https://api.coinpaprika.com/v1/coins/rune-thorchain?key=fixture",
+            history, history + "?start=bad&interval=1h", history + "?start=1795392000&interval=1m",
+            history + "?start=1795392000&interval=1h&account=fixture",
+            "https://api.coinpaprika.com/v1/coins/rune-thorchain?key=fixture",
             "https://api.coinpaprika.com:444/v1/coins/rune-thorchain", "http://api.coinpaprika.com/v1/coins/rune-thorchain",
             "https://user:pass@api.coinpaprika.com/v1/coins/rune-thorchain", "https://api.coinpaprika.com/v1/coins/rune-thorchain#extra"
         ] {
             do { _ = try await transport.data(from: URL(string: url)!); XCTFail("Expanded admission") }
             catch { XCTAssertEqual(error as? MarketDataError, .invalidResponse) }
         }
-        XCTAssertEqual(RateLimitProtocol.counts.count("api.coinpaprika.com"), 14)
+        XCTAssertEqual(RateLimitProtocol.counts.count("api.coinpaprika.com"), 17)
     }
 
     func testMidgardAdmissionAllowsOnlyThePublicRuneHistoryRoute() async throws {

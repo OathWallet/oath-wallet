@@ -21,13 +21,23 @@ public struct ChainHistoryItem: Sendable, Equatable, Identifiable {
 }
 
 extension OathDatabase {
+    // Views expand to their source tables. Include conditional receipt reads even
+    // when the initial page is empty or contains no self-transfers.
+    static let historyObservationTables = [
+        "projectedHistoryActivity", "transactions", "walletAccounts", "assets", "networks",
+        "transactionEvidence", "prices", "exchangeRates", "settings", "solanaActivity",
+        "solanaReceiveAddresses", "transfers", "transactionParticipants", "evmHistorySwaps",
+        "indexedEVMEvents", "suiTransactions", "sends", "solanaTransactions", "stellarEvents",
+        "xrplTransactions", "aptosTransactions"
+    ]
+
     public func chainHistory(walletID: String, networkID: String? = nil,
                              accountID: String? = nil, assetID: String? = nil, currency: String,
                              before: HistoryCursor? = nil, limit: Int = 50, search: String = "", filter: HistoryFilter = .init(),
-                             localeIdentifier: String = Locale.autoupdatingCurrent.identifier) async throws -> [ChainHistoryItem] {
+                             localeIdentifier: String = Locale.autoupdatingCurrent.identifier, homeScope: Bool = false) async throws -> [ChainHistoryItem] {
         try await pool.read {
             try Self.readChainHistory($0, walletID: walletID, networkID: networkID, accountID: accountID, assetID: assetID, currency: currency,
-                                      before: before, limit: Self.pageSize(limit), search: search, filter: filter, localeIdentifier: localeIdentifier)
+                                      before: before, limit: Self.pageSize(limit), search: search, filter: filter, localeIdentifier: localeIdentifier, homeScope: homeScope)
         }
     }
 
@@ -35,18 +45,50 @@ extension OathDatabase {
     public func observeChainHistory(walletID: String, networkID: String? = nil,
                                     accountID: String? = nil, assetID: String? = nil, currency: String,
                                     limit: Int = 51, search: String = "", filter: HistoryFilter = .init(),
-                                    localeIdentifier: String = Locale.autoupdatingCurrent.identifier) -> AsyncThrowingStream<[ChainHistoryItem], Error> {
-        stream {
+                                    localeIdentifier: String = Locale.autoupdatingCurrent.identifier, homeScope: Bool = false) -> AsyncThrowingStream<[ChainHistoryItem], Error> {
+        stream(observing: Self.historyObservationTables) {
             try Self.readChainHistory($0, walletID: walletID, networkID: networkID, accountID: accountID, assetID: assetID, currency: currency,
-                                      before: nil, limit: max(1, limit), search: search, filter: filter, localeIdentifier: localeIdentifier)
+                                      before: nil, limit: max(1, limit), search: search, filter: filter, localeIdentifier: localeIdentifier, homeScope: homeScope)
         }
     }
 
     static func readChainHistory(_ db: Database, walletID: String, networkID: String?,
                                          accountID: String?, assetID: String?, currency: String,
                                          before: HistoryCursor?, limit: Int, search: String, filter: HistoryFilter,
-                                         localeIdentifier: String, transactionID: String? = nil) throws -> [ChainHistoryItem] {
+                                         localeIdentifier: String, transactionID: String? = nil, homeScope: Bool = false) throws -> [ChainHistoryItem] {
         guard filter.isValid else { throw StoreError.invalidValue("history filter") }
+        let scopeIDs = homeScope ? try homeAccountIDs(db, walletID: walletID) : nil
+        let selectedOwner = """
+            (a.networkID<>'solana' OR EXISTS (SELECT 1 FROM solanaActivity sa WHERE sa.activityID=a.id
+                AND sa.owner=COALESCE((SELECT address FROM solanaReceiveAddresses WHERE accountID=a.accountID AND isSelected=1),owner.address)))
+            """
+        var source = "projectedHistoryActivity"
+        var sourceArguments: StatementArguments = []
+        if networkID == nil, accountID == nil, assetID == nil, transactionID == nil,
+           search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, filter == HistoryFilter() {
+            // Home keeps this first page ready during balance refresh. Apply
+            // visibility, account ownership and pagination before enriching rows
+            // with current quotes. Otherwise every price commit joins/prices the
+            // entire wallet history just to retain the newest 51 entries.
+            var page = """
+                SELECT a.* FROM projectedHistoryActivity a WHERE a.walletID=?
+                AND EXISTS (SELECT 1 FROM walletAccounts owner WHERE owner.id=a.accountID
+                    AND owner.walletID=? AND \(selectedOwner)
+                """
+            sourceArguments = [walletID, walletID]
+            if let scopeIDs {
+                page += " AND owner.id IN (" + Array(repeating: "?", count: scopeIDs.count).joined(separator: ",") + ")"
+                sourceArguments += StatementArguments(scopeIDs.sorted())
+            }
+            page += ")"
+            if let before {
+                page += " AND (a.sortTimestamp,a.id) < (?,?)"
+                sourceArguments += [before.timestamp, before.id]
+            }
+            page += " ORDER BY a.sortTimestamp DESC,a.id DESC LIMIT ?"
+            sourceArguments += [limit]
+            source = "(" + page + ")"
+        }
         var sql = """
             SELECT a.id,a.accountID,a.networkID,a.transactionID,a.assetID,a.direction,
                    a.amountAtomic,a.counterparty,a.sortTimestamp AS timestamp,a.outputAssetID,a.received,a.outputAccountID,a.outputTransactionID,a.bridgeProtocol,(SELECT hash FROM transactions WHERE id=a.outputTransactionID) AS outputHash,
@@ -54,21 +96,22 @@ extension OathDatabase {
                    s.reference,s.name,s.symbol,s.decimals,
                    CASE WHEN s.reference='native' THEN COALESCE(s.logo,n.logo) ELSE s.logo END AS logo,COALESCE((SELECT owner FROM solanaActivity WHERE activityID=a.id),owner.address) AS address,
                    p.value AS usdPrice,p.observedAt AS priceObservedAt,p.source AS priceSource
-            FROM projectedHistoryActivity a JOIN transactions t ON t.id=a.transactionID
+            FROM \(source) a JOIN transactions t ON t.id=a.transactionID
             JOIN walletAccounts owner ON owner.id=a.accountID
             JOIN assets s ON s.id=a.assetID
             JOIN networks n ON n.id=a.networkID
             LEFT JOIN assets output ON output.id=a.outputAssetID
             LEFT JOIN transactionEvidence e ON e.accountID=a.accountID AND e.transactionID=a.transactionID
             LEFT JOIN prices p ON p.assetID=a.assetID AND p.currency='USD'
-                AND p.observedAt=(SELECT observedAt FROM prices WHERE assetID=a.assetID AND currency='USD' ORDER BY \(PriceRecord.preferredOrder) LIMIT 1)
+                AND p.observedAt=(SELECT observedAt FROM prices WHERE assetID=a.assetID AND currency='USD' AND \(PriceRecord.currentSourcePredicate) ORDER BY \(PriceRecord.preferredOrder) LIMIT 1)
             WHERE a.walletID=? AND owner.walletID=?
             """
-        sql += """
-             AND (a.networkID<>'solana' OR EXISTS (SELECT 1 FROM solanaActivity sa WHERE sa.activityID=a.id
-                AND sa.owner=COALESCE((SELECT address FROM solanaReceiveAddresses WHERE accountID=a.accountID AND isSelected=1),owner.address)))
-            """
-        var args: StatementArguments = [walletID, walletID]
+        sql += " AND " + selectedOwner
+        var args = sourceArguments + [walletID, walletID]
+        if let ids = scopeIDs {
+            sql += " AND owner.id IN (" + Array(repeating: "?", count: ids.count).joined(separator: ",") + ")"
+            args += StatementArguments(ids.sorted())
+        }
         let rate = try Self.exchangeRates(db)?.rate(for: currency) ?? (currency == "USD" ? 1 : nil)
         if let networkID {
             sql += " AND (a.networkID=? OR a.outputNetworkID=?)"
@@ -146,7 +189,10 @@ extension OathDatabase {
         }
         sql += " ORDER BY a.sortTimestamp DESC,a.id DESC LIMIT ?"
         args += [limit]
-        let items = try Row.fetchAll(db, sql: sql, arguments: args).map { row in
+        // Live price/history commits reuse the same query shape. Keep the
+        // prepared statement on its reader connection, with fresh bindings and
+        // a fresh database snapshot on every fetch (never cache transaction rows).
+        let items = try Row.fetchAll(db, SQLRequest<Row>(sql: sql, arguments: args, cached: true)).map { row in
             let entry = try Self.projectSelfTransferFee(HistoryEntry(row: row), db: db)
             let holding = Holding(accountID: entry.accountID, networkID: entry.networkID, address: row["address"],
                 assetID: entry.assetID, reference: row["reference"], name: row["name"], symbol: row["symbol"],
@@ -168,7 +214,7 @@ extension OathDatabase {
 
     static func historyHolding(_ db: Database, accountID: String, assetID: String, currency: String) throws -> Holding? {
         guard let asset = try AssetRecord.fetchOne(db, key: assetID), let account = try AccountRecord.fetchOne(db,key: accountID) else { return nil }
-        let row = try Row.fetchOne(db, sql: "SELECT value,observedAt,source FROM prices WHERE assetID=? AND currency='USD' ORDER BY \(PriceRecord.preferredOrder) LIMIT 1", arguments: [assetID])
+        let row = try Row.fetchOne(db, sql: "SELECT value,observedAt,source FROM prices WHERE assetID=? AND currency='USD' AND \(PriceRecord.currentSourcePredicate) ORDER BY \(PriceRecord.preferredOrder) LIMIT 1", arguments: [assetID])
         let rate = try exchangeRates(db)?.rate(for: currency) ?? (currency == "USD" ? 1 : nil)
         return Holding(accountID: accountID, networkID: asset.networkID, address: account.address,
             assetID: assetID, reference: asset.reference, name: asset.name, symbol: asset.symbol, decimals: asset.decimals,

@@ -29,16 +29,16 @@ public actor EVMSendClient {
     /// Each request verifies the chain on the same provider, including fallbacks.
     /// One attempt per endpoint, with bounded Celo replica-lag retries for reads.
     /// Transaction rejections and broadcasts are never automatically retried.
-    func rpc(_ method:String,_ params:[SolanaJSON], optionalContractProbe: Bool = false, logScanHead: UInt64? = nil, headValidation: HeadValidation = .none) async throws -> SolanaJSON {
+    func rpc(_ method:String,_ params:[SolanaJSON], optionalContractProbe: Bool = false, logScanHead: UInt64? = nil, headValidation: HeadValidation = .none, gasFunding: EVMGasEstimateFunding? = nil) async throws -> SolanaJSON {
         try await rpcWithHeadEvidence(method, params, optionalContractProbe: optionalContractProbe,
-                                      logScanHead: logScanHead, headValidation: headValidation).value
+                                      logScanHead: logScanHead, headValidation: headValidation, gasFunding: gasFunding).value
     }
 
-    func rpcWithHeadEvidence(_ method:String,_ params:[SolanaJSON], optionalContractProbe: Bool = false, logScanHead: UInt64? = nil, headValidation: HeadValidation = .none) async throws -> (value: SolanaJSON, corroboratedIdleTip: Bool) {
+    func rpcWithHeadEvidence(_ method:String,_ params:[SolanaJSON], optionalContractProbe: Bool = false, logScanHead: UInt64? = nil, headValidation: HeadValidation = .none, gasFunding: EVMGasEstimateFunding? = nil) async throws -> (value: SolanaJSON, corroboratedIdleTip: Bool) {
         try await OathDiagnostics.withChain(network.rawValue) {
             var retry=0
             while true {
-                do { return try await rpcInContext(method, params, optionalContractProbe: optionalContractProbe, logScanHead: logScanHead, headValidation: headValidation) }
+                do { return try await rpcInContext(method, params, optionalContractProbe: optionalContractProbe, logScanHead: logScanHead, headValidation: headValidation, gasFunding: gasFunding) }
                 catch EVMSendError.rpc(-32019) where [.celo,.celoSepolia].contains(network)
                     && ["eth_getBalance","eth_call","eth_getTransactionCount","eth_getBlockByNumber","eth_estimateGas"].contains(method)
                     && retry<2 {
@@ -77,7 +77,7 @@ public actor EVMSendClient {
         }
     }
 
-    private func rpcInContext(_ method:String,_ params:[SolanaJSON], optionalContractProbe: Bool, logScanHead: UInt64?, headValidation: HeadValidation) async throws -> (value: SolanaJSON, corroboratedIdleTip: Bool) {
+    private func rpcInContext(_ method:String,_ params:[SolanaJSON], optionalContractProbe: Bool, logScanHead: UInt64?, headValidation: HeadValidation, gasFunding: EVMGasEstimateFunding?) async throws -> (value: SolanaJSON, corroboratedIdleTip: Bool) {
         try await permits.acquire()
         do {
             var failure:Error=EVMSendError.transport
@@ -171,7 +171,7 @@ public actor EVMSendClient {
                     if DiagnosticHTTP.expectedEVMDuplicateBroadcast(data, status:status, request:request) {
                         throw EVMDuplicateBroadcast.reconcile(result["error"]["code"].text.flatMap(Int.init) ?? -32000)
                     }
-                    let value=try self.result(result, optionalContractProbe: optionalContractProbe, feeContext: ["eth_estimateGas", "linea_estimateGas", "eth_sendRawTransaction"].contains(method))
+                    let value=try self.result(result, optionalContractProbe: optionalContractProbe, feeContext: ["eth_estimateGas", "linea_estimateGas", "eth_sendRawTransaction"].contains(method), gasFunding: method == "eth_estimateGas" ? gasFunding : nil)
                     var corroboratedIdleTip = false
                     if headValidation != .none {
                         // A successful RPC envelope can still come from a lagging
@@ -266,7 +266,7 @@ public actor EVMSendClient {
                     OathDiagnostics.record(error,component:"evm_send",operation:method,context:failureContext)
                     // Deterministic RPC rejection must remain visible. Network/HTTP,
                     // malformed and misrouted providers may use an independent fallback.
-                    if error is SendFeeFundingError { throw error }
+                    if error is SendFeeFundingError || error is EVMSendFeeFailure { throw error }
                     if case EVMSendError.rpc(let code) = error {
                         let recoverableGatewayRead = endpoint.host == "rpc.ankr.com"
                             && Self.recoverableReadMethods.contains(method)
@@ -291,7 +291,7 @@ public actor EVMSendClient {
             throw error
         }
     }
-    private func result(_ j:SolanaJSON, optionalContractProbe: Bool = false, feeContext: Bool = false) throws -> SolanaJSON {
+    private func result(_ j:SolanaJSON, optionalContractProbe: Bool = false, feeContext: Bool = false, gasFunding: EVMGasEstimateFunding? = nil) throws -> SolanaJSON {
         // JSON-RPC errors use signed codes (for example -32000). The quantity
         // accessor is intentionally unsigned and must not be used here.
         if case .number(let raw)=j["error"]["code"],let code=Int(raw) {
@@ -303,6 +303,12 @@ public actor EVMSendClient {
             OathDiagnostics.record(DiagnosticFailure(j["error"]["message"].string ?? "RPC rejected"),component:"evm_send",operation:"rpc_response",context:["chain":network.rawValue,"rpc_code":String(code)])
             if feeContext, ([-32000, -32003].contains(code) || (network.isFilecoin && code == 1)), SendFeeFundingError.isEVMFundingMessage(j["error"]["message"].string) {
                 throw SendFeeFundingError.insufficientNativeBalance
+            }
+            if [-32000, -32003].contains(code), gasFunding?.provesShortage(j["error"]["message"].string) == true {
+                throw SendFeeFundingError.insufficientNativeBalance
+            }
+            if feeContext, let reason = EVMSendFeeFailure.rpcReason(j["error"]["message"].string) {
+                throw reason
             }
             throw EVMSendError.rpc(code)
         }
@@ -497,13 +503,15 @@ public actor EVMSendClient {
         guard actualDecimals==decimals else { throw EVMSendError.metadataChanged }
         if removal?.kind == .delegation { guard !legacy,recipient==sender,nonce<UInt64.max-1,try await rpc("eth_getCode",[.string(EVMPermissionRemoval.zero),.string("latest")]).string=="0x" else {throw PermissionError.unsupported} }
         guard request?.nonce == nil || request?.nonce == nonce else { throw EVMSendError.changed }
-        guard base<=100_000_000_000_000,price>0,price<=100_000_000_000_000 else { throw EVMSendError.feeTooHigh }
+        guard price>0 else { throw EVMSendFeeFailure.invalidEstimate }
+        guard base<=100_000_000_000_000,price<=100_000_000_000_000 else { throw EVMSendFeeFailure.feeLimitExceeded }
         var tip=legacy ? 0 : (price>base ? price-base:0)
         if let priorityJSON { tip=try Self.uint(priorityJSON) }
-        guard tip<=100_000_000_000_000 else { throw EVMSendError.feeTooHigh }
+        guard tip<=100_000_000_000_000 else { throw EVMSendFeeFailure.feeLimitExceeded }
         var ceiling=legacy ? (request?.gasPrice ?? price) : (request?.maxFeePerGas ?? max(price,base*2+tip))
         tip = legacy ? 0 : (request?.maxPriorityFeePerGas ?? min(tip,ceiling))
-        guard ceiling>=base,ceiling>0,ceiling<=100_000_000_000_000,tip<=ceiling else { throw EVMSendError.feeTooHigh }
+        guard ceiling>=base,ceiling>0 else { throw EVMSendFeeFailure.feeCapTooLow }
+        guard ceiling<=100_000_000_000_000,tip<=ceiling else { throw EVMSendFeeFailure.feeLimitExceeded }
         guard !network.isIoTeX || legacy || (tip>0 && ceiling>base) else { throw EVMSendError.changed }
         let want=maximum ? asset:requested
         guard !EVMSendAmount.less(asset,want),(want != "0" || removal != nil || request != nil) else { throw EVMSendError.insufficientFunds }
@@ -518,21 +526,26 @@ public actor EVMSendClient {
         // recipient can reject zero or take a different execution path.
         // Neither probe is signed; the final positive payload is simulated below.
         let feeAdjustedTransfer = ([.celo, .celoSepolia, .chiliz, .chilizSpicy].contains(network) || network.isFilecoin || network.isSei || network.isZeroG || network.isIoTeX || network.isCronos) && request == nil && removal == nil
-        let probe=make(network.maximumGas,!feeAdjustedTransfer && reference == "native" && (maximum || want==native) ? "0":want)
+        // Estimate inside the dApp's explicit gas budget. An unconstrained
+        // estimate can include approximation headroom above a valid budget.
+        // Never raise a supplied limit or silently change the approved fees.
+        let probe=make(request?.gas ?? network.maximumGas,!feeAdjustedTransfer && reference == "native" && (maximum || want==native) ? "0":want)
         let estimate:UInt64
         if [.linea, .lineaSepolia].contains(network) && removal?.kind != .delegation {
             // Linea computes a calldata-dependent priority fee. Supplying the
             // provisional eth_gasPrice cap makes the node reject its own higher
             // recommendation before it can return an estimate.
-            let payload:SolanaJSON = .object(["from":.string(sender),"to":.string(probe.receiver),
+            var fields:[String:SolanaJSON] = ["from":.string(sender),"to":.string(probe.receiver),
                 "value":.string(try EVMSendAmount.hex(reference == "native" && !maximum ? want:probe.value)),
-                "data":.string("0x"+TronSendCrypto.hex(try EVMSendCrypto.data(probe)))])
+                "data":.string("0x"+TronSendCrypto.hex(try EVMSendCrypto.data(probe)))]
+            if request?.gas != nil { fields["gas"] = Self.hex(probe.gasLimit) }
+            let payload = SolanaJSON.object(fields)
             let line = try await rpc("linea_estimateGas",[payload])
             estimate=try Self.uint(line["gasLimit"])
             let base=try Self.uint(line["baseFeePerGas"]),priority=try Self.uint(line["priorityFeePerGas"])
-            guard base<=100_000_000_000_000,priority<=100_000_000_000_000 else { throw EVMSendError.feeTooHigh }
+            guard base<=100_000_000_000_000,priority<=100_000_000_000_000 else { throw EVMSendFeeFailure.feeLimitExceeded }
             if request?.gasPrice != nil || request?.maxFeePerGas != nil {
-                guard ceiling>=base+priority,(legacy || tip>=priority) else { throw EVMSendError.feeTooHigh }
+                guard ceiling>=base+priority,(legacy || tip>=priority) else { throw EVMSendFeeFailure.feeCapTooLow }
             } else { tip=priority;ceiling=max(ceiling,base*2+priority) }
         } else if feeAdjustedTransfer {
             // Estimate execution units before reserving gas. Including fee caps here
@@ -545,17 +558,26 @@ public actor EVMSendClient {
                 "data":.string("0x"+TronSendCrypto.hex(try EVMSendCrypto.data(probe))),
                 "nonce":Self.hex(probe.nonce)])
             estimate=try await Self.uint(rpc("eth_estimateGas",[payload,simulationTag(probe)]))
-        } else { estimate=try await Self.uint(rpc("eth_estimateGas",[transaction(probe,gas:false),simulationTag(probe)])) }
-        guard estimate>=network.minimumGas,estimate<=network.maximumGas else { throw EVMSendError.feeTooHigh }
+        } else {
+            // Keep fee caps in the actual estimate (including Arbitrum's L1
+            // cost). A balance-limited rejection must reach the same native-
+            // fee notice as the affordability check below, not generic -32000.
+            let funding = EVMGasEstimateFunding(nativeBalance: native, value: probe.value,
+                feePerGas: probe.maxFeePerGas, gasLimit: probe.gasLimit)
+            estimate=try await Self.uint(rpc("eth_estimateGas",[transaction(probe,gas:request?.gas != nil),simulationTag(probe)],gasFunding:funding))
+        }
+        guard estimate>=network.minimumGas else { throw EVMSendFeeFailure.invalidEstimate }
+        guard estimate<=network.maximumGas else { throw EVMSendFeeFailure.gasLimitTooHigh }
         let intrinsic=removal?.kind == .delegation ? max(46_000,estimate):estimate
-        guard intrinsic<=network.maximumGas else {throw EVMSendError.feeTooHigh}
+        guard intrinsic<=network.maximumGas else {throw EVMSendFeeFailure.gasLimitTooHigh}
         let gas=request?.gas ?? (intrinsic==network.minimumGas ? intrinsic:min(network.maximumGas,intrinsic+intrinsic/5+1_000))
-        guard gas>=intrinsic,gas<=network.maximumGas else { throw EVMSendError.feeTooHigh }
+        guard gas>=intrinsic else { throw EVMSendFeeFailure.gasLimitTooLow }
+        guard gas<=network.maximumGas else { throw EVMSendFeeFailure.gasLimitTooHigh }
         let product=gas.multipliedReportingOverflow(by:ceiling)
-        guard !product.overflow,product.partialValue<=EVMSendPlan.maximumFee else { throw EVMSendError.feeTooHigh }
+        guard !product.overflow,product.partialValue<=EVMSendPlan.maximumFee else { throw EVMSendFeeFailure.feeLimitExceeded }
         let extra=try await extraFee(make(gas,want))
         let total=product.partialValue.addingReportingOverflow(extra)
-        guard !total.overflow,total.partialValue<=EVMSendPlan.maximumFee else { throw EVMSendError.feeTooHigh }
+        guard !total.overflow,total.partialValue<=EVMSendPlan.maximumFee else { throw EVMSendFeeFailure.feeLimitExceeded }
         guard !EVMSendAmount.less(native,String(total.partialValue)) else { throw SendFeeFundingError.insufficientNativeBalance }
         let available=try EVMSendAmount.subtract(native,String(total.partialValue))
         if feeAdjustedTransfer,reference == "native",available == "0" { throw SendFeeFundingError.insufficientNativeBalance }
@@ -589,7 +611,7 @@ public actor EVMSendClient {
         }
         let sum=l1.addingReportingOverflow(operatorFee)
         let reserve=sum.partialValue.multipliedReportingOverflow(by:buffer ? 2:1)
-        guard !sum.overflow,!reserve.overflow,reserve.partialValue<=EVMSendPlan.maximumFee else { throw EVMSendError.feeTooHigh }
+        guard !sum.overflow,!reserve.overflow,reserve.partialValue<=EVMSendPlan.maximumFee else { throw EVMSendFeeFailure.feeLimitExceeded }
         return reserve.partialValue
     }
     private func actualFee(_ receipt:SolanaJSON,gas:UInt64,price:UInt64,height:UInt64) async throws -> UInt64 {
@@ -625,7 +647,7 @@ public actor EVMSendClient {
         async let estimate=rpc("eth_estimateGas",[transaction(plan),simulationTag(plan)])
         async let result=rpc("eth_call",[transaction(plan),simulationTag(plan)])
         let (used,output)=try await (estimate,result)
-        guard try Self.uint(used)<=plan.gasLimit else { throw EVMSendError.feeTooHigh }
+        guard try Self.uint(used)<=plan.gasLimit else { throw EVMSendFeeFailure.gasLimitTooLow }
         guard let raw=output.string,raw.hasPrefix("0x") else { throw EVMSendError.malformed }
         let tokenCall = plan.call.map { ["095ea7b3","a9059cbb","23b872dd"].contains(TronSendCrypto.hex($0.bytes.prefix(4))) } ?? false
         if plan.reference != "native" || plan.removal?.kind == .token || tokenCall,raw != "0x" {

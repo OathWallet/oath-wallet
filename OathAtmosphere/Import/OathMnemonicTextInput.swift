@@ -47,6 +47,7 @@ import UIKit
     }
 
     func updateUIView(_ view: InputView, context: Context) {
+        view.focusGate = context.environment.oathInputFocusGate
         let coordinator = context.coordinator
         coordinator.parent = self
         coordinator.accessory.updateAppearance(context.environment.colorScheme == .dark ? .dark : .light)
@@ -85,6 +86,7 @@ import UIKit
 
     static func dismantleUIView(_ view: InputView, coordinator: Coordinator) {
         view.delegate = nil
+        view.wantsFocus = false
         view.resignFirstResponder()
         view.undoManager?.removeAllActions()
         view.text = ""
@@ -93,6 +95,7 @@ import UIKit
     }
 
     final class InputView: UITextView {
+        weak var focusGate: OathAutofocusGate?
         var wantsFocus = false { didSet { if wantsFocus != oldValue { synchronizeFocus() } } }
         private var focusUpdateScheduled = false
         override func didMoveToWindow() { super.didMoveToWindow(); synchronizeFocus() }
@@ -106,6 +109,7 @@ import UIKit
                 self.focusUpdateScheduled = false
                 guard self.window != nil else { return }
                 if self.wantsFocus, !self.isFirstResponder {
+                    guard self.focusGate?.permitsResponder != false else { return }
                     if let accessory = self.inputAccessoryView {
                         accessory.frame.size.width = self.window?.bounds.width ?? self.bounds.width
                         accessory.sizeToFit()

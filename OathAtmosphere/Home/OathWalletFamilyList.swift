@@ -2,9 +2,8 @@ import SwiftUI
 import UIKit
 import OathDatabase
 
-/// A section snapshot gives UIKit the actual parent/child relationships. A
-/// flattened SwiftUI onMove list can repair the saved order only after dropping;
-/// it cannot lift a parent's descendants as part of the native drag.
+/// Stable wallet and heading identities share the native list's selection,
+/// swipe and reorder behavior. Category boundaries are never movable items.
 struct OathWalletFamilyList<Row: View, Footer: View>: UIViewControllerRepresentable {
     let tree: WalletTree
     let editing: Bool
@@ -31,6 +30,12 @@ struct OathWalletFamilyList<Row: View, Footer: View>: UIViewControllerRepresenta
         .init(tree: tree, editing: editing, enabled: enabled, allowsSelectionWhileEditing: allowsSelectionWhileEditing, reorderingRequiresEditing: reorderingRequiresEditing, deleteTitle: deleteTitle,
               reduceMotion: context.environment.accessibilityReduceMotion, onMove: onMove, onDelete: onDelete, onSelect: onSelect,
               contextMenu: contextMenu,
+              heading: { category, divider in AnyView(OathWalletSectionHeader(category: category,
+                title: context.environment.oathLocalizer.text(category.titleKey), showsDivider: divider)
+                .environment(\.locale, context.environment.locale)
+                .environment(\.layoutDirection, context.environment.layoutDirection)
+                .environment(\.dynamicTypeSize, context.environment.dynamicTypeSize)
+                .environment(\.colorScheme, context.environment.colorScheme)) },
               row: { entry in AnyView(row(entry)
                 .environment(\.locale, context.environment.locale)
                 .environment(\.layoutDirection, context.environment.layoutDirection)
@@ -60,11 +65,12 @@ private final class WalletFamilyController: UICollectionViewController {
         let onDelete: (String) -> Void
         let onSelect: (String) -> Void
         let contextMenu: (String) -> UIMenu?
+        let heading: (WalletListCategory, Bool) -> AnyView
         let row: (WalletTree.Row) -> AnyView
         let footer: AnyView
     }
-    private enum Section: Hashable { case wallets, actions }
-    private enum Item: Hashable { case wallet(String), actions }
+    private enum Section: Hashable { case wallets(WalletListCategory), actions }
+    private enum Item: Hashable { case heading(WalletListCategory), wallet(String), actions }
     private var configuration: Configuration
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
     private var entries: [String: WalletTree.Row] = [:]
@@ -125,8 +131,9 @@ private final class WalletFamilyController: UICollectionViewController {
             view.dequeueConfiguredReusableCell(using: registration, for: path, item: item)
         }
         dataSource.reorderingHandlers.canReorderItem = { [weak self] item in
-            guard let self, self.configuration.canReorder, case .wallet = item else { return false }
-            return true
+            guard let self, self.configuration.canReorder, case let .wallet(id) = item,
+                  let category = self.entries[id]?.wallet.listCategory else { return false }
+            return (self.configuration.tree.sections.first { $0.category == category }?.wallets.count ?? 0) > 1
         }
         dataSource.reorderingHandlers.didReorder = { [weak self] transaction in
             guard let self else { return }
@@ -135,19 +142,17 @@ private final class WalletFamilyController: UICollectionViewController {
                 self.scheduleRefresh()
                 return
             }
-            // The global snapshot contains only visible items during a folded
-            // drag. Read the section's full tree so no descendant is lost.
-            let moved = transaction.sectionTransactions.first { $0.sectionIdentifier == .wallets }?.finalSnapshot
-                ?? self.dataSource.snapshot(for: .wallets)
-            let proposed = moved.items.compactMap { item -> String? in
+            // Ignore headings and validate the complete wallet set before
+            // committing. Native drag/drop paths cannot change wallet type.
+            let proposed = transaction.finalSnapshot.itemIdentifiers.compactMap { item -> String? in
                 if case let .wallet(id) = item { return id }
                 return nil
             }
-            let order = self.configuration.tree.reordering(proposed)
-            let changed = order.flattened.map(\.id) != self.configuration.tree.flattened.map(\.id)
+            let order = self.configuration.tree.reorderingWithinSections(proposed)
+            let changed = order.sections.flatMap(\.wallets).map(\.id) != self.configuration.tree.sections.flatMap(\.wallets).map(\.id)
             self.configuration.tree = order
             // Applying inside didReorder reenters UIKit's apply queue. Defer to
-            // the next main-loop turn before reopening the native folded group.
+            // the next main-loop turn before restoring category boundaries.
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
                 self.refresh(animated: !self.configuration.reduceMotion)
@@ -156,10 +161,6 @@ private final class WalletFamilyController: UICollectionViewController {
                 }
             }
         }
-        var sections = NSDiffableDataSourceSnapshot<Section, Item>()
-        sections.appendSections([.wallets, .actions])
-        sections.appendItems([.actions], toSection: .actions)
-        dataSource.apply(sections, animatingDifferences: false)
         refresh(animated: false)
     }
 
@@ -212,31 +213,29 @@ private final class WalletFamilyController: UICollectionViewController {
         if collectionView.isEditing != configuration.editing {
             collectionView.isEditing = configuration.editing
         }
-        var snapshot = NSDiffableDataSourceSectionSnapshot<Item>()
-        func append(_ nodes: [WalletTree.Node], parent: Item?) {
-            for node in nodes {
-                let item = Item.wallet(node.id)
-                snapshot.append([item], to: parent)
-                append(node.children, parent: item)
-            }
+        var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
+        for section in configuration.tree.sections {
+            let id = Section.wallets(section.category)
+            snapshot.appendSections([id])
+            snapshot.appendItems([.heading(section.category)] + section.wallets.map { .wallet($0.id) }, toSection: id)
         }
-        append(configuration.tree.roots, parent: nil)
-        snapshot.expand(snapshot.items)
-        let previous = dataSource.snapshot(for: .wallets)
-        let structureChanged = previous.items != snapshot.items
-            || snapshot.items.contains {
-                previous.parent(of: $0) != snapshot.parent(of: $0)
-                    || previous.isExpanded($0) != snapshot.isExpanded($0)
+        snapshot.appendSections([.actions])
+        snapshot.appendItems([.actions], toSection: .actions)
+        let previous = dataSource.snapshot()
+        let structureChanged = previous.sectionIdentifiers != snapshot.sectionIdentifiers
+            || previous.itemIdentifiers != snapshot.itemIdentifiers
+            || snapshot.itemIdentifiers.contains {
+                previous.sectionIdentifier(containingItem: $0) != snapshot.sectionIdentifier(containingItem: $0)
             }
         if structureChanged {
-            let removedItems = Set(previous.items).subtracting(snapshot.items)
+            let removedItems = Set(previous.itemIdentifiers).subtracting(snapshot.itemIdentifiers)
             if !removedItems.isEmpty {
                 // A committed removal must not animate the old row through the
                 // hierarchy or anchor the viewport to the actions at the bottom.
                 // Keep the current position, clamped only if the list got shorter.
                 let offset = collectionView.contentOffset
                 UIView.performWithoutAnimation {
-                    dataSource.apply(snapshot, to: .wallets, animatingDifferences: false)
+                    dataSource.apply(snapshot, animatingDifferences: false)
                     collectionView.layoutIfNeeded()
                     let minimumY = -collectionView.adjustedContentInset.top
                     let maximumY = max(minimumY, collectionView.contentSize.height
@@ -245,7 +244,7 @@ private final class WalletFamilyController: UICollectionViewController {
                         y: min(maximumY, max(minimumY, offset.y))), animated: false)
                 }
             } else {
-                dataSource.apply(snapshot, to: .wallets, animatingDifferences: animated)
+                dataSource.apply(snapshot, animatingDifferences: animated)
             }
         }
         // Reconfigure visible content without changing identities or selection.
@@ -270,6 +269,13 @@ private final class WalletFamilyController: UICollectionViewController {
         cell.indentationWidth = 0
         cell.backgroundConfiguration = .clear()
         switch item {
+        case let .heading(category):
+            cell.isAccessibilityElement = false
+            cell.accessibilityIdentifier = nil
+            cell.contentConfiguration = UIHostingConfiguration {
+                configuration.heading(category, category != configuration.tree.sections.first?.category)
+            }.margins(.all, 0)
+            cell.accessories = []
         case let .wallet(id):
             guard let entry = entries[id] else { return }
             cell.isAccessibilityElement = false
@@ -284,15 +290,27 @@ private final class WalletFamilyController: UICollectionViewController {
                 .delete { [weak self] in
                     guard let self, self.configuration.enabled else { return }
                     self.configuration.onDelete(id)
-                },
-                .reorder()
+                }
             ]
+            if (configuration.tree.sections.first { $0.category == entry.wallet.listCategory }?.wallets.count ?? 0) > 1 {
+                cell.accessories.append(.reorder())
+            }
         case .actions:
             cell.isAccessibilityElement = false
             cell.accessibilityIdentifier = nil
             cell.contentConfiguration = UIHostingConfiguration { configuration.footer }.margins(.all, 0)
             cell.accessories = []
         }
+    }
+
+    override func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
+        guard case .wallet = dataSource.itemIdentifier(for: indexPath) else { return false }
+        return configuration.enabled && (!configuration.editing || configuration.allowsSelectionWhileEditing)
+    }
+
+    override func collectionView(_ collectionView: UICollectionView, shouldHighlightItemAt indexPath: IndexPath) -> Bool {
+        guard case .heading = dataSource.itemIdentifier(for: indexPath) else { return true }
+        return false
     }
 
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
@@ -322,13 +340,15 @@ private final class WalletFamilyController: UICollectionViewController {
         targetIndexPathForMoveOfItemFromOriginalIndexPath originalIndexPath: IndexPath,
         atCurrentIndexPath currentIndexPath: IndexPath, toProposedIndexPath proposedIndexPath: IndexPath) -> IndexPath {
         guard case let .wallet(id) = dataSource.itemIdentifier(for: currentIndexPath),
-              let entry = entries[id] else { return currentIndexPath }
-        // Native interactive movement stays amongst siblings. The final model
-        // normalization below remains authoritative even on OS drag/drop paths
-        // that don't consult this delegate callback.
-        let siblings = configuration.tree.rows.filter { $0.parentID == entry.parentID }
+              let entry = entries[id],
+              let sectionIndex = dataSource.index(for: .wallets(entry.wallet.listCategory)) else { return currentIndexPath }
+        // Clamp movement to this category's wallet rows, excluding headers and
+        // footer actions. Model normalization also covers other OS drag paths.
+        let siblings = configuration.tree.rows.filter { $0.wallet.listCategory == entry.wallet.listCategory }
             .compactMap { dataSource.indexPath(for: .wallet($0.id)) }
-        let target = proposedIndexPath.section > currentIndexPath.section ? entries.count : proposedIndexPath.item
+            .filter { $0.section == sectionIndex }
+        let target = proposedIndexPath.section > sectionIndex ? (siblings.map(\.item).max() ?? currentIndexPath.item)
+            : proposedIndexPath.section < sectionIndex ? 0 : proposedIndexPath.item
         return siblings.min { abs($0.item - target) < abs($1.item - target) }
             ?? currentIndexPath
     }
@@ -350,8 +370,7 @@ private final class WalletFamilyCell: UICollectionViewListCell {
 }
 
 /// Native interactive movement (including the edit-mode reorder handle) is
-/// separate from UIDragSession. Keep its folded family intact until UIKit ends
-/// or cancels the gesture, then restore the always-expanded presentation.
+/// separate from UIDragSession. Defer snapshot refresh until the gesture ends.
 private final class WalletFamilyCollectionView: UICollectionView {
     var allowsReordering = true
     private(set) var movingFamily = false

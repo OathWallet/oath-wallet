@@ -128,7 +128,7 @@ struct OathRefinedListRow<Icon: View>: View {
         }
         .oathFont(.subheadline, weight: .regular, size: secondaryTextSize)
         .foregroundStyle(.secondary)
-        .oathBalanceConcealed(concealsSubtitle)
+        .oathBalanceConcealed(concealsSubtitle, style: .secondary)
     }
 
     private var titleLabel: some View {
@@ -230,7 +230,7 @@ struct OathRefinedListRow<Icon: View>: View {
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
                 .truncationMode(.middle)
-                .oathBalanceConcealed(concealsAmounts)
+                .oathBalanceConcealed(concealsAmounts, style: .secondary)
         }
     }
 
@@ -239,13 +239,14 @@ struct OathRefinedListRow<Icon: View>: View {
             Text(verbatim: value)
                 .oathFont(.body, weight: primaryFontWeight)
                 .foregroundStyle(.primary)
+                .oathBalanceConcealed(concealsAmounts)
             if let detail {
                 Text(verbatim: detail)
                     .oathFont(.subheadline, weight: .regular, size: secondaryTextSize)
                     .foregroundStyle(.secondary)
+                    .oathBalanceConcealed(concealsAmounts, style: .secondary)
             }
         }
-        .oathBalanceConcealed(concealsAmounts)
         .monospacedDigit()
         .multilineTextAlignment(alignment == .trailing ? .trailing : .leading)
         .fixedSize(horizontal: false, vertical: true)
@@ -279,33 +280,5 @@ struct OathRefinedTransactionIcon: View {
             .foregroundStyle(.primary)
             .frame(width: size, height: size)
             .background(Color(uiColor: OathSurfaceColors.field), in: Circle())
-    }
-}
-
-/// Conceal the existing value without changing its measured size or replacing it
-/// with placeholder text. This is the user-selected balance visibility setting,
-/// independent of the app's lock/background privacy protection.
-private struct OathBalanceConcealment: ViewModifier {
-    let hidden: Bool
-    let radius: CGFloat
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.oathLocalizer) private var strings
-    @ScaledMetric(relativeTo: .body) private var blurScale = 1.0
-
-    func body(content: Content) -> some View {
-        content
-            .blur(radius: hidden ? radius * blurScale : 0)
-            .animation(reduceMotion ? nil : .smooth(duration: 0.35), value: hidden)
-            // Blurring pixels alone must never reveal the amount to VoiceOver.
-            .accessibilityRepresentation {
-                if hidden { Text(strings.text(.balanceHidden)) }
-                else { content }
-            }
-    }
-}
-
-extension View {
-    func oathBalanceConcealed(_ hidden: Bool, radius: CGFloat = 10) -> some View {
-        modifier(OathBalanceConcealment(hidden: hidden, radius: radius))
     }
 }

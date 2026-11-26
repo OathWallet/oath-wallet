@@ -2,12 +2,16 @@ import OathDiagnostics
 import SwiftUI
 import Observation
 import OathDatabase
+import OathBrowser
 
 /// One committed SQL settings stream drives the entire scene, including the
 /// locked state. Changing a preference never recreates navigation or sheets.
 @MainActor @Observable final class OathAppSettings {
+    let browserEnabled: Bool
     private(set) var preference: OathLanguagePreference = .system
     private(set) var appearance: AppAppearance = .system
+    private(set) var browserSearchEngine: BrowserSearchEngine = .duckDuckGo
+    private(set) var browserShowsRecentSites = true
     private(set) var currency = Locale.autoupdatingCurrent.currency?.identifier ?? "USD"
     private(set) var appIcon = OathAppIcon.current
     private(set) var changingAppIcon = false
@@ -23,6 +27,11 @@ import OathDatabase
     @ObservationIgnored private var attemptedRetiredIconReset = false
     private var systemLanguages = Locale.preferredLanguages
     var language: OathLanguage { preference.resolve(preferredLanguages: systemLanguages) }
+
+    // Browser remains available to its isolated UI tests while its app entry points are hidden.
+    init(browserEnabled: Bool = true) {
+        self.browserEnabled = browserEnabled
+    }
 
     /// A one-shot, background SQL read before the scene's first frame. The
     /// ongoing observer starts after mounting and uses the same apply path.
@@ -50,6 +59,8 @@ import OathDatabase
 
     func select(_ value: OathLanguagePreference) { save("language", value: value.rawValue) }
     func selectAppearance(_ value: AppAppearance) { save(AppAppearance.settingKey, value: value.rawValue) }
+    func selectBrowserSearchEngine(_ value: BrowserSearchEngine) { save("browser.searchEngine", value: value.rawValue) }
+    func setBrowserShowsRecentSites(_ value: Bool) { save("browser.showRecentSites", value: value ? "true" : "false") }
     func selectCurrency(_ code: String) async throws {
         let database = try await OathDataEnvironment.shared.database()
         try await database.selectDisplayCurrency(code)
@@ -113,6 +124,8 @@ import OathDatabase
     private func apply(_ values: [String: String]) {
         preference = values["language"].flatMap(OathLanguagePreference.init(rawValue:)) ?? .system
         appearance = AppAppearance(settings: values)
+        browserSearchEngine = values["browser.searchEngine"].flatMap(BrowserSearchEngine.init(rawValue:)) ?? .duckDuckGo
+        browserShowsRecentSites = values["browser.showRecentSites"] != "false"
         currency = values["currency"] ?? Locale.autoupdatingCurrent.currency?.identifier ?? "USD"
         // The OS also persists this choice. Reconcile SQL after reinstall or an
         // interrupted write without triggering an icon-change prompt at launch.

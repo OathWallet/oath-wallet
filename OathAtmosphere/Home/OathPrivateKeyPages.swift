@@ -2,10 +2,66 @@ import SwiftUI
 import OathBitcoin
 import OathDatabase
 
+/// A single imported key needs authentication and acknowledgement, not a chain
+/// or derived-address picker. Keep every state in the same native sheet page.
+struct OathDirectPrivateKeyPage: View {
+    let model: OathPrivateKeyModel
+    let session: OathWalletSession
+    @Environment(\.oathLocalizer) private var strings
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var retry = 0
+
+    private var allowed: Bool {
+        session.isUnlocked && !session.changingWallet && !session.resetting &&
+            session.wallets.contains { $0.id == model.walletID && $0.kind == "privateKey" }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            switch model.phase {
+            case .passcode:
+                OathSecretPasscodePage(session: session, busy: model.busy,
+                    notice: Binding(get: { model.notice }, set: { model.notice = $0 }),
+                    title: .viewPrivateKey, identifier: "privateKey.passcode", onSubmit: model.submit)
+            case .warning:
+                OathPrivateKeyWarningPage(model: model, session: session)
+            case .revealed:
+                OathPrivateKeyValuePage(model: model, session: session)
+            case .chains, .authenticating:
+                VStack(spacing: 20) {
+                    if model.busy {
+                        ProgressView()
+                    } else {
+                        if let notice = model.notice {
+                            Text(strings.text(notice)).oathFont(.footnote).foregroundStyle(.red)
+                        }
+                        OathActionButton(title: strings.text(.tryAgain), appearance: .secondary) {
+                            guard allowed, scenePhase != .background else { return }
+                            retry += 1
+                        }
+                        .disabled(!allowed)
+                        .accessibilityIdentifier("privateKey.retry")
+                    }
+                }
+                .padding(24)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .task(id: "\(allowed)-\(retry)") {
+            guard allowed, scenePhase != .background else { return }
+            await model.selectImportedKey {
+                strings.format(.privateKeyAuthenticationReason, strings.invariant($0.displayName))
+            }
+        }
+        .onDisappear { model.returnToChains() }
+        .accessibilityIdentifier("privateKey.imported")
+    }
+}
+
 struct OathPrivateKeyChainsPage: View {
     let model: OathPrivateKeyModel
     let session: OathWalletSession
-    let onBrowse: () -> Void
+    let onBrowse: (OathPrivateKeyModel.BrowserDestination) -> Void
     @Environment(\.oathLocalizer) private var strings
     @Environment(\.scenePhase) private var scenePhase
 
@@ -19,7 +75,7 @@ struct OathPrivateKeyChainsPage: View {
                     OathButton {
                         guard scenePhase != .background, !model.busy else { return }
                         if UTXONetwork(rawValue: account.chain.id) != nil {
-                            model.browse(account); onBrowse()
+                            browse(account)
                         } else {
                             model.select(account, reason: strings.format(.privateKeyAuthenticationReason,
                                 strings.invariant(account.displayName)))
@@ -33,9 +89,15 @@ struct OathPrivateKeyChainsPage: View {
                     .oathInteractionBlocked(model.busy)
                     .accessibilityIdentifier("privateKey.chain.\(account.id)")
                 }
+                if model.busy { ProgressView().padding(24) }
                 if let notice = model.notice {
                     Text(strings.text(notice)).oathFont(.footnote).foregroundStyle(.red).padding(24)
-                    if !model.loaded {
+                    if let account = model.browserAccount {
+                        OathActionButton(title: strings.text(.tryAgain), appearance: .secondary,
+                                         isInteractionBlocked: model.busy) { browse(account) }
+                            .oathActionArea()
+                            .disabled(!session.isUnlocked)
+                    } else if !model.loaded {
                         OathActionButton(title: strings.text(.tryAgain), appearance: .secondary,
                                          isInteractionBlocked: model.busy) { Task { await model.load() } }
                             .oathActionArea()
@@ -50,11 +112,21 @@ struct OathPrivateKeyChainsPage: View {
         .oathErrorFeedback(model.notice)
         .accessibilityIdentifier("privateKey.chains")
     }
+
+    private func browse(_ account: OathPrivateKeyAccount) {
+        guard session.isUnlocked, scenePhase != .background else { return }
+        Task {
+            guard let destination = await model.prepareBrowser(account),
+                  session.isUnlocked, scenePhase != .background else { return }
+            onBrowse(destination)
+        }
+    }
 }
 
 struct OathPrivateKeyTypesPage: View {
     let model: OathPrivateKeyModel
-    let onAddresses: () -> Void
+    let session: OathWalletSession
+    let onAddresses: (OathPrivateKeyModel.BrowserDestination) -> Void
     @Environment(\.oathLocalizer) private var strings
     @Environment(\.scenePhase) private var scenePhase
     private var types: [BitcoinAddressType] {
@@ -70,24 +142,35 @@ struct OathPrivateKeyTypesPage: View {
                     OathButton {
                         guard scenePhase != .background, !model.busy,
                               let branch = model.branches.first(where: { $0.type == type }) else { return }
-                        model.chooseBranch(branch); onAddresses()
+                        browse(branch)
                     } label: {
                         OathSettingsRow(title: type.localizedTitle(using: strings))
                     }
                     .buttonStyle(OathSettingsRowButtonStyle())
+                    .disabled(!session.isUnlocked)
                     .accessibilityIdentifier("privateKey.type.\(type.rawValue)")
                 }
                 if model.busy { ProgressView().padding(24) }
                 if let notice = model.notice {
                     Text(strings.text(notice)).oathFont(.footnote).foregroundStyle(.red).padding(24)
                     OathActionButton(title: strings.text(.tryAgain), isInteractionBlocked: model.busy) {
-                        Task { await model.loadBranches() }
+                        if let branch = model.branch { browse(branch) }
+                        else { Task { await model.loadBranches() } }
                     }.oathActionArea()
                 }
             }.frame(maxWidth: 700).frame(maxWidth: .infinity)
         }
         .task { await model.loadBranches() }
         .accessibilityIdentifier("privateKey.types")
+    }
+
+    private func browse(_ branch: BitcoinBranch) {
+        guard session.isUnlocked, scenePhase != .background else { return }
+        Task {
+            guard let destination = await model.prepareAddresses(branch),
+                  session.isUnlocked, scenePhase != .background else { return }
+            onAddresses(destination)
+        }
     }
 }
 
@@ -312,6 +395,7 @@ struct OathPrivateKeyValuePage: View {
                         ToolbarItem(placement: .topBarTrailing) { OathCloseButton { showingQRCode = false } }
                     }
             }
+            .presentationBackground(Color(uiColor: OathSurfaceColors.canvas))
         }
         .onChange(of: session.isUnlocked) { _, unlocked in if !unlocked { showingQRCode = false } }
         .onChange(of: scenePhase) { _, phase in if phase == .background { showingQRCode = false } }

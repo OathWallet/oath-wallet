@@ -7,13 +7,15 @@ import UIKit
 public struct NativeInitialLock<Content: View>: UIViewControllerRepresentable {
     private let isLocked: Bool
     private let animatesUnlock: Bool
+    private let greetingBackground: UIColor?
     private let onUnlocked: () -> Void
     private let content: (Bool) -> Content
 
-    public init(isLocked: Bool, animatesUnlock: Bool = true, onUnlocked: @escaping () -> Void,
+    public init(isLocked: Bool, animatesUnlock: Bool = true, greetingBackground: UIColor? = nil, onUnlocked: @escaping () -> Void,
                 @ViewBuilder content: @escaping (_ isVisible: Bool) -> Content) {
         self.isLocked = isLocked
         self.animatesUnlock = animatesUnlock
+        self.greetingBackground = greetingBackground
         self.onUnlocked = onUnlocked
         self.content = content
     }
@@ -29,7 +31,7 @@ public struct NativeInitialLock<Content: View>: UIViewControllerRepresentable {
     }
 
     private func configure(_ controller: Controller, environment: EnvironmentValues) {
-        controller.configure(isLocked: isLocked, animatesUnlock: animatesUnlock, colorScheme: environment.colorScheme,
+        controller.configure(isLocked: isLocked, animatesUnlock: animatesUnlock, greetingBackground: greetingBackground, colorScheme: environment.colorScheme,
                              onUnlocked: onUnlocked) { visible in
             AnyView(content(visible)
                 .environment(\.locale, environment.locale)
@@ -53,7 +55,7 @@ public struct NativeInitialLock<Content: View>: UIViewControllerRepresentable {
         private var onUnlocked: (() -> Void)?
 
         // This inline cover shares SwiftUI's status-bar owner with Home. Let
-        // the root's native toolbar preference control contrast: forwarding
+        // the root's native appearance control contrast: forwarding
         // style to `lock` leaves its dark icons cached after the cover is
         // removed, until another navigation transition refreshes the owner.
         // The later modal lock captures appearance independently below.
@@ -78,14 +80,14 @@ public struct NativeInitialLock<Content: View>: UIViewControllerRepresentable {
             }
         }
 
-        fileprivate func configure(isLocked: Bool, animatesUnlock: Bool, colorScheme: ColorScheme,
+        fileprivate func configure(isLocked: Bool, animatesUnlock: Bool, greetingBackground: UIColor?, colorScheme: ColorScheme,
                                    onUnlocked: @escaping () -> Void,
                                    content: @escaping (Bool) -> AnyView) {
             requested = isLocked
             self.onUnlocked = onUnlocked
             makeContent = content
             loadViewIfNeeded()
-            lock.updateAppearance(colorScheme)
+            lock.updateAppearance(colorScheme, greetingBackground: greetingBackground)
             lock.update(content: content(lock.isVisible))
             if isLocked {
                 if lock.isRevealing { lock.cancelReveal() }
@@ -113,11 +115,14 @@ public struct NativeInitialLock<Content: View>: UIViewControllerRepresentable {
 public struct NativeLockPresentation<Content: View>: UIViewControllerRepresentable {
     private let isLocked: Bool
     private let animatesUnlock: Bool
+    private let greetingBackground: UIColor?
     private let content: (Bool) -> Content
 
-    public init(isLocked: Bool, animatesUnlock: Bool = true, @ViewBuilder content: @escaping (_ isVisible: Bool) -> Content) {
+    public init(isLocked: Bool, animatesUnlock: Bool = true, greetingBackground: UIColor? = nil,
+                @ViewBuilder content: @escaping (_ isVisible: Bool) -> Content) {
         self.isLocked = isLocked
         self.animatesUnlock = animatesUnlock
+        self.greetingBackground = greetingBackground
         self.content = content
     }
 
@@ -127,7 +132,8 @@ public struct NativeLockPresentation<Content: View>: UIViewControllerRepresentab
 
     public func updateUIViewController(_ controller: NativeLockAnchorController, context: Context) {
         let environment = context.environment
-        controller.configure(isLocked: isLocked, animatesUnlock: animatesUnlock, colorScheme: environment.colorScheme) { visible in
+        controller.configure(isLocked: isLocked, animatesUnlock: animatesUnlock, greetingBackground: greetingBackground,
+                             colorScheme: environment.colorScheme) { visible in
             // Transfer public presentation values individually. Copying the
             // entire environment also transfers SwiftUI's internal host state,
             // which can suppress the new host's accessibility at cold launch.
@@ -158,6 +164,7 @@ public final class NativeLockAnchorController: UIViewController {
     private var colorScheme: ColorScheme = .light
     private var requested = false
     private var animatesUnlock = true
+    private var greetingBackground: UIColor?
     private var retryScheduled = false
     private var presenting = false
     private var dismissing = false
@@ -181,13 +188,15 @@ public final class NativeLockAnchorController: UIViewController {
         reconcile()
     }
 
-    fileprivate func configure(isLocked: Bool, animatesUnlock: Bool, colorScheme: ColorScheme, content: @escaping (Bool) -> AnyView) {
+    fileprivate func configure(isLocked: Bool, animatesUnlock: Bool, greetingBackground: UIColor?, colorScheme: ColorScheme,
+                               content: @escaping (Bool) -> AnyView) {
         requested = isLocked
         self.animatesUnlock = animatesUnlock
+        self.greetingBackground = greetingBackground
         self.colorScheme = colorScheme
         makeContent = content
         if let controller = lockController {
-            controller.updateAppearance(colorScheme)
+            controller.updateAppearance(colorScheme, greetingBackground: greetingBackground)
             controller.update(content: content(controller.isVisible))
         }
         reconcile()
@@ -235,7 +244,8 @@ public final class NativeLockAnchorController: UIViewController {
                 return
             }
             window.endEditing(true)
-            let controller = NativeLockController(content: makeContent(false), colorScheme: colorScheme)
+            let controller = NativeLockController(content: makeContent(false), colorScheme: colorScheme,
+                                                  greetingBackground: greetingBackground)
             controller.visibilityChanged = { [weak self, weak controller] in
                 guard let self, let controller, self.lockController === controller,
                       let makeContent = self.makeContent else { return }
@@ -351,19 +361,20 @@ private final class NativeLockController: UIViewController {
     private var revealCompletion: (() -> Void)?
     private var revealState = LockRevealState()
     private var animatesReveal = true
+    private var greetingBackground: UIColor?
     private weak var protectedView: UIView?
     private var originalAccessibilityHidden = false
     private(set) var isVisible = false
     var isRevealing: Bool { revealState.isRevealing }
     var visibilityChanged: (() -> Void)?
 
-    init(content: AnyView, colorScheme: ColorScheme) {
+    init(content: AnyView, colorScheme: ColorScheme, greetingBackground: UIColor? = nil) {
         host = UIHostingController(rootView: content)
         super.init(nibName: nil, bundle: nil)
         modalPresentationStyle = .overFullScreen
         modalPresentationCapturesStatusBarAppearance = true
         isModalInPresentation = true
-        updateAppearance(colorScheme)
+        updateAppearance(colorScheme, greetingBackground: greetingBackground)
     }
 
     @available(*, unavailable)
@@ -425,12 +436,13 @@ private final class NativeLockController: UIViewController {
 
     func update(content: AnyView) { host.rootView = content }
 
-    func updateAppearance(_ colorScheme: ColorScheme) {
+    func updateAppearance(_ colorScheme: ColorScheme, greetingBackground: UIColor?) {
         let style: UIUserInterfaceStyle = colorScheme == .dark ? .dark : .light
-        guard overrideUserInterfaceStyle != style else { return }
+        guard overrideUserInterfaceStyle != style || self.greetingBackground != greetingBackground else { return }
         // Match the scene's effective preference, without changing the window
         // or the screen/sheet retained beneath this modal.
         overrideUserInterfaceStyle = style
+        self.greetingBackground = greetingBackground
         if isViewLoaded, !isRevealing { applyBackdrop() }
         setNeedsStatusBarAppearanceUpdate()
     }
@@ -454,6 +466,12 @@ private final class NativeLockController: UIViewController {
     }
 
     private func applyBackdrop() {
+        if let greetingBackground {
+            backdrop.effect = nil
+            backdrop.backgroundColor = greetingBackground
+            shade.backgroundColor = .clear
+            return
+        }
         let opaque = UIAccessibility.isReduceTransparencyEnabled
         backdrop.effect = opaque ? nil : UIBlurEffect(style: .systemUltraThinMaterial)
         backdrop.backgroundColor = opaque ? .systemBackground : .clear
@@ -512,7 +530,7 @@ private final class NativeLockController: UIViewController {
         // opaque background color instead of cutting straight to the screen.
         // Start changing the first visible frame. A longer ease-in made the
         // authenticated keypad appear stuck before the dissolve became clear.
-        let duration = UIAccessibility.isReduceMotionEnabled ? 0.12 : 0.18
+        let duration = UIAccessibility.isReduceMotionEnabled ? 0.12 : (greetingBackground == nil ? 0.18 : 0.26)
         let animator = UIViewPropertyAnimator(duration: duration, curve: .easeOut) {
             self.backdrop.effect = nil
             self.backdrop.backgroundColor = .clear

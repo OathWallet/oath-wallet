@@ -8,7 +8,7 @@ import SwiftUI
 struct OathWalletConnectPage: View {
     let session: OathWalletSession
     var walletID: String? = nil
-    private var visibleSessions: [Session] { service.sessions.filter { walletID == nil || service.walletID(for: $0.topic) == walletID } }
+    private var visibleSessions: [Session] { service.sessions(for: walletID) }
     @Environment(\.oathLocalizer) private var strings
     @Environment(\.scenePhase) private var scenePhase
     @State private var service = OathWalletConnectService.shared

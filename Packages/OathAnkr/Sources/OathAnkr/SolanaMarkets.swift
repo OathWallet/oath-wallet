@@ -56,6 +56,12 @@ public struct SolanaMarkets: Sendable {
         return data
     }
     public static func decodeCatalog(_ data: Data) throws -> [String: SolanaTokenInfo] {
+        try catalogCache.decode(data)
+    }
+
+    private static let catalogCache = SolanaCatalogMemo()
+
+    fileprivate static func decodeUncachedCatalog(_ data: Data) throws -> [String: SolanaTokenInfo] {
         let root = try JSONDecoder().decode(SolanaJSON.self, from: data)
         guard let tokens = root["tokens"].array, !tokens.isEmpty, tokens.count <= 100_000 else { throw SolanaError.malformed }
         var result: [String: SolanaTokenInfo] = [:]
@@ -140,6 +146,24 @@ public struct SolanaMarkets: Sendable {
               let result = Decimal(string: value, locale: Locale(identifier: "en_US_POSIX")),
               !result.isNaN, result > 0 else { return nil }
         return result
+    }
+}
+
+/// Inventory, enrichment and trust indexing consume the same catalog. Retain
+/// only one validated payload, and serialize the first decode so concurrent
+/// consumers do not each validate the entire mint directory. Changed bytes are
+/// always validated again; a failed decode cannot replace a valid entry.
+private final class SolanaCatalogMemo: @unchecked Sendable {
+    private let lock = NSLock()
+    private var cached: (data: Data, tokens: [String: SolanaTokenInfo])?
+
+    func decode(_ data: Data) throws -> [String: SolanaTokenInfo] {
+        try lock.withLock {
+            if let cached, cached.data == data { return cached.tokens }
+            let tokens = try SolanaMarkets.decodeUncachedCatalog(data)
+            cached = (data, tokens)
+            return tokens
+        }
     }
 }
 

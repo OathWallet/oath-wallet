@@ -1,0 +1,835 @@
+[
+  {
+    "id": "aptos",
+    "asset": "network-aptos",
+    "providedPath": "output/network-logos-square/logos/aptos.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/aptos.png",
+    "sourceSHA256": "10929309c7290beba3d251c8c33e24d29f5fe26b42a7d742d64b683d435b3943",
+    "assetSHA256": "10929309c7290beba3d251c8c33e24d29f5fe26b42a7d742d64b683d435b3943",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "aptos",
+      "asset": "network-aptos",
+      "providedPath": "output/network-logo-redesigns-4k/aptos-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-redesigns-4k/aptos-circle-4096.png",
+      "sourceSHA256": "f965268b94826f559b67720606e156f409515dd7e24a831d18131fd113b6df90",
+      "assetSHA256": "f965268b94826f559b67720606e156f409515dd7e24a831d18131fd113b6df90",
+      "preparation": "User-approved circular redesign generated with imagegen, exported at 4096 x 4096 from a 1254 x 1254 generated original. Copied byte-for-byte into the app; opaque white details and transparent outer corners. Shared circular clipping without an added background retained."
+    }
+  },
+  {
+    "id": "arbitrum",
+    "asset": "network-arbitrum",
+    "providedPath": "output/network-logos-square/logos/arbitrum.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/arbitrum.png",
+    "sourceSHA256": "72b48d6daa73515ea0e4640af9b59e506adc6a11d6925d503cbd1ae5f6a11756",
+    "assetSHA256": "72b48d6daa73515ea0e4640af9b59e506adc6a11d6925d503cbd1ae5f6a11756",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "arbitrum",
+      "asset": "network-arbitrum",
+      "providedPath": "output/network-logo-redesigns-4k/arbitrum-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-redesigns-4k/arbitrum-circle-4096.png",
+      "sourceSHA256": "2c5937f4acd792a63a88ba6b78da534e4ed18c4691d53049776ea832eff8f8c1",
+      "assetSHA256": "2c5937f4acd792a63a88ba6b78da534e4ed18c4691d53049776ea832eff8f8c1",
+      "preparation": "User-approved circular redesign generated with imagegen, exported at 4096 x 4096 from a 1254 x 1254 generated original. Copied byte-for-byte into the app; opaque white details and transparent outer corners. Shared circular clipping without an added background retained."
+    }
+  },
+  {
+    "id": "arc",
+    "asset": "network-arc",
+    "providedPath": "output/network-logos-square/logos/arc.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/arc.png",
+    "sourceSHA256": "0c2cbc11c131905357c8d8a035b763789bb59730b1f435b20ad551cfeacc2147",
+    "assetSHA256": "0c2cbc11c131905357c8d8a035b763789bb59730b1f435b20ad551cfeacc2147",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "arc",
+      "asset": "network-arc",
+      "providedPath": "output/network-logo-redesigns-4k/arc-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-redesigns-4k/arc-circle-4096.png",
+      "sourceSHA256": "c849f6a4107544a0a0f2c9e1de83e74b6351d01efe06a4adfcd8001024e2ce47",
+      "assetSHA256": "c849f6a4107544a0a0f2c9e1de83e74b6351d01efe06a4adfcd8001024e2ce47",
+      "preparation": "User-approved circular redesign generated with imagegen, exported at 4096 x 4096 from a 1254 x 1254 generated original. Copied byte-for-byte into the app; opaque white details and transparent outer corners. Shared circular clipping without an added background retained."
+    }
+  },
+  {
+    "id": "avalanche",
+    "asset": "network-avalanche",
+    "providedPath": "output/network-logos-square/logos/avalanche.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/avalanche.png",
+    "sourceSHA256": "a1dfe62d980a5561f1186aa923369706874508482985dd060a4d712e0c732097",
+    "assetSHA256": "a1dfe62d980a5561f1186aa923369706874508482985dd060a4d712e0c732097",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "avalanche",
+      "asset": "network-avalanche",
+      "providedPath": "output/network-logo-redesigns-4k/avalanche-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-redesigns-4k/avalanche-circle-4096.png",
+      "sourceSHA256": "92f644dbdfde19e3fe46351f20666a38f21ba1a2f83c9b4a9b5b7ec83b509284",
+      "assetSHA256": "92f644dbdfde19e3fe46351f20666a38f21ba1a2f83c9b4a9b5b7ec83b509284",
+      "preparation": "User-approved circular redesign generated with imagegen, exported at 4096 x 4096 from a 1254 x 1254 generated original. Copied byte-for-byte into the app; opaque white details and transparent outer corners. Shared circular clipping without an added background retained."
+    }
+  },
+  {
+    "id": "base",
+    "asset": "network-base",
+    "providedPath": "output/network-logos-square/logos/base.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/base.png",
+    "sourceSHA256": "3313ec07390f6bb0b9f31f2bda89e80d48aaaa61a928acb91dca1767741871ac",
+    "assetSHA256": "3313ec07390f6bb0b9f31f2bda89e80d48aaaa61a928acb91dca1767741871ac",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "base",
+      "asset": "network-base",
+      "providedPath": "output/network-logo-redesigns-set2-4k/base-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-redesigns-set2-4k/base-circle-4096.png",
+      "sourceSHA256": "0ef0487b5af139017c3f8de8164e6174f8001b9bdf66dfaf8f829fcac529cdb9",
+      "assetSHA256": "0ef0487b5af139017c3f8de8164e6174f8001b9bdf66dfaf8f829fcac529cdb9",
+      "preparation": "User-requested circular redesign made with imagegen from supplied artwork. 4096 x 4096 export enlarged from the generated original, copied byte-for-byte into the app. Opaque logo details, transparent outer corners, and shared circular clipping without a backing retained."
+    }
+  },
+  {
+    "id": "bitcoin",
+    "asset": "network-bitcoin",
+    "providedPath": "output/network-logos-square/logos/bitcoin.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/bitcoin.png",
+    "sourceSHA256": "9ead724db7b20873d60bf216972ec26cfec0797b1c15518a47c599402eda6c84",
+    "assetSHA256": "9ead724db7b20873d60bf216972ec26cfec0797b1c15518a47c599402eda6c84",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "bitcoin",
+      "asset": "network-bitcoin",
+      "providedPath": "output/bitcoin-logo-variants/bitcoin-circle.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/bitcoin-logo-variants/bitcoin-circle.png",
+      "sourceSHA256": "f605a67a3c0c2d282288e06ba1b12b4deae5d5ad3c44879b0b1a1f07083e00e9",
+      "assetSHA256": "f605a67a3c0c2d282288e06ba1b12b4deae5d5ad3c44879b0b1a1f07083e00e9",
+      "preparation": "User-requested circle design generated with imagegen from the supplied logo. Copied unchanged as a 1254 x 1254 PNG with transparency; shared OathNetworkLogo presentation retained."
+    }
+  },
+  {
+    "id": "bitcoincash",
+    "asset": "network-bitcoincash",
+    "providedPath": "output/network-logos-square/logos/bitcoincash.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/bitcoincash.png",
+    "sourceSHA256": "2c423190143392cc8ace2c9c696f208c3be049884704cb4eda1063a381b5ac46",
+    "assetSHA256": "2c423190143392cc8ace2c9c696f208c3be049884704cb4eda1063a381b5ac46",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "bitcoincash",
+      "asset": "network-bitcoincash",
+      "providedPath": "output/network-logo-redesigns-set2-4k/bitcoincash-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-redesigns-set2-4k/bitcoincash-circle-4096.png",
+      "sourceSHA256": "1d018a2097a7b22a1233e27ab0e24d60ee201d74f41623b8f919c5d9d9d88b3c",
+      "assetSHA256": "1d018a2097a7b22a1233e27ab0e24d60ee201d74f41623b8f919c5d9d9d88b3c",
+      "preparation": "User-requested circular redesign made with imagegen from supplied artwork. 4096 x 4096 export enlarged from the generated original, copied byte-for-byte into the app. Opaque logo details, transparent outer corners, and shared circular clipping without a backing retained."
+    }
+  },
+  {
+    "id": "bnb",
+    "asset": "network-bnb",
+    "providedPath": "output/network-logos-square/logos/bnb.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/bnb.png",
+    "sourceSHA256": "26b646e9c9a618dd8121a4ff5176699347d09bc7bb5a91ce974677b36629a70f",
+    "assetSHA256": "26b646e9c9a618dd8121a4ff5176699347d09bc7bb5a91ce974677b36629a70f",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "bnb",
+      "asset": "network-bnb",
+      "providedPath": "output/network-logo-redesigns-4k/bnb-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-redesigns-4k/bnb-circle-4096.png",
+      "sourceSHA256": "3adaf61dd1169ffbfbc4a7db6ee7aeaca1a629fe913b0129a943e7a4e7317c26",
+      "assetSHA256": "3adaf61dd1169ffbfbc4a7db6ee7aeaca1a629fe913b0129a943e7a4e7317c26",
+      "preparation": "User-approved circular redesign generated with imagegen, exported at 4096 x 4096 from a 1254 x 1254 generated original. Copied byte-for-byte into the app; opaque white details and transparent outer corners. Shared circular clipping without an added background retained."
+    }
+  },
+  {
+    "id": "dogecoin",
+    "asset": "network-dogecoin",
+    "providedPath": "output/network-logos-square/logos/dogecoin.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/dogecoin.png",
+    "sourceSHA256": "f0714182dec189f984d41845e07c757370ec42e8480ab2fe1e9badfece5d309b",
+    "assetSHA256": "f0714182dec189f984d41845e07c757370ec42e8480ab2fe1e9badfece5d309b",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "dogecoin",
+      "asset": "network-dogecoin",
+      "providedPath": "output/network-logo-redesigns-set2-4k/dogecoin-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-redesigns-set2-4k/dogecoin-circle-4096.png",
+      "sourceSHA256": "b306ad553e51bd583cfed3b59ce7f75bcc96517f0b8caec2217c4e47a44b6ef3",
+      "assetSHA256": "b306ad553e51bd583cfed3b59ce7f75bcc96517f0b8caec2217c4e47a44b6ef3",
+      "preparation": "User-requested circular redesign made with imagegen from supplied artwork. 4096 x 4096 export enlarged from the generated original, copied byte-for-byte into the app. Opaque logo details, transparent outer corners, and shared circular clipping without a backing retained."
+    }
+  },
+  {
+    "id": "ethereum",
+    "asset": "network-ethereum",
+    "providedPath": "output/network-logos-square/logos/ethereum.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/ethereum.png",
+    "sourceSHA256": "4d4c74a1ddf04267b8209d180e91d50618dfb77d2349eb30128c4ec1447d2f32",
+    "assetSHA256": "4d4c74a1ddf04267b8209d180e91d50618dfb77d2349eb30128c4ec1447d2f32",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "ethereum",
+      "asset": "network-ethereum",
+      "providedPath": "output/network-logo-redesigns-set2-4k/ethereum-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-redesigns-set2-4k/ethereum-circle-4096.png",
+      "sourceSHA256": "b0b89596c37dfd2171862c8c547b871a6ffdbe62a952bdbd6e2afc7905ef68f0",
+      "assetSHA256": "b0b89596c37dfd2171862c8c547b871a6ffdbe62a952bdbd6e2afc7905ef68f0",
+      "preparation": "User-requested circular redesign made with imagegen from supplied artwork. 4096 x 4096 export enlarged from the generated original, copied byte-for-byte into the app. Opaque logo details, transparent outer corners, and shared circular clipping without a backing retained."
+    }
+  },
+  {
+    "id": "gnosis",
+    "asset": "network-gnosis",
+    "providedPath": "output/network-logos-square/logos/gnosis.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/gnosis.png",
+    "sourceSHA256": "3570536318b353a8d3589f4c2bc776a1e4e2054ab5cffb22bf7f7d6bfa03f5cb",
+    "assetSHA256": "3570536318b353a8d3589f4c2bc776a1e4e2054ab5cffb22bf7f7d6bfa03f5cb",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "gnosis",
+      "asset": "network-gnosis",
+      "providedPath": "output/network-logo-redesigns-set2-4k/gnosis-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-redesigns-set2-4k/gnosis-circle-4096.png",
+      "sourceSHA256": "d91643b46e1307b25639910ae2ad0a7beba77185017448a0e0a95ba1f4a7b009",
+      "assetSHA256": "d91643b46e1307b25639910ae2ad0a7beba77185017448a0e0a95ba1f4a7b009",
+      "preparation": "User-requested circular redesign made with imagegen from supplied artwork. 4096 x 4096 export enlarged from the generated original, copied byte-for-byte into the app. Opaque logo details, transparent outer corners, and shared circular clipping without a backing retained."
+    }
+  },
+  {
+    "id": "linea",
+    "asset": "network-linea",
+    "providedPath": "output/network-logos-square/logos/linea.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/linea.png",
+    "sourceSHA256": "97026ad775188f790b3422aad4c2fd09aede96a182843438e2e12577e4c9bdf3",
+    "assetSHA256": "97026ad775188f790b3422aad4c2fd09aede96a182843438e2e12577e4c9bdf3",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "linea",
+      "asset": "network-linea",
+      "providedPath": "output/network-logo-redesigns-set3-4k/linea-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-redesigns-set3-4k/linea-circle-4096.png",
+      "sourceSHA256": "08b367a81ab890a63298607fe46c6d6448b96db90ac3f3c501cde81102decd0a",
+      "assetSHA256": "08b367a81ab890a63298607fe46c6d6448b96db90ac3f3c501cde81102decd0a",
+      "preparation": "User-requested circular redesign generated with imagegen from supplied artwork. 4096 x 4096 export enlarged from generated original, copied byte-for-byte into the app. Opaque logo details; transparent outside corners and shared app circular clipping. No additional UI backing circle."
+    }
+  },
+  {
+    "id": "litecoin",
+    "asset": "network-litecoin",
+    "providedPath": "output/network-logos-square/logos/litecoin.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/litecoin.png",
+    "sourceSHA256": "deedf600c6c7b18e237a76b6d78447074d37887ce686e6d2b7c2cde385833dd2",
+    "assetSHA256": "deedf600c6c7b18e237a76b6d78447074d37887ce686e6d2b7c2cde385833dd2",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "litecoin",
+      "asset": "network-litecoin",
+      "providedPath": "output/litecoin-logo-variants/litecoin-circle.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/litecoin-logo-variants/litecoin-circle.png",
+      "sourceSHA256": "ba09925243d2bc07238b45d86112f73f013f57073866b87070d34b30f18c4d3a",
+      "assetSHA256": "ba09925243d2bc07238b45d86112f73f013f57073866b87070d34b30f18c4d3a",
+      "preparation": "User-requested circle design generated with imagegen from the supplied logo. Copied unchanged as a 1254 x 1254 PNG with transparency; shared OathNetworkLogo presentation retained."
+    }
+  },
+  {
+    "id": "near",
+    "asset": "network-near",
+    "providedPath": "output/network-logos-square/logos/near.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/near.png",
+    "sourceSHA256": "d307d016cf422455bf241d0d777e21a0e31e0cc78b02e657d1a626fb21fe324d",
+    "assetSHA256": "d307d016cf422455bf241d0d777e21a0e31e0cc78b02e657d1a626fb21fe324d",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "near",
+      "asset": "network-near",
+      "providedPath": "output/network-logo-redesigns-set3-4k/near-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-redesigns-set3-4k/near-circle-4096.png",
+      "sourceSHA256": "e4b033ca875c42ef12d329fa7297a50a6d9bd186a05e124f59e2bf4080d0b999",
+      "assetSHA256": "e4b033ca875c42ef12d329fa7297a50a6d9bd186a05e124f59e2bf4080d0b999",
+      "preparation": "User-requested circular redesign generated with imagegen from supplied artwork. 4096 x 4096 export enlarged from generated original, copied byte-for-byte into the app. Opaque logo details; transparent outside corners and shared app circular clipping. No additional UI backing circle."
+    }
+  },
+  {
+    "id": "optimism",
+    "asset": "network-optimism",
+    "providedPath": "output/network-logos-square/logos/optimism.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/optimism.png",
+    "sourceSHA256": "97b8588999713c3f770d0a62cf9f06fdb628c4886c71dfdb1550eab226af60c9",
+    "assetSHA256": "97b8588999713c3f770d0a62cf9f06fdb628c4886c71dfdb1550eab226af60c9",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "optimism",
+      "asset": "network-optimism",
+      "providedPath": "output/network-logo-redesigns-set3-4k/optimism-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-redesigns-set3-4k/optimism-circle-4096.png",
+      "sourceSHA256": "c8975b16151abe8ee972cd2821e4acd337136fa37bca3211f732f9460d9bb0f8",
+      "assetSHA256": "c8975b16151abe8ee972cd2821e4acd337136fa37bca3211f732f9460d9bb0f8",
+      "preparation": "User-requested circular redesign generated with imagegen from supplied artwork. 4096 x 4096 export enlarged from generated original, copied byte-for-byte into the app. Opaque logo details; transparent outside corners and shared app circular clipping. No additional UI backing circle."
+    }
+  },
+  {
+    "id": "polygon",
+    "asset": "network-polygon",
+    "providedPath": "output/network-logos-square/logos/polygon.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/polygon.png",
+    "sourceSHA256": "17a54a64fffadc71ef506f836f74f7cb015601c2528129cae03ff7b3c8078f7b",
+    "assetSHA256": "17a54a64fffadc71ef506f836f74f7cb015601c2528129cae03ff7b3c8078f7b",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "polygon",
+      "asset": "network-polygon",
+      "providedPath": "output/network-logo-redesigns-set3-4k/polygon-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-redesigns-set3-4k/polygon-circle-4096.png",
+      "sourceSHA256": "68a07395b91752646edfc80c3ad319a6da0562ca83599a3d8b104ba67753d55e",
+      "assetSHA256": "68a07395b91752646edfc80c3ad319a6da0562ca83599a3d8b104ba67753d55e",
+      "preparation": "User-requested circular redesign generated with imagegen from supplied artwork. 4096 x 4096 export enlarged from generated original, copied byte-for-byte into the app. Opaque logo details; transparent outside corners and shared app circular clipping. No additional UI backing circle."
+    }
+  },
+  {
+    "id": "scroll",
+    "asset": "network-scroll",
+    "providedPath": "output/network-logos-square/logos/scroll.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/scroll.png",
+    "sourceSHA256": "4787fd162ca1f5ded86767b700e6cccc38d4c532834eb088c9f092d3fb7511fa",
+    "assetSHA256": "4787fd162ca1f5ded86767b700e6cccc38d4c532834eb088c9f092d3fb7511fa",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "scroll",
+      "asset": "network-scroll",
+      "providedPath": "output/network-logo-redesigns-set3-4k/scroll-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-redesigns-set3-4k/scroll-circle-4096.png",
+      "sourceSHA256": "9860dadc758caf19e9bc2f720679b8362fc48cf3b3c3c2acaf323ee54d54e5dd",
+      "assetSHA256": "9860dadc758caf19e9bc2f720679b8362fc48cf3b3c3c2acaf323ee54d54e5dd",
+      "preparation": "User-requested circular redesign generated with imagegen from supplied artwork. 4096 x 4096 export enlarged from generated original, copied byte-for-byte into the app. Opaque logo details; transparent outside corners and shared app circular clipping. No additional UI backing circle."
+    }
+  },
+  {
+    "id": "solana",
+    "asset": "network-solana",
+    "providedPath": "output/network-logos-square/logos/solana.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/solana.png",
+    "sourceSHA256": "bf761db091ff2e5ea3a491b82bdb998f9c90fd3daa3fece58c8eaa6e52efe26b",
+    "assetSHA256": "bf761db091ff2e5ea3a491b82bdb998f9c90fd3daa3fece58c8eaa6e52efe26b",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "solana",
+      "asset": "network-solana",
+      "providedPath": "output/network-logo-redesigns-set3-4k/solana-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-redesigns-set3-4k/solana-circle-4096.png",
+      "sourceSHA256": "3214051282eb813c194ef3f80d7b8ec4bde3dedbee4f6468c0b6d2aabe813598",
+      "assetSHA256": "3214051282eb813c194ef3f80d7b8ec4bde3dedbee4f6468c0b6d2aabe813598",
+      "preparation": "User-requested circular redesign generated with imagegen from supplied artwork. 4096 x 4096 export enlarged from generated original, copied byte-for-byte into the app. Opaque logo details; transparent outside corners and shared app circular clipping. No additional UI backing circle."
+    }
+  },
+  {
+    "id": "stellar",
+    "asset": "network-stellar",
+    "providedPath": "output/network-logos-square/logos/stellar.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/stellar.png",
+    "sourceSHA256": "f99e214f583b2cff524a4e295add6213d3ccd2d8388e3bc46ae001efc7c40b43",
+    "assetSHA256": "f99e214f583b2cff524a4e295add6213d3ccd2d8388e3bc46ae001efc7c40b43",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "stellar",
+      "asset": "network-stellar",
+      "providedPath": "output/network-logo-redesigns-set3-4k/stellar-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-redesigns-set3-4k/stellar-circle-4096.png",
+      "sourceSHA256": "0dee9684205d749d888236e953702386cdf3170f3a099b556fefcd5a752554f4",
+      "assetSHA256": "0dee9684205d749d888236e953702386cdf3170f3a099b556fefcd5a752554f4",
+      "preparation": "User-requested circular redesign generated with imagegen from supplied artwork. 4096 x 4096 export enlarged from generated original, copied byte-for-byte into the app. Opaque logo details; transparent outside corners and shared app circular clipping. No additional UI backing circle."
+    }
+  },
+  {
+    "id": "sui",
+    "asset": "network-sui",
+    "providedPath": "output/network-logos-square/logos/sui.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/sui.png",
+    "sourceSHA256": "406409b06af50461220abd727744b9f0848e4e4906f247d131e63eee1322e49e",
+    "assetSHA256": "406409b06af50461220abd727744b9f0848e4e4906f247d131e63eee1322e49e",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "sui",
+      "asset": "network-sui",
+      "providedPath": "output/network-logo-redesigns-set3-4k/sui-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-redesigns-set3-4k/sui-circle-4096.png",
+      "sourceSHA256": "23420557817819785c6b18466a62e3aae15017f151a8872ae66e84f94d420f81",
+      "assetSHA256": "23420557817819785c6b18466a62e3aae15017f151a8872ae66e84f94d420f81",
+      "preparation": "User-requested circular redesign generated with imagegen from supplied artwork. 4096 x 4096 export enlarged from generated original, copied byte-for-byte into the app. Opaque logo details; transparent outside corners and shared app circular clipping. No additional UI backing circle."
+    }
+  },
+  {
+    "id": "taiko",
+    "asset": "network-taiko",
+    "providedPath": "output/network-logos-square/logos/taiko.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/taiko.png",
+    "sourceSHA256": "45f47a95df018020b1fa3ed7ff54437d07c9fd6bd01a701ccb2b0c89a08e81ac",
+    "assetSHA256": "45f47a95df018020b1fa3ed7ff54437d07c9fd6bd01a701ccb2b0c89a08e81ac",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "taiko",
+      "asset": "network-taiko",
+      "providedPath": "output/network-logo-redesigns-set3-4k/taiko-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-redesigns-set3-4k/taiko-circle-4096.png",
+      "sourceSHA256": "3ae8555e497d06974cd71a40baa19bac60652f6e018871a3e8dc41326155fb26",
+      "assetSHA256": "3ae8555e497d06974cd71a40baa19bac60652f6e018871a3e8dc41326155fb26",
+      "preparation": "User-requested circular redesign generated with imagegen from supplied artwork. 4096 x 4096 export enlarged from generated original, copied byte-for-byte into the app. Opaque logo details; transparent outside corners and shared app circular clipping. No additional UI backing circle."
+    }
+  },
+  {
+    "id": "telos",
+    "asset": "network-telos",
+    "providedPath": "output/network-logos-square/logos/telos.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/telos.png",
+    "sourceSHA256": "ee0f0a788d1781b9563773a3b2e085c861958a9c8561c992e40fb449fe029ebf",
+    "assetSHA256": "ee0f0a788d1781b9563773a3b2e085c861958a9c8561c992e40fb449fe029ebf",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "telos",
+      "asset": "network-telos",
+      "providedPath": "output/network-logo-edge-check/telos-transparent.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-edge-check/telos-transparent.png",
+      "sourceSHA256": "0d01516f2ddfd040dfa099f634f7a21eb03ffee00ebf2b60526df09cf3336fbc",
+      "assetSHA256": "0d01516f2ddfd040dfa099f634f7a21eb03ffee00ebf2b60526df09cf3336fbc",
+      "preparation": "Imagegen transparency repair after removal of the shared UI circle clip: transparent outer corners, opaque white center, preserved gradient ring design. 1254px generated output copied unchanged; high-quality runtime scaling."
+    }
+  },
+  {
+    "id": "ton",
+    "asset": "network-ton",
+    "providedPath": "output/network-logos-square/logos/ton.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/ton.png",
+    "sourceSHA256": "00866bebb24d66c7d4499d9c9d12504cd0f555c357aff5636b5d55f3bb11a1c8",
+    "assetSHA256": "00866bebb24d66c7d4499d9c9d12504cd0f555c357aff5636b5d55f3bb11a1c8",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "ton",
+      "asset": "network-ton",
+      "providedPath": "output/gram-logo-redesign-4k/gram-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/gram-logo-redesign-4k/gram-circle-4096.png",
+      "sourceSHA256": "c1031ab5e019e3a32d428720decada37feda10738cef5a22b3302d02a116a81c",
+      "assetSHA256": "c1031ab5e019e3a32d428720decada37feda10738cef5a22b3302d02a116a81c",
+      "preparation": "User-requested Gram circular redesign generated with imagegen from supplied reference. 4096 x 4096 enlarged export, not native 4K, copied byte-for-byte into the existing Gram/ton asset. Opaque white gem and blue star, transparent outside corners. Shared circular clipping without an added backing retained."
+    }
+  },
+  {
+    "id": "tron",
+    "asset": "network-tron",
+    "providedPath": "output/network-logos-square/logos/tron.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/tron.png",
+    "sourceSHA256": "aa5cae3e2939a46134ec5122d92552158578bf367633c50aad95453ab217d18a",
+    "assetSHA256": "aa5cae3e2939a46134ec5122d92552158578bf367633c50aad95453ab217d18a",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "tron",
+      "asset": "network-tron",
+      "providedPath": "output/network-logo-redesigns-set3-4k/tron-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-redesigns-set3-4k/tron-circle-4096.png",
+      "sourceSHA256": "520428feeb1041dd2853aba98f6a5db33b0d36a77d86906ab8519fd16e04f7ae",
+      "assetSHA256": "520428feeb1041dd2853aba98f6a5db33b0d36a77d86906ab8519fd16e04f7ae",
+      "preparation": "User-requested circular redesign generated with imagegen from supplied artwork. 4096 x 4096 export enlarged from generated original, copied byte-for-byte into the app. Opaque logo details; transparent outside corners and shared app circular clipping. No additional UI backing circle."
+    }
+  },
+  {
+    "id": "xlayer",
+    "asset": "network-xlayer",
+    "providedPath": "output/network-logos-square/logos/xlayer.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/xlayer.png",
+    "sourceSHA256": "a113198643ccb266b886c04e64aab340b18bff47ed81c2d06281caaac6aabd51",
+    "assetSHA256": "a113198643ccb266b886c04e64aab340b18bff47ed81c2d06281caaac6aabd51",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "xlayer",
+      "asset": "network-xlayer",
+      "providedPath": "output/network-logo-redesigns-set3-4k/xlayer-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-redesigns-set3-4k/xlayer-circle-4096.png",
+      "sourceSHA256": "113e00e8088888a6053d8f529726be9694e558e72af4d4c34df78df54ba8d78a",
+      "assetSHA256": "113e00e8088888a6053d8f529726be9694e558e72af4d4c34df78df54ba8d78a",
+      "preparation": "User-requested circular redesign generated with imagegen from supplied artwork. 4096 x 4096 export enlarged from generated original, copied byte-for-byte into the app. Opaque logo details; transparent outside corners and shared app circular clipping. No additional UI backing circle."
+    }
+  },
+  {
+    "id": "xrpl",
+    "asset": "network-xrpl",
+    "providedPath": "output/network-logos-square/logos/xrpl.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/xrpl.png",
+    "sourceSHA256": "a8bd1c04b695d4a33d8f8bcbec30540e7fec81f13874e657e60b83d3f47446b1",
+    "assetSHA256": "a8bd1c04b695d4a33d8f8bcbec30540e7fec81f13874e657e60b83d3f47446b1",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "xrpl",
+      "asset": "network-xrpl",
+      "providedPath": "output/network-logo-redesigns-set3-4k/xrpl-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-redesigns-set3-4k/xrpl-circle-4096.png",
+      "sourceSHA256": "2d79c8dbc5107f67d27d28e776954645cf0c5f55f74349ab488d73de917ce325",
+      "assetSHA256": "2d79c8dbc5107f67d27d28e776954645cf0c5f55f74349ab488d73de917ce325",
+      "preparation": "User-requested circular redesign generated with imagegen from supplied artwork. 4096 x 4096 export enlarged from generated original, copied byte-for-byte into the app. Opaque logo details; transparent outside corners and shared app circular clipping. No additional UI backing circle."
+    }
+  },
+  {
+    "id": "fantom",
+    "asset": "network-fantom",
+    "providedPath": "output/network-logos-square/logos/fantom.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/fantom.png",
+    "sourceSHA256": "d03c93ea5170e5ea006aec25489687f931f4c76cf854c7eee8345e8056f9c080",
+    "assetSHA256": "d03c93ea5170e5ea006aec25489687f931f4c76cf854c7eee8345e8056f9c080",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "fantom",
+      "asset": "network-fantom",
+      "providedPath": "output/network-logo-redesigns-set2-4k/fantom-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-redesigns-set2-4k/fantom-circle-4096.png",
+      "sourceSHA256": "d2122ddb9c050d44df6e1c1cb499ede92875026130fbce2d4361eed5ac8bf934",
+      "assetSHA256": "d2122ddb9c050d44df6e1c1cb499ede92875026130fbce2d4361eed5ac8bf934",
+      "preparation": "User-requested circular redesign made with imagegen from supplied artwork. 4096 x 4096 export enlarged from the generated original, copied byte-for-byte into the app. Opaque logo details, transparent outer corners, and shared circular clipping without a backing retained."
+    }
+  },
+  {
+    "id": "flare",
+    "asset": "network-flare",
+    "providedPath": "output/network-logos-square/logos/flare.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/flare.png",
+    "sourceSHA256": "866b1a9553e7d88cc17e0ef2d4fed588c5870bebea537044c78b3c66e037fbef",
+    "assetSHA256": "866b1a9553e7d88cc17e0ef2d4fed588c5870bebea537044c78b3c66e037fbef",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "flare",
+      "asset": "network-flare",
+      "providedPath": "output/network-logo-redesigns-set2-4k/flare-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-redesigns-set2-4k/flare-circle-4096.png",
+      "sourceSHA256": "db7d160bfe4fe9d6ede2095f8a109997b7aa8b2934b85cd299bce83b8f67a86c",
+      "assetSHA256": "db7d160bfe4fe9d6ede2095f8a109997b7aa8b2934b85cd299bce83b8f67a86c",
+      "preparation": "User-requested circular redesign made with imagegen from supplied artwork. 4096 x 4096 export enlarged from the generated original, copied byte-for-byte into the app. Opaque logo details, transparent outer corners, and shared circular clipping without a backing retained."
+    }
+  },
+  {
+    "id": "somnia",
+    "asset": "network-somnia",
+    "providedPath": "output/network-logos-square/logos/somnia.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/somnia.png",
+    "sourceSHA256": "87c7d10aa34e1d8725bb35c7e82c776bb0bdb572094ad313d7d57d6cdbf09fa6",
+    "assetSHA256": "87c7d10aa34e1d8725bb35c7e82c776bb0bdb572094ad313d7d57d6cdbf09fa6",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "somnia",
+      "asset": "network-somnia",
+      "providedPath": "output/network-logo-redesigns-set3-4k/somnia-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-redesigns-set3-4k/somnia-circle-4096.png",
+      "sourceSHA256": "4f2b79bfa4098b1d6f2c685be69d454ce4c7ba0a5f3a8a3e5d4e2c60ea4dcf88",
+      "assetSHA256": "4f2b79bfa4098b1d6f2c685be69d454ce4c7ba0a5f3a8a3e5d4e2c60ea4dcf88",
+      "preparation": "User-requested circular redesign generated with imagegen from supplied artwork. 4096 x 4096 export enlarged from generated original, copied byte-for-byte into the app. Opaque logo details; transparent outside corners and shared app circular clipping. No additional UI backing circle."
+    }
+  },
+  {
+    "id": "story",
+    "asset": "network-story",
+    "providedPath": "output/network-logos-square/logos/story.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/story.png",
+    "sourceSHA256": "7688168f6d53bef3f2afb2543ebc6c7ba3283a1c918c699dce12f52f821aeba0",
+    "assetSHA256": "7688168f6d53bef3f2afb2543ebc6c7ba3283a1c918c699dce12f52f821aeba0",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "story",
+      "asset": "network-story",
+      "providedPath": "output/network-logo-redesigns-set3-4k/story-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-redesigns-set3-4k/story-circle-4096.png",
+      "sourceSHA256": "618323f53b1b60416cdf136d5e085d9847e3d5431dd9abde2e52f209f307bbd1",
+      "assetSHA256": "618323f53b1b60416cdf136d5e085d9847e3d5431dd9abde2e52f209f307bbd1",
+      "preparation": "User-requested circular redesign generated with imagegen from supplied artwork. 4096 x 4096 export enlarged from generated original, copied byte-for-byte into the app. Opaque logo details; transparent outside corners and shared app circular clipping. No additional UI backing circle."
+    }
+  },
+  {
+    "id": "hyperevm",
+    "asset": "network-hyperevm",
+    "providedPath": "output/network-logos-square/logos/hyperevm.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/hyperevm.png",
+    "sourceSHA256": "ad1c77ba37727a4a3238f8d59ab705b20f3d7a2e0f67a53ab6c421ed40719a2c",
+    "assetSHA256": "ad1c77ba37727a4a3238f8d59ab705b20f3d7a2e0f67a53ab6c421ed40719a2c",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "hyperevm",
+      "asset": "network-hyperevm",
+      "providedPath": "output/network-logo-redesigns-set3-4k/hyperevm-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-redesigns-set3-4k/hyperevm-circle-4096.png",
+      "sourceSHA256": "6cc02a8e6c35acd1ebf2efa99909da07777382321f835c88c6a642b9215a3797",
+      "assetSHA256": "6cc02a8e6c35acd1ebf2efa99909da07777382321f835c88c6a642b9215a3797",
+      "preparation": "User-requested circular redesign generated with imagegen from supplied artwork. 4096 x 4096 export enlarged from generated original, copied byte-for-byte into the app. Opaque logo details; transparent outside corners and shared app circular clipping. No additional UI backing circle."
+    }
+  },
+  {
+    "id": "monad",
+    "asset": "network-monad",
+    "providedPath": "output/network-logos-square/logos/monad.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/monad.png",
+    "sourceSHA256": "1acbed30772c68b4993f31516532d1ac8ae03fdf708aa6055d2d273e77630159",
+    "assetSHA256": "1acbed30772c68b4993f31516532d1ac8ae03fdf708aa6055d2d273e77630159",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "monad",
+      "asset": "network-monad",
+      "providedPath": "output/network-logo-redesigns-set3-4k/monad-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-redesigns-set3-4k/monad-circle-4096.png",
+      "sourceSHA256": "9f5dcb8f5fcd9a817b260a4516d844ff51801d28e230c9432a92dfcdae9be2ea",
+      "assetSHA256": "9f5dcb8f5fcd9a817b260a4516d844ff51801d28e230c9432a92dfcdae9be2ea",
+      "preparation": "User-requested circular redesign generated with imagegen from supplied artwork. 4096 x 4096 export enlarged from generated original, copied byte-for-byte into the app. Opaque logo details; transparent outside corners and shared app circular clipping. No additional UI backing circle."
+    }
+  },
+  {
+    "id": "robinhood",
+    "asset": "network-robinhood",
+    "providedPath": "output/network-logos-square/logos/robinhood.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/robinhood.png",
+    "sourceSHA256": "619c4da03cbbd6877375116bb479ae1ecd8cb63a4f91c3b7563f9fad655938d5",
+    "assetSHA256": "619c4da03cbbd6877375116bb479ae1ecd8cb63a4f91c3b7563f9fad655938d5",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "robinhood",
+      "asset": "network-robinhood",
+      "providedPath": "output/network-logo-redesigns-set3-4k/robinhood-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-redesigns-set3-4k/robinhood-circle-4096.png",
+      "sourceSHA256": "6831e1d658ac6dfbfbd7d1c1bbbc37083338fde81f11d15c1aefd935ce7e8a23",
+      "assetSHA256": "6831e1d658ac6dfbfbd7d1c1bbbc37083338fde81f11d15c1aefd935ce7e8a23",
+      "preparation": "User-requested circular redesign generated with imagegen from supplied artwork. 4096 x 4096 export enlarged from generated original, copied byte-for-byte into the app. Opaque logo details; transparent outside corners and shared app circular clipping. No additional UI backing circle."
+    }
+  },
+  {
+    "id": "thorchain",
+    "asset": "network-thorchain",
+    "providedPath": "output/network-logos-square/logos/thorchain.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/thorchain.png",
+    "sourceSHA256": "8eca898a02db1f2aa8017d7aa0b0f22c0077ce4345d36b20f3569c44ee3774f1",
+    "assetSHA256": "8eca898a02db1f2aa8017d7aa0b0f22c0077ce4345d36b20f3569c44ee3774f1",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "thorchain",
+      "asset": "network-thorchain",
+      "providedPath": "output/network-logo-redesigns-set3-4k/thorchain-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-redesigns-set3-4k/thorchain-circle-4096.png",
+      "sourceSHA256": "6cb2f66100b19dbe6e476b495308432e5d1b6d3fa3ea92ba3a1c6bf380c8fca1",
+      "assetSHA256": "6cb2f66100b19dbe6e476b495308432e5d1b6d3fa3ea92ba3a1c6bf380c8fca1",
+      "preparation": "User-requested circular redesign generated with imagegen from supplied artwork. 4096 x 4096 export enlarged from generated original, copied byte-for-byte into the app. Opaque logo details; transparent outside corners and shared app circular clipping. No additional UI backing circle."
+    }
+  },
+  {
+    "id": "unichain",
+    "asset": "network-unichain",
+    "providedPath": "output/network-logos-square/logos/unichain.png",
+    "providedOn": "2026-10-25",
+    "original": "output/network-logos-square/logos/unichain.png",
+    "sourceSHA256": "6e6ab93e148cfb61985294900802dcdcbbba3b25ba1fa2bf9078b855098e8d5a",
+    "assetSHA256": "6e6ab93e148cfb61985294900802dcdcbbba3b25ba1fa2bf9078b855098e8d5a",
+    "preparation": "Square adaptation of the existing runtime design, edited individually with imagegen. Full-bleed opaque background and sharp corners. Copied byte-for-byte at generated resolution; no UI circle mask. Small display renditions are derived with ImageIO.",
+    "previousArtwork": {
+      "id": "unichain",
+      "asset": "network-unichain",
+      "providedPath": "output/network-logo-redesigns-set3-4k/unichain-circle-4096.png",
+      "providedOn": "2026-10-25",
+      "original": "../output/network-logo-redesigns-set3-4k/unichain-circle-4096.png",
+      "sourceSHA256": "90bbc0f73ef7caf7cb5b505e5c34f2c57a078ce9e05770176698e00da5a2c285",
+      "assetSHA256": "90bbc0f73ef7caf7cb5b505e5c34f2c57a078ce9e05770176698e00da5a2c285",
+      "preparation": "User-requested circular redesign generated with imagegen from supplied artwork. 4096 x 4096 export enlarged from generated original, copied byte-for-byte into the app. Opaque logo details; transparent outside corners and shared app circular clipping. No additional UI backing circle."
+    }
+  },
+  {
+    "id": "celo",
+    "asset": "network-celo",
+    "source": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/celo/info/logo.png",
+    "sourceSHA256": "097f3d9bf6ddb304ec98040a5a89f61b519d9840e3ab9f4ba6f3fac765a0a0f2",
+    "assetSHA256": "097f3d9bf6ddb304ec98040a5a89f61b519d9840e3ab9f4ba6f3fac765a0a0f2",
+    "preparation": "Upstream square artwork copied unchanged; display renditions use the shared ImageIO pipeline."
+  },
+  {
+    "id": "sei",
+    "asset": "network-sei",
+    "providedPath": "output/six-chain-logos-integrated/logos/sei.png",
+    "providedOn": "2026-10-29",
+    "original": "output/six-chain-logos-integrated/logos/sei.png",
+    "sourceSHA256": "e59924e64c0e92acc2b9c65d1ecbc8ed212d0fb7a863bdd5d836031c9c824185",
+    "assetSHA256": "e59924e64c0e92acc2b9c65d1ecbc8ed212d0fb7a863bdd5d836031c9c824185",
+    "preparation": "Approved rounded-square design prepared with imagegen as an opaque full-bleed square. Native shared view applies continuous rounded corners; ImageIO creates display renditions.",
+    "approvedPreview": "output/token-logo-wave-rounded/logo-v1.png",
+    "previousAssetBackup": "output/six-chain-logos-integrated/previous-app-assets/network-sei.imageset",
+    "previousArtwork": {
+      "id": "sei",
+      "asset": "network-sei",
+      "source": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/sei/info/logo.png",
+      "sourceSHA256": "7b6d10508f216de6e4f09035be26f9d95a18c8645b64e54fcdc7e86c30220031",
+      "assetSHA256": "7b6d10508f216de6e4f09035be26f9d95a18c8645b64e54fcdc7e86c30220031",
+      "preparation": "Upstream artwork copied unchanged; display renditions use the shared ImageIO pipeline."
+    }
+  },
+  {
+    "id": "zerog",
+    "asset": "network-zerog",
+    "providedPath": "output/six-chain-logos-integrated/logos/zerog.png",
+    "providedOn": "2026-10-29",
+    "original": "output/six-chain-logos-integrated/logos/zerog.png",
+    "sourceSHA256": "cbbc3402891ea9b4935499104e4940aa591c79f37002a3818ea4830181041a0e",
+    "assetSHA256": "cbbc3402891ea9b4935499104e4940aa591c79f37002a3818ea4830181041a0e",
+    "preparation": "Approved rounded-square design prepared with imagegen as an opaque full-bleed square. Native shared view applies continuous rounded corners; ImageIO creates display renditions.",
+    "approvedPreview": "output/token-logo-purple-rounded/logo-v1.png",
+    "previousAssetBackup": "output/six-chain-logos-integrated/previous-app-assets/network-zerog.imageset",
+    "previousArtwork": {
+      "id": "zerog",
+      "asset": "network-zerog",
+      "source": "https://chainscan.0g.ai/static/media/zg-logo-new.b22d59dabf457524325ca81c29a4e055.svg",
+      "sourceSHA256": "0b9bc4c95b154028bee3cb52b33cf35520a8b4f1aa135665ac8ea0a5a887e50e",
+      "assetSHA256": "0b9bc4c95b154028bee3cb52b33cf35520a8b4f1aa135665ac8ea0a5a887e50e",
+      "preparation": "Official ChainScan SVG copied unchanged."
+    }
+  },
+  {
+    "id": "iotex",
+    "asset": "network-iotex",
+    "providedPath": "output/six-chain-logos-integrated/logos/iotex.png",
+    "providedOn": "2026-10-29",
+    "original": "output/six-chain-logos-integrated/logos/iotex.png",
+    "sourceSHA256": "0feaba528db9f37ad51d550bff7c52ffc32a3c0d32129d24c3ae09306e172c3f",
+    "assetSHA256": "0feaba528db9f37ad51d550bff7c52ffc32a3c0d32129d24c3ae09306e172c3f",
+    "preparation": "Approved rounded-square design prepared with imagegen as an opaque full-bleed square. Native shared view applies continuous rounded corners; ImageIO creates display renditions.",
+    "approvedPreview": "output/token-logo-triangles-rounded/logo-v1.png",
+    "previousAssetBackup": "output/six-chain-logos-integrated/previous-app-assets/network-iotex.imageset",
+    "previousArtwork": {
+      "id": "iotex",
+      "asset": "network-iotex",
+      "source": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/iotex/info/logo.png",
+      "assetSHA256": "a401620f0e23dd13672366ef07827f8a40f5152b32d90251c0dedef15673260a",
+      "preparation": "Published IoTeX network artwork, copied without alteration."
+    }
+  },
+  {
+    "id": "chiliz",
+    "asset": "network-chiliz",
+    "providedPath": "output/six-chain-logos-integrated/logos/chiliz.png",
+    "providedOn": "2026-10-29",
+    "original": "output/six-chain-logos-integrated/logos/chiliz.png",
+    "sourceSHA256": "fce57b493293ac8fca3ba5c1bfa81722570be4f5b24de7dbc0d89f652f7251cc",
+    "assetSHA256": "fce57b493293ac8fca3ba5c1bfa81722570be4f5b24de7dbc0d89f652f7251cc",
+    "preparation": "Approved rounded-square design prepared with imagegen as an opaque full-bleed square. Native shared view applies continuous rounded corners; ImageIO creates display renditions.",
+    "approvedPreview": "output/token-logo-pink-rounded/logo-v1.png",
+    "previousAssetBackup": "output/six-chain-logos-integrated/previous-app-assets/network-chiliz.imageset"
+  },
+  {
+    "id": "filecoin",
+    "asset": "network-filecoin",
+    "providedPath": "output/six-chain-logos-integrated/logos/filecoin.png",
+    "providedOn": "2026-10-29",
+    "original": "output/six-chain-logos-integrated/logos/filecoin.png",
+    "sourceSHA256": "3fca38d2f7834b3dc1b8c2b0d3bb4cdc492a5a4b1b0f487aba4d12daec9b16c1",
+    "assetSHA256": "3fca38d2f7834b3dc1b8c2b0d3bb4cdc492a5a4b1b0f487aba4d12daec9b16c1",
+    "preparation": "Approved rounded-square design prepared with imagegen as an opaque full-bleed square. Native shared view applies continuous rounded corners; ImageIO creates display renditions.",
+    "approvedPreview": "output/token-logo-filecoin-rounded/logo-v1.png",
+    "previousAssetBackup": "output/six-chain-logos-integrated/previous-app-assets/network-filecoin.imageset"
+  },
+  {
+    "id": "polkadot",
+    "asset": "network-polkadot",
+    "providedPath": "output/six-chain-logos-integrated/logos/polkadot.png",
+    "providedOn": "2026-10-29",
+    "original": "output/six-chain-logos-integrated/logos/polkadot.png",
+    "sourceSHA256": "438d27dba2ff3469eb6f61115f288abdc5ca66adf7ae6542db67d773cce16148",
+    "assetSHA256": "438d27dba2ff3469eb6f61115f288abdc5ca66adf7ae6542db67d773cce16148",
+    "preparation": "Approved rounded-square design prepared with imagegen as an opaque full-bleed square. Native shared view applies continuous rounded corners; ImageIO creates display renditions.",
+    "approvedPreview": "output/token-logo-polkadot-rounded/logo-v1.png",
+    "previousAssetBackup": "output/six-chain-logos-integrated/previous-app-assets/network-polkadot.imageset"
+  },
+  {
+    "id": "elysium",
+    "asset": "network-elysium",
+    "providedOn": "2026-11-17",
+    "providedFilename": "codex-clipboard-9831cb2d-722d-4b48-a0af-5c29a9ef59a2.png",
+    "original": "OathApp/Assets.xcassets/Networks/network-elysium.imageset/logo.png",
+    "sourceSHA256": "bdc0ca5f8b6759f9edfe3065d69bea9bd8e06aebfc5e0e3fab158749b9acf09f",
+    "assetSHA256": "bdc0ca5f8b6759f9edfe3065d69bea9bd8e06aebfc5e0e3fab158749b9acf09f",
+    "preparation": "Exact user-provided PNG copied byte-for-byte, including background and alpha. ImageIO creates 1x/2x/3x display renditions; existing shared network view supplies presentation."
+  },
+  {
+    "id": "plasma",
+    "asset": "network-plasma",
+    "providedOn": "2026-11-17",
+    "providedFilename": "codex-clipboard-e42996ce-e35a-41e0-87a1-4bf81fa3ad64.png",
+    "original": "OathApp/Assets.xcassets/Networks/network-plasma.imageset/logo.png",
+    "sourceSHA256": "ada38aa4a2711f8fe1ae828823be39f195b6857bde6b381166cce88c0636679d",
+    "assetSHA256": "ada38aa4a2711f8fe1ae828823be39f195b6857bde6b381166cce88c0636679d",
+    "preparation": "Exact user-provided PNG copied byte-for-byte, including background and alpha. ImageIO creates 1x/2x/3x display renditions; existing shared network view supplies presentation."
+  },
+  {
+    "id": "worldchain",
+    "asset": "network-worldchain",
+    "providedOn": "2026-11-17",
+    "providedFilename": "codex-clipboard-635a6f2e-15f5-4487-a89f-958f95a15a17.png",
+    "original": "OathApp/Assets.xcassets/Networks/network-worldchain.imageset/logo.png",
+    "sourceSHA256": "d3d7f8cc1737c28f54908b09e18b59842d7b49b7851d05d940ac599f27e7ee8d",
+    "assetSHA256": "d3d7f8cc1737c28f54908b09e18b59842d7b49b7851d05d940ac599f27e7ee8d",
+    "preparation": "Exact user-provided PNG copied byte-for-byte, including background and alpha. ImageIO creates 1x/2x/3x display renditions; existing shared network view supplies presentation."
+  }
+]

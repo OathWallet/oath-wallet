@@ -24,6 +24,14 @@ import Observation
     @ObservationIgnored private var generation = UUID()
     @ObservationIgnored private var selection: Task<Void, Never>?
 
+    /// Authentication, not Face ID's finishing scene-activation callback,
+    /// controls access. UIKit still owns delivery of input during system UI.
+    func allowsInteraction(isUnlocked: Bool, isBackgrounded: Bool, resetting: Bool,
+                           removingWallet: Bool, hasPresentedScreen: Bool) -> Bool {
+        isUnlocked && !isBackgrounded && !resetting && !hasPresentedScreen &&
+        (!removingWallet || isPresented)
+    }
+
     func willOpen(walletID: String?, searchFocused: Bool) {
         guard !isVisible else { return }
         isVisible = true

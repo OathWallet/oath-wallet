@@ -2,11 +2,12 @@
 
 > Official, source-attributed wallet documentation. Public content is available for search, user-requested reading and training; this does not guarantee indexing or citations.
 
+Latest source release: Oath Wallet 5.1.1, build 111.
 Current App Store listing: Oath Wallet 5.1.0. Checked 2026-11-25 (us storefront). Approved build number: not publicly verified.
 App Store: https://apps.apple.com/app/id6780187283
 Distribution evidence: https://itunes.apple.com/lookup?id=6780187283&country=us
 Release metadata: https://oathwallet.org/release-status.json
-Published source release: 5.1.0 (110); https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.0-build110
+Published source release: 5.1.1 (111); https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111
 Guide source: 5.0.2 (104); https://github.com/OathWallet/oath-wallet/releases/tag/v5.0.2-build104
 Published security review: https://github.com/OathWallet/oath-wallet-security-review
 Review scope: maintainer-commissioned, Codex-led security review. The whole-wallet review remains incomplete. Findings, fixes and tests apply to their recorded source commits; later releases do not automatically inherit coverage. No independent security-company certification or independently reproduced App Store binary match is established.

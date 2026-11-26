@@ -1077,7 +1077,7 @@ struct OathSendResultVisualFixture: View {
     @State private var presented = false
 
     var body: some View {
-        OathBackground().ignoresSafeArea()
+        Color(uiColor: OathSurfaceColors.canvas).ignoresSafeArea()
             .preferredColorScheme(.light)
             .task { presented = true }
             .sheet(isPresented: $presented) {

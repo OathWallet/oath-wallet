@@ -11,8 +11,34 @@ struct OathBitcoinQuote: Sendable, Equatable {
 }
 struct OathBitcoinSubmission: Sendable {
     let txid: String
-    let accepted: Bool
+    let outcome: SendSubmissionState.Outcome
+    let replacementHash: String?
+
+    var accepted: Bool { outcome == .submitted || outcome == .confirmed }
+
+    init(txid: String, accepted: Bool) {
+        self.init(txid: txid, outcome: accepted ? .submitted : .checking)
+    }
+
+    init(txid: String, outcome: SendSubmissionState.Outcome, replacementHash: String? = nil) {
+        self.txid = txid
+        self.outcome = outcome
+        self.replacementHash = replacementHash
+    }
+
+    func presentationOutcome(journal: SendSubmissionState?) -> SendSubmissionState.Outcome {
+        journal?.presentationOutcome(broadcastAcknowledged: outcome == .submitted) ?? outcome
+    }
+
+    // Setup and permission calls require successful execution before advancing.
+    func requiringExecution(_ failure: any Error) throws -> Self {
+        switch outcome {
+        case .failed, .cancelled, .replaced, .expired: throw failure
+        default: return self
+        }
+    }
 }
+
 
 actor OathBitcoinSendService {
     static let shared = OathBitcoinSendService(network: .bitcoin)
@@ -110,6 +136,7 @@ actor OathBitcoinSendService {
         defer { wallets.remove(quote.walletID); flights.remove(id) }
         let db = try await vault.database()
         var stage = "reserve"
+        var committedHash: String?
         do {
             guard quote.plan.chain == network else { throw BitcoinError.wrongNetwork }
             try quote.plan.validate()
@@ -120,6 +147,7 @@ actor OathBitcoinSendService {
             let signed = try await vault.signBitcoinSend(sendID: id, quote: quote, digits: digits, reason: reason, prepare: prepare)
             stage = "persist"
             try await db.journalBitcoinSignature(sendID: id, signed: signed)
+            committedHash = signed.txid
             // No network side effect occurs until the exact signed bytes have
             // been durably saved. After this point inputs are never released on
             // a timeout, cancellation, app dismissal, or transport error.
@@ -127,6 +155,7 @@ actor OathBitcoinSendService {
             return try await broadcastJournaled(id, quote: quote, signed: signed, database: db)
         } catch {
             Task { await OathSendDiagnostics.shared.record(network: network.rawValue, stage: stage, error: error, inputCount: quote.plan.coins.count) }
+            if let committedHash { return .init(txid: committedHash, accepted: false) }
             if let stored = await OathDiagnostics.attemptOptional("send", body: { try await db.send(id) }) {
                 if stored.state == "queued" { _ = await OathDiagnostics.attempt("transitionSend", body: { try await db.transitionSend(id, from: "queued", to: "cancelled") }) }
                 else if stored.state == "draft" { _ = await OathDiagnostics.attempt("transitionSend", body: { try await db.transitionSend(id, from: "draft", to: "cancelled") }) }
@@ -172,16 +201,18 @@ actor OathBitcoinSendService {
         guard !flights.contains(send.id) else { return }
         try Task.checkCancellation()
         flights.insert(send.id); defer { flights.remove(send.id) }
-        guard let journal = try await db.bitcoinPaymentForRecovery(sendID: send.id, network: network) else { return }
-        let payment = journal.payment
-        if journal.state == "signed" { _ = try await db.transitionSend(send.id, from: "signed", to: "broadcast") }
+        guard let current = try await db.send(send.id), ["signed", "broadcast"].contains(current.state) else { return }
+        guard let raw = current.signedPayload, let plan = try await db.bitcoinSendPlan(sendID: send.id),
+              plan.chain == network, plan.network == .mainnet else { throw BitcoinSendError.changed }
+        let txid = try BitcoinTransactions.txid(raw, network: network)
+        if current.state == "signed" { _ = try await db.transitionSend(send.id, from: "signed", to: "broadcast") }
         let peer = ElectrumPool(network: network)
         do {
-            let receipt = try await BitcoinSendStatus.confirmation(payment, client: peer)
+            let receipt = try await BitcoinSendStatus.confirmation(raw: raw, plan: plan, client: peer)
             await peer.close()
             if let receipt { try await db.settleBitcoinSend(send.id, confirmation: receipt) }
-            else if await submitPersisted(raw: payment.raw, txid: payment.txid, reconcileFirst: true) {
-                try await db.acknowledgeBitcoinSend(send.id, hash: payment.txid)
+            else if await submitPersisted(raw: raw, txid: txid, reconcileFirst: true) {
+                try await db.acknowledgeBitcoinSend(send.id, hash: txid)
             }
         } catch {
             OathDiagnostics.record(error, component: "send", operation: "bitcoin_status", context: ["chain": network.rawValue])

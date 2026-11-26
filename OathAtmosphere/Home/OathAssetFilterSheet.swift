@@ -16,16 +16,6 @@ extension PortfolioFilter.Sort {
     }
 }
 
-extension PortfolioFilter.Kind {
-    var title: OathStringKey {
-        switch self {
-        case .all: .assetFilterAllAssets
-        case .coins: .assetFilterCoins
-        case .tokens: .assetFilterTokens
-        }
-    }
-}
-
 /// Native controls apply immediately through a session-owned, serialized writer.
 /// Closing or navigating within the sheet never discards a valid selection.
 struct OathAssetFilterSheet: View {
@@ -78,17 +68,6 @@ struct OathAssetFilterSheet: View {
                 }
                 .buttonStyle(OathSettingsRowButtonStyle())
                 .accessibilityIdentifier("assets.filter.networks")
-
-                NavigationLink {
-                    OathAssetFilterChoices(title: .assetType,
-                        choices: PortfolioFilter.Kind.allCases, selection: binding(\.kind), titleForChoice: { $0.title })
-                } label: {
-                    OathSettingsRow(title: strings.text(.assetType), icon: "square.stack.3d.up",
-                                    value: strings.text(filters.selection.kind.title))
-                }
-                .buttonStyle(OathSettingsRowButtonStyle())
-                .accessibilityIdentifier("assets.filter.kind")
-
 
                 OathSettingsSectionRule()
                 NavigationLink {
@@ -302,98 +281,50 @@ private struct OathAssetNetworkFilter: View {
     }
 }
 
-/// An embedded native toolbar for the Assets panel. UIKit owns bar-item
-/// layout, glass, hit targets and the filter badge; no nested navigation stack.
-struct OathAssetsToolbar: UIViewRepresentable {
+/// A section action owns only its button bounds. Embedding a whole UIToolbar
+/// here adds toolbar margins inside the section's existing horizontal padding.
+struct OathAssetsFilterButton: View {
     let activeCount: Int
     let isEnabled: Bool
     let action: () -> Void
     @Environment(\.oathLocalizer) private var strings
-    @ScaledMetric(relativeTo: .headline) private var barHeight = 44.0
 
-    func makeCoordinator() -> Coordinator { Coordinator() }
-
-    func makeUIView(context: Context) -> UIToolbar {
-        let bar = UIToolbar()
-        // The panel supplies the same 20-point inset as the asset rows.
-        // Do not add a second set of native toolbar edge margins.
-        bar.preservesSuperviewLayoutMargins = false
-        bar.insetsLayoutMarginsFromSafeArea = false
-        bar.directionalLayoutMargins = .zero
-        bar.tintColor = .label
-        bar.accessibilityIdentifier = "home.assetsToolbar"
-        if #available(iOS 26, *) {
-            context.coordinator.title.hidesSharedBackground = true
-        } else {
-            let appearance = UIToolbarAppearance()
-            appearance.configureWithTransparentBackground()
-            bar.standardAppearance = appearance
-            bar.scrollEdgeAppearance = appearance
-        }
-        if #available(iOS 27, *) {
-            context.coordinator.title.isPaddingRemoved = true
-        }
-        bar.setItems([context.coordinator.title, .flexibleSpace(), context.coordinator.filter], animated: false)
-        return bar
-    }
-
-    func updateUIView(_ bar: UIToolbar, context: Context) {
-        context.coordinator.update(bar, strings: strings, activeCount: activeCount, isEnabled: isEnabled, action: action)
-    }
-
-    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UIToolbar, context: Context) -> CGSize? {
-        CGSize(width: proposal.width ?? uiView.sizeThatFits(.zero).width, height: barHeight)
-    }
-
-    @MainActor final class Coordinator {
-        let heading = UILabel()
-        let title: UIBarButtonItem
-        let filter = UIBarButtonItem(image: UIImage(systemName: "line.3.horizontal.decrease"), style: .plain, target: nil, action: nil)
-        var action: (() -> Void)?
-        var badgeText: String?
-
-        func update(_ bar: UIToolbar, strings: OathLocalizer, activeCount: Int, isEnabled: Bool, action: @escaping () -> Void) {
-            self.action = action
-            OathLayoutDirection.apply(strings.language, to: bar)
-            let heading = strings.text(.assets)
-            let font = UIFont.preferredFont(forTextStyle: .headline)
-            // UIKit lays out this custom view inside a SwiftUI list. Resizing it or
-            // replacing an equal badge on every update feeds another layout back
-            // into that list, which can keep the main run loop busy indefinitely.
-            if self.heading.text != heading || self.heading.font != font {
-                self.heading.text = heading
-                self.heading.font = font
-                self.heading.sizeToFit()
-            }
-            if self.filter.isEnabled != isEnabled { self.filter.isEnabled = isEnabled }
-            let label = strings.text(.assetFilterTitle)
-            let value = strings.format(.historyActiveCount, strings.number(activeCount))
-            if self.filter.accessibilityLabel != label { self.filter.accessibilityLabel = label }
-            if self.filter.accessibilityValue != value { self.filter.accessibilityValue = value }
-            let badgeText = activeCount > 0 ? strings.number(activeCount) : nil
-            if self.badgeText != badgeText {
-                self.badgeText = badgeText
-                if #available(iOS 26, *) {
-                    self.filter.badge = badgeText.map { .string($0) }
-                } else {
-                    self.filter.title = badgeText
+    var body: some View {
+        control
+            .overlay(alignment: .topTrailing) {
+                if activeCount > 0 {
+                    Text(verbatim: strings.number(activeCount))
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 4)
+                        .frame(minWidth: 18, minHeight: 18)
+                        .background(Color(uiColor: .systemRed), in: Capsule())
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
                 }
             }
-        }
+            .disabled(!isEnabled)
+            .accessibilityLabel(strings.text(.assetFilterTitle))
+            .accessibilityValue(strings.format(.historyActiveCount, strings.number(activeCount)))
+            .accessibilityIdentifier("home.assetFilters")
+    }
 
-        init() {
-            // A native heading label avoids the internal padding and button
-            // accessibility semantics of an actionless bar button.
-            heading.textColor = .label
-            heading.directionalLayoutMargins = .zero
-            heading.adjustsFontForContentSizeCategory = true
-            heading.accessibilityTraits = .header
-            title = UIBarButtonItem(customView: heading)
-            filter.accessibilityIdentifier = "home.assetFilters"
-            filter.primaryAction = UIAction { [weak self] _ in
-                guard let self, self.filter.isEnabled, let action = self.action else { return }
-                OathHaptics.shared.perform(.tap, action: action)
-            }
+    @ViewBuilder private var control: some View {
+        if #available(iOS 26, *) {
+            button.glassEffect(.regular.interactive(isEnabled), in: .circle)
+        } else {
+            button
         }
+    }
+
+    private var button: some View {
+        OathButton(action: action) {
+            Image(systemName: "line.3.horizontal.decrease")
+                .font(.body)
+                .imageScale(.large)
+                .frame(width: 44, height: 44)
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
     }
 }

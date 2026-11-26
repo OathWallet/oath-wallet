@@ -1557,6 +1557,20 @@ enum Schema {
             try db.execute(sql: "DROP VIEW visibleActivity")
             try HistorySafety.createVisibilityView(db, indexedMetadata: true, thorchainActions: true)
         }
+        migrations.registerMigration("v111_refresh_relationship_indexes") { db in
+            // Tables/columns added after the first Home index migration need the
+            // same FK coverage. Metadata updates during refresh otherwise scan
+            // whole child ledgers. Add only missing leading-key indexes.
+            try HomeReadIndex.indexUncoveredRelationships(db)
+        }
+        migrations.registerMigration("v112_rpc_catalog_holdings") { db in
+            try RPCCatalogHoldingRepair.migrate(db)
+        }
+        migrations.registerMigration("v113_explicit_home_tokens") { db in
+            // Older tracking rows also come from search and send. Only a new,
+            // explicit Add token action opts an account's token into Home.
+            try db.execute(sql: "ALTER TABLE trackedAssets ADD COLUMN showOnHome BOOLEAN NOT NULL DEFAULT 0")
+        }
         return migrations
     }
 }

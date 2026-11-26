@@ -11,10 +11,7 @@ public struct PortfolioFilter: Codable, Equatable, Sendable {
     public enum Sort: String, Codable, CaseIterable, Sendable {
         case recommended, highestValue, lowestValue, nameAscending, nameDescending, mostActive
     }
-    public enum Kind: String, Codable, CaseIterable, Sendable { case all, coins, tokens }
-
     public var sort: Sort = .recommended
-    public var kind: Kind = .all
     /// Empty means every network, including networks discovered on refresh.
     public var networkIDs: Set<String> = []
     public var hidesZeroBalances = false
@@ -29,19 +26,18 @@ public struct PortfolioFilter: Codable, Equatable, Sendable {
     public init() {}
 
     private enum CodingKeys: String, CodingKey {
-        case sort, kind, networkIDs, hidesZeroBalances, hidesUnverifiedTokens
+        case sort, networkIDs, hidesZeroBalances, hidesUnverifiedTokens
         case groupsTokensByChain, minimumValue, maximumValue, rangeCurrency
     }
 
     public init(from decoder: any Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         sort = try values.decode(Sort.self, forKey: .sort)
-        kind = try values.decode(Kind.self, forKey: .kind)
         networkIDs = try values.decode(Set<String>.self, forKey: .networkIDs)
         hidesZeroBalances = try values.decode(Bool.self, forKey: .hidesZeroBalances)
         hidesUnverifiedTokens = try values.decode(Bool.self, forKey: .hidesUnverifiedTokens)
-        // The retired onlyWithActivity key is deliberately ignored in saved
-        // selections. It must not hide assets or count as an invisible filter.
+        // The retired kind and onlyWithActivity keys are deliberately ignored in saved
+        // selections. They must not hide assets or count as invisible filters.
         // Existing saved filters retain their flat presentation after upgrading.
         groupsTokensByChain = try values.decodeIfPresent(Bool.self, forKey: .groupsTokensByChain) ?? false
         minimumValue = try values.decodeIfPresent(Decimal.self, forKey: .minimumValue)
@@ -50,7 +46,7 @@ public struct PortfolioFilter: Codable, Equatable, Sendable {
     }
 
     public var activeCount: Int {
-        [sort != .recommended, kind != .all, !networkIDs.isEmpty,
+        [sort != .recommended, !networkIDs.isEmpty,
          hidesZeroBalances, !hidesUnverifiedTokens, minimumValue != nil || maximumValue != nil]
             .filter { $0 }.count
     }
@@ -85,8 +81,7 @@ public struct PortfolioFilter: Codable, Equatable, Sendable {
         let selection = adjusted(for: currency)
         guard selection.isValid else { return [] }
         let visible = holdings.filter { holding in
-            guard selection.networkIDs.isEmpty || selection.networkIDs.contains(holding.networkID),
-                  selection.kind == .all || (holding.reference == "native" ? selection.kind == .coins : selection.kind == .tokens) else { return false }
+            guard selection.networkIDs.isEmpty || selection.networkIDs.contains(holding.networkID) else { return false }
             // Check exact atomic zero: a tiny positive holding must not disappear
             // because display rounding says zero. Missing balances remain visible.
             if selection.hidesZeroBalances, let amount = holding.amountAtomic,

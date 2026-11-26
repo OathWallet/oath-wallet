@@ -9,7 +9,7 @@ import XCTest
         let runtime = try JSONDecoder().decode([String: String].self, from: Data(contentsOf: runtimeURL))
         // Published Safe 1.4.1 artifact code must pass the production pinned hashes.
         let networks = EVMSendNetwork.allCases.filter { !$0.isTestnet && $0 != .cronos }
-        XCTAssertEqual(networks.count, 28)
+        XCTAssertEqual(networks.count, 31)
         for network in networks {
             for token in [false, true] {
                 let transport = SafePreparationFixture(network: network, policy: policy, runtime: runtime)

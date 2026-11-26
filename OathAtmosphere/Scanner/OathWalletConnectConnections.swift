@@ -6,6 +6,12 @@ import OathDiagnostics
 /// metadata and encrypted keys. Legacy sessions have an unknown approval time;
 /// expiry minus default TTL is not a valid substitute (sessions can extend).
 struct OathWalletConnectConnections {
+    static func isVisible(owner: String?, walletID: String?, expiration: Date, revoked: Bool, now: Date) -> Bool {
+        guard expiration > now else { return false }
+        guard let walletID else { return true }
+        return owner == walletID && !revoked
+    }
+
     private struct Entry: Codable {
         var connectedAt: Date?
         var revoked = false

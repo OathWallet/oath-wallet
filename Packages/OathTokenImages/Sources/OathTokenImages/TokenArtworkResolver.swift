@@ -8,7 +8,7 @@ public struct TokenArtworkIdentity: Hashable, Sendable {
     public let reference: String
     public let decimals: Int?
     public static let evmNetworks: Set<String> = [
-        "ethereum", "arbitrum", "arc", "avalanche", "base", "bnb", "fantom", "flare",
+        "plasma", "worldchain", "elysium", "ethereum", "arbitrum", "arc", "avalanche", "base", "bnb", "fantom", "flare",
         "cronos", "gnosis", "linea", "optimism", "polygon", "chiliz", "filecoin", "sei", "zerog", "iotex", "celo", "monad", "unichain", "hyperevm",
         "robinhood", "scroll", "somnia", "story", "taiko", "telos", "xlayer"
     ]

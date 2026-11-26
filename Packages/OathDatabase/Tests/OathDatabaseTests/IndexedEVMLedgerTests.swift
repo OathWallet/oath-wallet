@@ -8,6 +8,72 @@ import GRDB
     private let owner = "0x1111111111111111111111111111111111111111"
     private let other = "0x2222222222222222222222222222222222222222"
     private let token = "0x3333333333333333333333333333333333333333"
+    func testRPCCatalogZeroProbesDoNotBecomeWalletHoldings() async throws {
+        for chain in [IndexedEVMChain.plasma, .worldchain, .elysium] {
+            let (db, url) = try await fixture(chain: chain)
+            let account = "wallet:" + chain.rawValue
+            let catalog = IndexedEVMCatalog(chain: chain, ids: [token: "fixture"])
+            var ticket = try await db.beginIndexedEVMSync(accountID: account)
+            try await db.commitIndexedEVMInventory(inventory(chain: chain, amount: "0"), ticket: ticket, catalog: catalog)
+            let empty = try await db.snapshot(walletID: "wallet", currency: "USD")
+            XCTAssertEqual(empty.holdings.map(\.reference), ["native"])
+            let managed = try await db.managedAssets(walletID: "wallet", currency: "USD")
+            XCTAssertFalse(managed.assets.contains { $0.reference == token })
+
+            ticket = try await db.beginIndexedEVMSync(accountID: account)
+            try await db.commitIndexedEVMInventory(inventory(chain: chain, amount: "1", block: 101), ticket: ticket, catalog: catalog)
+            let funded = try await db.snapshot(walletID: "wallet", currency: "USD")
+            XCTAssertEqual(funded.holdings.first { $0.reference == token }?.amountAtomic, "1", "Even one atomic unit discovers a holding")
+            ticket = try await db.beginIndexedEVMSync(accountID: account)
+            try await db.commitIndexedEVMInventory(inventory(chain: chain, amount: nil, complete: false, block: 102), ticket: ticket, catalog: catalog)
+            let unavailable = try await db.snapshot(walletID: "wallet", currency: "USD")
+            XCTAssertEqual(unavailable.holdings.first { $0.reference == token }?.amountAtomic, "1")
+            ticket = try await db.beginIndexedEVMSync(accountID: account)
+            try await db.commitIndexedEVMInventory(inventory(chain: chain, amount: "0", block: 103), ticket: ticket, catalog: catalog)
+            let reopened = try await OathDatabase.open(at: url)
+            let spent = try await reopened.snapshot(walletID: "wallet", currency: "USD")
+            XCTAssertEqual(spent.holdings.first { $0.reference == token }?.amountAtomic, "0", "Previously held tokens follow the existing EVM retention policy")
+            let second = try await reopened.snapshot(walletID: "second", currency: "USD")
+            XCTAssertEqual(second.holdings.map(\.reference), ["native"])
+        }
+    }
+
+    func testRPCManualZeroTokensRemainScopedToTheirWallet() async throws {
+        for chain in [IndexedEVMChain.plasma, .worldchain, .elysium] {
+            let (db, _) = try await fixture(chain: chain)
+            _ = try await db.trackAsset(.init(id: chain.rawValue + ":" + token, networkID: chain.rawValue,
+                reference: token, name: "Selected", symbol: "TKN", decimals: 6), walletID: "second")
+            for wallet in ["wallet", "second"] {
+                let ticket = try await db.beginIndexedEVMSync(accountID: wallet + ":" + chain.rawValue)
+                try await db.commitIndexedEVMInventory(inventory(chain: chain, amount: "0"), ticket: ticket,
+                    catalog: .init(chain: chain, ids: [token: "fixture"]))
+            }
+            let selected = try await db.snapshot(walletID: "second", currency: "USD")
+            XCTAssertEqual(selected.holdings.first { $0.reference == token }?.amountAtomic, "0")
+            let other = try await db.snapshot(walletID: "wallet", currency: "USD")
+            XCTAssertFalse(other.holdings.contains { $0.reference == token })
+        }
+    }
+
+    func testRPCMainnetsPersistBalancesWithoutStartingIndexerHistory() async throws {
+        for chain in [IndexedEVMChain.plasma, .worldchain, .elysium] {
+            let (db, url) = try await fixture(chain: chain)
+            let account = "wallet:" + chain.rawValue
+            let ticket = try await db.beginIndexedEVMSync(accountID: account)
+            try await db.commitIndexedEVMInventory(inventory(chain: chain), ticket: ticket,
+                catalog: .init(chain: chain, ids: [token: "fixture"]))
+            let work = try await db.indexedEVMHistoryWork(ticket)
+            XCTAssertTrue(work.isEmpty)
+            let reopened = try await OathDatabase.open(at: url)
+            let snapshot = try await reopened.snapshot(walletID: "wallet", currency: "USD")
+            XCTAssertEqual(snapshot.holdings.first { $0.reference == token }?.amountAtomic, "9007199254740993")
+            XCTAssertEqual(snapshot.holdings.first { $0.reference == "native" }?.symbol, chain.symbol)
+            let balance = try await reopened.balance(accountID: account, assetID: chain.rawValue + ":" + token)
+            XCTAssertEqual(balance?.amountAtomic, "9007199254740993")
+            let second = try await reopened.snapshot(walletID: "second", currency: "USD")
+            XCTAssertNil(second.holdings.first?.amountAtomic)
+        }
+    }
     private func fixture(chain: IndexedEVMChain = .unichain) async throws -> (OathDatabase,URL) {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("IndexedEVM-"+UUID().uuidString).appendingPathComponent("test.sqlite")
         let db = try await OathDatabase.open(at:url)
@@ -524,7 +590,9 @@ private actor IndexedSnapshotRecoveryTransport: AnkrTransport {
 
 extension IndexedEVMLedgerTests {
     private func verifyRecovery(_ succeeds: Bool) async throws {
-        for chain in IndexedEVMChain.allCases {
+        // RPC-only mainnets have no secondary provider. They still exercise
+        // cache preservation on outages; recovery applies to configured fallbacks.
+        for chain in IndexedEVMChain.allCases where !succeeds || !chain.usesRPCCatalog {
             let (db, _) = try await fixture(chain:chain), account = "wallet:" + chain.rawValue
             let publication = RefreshPublicationProbe(db, wallet: "wallet")
             defer { publication.stop() }

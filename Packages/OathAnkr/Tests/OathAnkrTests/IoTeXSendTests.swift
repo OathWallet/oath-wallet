@@ -57,7 +57,10 @@ extension IoTeXSendTests {
                 _ = try await client.quote(sender: EVMSendCrypto.address(privateKey: Data(repeating: 1, count: 32)),
                     recipient: EVMSendCrypto.address(privateKey: Data(repeating: 2, count: 32)), reference: "native", decimals: 18, amount: "1000")
                 XCTFail("Unusable fee recommendation must not produce a plan")
-            } catch { XCTAssertEqual(error as? EVMSendError, priority == 0 ? .changed : .feeTooHigh) }
+            } catch {
+                if priority == 0 { XCTAssertEqual(error as? EVMSendError, .changed) }
+                else { XCTAssertEqual(error as? EVMSendFeeFailure, .feeLimitExceeded) }
+            }
         }
     }
     func testSignaturesMatchIndependentMainnetAndTestnetVectors() throws {

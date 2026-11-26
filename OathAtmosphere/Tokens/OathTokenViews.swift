@@ -9,26 +9,28 @@ import OathMarketData
 /// optional provider coverage is normal; outages still use shared diagnostics.
 private struct OathTokenArtworkMetadata: TokenArtworkMetadata {
     func sources(for token: TokenArtworkIdentity, cachedOnly: Bool) async -> [String] {
-        if token.decimals == nil {
-            return await TokenDiscoveryCatalog.shared.sources(for: token, cachedOnly: cachedOnly)
-        }
         // XRPL's free token list is empty and NEAR's list omits some tokens.
         // Exact currency + issuer / contract batch metadata can still supply
         // artwork for saved holdings. Amount scale never affects image identity.
-        if token.networkID == "xrpl" || token.networkID == "near" {
+        let discoveryFirst = token.networkID == "xrpl" || token.networkID == "near"
+        if token.decimals == nil || discoveryFirst {
             let sources = await TokenDiscoveryCatalog.shared.sources(for: token, cachedOnly: cachedOnly)
-            if !sources.isEmpty { return sources }
+            if token.decimals == nil || !sources.isEmpty { return sources }
         }
         do {
             let service = try await OathMarketEnvironment.shared.service()
-            return await service.sources(for: token, cachedOnly: cachedOnly)
+            let sources = await service.sources(for: token, cachedOnly: cachedOnly)
+            if !sources.isEmpty { return sources }
         } catch {
             if error as? MarketDataError != .notListed {
                 OathDiagnostics.record(error, component: "artwork", operation: "token_metadata",
                     context: ["chain": token.networkID, "stage": cachedOnly ? "cache" : "refresh"])
             }
-            return []
         }
+        // A transfer can have precision without a logo or a market listing.
+        // Search's exact-contract directory can still supply its provider image.
+        guard !discoveryFirst, !Task.isCancelled else { return [] }
+        return await TokenDiscoveryCatalog.shared.sources(for: token, cachedOnly: cachedOnly)
     }
 }
 
@@ -41,6 +43,11 @@ extension Holding {
 enum OathArtworkPipeline {
     static let loader = ArtworkLoader(fallbackCatalog:
         ArtworkFallbackCatalog(transport: PublicArtworkCatalogTransport()))
+    static let resolver = TokenArtworkResolver(loader: loader, metadata: OathTokenArtworkMetadata())
+}
+
+extension EnvironmentValues {
+    @Entry var oathTokenArtworkResolver: TokenArtworkResolver = OathArtworkPipeline.resolver
 }
 
 /// All token surfaces share both image bytes and resolved token identity.
@@ -52,7 +59,7 @@ struct OathTokenLogo: View {
     var identity: TokenArtworkIdentity? = nil
     var onResolved: ((ArtworkImage) -> Void)? = nil
     private static let loader = OathArtworkPipeline.loader
-    private static let resolver = TokenArtworkResolver(loader: loader, metadata: OathTokenArtworkMetadata())
+    @Environment(\.oathTokenArtworkResolver) private var resolver
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.displayScale) private var displayScale
     @State private var artwork: ArtworkImage?
@@ -70,27 +77,21 @@ struct OathTokenLogo: View {
     }
     private struct LoadID: Hashable { let request: Request; let active: Bool }
     private var currentArtwork: ArtworkImage? { loadedRequest == request ? artwork : nil }
-    private var usesBundledArtwork: Bool {
-        guard let identity else { return false }
-        return OathReceiveExampleCatalog.bundled.redesignedArtwork(networkID: identity.networkID, reference: identity.reference) != nil
-    }
-
-
     var body: some View {
         OathTokenLogoArtwork(artwork: currentArtwork, symbol: symbol, size: size, identity: identity)
         .task(id: LoadID(request: request, active: scenePhase == .active)) {
-            guard scenePhase == .active, !usesBundledArtwork else { return }
+            guard scenePhase == .active else { return }
             let requested = request
             if let token = requested.identity {
-                if let cached = await Self.resolver.cached(for: token, sources: requested.sources, maxPixelSize: requested.maxPixelSize), !Task.isCancelled {
+                if let cached = await resolver.cached(for: token, sources: requested.sources, maxPixelSize: requested.maxPixelSize), !Task.isCancelled {
                     accept(cached, for: requested)
                 }
-                let image = await Self.resolver.image(for: token, sources: requested.sources, maxPixelSize: requested.maxPixelSize)
+                let image = await resolver.image(for: token, sources: requested.sources, maxPixelSize: requested.maxPixelSize)
                 guard !Task.isCancelled else { return }
                 if image != nil || currentArtwork == nil { accept(image, for: requested) }
                 if image == nil {
                     do { try await Task.sleep(for: .seconds(35)) } catch { return }
-                    let retried = await Self.resolver.image(for: token, sources: requested.sources, maxPixelSize: requested.maxPixelSize)
+                    let retried = await resolver.image(for: token, sources: requested.sources, maxPixelSize: requested.maxPixelSize)
                     guard !Task.isCancelled else { return }
                     if retried != nil || currentArtwork == nil { accept(retried, for: requested) }
                 }
@@ -111,13 +112,14 @@ struct OathTokenLogo: View {
             }
         }
         .task(id: LoadID(request: request, active: scenePhase == .active)) {
-            guard scenePhase == .active, !usesBundledArtwork, let token = request.identity else { return }
+            guard scenePhase == .active, let token = request.identity else { return }
             let requested = request, observerID = UUID()
+            let resolver = self.resolver
             // Observe independently of network/retry work: a result from another
             // screen must update this row immediately, even during its cooldown.
             // Registration also replays the cached image if resolution won the race.
-            let updates = await Self.resolver.updates(for: token, observerID: observerID, maxPixelSize: requested.maxPixelSize)
-            defer { Task { await Self.resolver.stopUpdates(for: token, observerID: observerID) } }
+            let updates = await resolver.updates(for: token, observerID: observerID, maxPixelSize: requested.maxPixelSize)
+            defer { Task { await resolver.stopUpdates(for: token, observerID: observerID) } }
             for await image in updates {
                 guard !Task.isCancelled else { return }
                 accept(image, for: requested)
@@ -146,19 +148,17 @@ struct OathTokenLogoArtwork: View {
     let symbol: String
     var size: CGFloat = 38
     var identity: TokenArtworkIdentity? = nil
-
-    private var bundledArtwork: String? {
-        guard let identity else { return nil }
-        return OathReceiveExampleCatalog.bundled.redesignedArtwork(networkID: identity.networkID, reference: identity.reference)
-    }
-
     var body: some View {
         Group {
-            if let bundledArtwork { OathNetworkLogo(asset: bundledArtwork, size: size) }
-            else if let artwork { TokenArtworkView(artwork, size: size) }
+            if let artwork { TokenArtworkView(artwork, size: size) }
+            else if let identity, let bundled = OathReceiveExampleCatalog.bundled.providerArtwork(
+                networkID: identity.networkID, reference: identity.reference) {
+                Image(decorative: bundled).renderingMode(.original).resizable().scaledToFit()
+                    .clipShape(RoundedRectangle(cornerRadius: size * TokenArtworkStyle.cornerRadiusFraction, style: .continuous))
+            }
             else {
                 Text(String(symbol.prefix(2)).uppercased())
-                    .font(.system(size: size * 0.3, weight: .semibold))
+                    .font(.system(size: size * 0.3, weight: .medium))
                     .foregroundStyle(Color(uiColor: .secondaryLabel))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Color(uiColor: .secondarySystemFill))
@@ -324,7 +324,6 @@ struct OathTokenDetailsSheet: View {
     let token: OathTokenDefinition
     let session: OathWalletSession
     let walletID: String
-    let onAdded: () -> Void
     @Environment(\.dismiss) private var dismiss
     @Environment(\.oathLocalizer) private var strings
     @State private var adding = false
@@ -334,7 +333,7 @@ struct OathTokenDetailsSheet: View {
     @State private var work: Task<Void, Never>?
 
     var body: some View {
-        OathContentSizedSheet(contentID: "token-details-\(token.id)-\(added)", navigation: .init(
+        OathContentSizedSheet(contentID: token.id, navigation: .init(
             strings: strings, title: .tokenDetails, backIdentifier: "token.back", onBack: nil,
             onClose: { work?.cancel(); dismiss() }, actionsEnabled: true)) {
             VStack(spacing: 20) {
@@ -365,21 +364,21 @@ struct OathTokenDetailsSheet: View {
                     OathActionButton(title: strings.text(copied ? .addressCopied : .tokenCopyAddress), appearance: .secondary) {
                         OathClipboard.copy(token.address); copied = true
                     }.accessibilityIdentifier("token.copy")
-                    Group {
-                        if added {
-                            OathDoneButton { dismiss() }
-                                .oathActionStyle()
-                        } else {
-                            OathActionButton(title: strings.text(.addToken), icon: "plus", isWorking: adding) {
-                                add()
-                            }
-                        }
+                    OathActionButton(title: strings.text(added ? .tokenAdded : .addToken),
+                                     icon: added ? "checkmark" : "plus",
+                                     accent: added ? OathActionButton.successAccent : nil,
+                                     isWorking: adding, isInteractionBlocked: adding) {
+                        if added { dismiss() } else { add() }
                     }
-                    .disabled(adding || !session.isUnlocked || session.displayedProfile?.id.uuidString != walletID)
+                    .disabled(!session.isUnlocked || session.displayedProfile?.id.uuidString != walletID ||
+                              session.displayedProfile?.addresses.contains(where: { $0.chain == token.network.chain }) != true)
+                    .accessibilityHint(added ? strings.text(.close) : "")
                     .accessibilityIdentifier(added ? "token.done" : "token.confirm")
                 }.oathActionArea().padding(.bottom, 20)
             }
         }
+        .presentationBackground(Color(uiColor: OathSurfaceColors.groupedCanvas))
+        .oathHapticFeedback(.success, trigger: added, when: added)
         .oathHapticFeedback(.error, trigger: failed, when: failed)
         .alert(strings.text(.tokenAddFailed), isPresented: $failed) {
             if #available(iOS 26.0, *) {
@@ -407,16 +406,22 @@ struct OathTokenDetailsSheet: View {
     }
 
     private func add() {
-        guard !adding else { return }
+        guard !adding, !added else { return }
         adding = true
         work = Task {
             defer { adding = false }
-            do {
-                try await session.addToken(token, walletID: walletID)
-                guard !Task.isCancelled else { return }
-                added = true; onAdded()
-            } catch is CancellationError { }
-            catch { OathDiagnostics.record(error); failed = true }
+            await OathDiagnostics.withChain(token.network.id) {
+                do {
+                    try await session.addToken(token, walletID: walletID, showOnHome: true)
+                    try Task.checkCancellation()
+                    added = true
+                } catch is CancellationError { }
+                catch {
+                    guard !Task.isCancelled else { return }
+                    OathDiagnostics.record(error, component: "explore", operation: "add_token")
+                    failed = true
+                }
+            }
         }
     }
 }

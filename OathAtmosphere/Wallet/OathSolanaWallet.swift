@@ -31,6 +31,7 @@ extension OathWalletEngine {
         var paths = try SolanaDerivation.allCases.map { try $0.path(accountIndex: index) }
         // A restored nonstandard account remains reachable as "Original address".
         if !paths.contains(account.derivationPath) { paths.append(account.derivationPath) }
+        if secret.solanaPathOnly(account: account) { paths = [account.derivationPath] }
         let addresses = try paths.map { path -> SolanaReceiveAddress in
             try Task.checkCancellation()
             guard let key = wallet.getKey(coin: .solana, derivationPath: path) else { throw OathWalletError.derivationFailed }

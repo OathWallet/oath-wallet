@@ -4,19 +4,24 @@ import Foundation
 /// Mainnet identity is explicit on every inventory, page, catalog and price.
 /// These networks have RPC access at ANKR, but no Advanced Account API alias.
 public enum IndexedEVMChain: String, Codable, CaseIterable, Sendable {
-    case unichain, monad, celo, chiliz, filecoin, sei, zerog, iotex, story
-    public var chainID: UInt64 { switch self { case .story: 1514; case .unichain: 130; case .monad: 143; case .iotex: 4689; case .zerog: 16661; case .sei: 1329; case .filecoin: 314; case .chiliz: 88888; case .celo: 42220 } }
-    public var name: String { switch self { case .story: "Story"; case .unichain: "Unichain"; case .monad: "Monad"; case .iotex: "IoTeX"; case .zerog: "0G"; case .sei: "Sei"; case .filecoin: "Filecoin"; case .chiliz: "Chiliz"; case .celo: "Celo" } }
-    public var symbol: String { switch self { case .story: "IP"; case .unichain: "ETH"; case .monad: "MON"; case .iotex: "IOTX"; case .zerog: "0G"; case .sei: "SEI"; case .filecoin: "FIL"; case .chiliz: "CHZ"; case .celo: "CELO" } }
-    public var nativeCoinID: String { self == .story ? "story-2" : self == .zerog ? "zero-gravity" : self == .unichain ? "ethereum" : self == .sei ? "sei-network" : rawValue }
-    public var rpcPath: String { self == .zerog ? "0g_mainnet_evm" : self == .sei ? "sei_evm" : [.celo, .chiliz, .filecoin, .iotex].contains(self) ? rawValue : rawValue + "_mainnet" }
-    public var catalogPlatform: String { self == .zerog ? "0g" : self == .sei ? "sei-v2" : rawValue }
+    case plasma, worldchain, elysium, unichain, monad, celo, chiliz, filecoin, sei, zerog, iotex, story
+    public var chainID: UInt64 { switch self { case .plasma: 9745; case .worldchain: 480; case .elysium: 99901; case .story: 1514; case .unichain: 130; case .monad: 143; case .iotex: 4689; case .zerog: 16661; case .sei: 1329; case .filecoin: 314; case .chiliz: 88888; case .celo: 42220 } }
+    public var name: String { switch self { case .plasma: "Plasma"; case .worldchain: "World Chain"; case .elysium: "Elysium"; case .story: "Story"; case .unichain: "Unichain"; case .monad: "Monad"; case .iotex: "IoTeX"; case .zerog: "0G"; case .sei: "Sei"; case .filecoin: "Filecoin"; case .chiliz: "Chiliz"; case .celo: "Celo" } }
+    public var symbol: String { switch self { case .plasma: "XPL"; case .worldchain: "ETH"; case .elysium: "HYPE"; case .story: "IP"; case .unichain: "ETH"; case .monad: "MON"; case .iotex: "IOTX"; case .zerog: "0G"; case .sei: "SEI"; case .filecoin: "FIL"; case .chiliz: "CHZ"; case .celo: "CELO" } }
+    public var nativeCoinID: String { self == .plasma ? "plasma" : self == .worldchain ? "ethereum" : self == .elysium ? "hyperliquid" : self == .story ? "story-2" : self == .zerog ? "zero-gravity" : self == .unichain ? "ethereum" : self == .sei ? "sei-network" : rawValue }
+    public var rpcPath: String { self == .zerog ? "0g_mainnet_evm" : self == .sei ? "sei_evm" : [.plasma, .worldchain, .elysium, .celo, .chiliz, .filecoin, .iotex].contains(self) ? rawValue : rawValue + "_mainnet" }
+    public var catalogPlatform: String { self == .worldchain ? "world-chain" : self == .zerog ? "0g" : self == .sei ? "sei-v2" : rawValue }
     public var dexNetwork: String { self == .zerog ? "0g" : self == .sei ? "seiv2" : rawValue }
+    /// Native and catalog/custom-token state over ANKR RPC; no address index.
+    public var usesRPCCatalog: Bool { [.plasma, .worldchain, .elysium].contains(self) }
     public var batchLimit: Int { self == .monad ? 10 : 30 }
     /// CELO's ERC-20 interface is the native balance, not a second holding.
     public var nativeERC20: String? { self == .celo ? "0x471ece3750da237f93b8e339c536989b8978a438" : nil }
     public var wrappedNative: String {
         switch self {
+        case .plasma: "0x6100e367285b01f48d07953803a2d8dca5d19873"
+        case .worldchain: "0x4200000000000000000000000000000000000006"
+        case .elysium: "0xba876237b0f021a6c6d852d6c26e107997cc5e81"
         case .story: "0x1514000000000000000000000000000000000000"
         case .unichain: "0x4200000000000000000000000000000000000006"
         case .monad: "0x3bd359c1119da7da1d913d1c4d2b7c461115433a"
@@ -104,7 +109,9 @@ public extension IndexedEVMChain {
     /// Alchemy indexes external and ERC-20 transfers on Monad, but explicitly
     /// rejects internal transfers. Do not claim that unsupported stream is empty.
     var historyStreams: [IndexedEVMHistoryStream] {
-        self == .monad ? [.transactions, .transfers] : IndexedEVMHistoryStream.allCases
+        // These mainnets intentionally support sending/receiving without an
+        // address-history index. Local sends still use RPC receipt tracking.
+        usesRPCCatalog ? [] : self == .monad ? [.transactions, .transfers] : IndexedEVMHistoryStream.allCases
     }
 }
 public struct IndexedEVMEvent: Codable, Sendable {
@@ -138,7 +145,9 @@ public struct IndexedEVMCatalog: Codable, Sendable {
     public let ids: [String: String]
     public init(chain: IndexedEVMChain, ids: [String: String]) { self.chain = chain; self.ids = ids }
     public static func empty(_ chain: IndexedEVMChain) -> Self { Self(chain: chain, ids: [:]) }
-    public func contains(_ reference: String) -> Bool { reference == "native" || ids[reference.lowercased()] != nil }
+    public func contains(_ reference: String) -> Bool {
+        reference == "native" || ids[reference.lowercased()] != nil || RPCCatalogTokens.isCoreAsset(reference, chain: chain)
+    }
 }
 public struct IndexedEVMPrice: Codable, Sendable {
     public let chain: IndexedEVMChain

@@ -4,6 +4,9 @@ import Foundation
 extension PublicSigningAuthority {
     // Public mainnet endpoints only. eth_chainId is checked before every scan.
     static let evmEndpoints: [String: String] = [
+        "plasma": "https://rpc.plasma.to",
+        "worldchain": "https://worldchain-mainnet.g.alchemy.com/public",
+        "elysium": "https://rpc.elysium.kinetiq.xyz",
         "ethereum": "https://ethereum-rpc.publicnode.com", "bnb": "https://bsc-dataseed.bnbchain.org",
         "arbitrum": "https://arbitrum-one-rpc.publicnode.com", "avalanche": "https://avalanche-c-chain-rpc.publicnode.com",
         "base": "https://mainnet.base.org", "optimism": "https://mainnet.optimism.io",

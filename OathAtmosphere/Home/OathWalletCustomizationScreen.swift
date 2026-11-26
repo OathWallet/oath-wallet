@@ -10,6 +10,7 @@ struct OathWalletCustomizationScreen: View {
     let session: OathWalletSession
     let walletID: String
     let mode: Mode
+    var autofocusName = true
     let onSaved: () -> Void
     @Environment(\.oathLocalizer) private var strings
     @Environment(\.dismiss) private var dismiss
@@ -48,6 +49,8 @@ struct OathWalletCustomizationScreen: View {
             ScrollView {
                 VStack(spacing: 24) {
                     Spacer(minLength: 24)
+                    OathWalletSymbol(colorHex: colorHex, size: 64)
+                        .accessibilityHidden(true)
                     HStack(spacing: 0) {
                         OathTextInput(text: editableName, focused: $focused,
                                       title: strings.text(creating && !initialized ? .mainWalletName : .walletName),
@@ -60,7 +63,7 @@ struct OathWalletCustomizationScreen: View {
                                 Image(systemName: "xmark.circle.fill")
                                     .font(.system(size: 17))
                                     .symbolRenderingMode(.monochrome)
-                                    .foregroundStyle(.white.opacity(0.78))
+                                    .foregroundStyle(.secondary)
                                     .frame(width: 44, height: 44)
                                     .contentShape(Rectangle())
                             }
@@ -77,12 +80,12 @@ struct OathWalletCustomizationScreen: View {
                         .oathActionArea()
                     if readyToEdit && !nameIsValid {
                         Text(strings.text(.walletNameHint))
-                            .oathFont(.footnote).foregroundStyle(.white)
+                            .oathFont(.footnote).foregroundStyle(.secondary)
                             .multilineTextAlignment(.center).padding(.horizontal, 24)
                     }
                     if failed || preparation.failed {
                         Text(strings.text(preparation.failed ? .walletChangeFailed : .walletCustomizeFailed))
-                            .oathFont(.footnote).foregroundStyle(.white)
+                            .oathFont(.footnote).foregroundStyle(.red)
                             .multilineTextAlignment(.center).padding(.horizontal, 24)
                             .accessibilityIdentifier("walletCustomize.error")
                     }
@@ -90,21 +93,12 @@ struct OathWalletCustomizationScreen: View {
                 }
                 .frame(maxWidth: 700)
                 .frame(maxWidth: .infinity)
+                .oathWalletEntryContent(.atLeastMedium)
                 .frame(minHeight: max(0, geometry.size.height))
             }
             .scrollDismissesKeyboard(.interactively)
         }
-        .background {
-            GeometryReader { geometry in
-                OathBackground(placement: .walletBackdrop(size: geometry.size),
-                               animates: session.isUnlocked, customColor: colorHex.flatMap { UInt32($0, radix: 16) })
-                // The shared shader supplies the same readable material as
-                // Home, so this preview matches the saved wallet's appearance.
-            }
-            .ignoresSafeArea()
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
-        }
+        .background(Color(uiColor: OathSurfaceColors.canvas).ignoresSafeArea())
         .oathHapticFeedback(.error, trigger: failed, when: failed)
         .toolbar {
             if preparation.failed {
@@ -123,7 +117,7 @@ struct OathWalletCustomizationScreen: View {
             if !creating { colorHex = wallet.colorHex }
             initialized = true
         }
-        .oathAutofocus(when: readyToEdit && session.isUnlocked && !submitting) {
+        .oathAutofocus(when: autofocusName && readyToEdit && session.isUnlocked && !submitting) {
             focused = true
         }
         .onDisappear {
@@ -144,8 +138,8 @@ struct OathWalletCustomizationScreen: View {
                     ForEach(0..<Self.swatches.count, id: \.self) { index in
                         let hex = Self.swatches[index]
                         OathButton(feedback: .selection) { colorHex = hex } label: {
-                            Circle().fill(color(for: hex))
-                                .overlay(Circle().strokeBorder(.white.opacity(colorHex == hex ? 0.9 : 0.25), lineWidth: colorHex == hex ? 2 : 1))
+                            Circle().fill(Color(uiColor: OathWalletAccent.color(hex)))
+                                .overlay(Circle().strokeBorder(.primary.opacity(colorHex == hex ? 0.9 : 0.25), lineWidth: colorHex == hex ? 2 : 1))
                                 .overlay {
                                     if colorHex == hex { Image(systemName: "checkmark").font(.system(size: 20, weight: .medium)).foregroundStyle(.white) }
                                 }
@@ -172,15 +166,9 @@ struct OathWalletCustomizationScreen: View {
         .disabled(submitting)
     }
 
-    private func color(for hex: String?) -> Color {
-        let rgb = hex.flatMap { UInt32($0, radix: 16) } ?? 0x244DE0
-        return Color(.sRGB, red: Double((rgb >> 16) & 255) / 255,
-                     green: Double((rgb >> 8) & 255) / 255, blue: Double(rgb & 255) / 255, opacity: 1)
-    }
-
     private var saveButton: some View {
         OathActionButton(title: strings.text(mode == .edit ? .apply : .continueAction),
-                         accent: .black, isWorking: submitting) {
+                         isWorking: submitting) {
             guard canSave else { return }
             failed = false
             focused = false
@@ -231,6 +219,6 @@ private struct OathWalletCustomizationNavigation: ViewModifier {
             .navigationTitle(strings.text(.customizeWallet))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.visible, for: .navigationBar)
-            .oathNativeLocalization(navigationTint: .white, onArtwork: true, navigationBackground: .hidden)
+            .oathNativeLocalization()
     }
 }

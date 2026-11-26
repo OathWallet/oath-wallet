@@ -553,10 +553,17 @@ private struct PageTransport: AnkrTransport {
             .init(id:"zerog",name:"0G",family:"evm",symbol:"0G",decimals:18,derivationPath:"m/44'/60'/0'/0/0",logo:"local",sortOrder:25),
             .init(id:"iotex",name:"IoTeX",family:"evm",symbol:"IOTX",decimals:18,derivationPath:"m/44'/60'/0'/0/0",logo:"local",sortOrder:26),
             .init(id:"cronos",name:"Cronos",family:"evm",symbol:"CRO",decimals:18,derivationPath:"m/44'/60'/0'/0/0",logo:"local",sortOrder:27)], assets:[])
+        try await db.seed(networks: [IndexedEVMChain.plasma, .worldchain, .elysium].map {
+            NetworkRecord(id: $0.rawValue, name: $0.name, family: "evm", symbol: $0.symbol,
+                decimals: 18, derivationPath: "m/44'/60'/0'/0/0", logo: "local", sortOrder: 30)
+        }, assets: [])
         try await db.enrollAnkrNetworks(walletID:"wallet"); try await db.enrollAnkrNetworks(walletID:"wallet")
         try await db.enrollAnkrNetworks(walletID:"second")
         let accounts = try await db.accounts(walletID:"wallet")
-        XCTAssertEqual(accounts.count,25)
+        XCTAssertEqual(accounts.count,28)
+        for network in ["plasma", "worldchain", "elysium"] {
+            XCTAssertEqual(accounts.filter { $0.networkID == network }.count, 1)
+        }
         XCTAssertEqual(accounts.filter { $0.networkID == "cronos" }.count,1)
         XCTAssertEqual(accounts.filter { $0.networkID == "iotex" }.count,1)
         XCTAssertEqual(accounts.filter { $0.networkID == "zerog" }.count,1)

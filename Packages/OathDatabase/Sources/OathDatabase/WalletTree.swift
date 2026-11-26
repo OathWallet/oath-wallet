@@ -40,9 +40,8 @@ extension OathDatabase {
     }
 }
 
-/// A stable forest shared by both wallet lists. Missing/removed parents promote
-/// a child to the root, without mutating its saved relationship. Invalid cycles
-/// are displayed as roots rather than hiding wallets or recursing forever.
+/// Independent wallet rows shared by all wallet lists. Account children are
+/// public account projections, never separate wallet records.
 public struct WalletTree: Sendable {
     public struct Node: Identifiable, Sendable {
         public let wallet: WalletRecord
@@ -105,32 +104,10 @@ public struct WalletTree: Sendable {
     }
 
     public init(_ wallets: [WalletRecord]) {
-        let records = Dictionary(wallets.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        var parents: [String: String] = [:]
-        for wallet in wallets where ["passphrase", "electrum", "electrum2fa"].contains(wallet.kind) {
-            if let parent = wallet.parentWalletID, parent != wallet.id, records[parent] != nil {
-                parents[wallet.id] = parent
-            }
-        }
-        var cyclic: Set<String> = []
-        for id in records.keys {
-            var path: [String] = [], seen: [String: Int] = [:], cursor: String? = id
-            while let current = cursor {
-                if let start = seen[current] { cyclic.formUnion(path[start...]); break }
-                seen[current] = path.count; path.append(current); cursor = parents[current]
-            }
-        }
-        for id in cyclic { parents[id] = nil }
-        var children: [String: [WalletRecord]] = [:], rootWallets: [WalletRecord] = []
+        // Passphrase/seed-password provenance remains stored for recovery, but
+        // each wallet is independently selectable and independently ordered.
         var inserted: Set<String> = []
-        for wallet in wallets where inserted.insert(wallet.id).inserted {
-            if let parent = parents[wallet.id] { children[parent, default: []].append(wallet) }
-            else { rootWallets.append(wallet) }
-        }
-        func node(_ wallet: WalletRecord) -> Node {
-            Node(wallet: wallet, children: (children[wallet.id] ?? []).map(node))
-        }
-        roots = rootWallets.map(node)
+        roots = wallets.filter { inserted.insert($0.id).inserted }.map { Node(wallet: $0, children: []) }
     }
 
     /// Reordering changes sibling order only. A parent carries its subtree;

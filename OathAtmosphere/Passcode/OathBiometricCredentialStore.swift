@@ -15,8 +15,8 @@ enum OathBiometricCredentialError: Error, Equatable, Sendable {
     }
 }
 
-/// Configuration is immutable once dispatched. Only invalidate() can run
-/// concurrently, as supported by LocalAuthentication to cancel an active read.
+/// One context per request. A foreground match and the following Keychain
+/// read run in sequence; cancellation invalidates this same context.
 private final class OathBiometricKeychainRead: @unchecked Sendable {
     private let context: LAContext
     private let query: CFDictionary
@@ -37,7 +37,14 @@ private final class OathBiometricKeychainRead: @unchecked Sendable {
 
     func invalidate() { context.invalidate() }
 
-    func read() throws -> Data {
+    func requireMatch(_ reply: @escaping OathBiometricRequest.AuthorizationReply) {
+        context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: context.localizedReason) { success, error in
+            reply(success ? nil : (error ?? OathBiometricCredentialError.keychain(errSecAuthFailed)))
+        }
+    }
+
+    func read(alreadyAuthenticated: Bool) throws -> Data {
+        if alreadyAuthenticated { context.interactionNotAllowed = true }
         var result: CFTypeRef?
         // The protected item's actual key is required; a policy match alone
         // never grants access. Do not substitute the device PIN for the app PIN.
@@ -58,6 +65,8 @@ private final class OathBiometricKeychainRead: @unchecked Sendable {
 /// wait for an unresponsive Keychain call; this resumes the caller independently
 /// and ignores late replies. The lock protects all completion state.
 final class OathBiometricRequest: @unchecked Sendable {
+    typealias AuthorizationReply = @Sendable ((any Error)?) -> Void
+    typealias Authorization = @Sendable (@escaping AuthorizationReply) -> Void
     private let lock = NSLock()
     private let invalidate: @Sendable () -> Void
     private var continuation: CheckedContinuation<Data, any Error>?
@@ -66,7 +75,8 @@ final class OathBiometricRequest: @unchecked Sendable {
 
     init(invalidate: @escaping @Sendable () -> Void) { self.invalidate = invalidate }
 
-    func read(timeout: TimeInterval = 20, operation: @escaping @Sendable () throws -> Data) async throws -> Data {
+    func read(timeout: TimeInterval = 20, authorize: Authorization? = nil,
+              operation: @escaping @Sendable () throws -> Data) async throws -> Data {
         try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
                 let early = lock.withLock {
@@ -78,9 +88,17 @@ final class OathBiometricRequest: @unchecked Sendable {
                 DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + timeout) { [weak self] in
                     self?.finish(.failure(OathBiometricCredentialError.unavailable))
                 }
-                DispatchQueue.global(qos: .userInitiated).async {
-                    guard !self.lock.withLock({ self.completed }) else { return }
-                    self.finish(Result { try operation() })
+                let startRead: AuthorizationReply = { error in
+                    if let error { self.finish(.failure(error)); return }
+                    DispatchQueue.global(qos: .userInitiated).async {
+                        guard !self.lock.withLock({ self.completed }) else { return }
+                        self.finish(Result { try operation() })
+                    }
+                }
+                if let authorize {
+                    authorize(startRead)
+                } else {
+                    startRead(nil)
                 }
             }
         } onCancel: {
@@ -117,13 +135,15 @@ protocol OathBiometricCredentialStoring: Sendable {
     var presentation: OathBiometricPresentation? { get }
     func hasEnrollment() async throws -> Bool
     func disable() async throws
-    func read(reason: String) async throws -> Data
+    func read(reason: String, requiringFreshMatch: Bool) async throws -> Data
     func enableIfAvailable(strings: OathLocalizer,
                            credentialProvider: (@Sendable () async throws -> Data)?) async -> OathBiometricSetupResult
 }
 
 extension OathBiometricCredentialStoring {
     var presentation: OathBiometricPresentation? { nil }
+
+    func read(reason: String) async throws -> Data { try await read(reason: reason, requiringFreshMatch: false) }
 }
 
 /// The protected Keychain read owns authentication. A face match alone is not
@@ -173,7 +193,7 @@ actor OathBiometricCredentialStore: OathBiometricCredentialStoring {
         }
     }
 
-    func read(reason: String) async throws -> Data {
+    func read(reason: String, requiringFreshMatch: Bool) async throws -> Data {
         try Task.checkCancellation()
         try installation?.prepare()
         let query = OathBiometricKeychainRead(identity: identity, reason: reason,
@@ -185,7 +205,24 @@ actor OathBiometricCredentialStore: OathBiometricCredentialStoring {
         }
         // Preserve the original failure for the shared authorization boundary;
         // presentation cleanup does not swallow or reclassify it.
-        var data = try await request.read { try query.read() }
+        var data: Data
+        do {
+            data = try await request.read(authorize: requiringFreshMatch ? query.requireMatch : nil) {
+                try query.read(alreadyAuthenticated: requiringFreshMatch)
+            }
+        } catch let error as LAError {
+            // Choices, mismatches and unavailable biometrics all offer the
+            // app PIN. Other LA failures retain their original diagnostic.
+            switch error.code {
+            case .userCancel, .userFallback, .systemCancel, .appCancel: throw OathBiometricCredentialError.cancelled
+            case .authenticationFailed: throw OathBiometricCredentialError.keychain(errSecAuthFailed)
+            case .biometryLockout, .biometryNotEnrolled, .biometryNotAvailable, .passcodeNotSet, .notInteractive:
+                throw OathBiometricCredentialError.unavailable
+            default:
+                OathDiagnostics.record(error, component: "biometric_credential", operation: "foreground_match")
+                throw OathBiometricCredentialError.unavailable
+            }
+        }
         defer { data.resetBytes(in: data.startIndex..<data.endIndex) }
         try Task.checkCancellation()
         do { return try installation?.open(data, context: "biometric:\(service)") ?? data }

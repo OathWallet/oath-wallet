@@ -45,10 +45,12 @@ extension OathDatabase {
     }
 
     public func trackedAssets(walletID: String) async throws -> [AssetRecord] {
+        // Provider token discovery accepts contract/mint references only. Native
+        // Home selections are already covered by each chain's native balance read.
         try await pool.read { db in
             try AssetRecord.fetchAll(db, sql: """
                 SELECT DISTINCT a.* FROM assets a JOIN trackedAssets t ON t.assetID=a.id
-                JOIN walletAccounts c ON c.id=t.accountID WHERE c.walletID=? ORDER BY a.networkID,a.id
+                JOIN walletAccounts c ON c.id=t.accountID WHERE c.walletID=? AND a.reference<>'native' ORDER BY a.networkID,a.id
                 """, arguments: [walletID])
         }
     }

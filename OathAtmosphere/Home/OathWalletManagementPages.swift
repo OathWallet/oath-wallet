@@ -84,12 +84,17 @@ struct OathHiddenAssetsPage: View {
     }
 }
 
-/// Commit the visible rows and the Recently Deleted section together. Reading
-/// the section directly from the session while copying rows in onChange creates
-/// two separate List diffs instead of one native removal/insertion animation.
-struct OathWalletManagementSnapshot: Equatable {
-    var wallets: [WalletRecord] = []
-    var deletedCount = 0
+/// Read both sections for the same render, including the very first snapshot.
+/// A drag temporarily overrides the order while the session saves it.
+struct OathWalletManagementSnapshot {
+    let tree: WalletTree
+    let deletedCount: Int
+
+    @MainActor init(session: OathWalletSession, pendingOrder: [String]?) {
+        let current = WalletTree(session.wallets)
+        tree = pendingOrder.map { current.reordering($0) } ?? current
+        deletedCount = session.recentlyDeletedWallets.count
+    }
 }
 
 /// Both wallet lists lead to the same retained-wallet management screen.
@@ -108,30 +113,94 @@ struct OathRecentlyDeletedWalletsRow: View {
     }
 }
 
-/// Shared always-visible presentation. Management uses a native hierarchical
-/// data source for movement; the switcher needs only the individual buttons.
+extension WalletListCategory {
+    var titleKey: OathStringKey {
+        switch self {
+        case .wallets: .wallets
+        case .imported: .importedWallets
+        case .privateKey: .privateKeyWallets
+        case .passphrase: .passphraseWallets
+        }
+    }
+}
+
+/// The same heading and Settings rule in native lists, the drawer and backups.
+/// Headers are presentation, not wallet selections or reorder/delete targets.
+struct OathWalletSectionHeader: View {
+    let category: WalletListCategory
+    let title: String
+    let showsDivider: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if showsDivider { OathSettingsSectionRule().accessibilityHidden(true) }
+            Text(title)
+                .oathFont(.subheadline, weight: .semibold)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20).padding(.vertical, 10)
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier("wallets.section." + category.rawValue)
+        }
+        .listRowInsets(EdgeInsets()).listRowSeparator(.hidden).listRowBackground(Color.clear)
+        .selectionDisabled(true).deleteDisabled(true).moveDisabled(true)
+    }
+}
+
+/// Shared always-visible presentation for wallet-only rows.
 struct OathWalletTreeRows<Row: View>: View {
     let tree: WalletTree
     @ViewBuilder let row: (WalletRecord) -> Row
+    @Environment(\.oathLocalizer) private var strings
 
     var body: some View {
-        ForEach(tree.rows) { entry in
-            OathWalletTreeRow(entry: entry) { row(entry.wallet) }
+        let sections = tree.sections
+        ForEach(sections) { section in
+            OathWalletSectionHeader(category: section.category, title: strings.text(section.category.titleKey),
+                                    showsDivider: section.id != sections.first?.id)
+            ForEach(section.tree.rows) { entry in
+                OathWalletTreeRow(entry: entry) { row(entry.wallet) }
+            }
         }
     }
 }
 
 struct OathWalletTreeRow<Content: View>: View {
-    let entry: WalletTree.Row
+    private let depth: Int
+    private let continuingAncestorDepths: [Int]
+    private let hasFollowingSibling: Bool
+    private let hasChildren: Bool
     @ViewBuilder let content: () -> Content
     @ScaledMetric(relativeTo: .body) private var iconSize = 38.0
     @ScaledMetric(relativeTo: .body) private var indentation = 28.0
 
+    init(entry: WalletTree.Row, hasChildren: Bool? = nil, @ViewBuilder content: @escaping () -> Content) {
+        depth = entry.depth
+        continuingAncestorDepths = entry.continuingAncestorDepths
+        hasFollowingSibling = entry.hasFollowingSibling
+        self.hasChildren = hasChildren ?? entry.hasChildren
+        self.content = content
+    }
+
+    /// Account children reuse the wallet tree's geometry without pretending to
+    /// be separate stored wallets or changing their parent's reorder identity.
+    init(childOf parent: WalletTree.Row, hasFollowingSibling: Bool, @ViewBuilder content: @escaping () -> Content) {
+        depth = parent.depth + 1
+        continuingAncestorDepths = parent.continuingAncestorDepths
+            + (parent.depth > 0 && parent.hasFollowingSibling ? [parent.depth - 1] : [])
+        self.hasFollowingSibling = hasFollowingSibling
+        hasChildren = false
+        self.content = content
+    }
+
     var body: some View {
         content()
-            .padding(.leading, CGFloat(entry.depth) * indentation)
+            .padding(.leading, CGFloat(depth) * indentation)
             .overlay {
-                OathWalletTreeBranches(entry: entry, iconSize: iconSize, indentation: indentation)
+                OathWalletTreeBranches(depth: depth, continuingAncestorDepths: continuingAncestorDepths,
+                    hasFollowingSibling: hasFollowingSibling, hasChildren: hasChildren,
+                    iconSize: iconSize, indentation: indentation)
                     .stroke(Color(uiColor: .separator), style: StrokeStyle(lineWidth: 1, lineCap: .round, lineJoin: .round))
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
@@ -145,7 +214,10 @@ struct OathWalletTreeRow<Content: View>: View {
 /// Decorative connectors only. Native buttons and List editing keep their own
 /// hit targets, accessibility and independent deletion/selection semantics.
 private struct OathWalletTreeBranches: Shape {
-    let entry: WalletTree.Row
+    let depth: Int
+    let continuingAncestorDepths: [Int]
+    let hasFollowingSibling: Bool
+    let hasChildren: Bool
     let iconSize: CGFloat
     let indentation: CGFloat
     // SwiftUI mirrors the path natively; mirroring its points too would undo it.
@@ -158,20 +230,20 @@ private struct OathWalletTreeBranches: Shape {
             let x = origin + CGFloat(depth) * indentation + offset
             return CGPoint(x: rect.minX + x, y: y)
         }
-        for depth in entry.continuingAncestorDepths {
+        for depth in continuingAncestorDepths {
             path.move(to: point(depth, rect.minY))
             path.addLine(to: point(depth, rect.maxY))
         }
-        if entry.depth > 0 {
-            let parent = entry.depth - 1
+        if depth > 0 {
+            let parent = depth - 1
             path.move(to: point(parent, rect.minY))
-            path.addLine(to: point(parent, entry.hasFollowingSibling ? rect.maxY : rect.midY))
+            path.addLine(to: point(parent, hasFollowingSibling ? rect.maxY : rect.midY))
             path.move(to: point(parent, rect.midY))
-            path.addLine(to: point(entry.depth, rect.midY, offset: -iconSize / 2 - 4))
+            path.addLine(to: point(depth, rect.midY, offset: -iconSize / 2 - 4))
         }
-        if entry.hasChildren {
-            path.move(to: point(entry.depth, rect.midY + iconSize / 2 + 4))
-            path.addLine(to: point(entry.depth, rect.maxY))
+        if hasChildren {
+            path.move(to: point(depth, rect.midY + iconSize / 2 + 4))
+            path.addLine(to: point(depth, rect.maxY))
         }
         return path
     }
@@ -186,18 +258,13 @@ struct OathWalletManagementPage<Actions: View>: View {
     @ViewBuilder let actions: () -> Actions
     @Environment(\.oathLocalizer) private var strings
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var rows = OathWalletManagementSnapshot()
-    @State private var savingOrder = false
+    @State private var pendingOrder: [String]?
     @State private var failed = false
     @State private var balances = OathWalletListBalances()
-    private var source: OathWalletManagementSnapshot {
-        .init(wallets: session.wallets, deletedCount: session.recentlyDeletedWallets.count)
-    }
-
     var body: some View {
-        OathWalletFamilyList(tree: WalletTree(rows.wallets), editing: editMode.isEditing,
-            enabled: session.isUnlocked && !session.changingWallet && !savingOrder && !removal.busy && scenePhase != .background,
+        let rows = OathWalletManagementSnapshot(session: session, pendingOrder: pendingOrder)
+        OathWalletFamilyList(tree: rows.tree, editing: editMode.isEditing,
+            enabled: session.isUnlocked && !session.changingWallet && pendingOrder == nil && !removal.busy && scenePhase != .background,
             deleteTitle: strings.text(.delete), onMove: move, onDelete: { id in
                 guard scenePhase != .background, !removal.busy else { return }
                 removal.begin(.init(ids: [id], permanently: false), reason: strings.text(.walletRemovalAuthentication))
@@ -220,22 +287,15 @@ struct OathWalletManagementPage<Actions: View>: View {
                             onRecentlyDeleted()
                         }
                     }
-                    if !rows.wallets.isEmpty || rows.deletedCount > 0 { OathSettingsListSectionRule() }
+                    if !rows.tree.roots.isEmpty || rows.deletedCount > 0 { OathSettingsListSectionRule() }
                     actions()
                 }
                 .oathLanguage(strings.language)
             }
         .id(strings.language.isRightToLeft)
         .environment(\.editMode, $editMode)
-        .disabled(!session.isUnlocked || session.changingWallet || savingOrder || removal.confirming)
+        .disabled(!session.isUnlocked || session.changingWallet || pendingOrder != nil || removal.confirming)
         .oathInteractionBlocked(removal.busy)
-        .onChange(of: source, initial: true) { previous, updated in
-            guard !savingOrder else { return }
-            // Initial presentation is immediate; only committed membership or
-            // ordering changes animate. Never optimistically remove a wallet
-            // before authentication, confirmation and persistence succeed.
-            updateRows(updated, animated: previous != updated)
-        }
         .task(id: balances.scope(session: session)) { await balances.observe(session: session) }
         .oathHapticFeedback(.error, trigger: failed, when: failed)
         .alert(strings.text(.walletChangeFailed), isPresented: $failed) {
@@ -253,23 +313,14 @@ struct OathWalletManagementPage<Actions: View>: View {
         .accessibilityIdentifier("settings.wallets.list")
     }
 
-    private func updateRows(_ updated: OathWalletManagementSnapshot, animated: Bool) {
-        let structureChanged = rows.wallets.map(\.id) != updated.wallets.map(\.id)
-            || rows.deletedCount != updated.deletedCount
-        withAnimation(animated && structureChanged && !reduceMotion ? .default : nil) {
-            rows = updated
-        }
-    }
-
     private func move(_ proposed: [String]) {
-        guard !savingOrder, session.isUnlocked, !removal.busy, scenePhase != .background else { return }
-        let ids = WalletTree(rows.wallets).reordering(proposed).flattened.map(\.id)
-        guard ids != WalletTree(rows.wallets).flattened.map(\.id) else { return }
-        let records = Dictionary(uniqueKeysWithValues: rows.wallets.map { ($0.id, $0) })
-        rows.wallets = ids.compactMap { records[$0] }
-        savingOrder = true
+        guard pendingOrder == nil, session.isUnlocked, !removal.busy, scenePhase != .background else { return }
+        let current = WalletTree(session.wallets)
+        let ids = current.reordering(proposed).flattened.map(\.id)
+        guard ids != current.flattened.map(\.id) else { return }
+        pendingOrder = ids
         Task {
-            defer { savingOrder = false; updateRows(source, animated: true) }
+            defer { pendingOrder = nil }
             await OathDiagnostics.$operationID.withValue(UUID()) {
                 do { try await session.reorderWallets(ids) }
                 catch is CancellationError { /* Session locked or changed during the local commit. */ }
@@ -283,25 +334,37 @@ struct OathWalletManagementPage<Actions: View>: View {
 /// cached portfolios; it never changes the selected wallet to obtain a total.
 @MainActor @Observable
 final class OathWalletListBalances {
-    private var values: [String: WalletValuation] = [:]
+    @MainActor @Observable final class RowValue {
+        var value: WalletValuation?
+    }
+    // Stable cells observe only their own value, not a shared totals dictionary.
+    @ObservationIgnored private var rows: [String: RowValue] = [:]
     @ObservationIgnored private var observationID = UUID()
 
     func scope(session: OathWalletSession) -> [String] {
         session.isUnlocked ? session.wallets.map(\.id).sorted() : []
     }
 
-    func observe(session: OathWalletSession) async {
+    func observe(session: OathWalletSession, walletIDs: Set<String>? = nil) async {
         let token = UUID()
         observationID = token
-        let ids = Set(scope(session: session))
-        values = values.filter { ids.contains($0.key) }
+        let ids = Set(scope(session: session)).intersection(walletIDs ?? Set(scope(session: session)))
         guard !ids.isEmpty else { return }
+        if let snapshot = session.portfolio, snapshot.selectedAccountIdentity == nil {
+            row(snapshot.wallet.id).value = WalletValuation(snapshot: snapshot)
+        }
         do {
             let database = try await session.vault.database()
             let currency = session.portfolio?.currency ?? Locale.autoupdatingCurrent.currency?.identifier ?? "USD"
-            for try await summaries in database.observeWalletValuations(walletIDs: ids, currency: currency) {
+            for try await summaries in database.observeWalletAndAccountValuations(walletIDs: ids, currency: currency) {
                 guard !Task.isCancelled, token == observationID, session.isUnlocked else { return }
-                values = Dictionary(uniqueKeysWithValues: summaries.map { ($0.id, $0) })
+                let present = Set(summaries.map(\.id))
+                for (id, row) in rows where !present.contains(id) && row.value != nil { row.value = nil }
+                for summary in summaries {
+                    let row = row(summary.id)
+                    if row.value != summary { row.value = summary }
+                }
+                rows = rows.filter { present.contains($0.key) }
             }
         } catch { OathDiagnostics.record(error);
             // Preserve committed cached values on a read interruption. A new
@@ -309,12 +372,18 @@ final class OathWalletListBalances {
         }
     }
 
-    func amount(walletID: String, session: OathWalletSession) -> String {
-        let snapshot = session.portfolio
-        let value = snapshot?.wallet.id == walletID ? snapshot.map(WalletValuation.init(snapshot:)) : values[walletID]
-        let currency = snapshot?.currency ?? value?.currency ?? Locale.autoupdatingCurrent.currency?.identifier ?? "USD"
+    func amount(walletID: String, selection: HomeAccountSelection? = nil, session: OathWalletSession, locale: Locale = .autoupdatingCurrent) -> String {
+        let value = row(selection?.balanceID(walletID: walletID) ?? walletID).value
+        let currency = value?.currency ?? session.homePortfolio.currency
         let amounts = OathAssetAmounts(native: nil, fiat: value?.totalFiat, currencyCode: value?.currency)
-        return String(OathAssetAmountFormat(locale: .autoupdatingCurrent, selectedCurrencyCode: currency).fiat(amounts).characters)
+        return String(OathAssetAmountFormat(locale: locale, selectedCurrencyCode: currency).fiat(amounts).characters)
+    }
+
+    private func row(_ id: String) -> RowValue {
+        if let value = rows[id] { return value }
+        let value = RowValue()
+        rows[id] = value
+        return value
     }
 }
 
@@ -325,9 +394,13 @@ struct OathWalletListRow: View {
     var showsDisclosure = true
     var isWorking = false
     var compact = false
+    var representsSelectedAccount = false
     @Environment(\.oathLocalizer) private var strings
     @Environment(\.dynamicTypeSize) private var typeSize
-    private var isActive: Bool { wallet.id == session.displayedProfile?.id.uuidString }
+    private var isActive: Bool {
+        wallet.id == session.displayedProfile?.id.uuidString
+            && (session.selectedHomeAccount == nil || representsSelectedAccount)
+    }
     private var amount: String { balances.amount(walletID: wallet.id, session: session) }
 
     var body: some View {
@@ -355,22 +428,15 @@ struct OathWalletListRow: View {
         }
         .accessibilityLabel(session.walletName(wallet, strings: strings))
         .accessibilityValue([session.balancesHidden ? strings.text(.balanceHidden) : amount,
-                             isActive ? strings.text(.currentWallet) : nil,
-                             wallet.kind == "passphrase" ? strings.text(.passphraseWallet) : nil]
+                             isActive ? strings.text(.currentWallet) : nil]
             .compactMap { $0 }.joined(separator: ", "))
         .accessibilityAddTraits(isActive ? .isSelected : [])
     }
 
     private var name: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(session.walletName(wallet, strings: strings))
-                .oathFont(.body).foregroundStyle(.primary)
-                .lineLimit(typeSize.isAccessibilitySize ? 2 : 1).truncationMode(.tail)
-            if wallet.kind == "passphrase" {
-                Text(strings.text(.passphraseWallet)).oathFont(.subheadline)
-                    .foregroundStyle(.secondary).lineLimit(2)
-            }
-        }
+        Text(session.walletName(wallet, strings: strings))
+            .oathFont(.body).foregroundStyle(.primary)
+            .lineLimit(typeSize.isAccessibilitySize ? 2 : 1).truncationMode(.tail)
     }
 
     private var balance: some View {
@@ -390,12 +456,6 @@ struct OathWalletSymbol: View {
     // Lists provide an illustration size; toolbars inherit native SF metrics.
     var size: CGFloat? = nil
 
-    private var walletColor: Color {
-        let rgb = colorHex.flatMap { UInt32($0, radix: 16) } ?? 0x244DE0
-        return Color(.sRGB, red: Double((rgb >> 16) & 255) / 255,
-                     green: Double((rgb >> 8) & 255) / 255, blue: Double(rgb & 255) / 255, opacity: 1)
-    }
-
     var body: some View {
         Group {
             if let size {
@@ -408,7 +468,7 @@ struct OathWalletSymbol: View {
             }
         }
             .symbolRenderingMode(.hierarchical)
-            .foregroundStyle(walletColor)
+            .foregroundStyle(Color(uiColor: OathWalletAccent.color(colorHex)))
     }
 }
 
@@ -461,14 +521,19 @@ struct OathRecentlyDeletedWalletsPage: View {
                     OathEmptyState(strings.text(.recentlyDeletedEmpty), systemImage: "trash")
                 }
             } else {
+                let sections = WalletTree(wallets).sections
                 List(selection: $selection) {
                     Section {
-                        ForEach(wallets, id: \.id) { wallet in
-                            OathSettingsRow(title: session.walletName(wallet, strings: strings), icon: "square.3.layers.3d",
-                                accessory: .none, subtitle: deletionDate(wallet))
-                                .tag(wallet.id)
-                                .listRowInsets(EdgeInsets()).listRowSeparator(.hidden).listRowBackground(Color.clear)
-                                .accessibilityIdentifier("wallets.deleted.\(wallet.id)")
+                        ForEach(sections) { section in
+                            OathWalletSectionHeader(category: section.category, title: strings.text(section.category.titleKey),
+                                                    showsDivider: section.id != sections.first?.id)
+                            ForEach(section.wallets, id: \.id) { wallet in
+                                OathSettingsRow(title: session.walletName(wallet, strings: strings), icon: "square.3.layers.3d",
+                                    accessory: .none, subtitle: deletionDate(wallet))
+                                    .tag(wallet.id)
+                                    .listRowInsets(EdgeInsets()).listRowSeparator(.hidden).listRowBackground(Color.clear)
+                                    .accessibilityIdentifier("wallets.deleted.\(wallet.id)")
+                            }
                         }
                     } header: {
                         Text(strings.text(.recentlyDeletedDetail)).oathFont(.subheadline)
@@ -478,6 +543,7 @@ struct OathRecentlyDeletedWalletsPage: View {
                 .id(strings.language.isRightToLeft)
                 .listStyle(.plain).scrollContentBackground(.hidden)
                 .environment(\.editMode, .constant(.active))
+                .environment(\.defaultMinListRowHeight, 0)
             }
         }
         .toolbar {

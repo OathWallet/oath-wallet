@@ -66,7 +66,7 @@ actor OathEVMSendService {
         return try await connection(network).walletConnectApprovalToken(request)
     }
     private static func validRequestID(_ id: String) -> Bool {
-        id.hasPrefix("wc:") && id.count == 67 && id.dropFirst(3).allSatisfy { $0.isASCII && $0.isHexDigit }
+        DAppEVMRequestID.isValid(id)
     }
     func quote(network:EVMSendNetwork,walletID: String, accountID: String, assetID: String, reference: String,
                recipient: String, amount: String, decimals: Int, maximum: Bool, vault: OathWalletVault, preparedSender: SendSenderSnapshot? = nil) async throws -> OathEVMQuote {

@@ -19,6 +19,7 @@ with tempfile.TemporaryDirectory(prefix="oath-refined-rows-") as temporary:
     executable = work / "RowChecks"
     subprocess.run(["swiftc", "-swift-version", "6", "-parse-as-library",
                     str(work / "Row.swift"), str(work / "Price.swift"),
+                    str(root / "OathAtmosphere/Shared/OathBalanceConcealment.swift"),
                     str(root / "OathAtmosphere/Home/OathAssetAmountFormat.swift"),
                     str(root / "Tools/CheckRefinedRows.swift"), "-o", str(executable)], check=True)
     subprocess.run([str(executable)], check=True)

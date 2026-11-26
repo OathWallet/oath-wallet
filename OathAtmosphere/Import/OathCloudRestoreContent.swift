@@ -132,7 +132,7 @@ private struct OathRestorePasswordForm: View {
             }.frame(width: 0, height: 0)
         }
         .onDisappear { password = ""; focused = false; submitting = false }
-        .oathAutofocus(when: !submitting) { focused = true }
+        .oathAutofocus(when: !submitting, onDisappear: { focused = false }) { focused = true }
     }
 
     private var restoreButton: some View {

@@ -1,5 +1,7 @@
 # Oath website
 
+Current source release: [Oath 5.1.1, build 111](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111). The canonical release fields are in `content/published-source-release.json`; generated navigation and reader interfaces use those fields.
+
 Production: https://oathwallet.org
 
 Canonical source: `Website/` in the public [OathWallet/oath-wallet repository](https://github.com/OathWallet/oath-wallet/tree/main/Website).

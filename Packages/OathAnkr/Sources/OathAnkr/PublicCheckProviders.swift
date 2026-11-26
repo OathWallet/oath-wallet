@@ -15,6 +15,7 @@ public enum PublicCheckProviders {
             "base": "base", "optimism": "optimism", "polygon": "polygon", "gnosis": "gnosis",
             "linea": "linea", "scroll": "scroll", "taiko": "taiko", "telos": "telos",
             "xlayer": "xlayer", "fantom": "fantom", "flare": "flare", "somnia": "somnia_mainnet",
+            "plasma": "plasma", "worldchain": "worldchain", "elysium": "elysium",
             "story": "story_mainnet", "monad": "monad_mainnet", "unichain": "unichain_mainnet", "chiliz": "chiliz", "celo": "celo",
             "hyperevm": "hyperevm", "robinhood": "robinhood_mainnet",
             "solana": "solana", "near": "near", "xrpl": "xrp_mainnet", "ton": "ton_api_v2",

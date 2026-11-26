@@ -94,6 +94,7 @@ struct OathRecoveryPhraseScreen: View {
             .frame(maxWidth: 600, alignment: .leading)
             .frame(maxWidth: .infinity)
             .padding(24)
+            .oathWalletEntryContent()
         }
         .scrollDismissesKeyboard(.interactively)
         .accessibilityIdentifier("recovery.content")
@@ -109,7 +110,8 @@ struct OathRecoveryPhraseScreen: View {
         }
         .oathNativeLocalization()
         .tint(accent)
-        .oathAutofocus(when: !isImporting && !decoding && !showsScanner && !draft.inputRejected) {
+        .oathAutofocus(when: !isImporting && !decoding && !showsScanner && !draft.inputRejected,
+                       onDisappear: { isFocused = false }) {
             isFocused = true
         }
         .onDisappear { isFocused = false; decodeTask?.cancel(); decodeTask = nil; decoding = false }

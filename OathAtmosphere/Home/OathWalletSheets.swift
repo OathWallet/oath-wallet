@@ -1,7 +1,9 @@
 import OathDiagnostics
 import SwiftUI
+import OathNativeRefresh
 import OathDatabase
 import OathAnkr
+import OathBrowser
 
 struct OathStablecoinRestrictionNotice: View {
     let tokens: [StablecoinRestrictionToken]
@@ -64,6 +66,7 @@ struct OathStablecoinRestrictionNotice: View {
                 }
             }.padding(24).padding(.top, 16).fixedSize(horizontal: false, vertical: true)
         }
+        .presentationBackground(Color(uiColor: OathSurfaceColors.groupedCanvas))
         .presentationDragIndicator(.visible)
         .interactiveDismissDisabled()
     }
@@ -131,6 +134,7 @@ struct OathMultisigNotice: View {
                 }
             }.padding(24).padding(.top, 16).fixedSize(horizontal: false, vertical: true)
         }
+        .presentationBackground(Color(uiColor: OathSurfaceColors.groupedCanvas))
         .presentationDragIndicator(.visible)
         .interactiveDismissDisabled()
     }
@@ -148,6 +152,7 @@ struct OathWalletSheet<Content: View>: View {
         )) {
             content().oathFont(.body).padding(20).fixedSize(horizontal: false, vertical: true)
         }
+        .presentationBackground(Color(uiColor: OathSurfaceColors.groupedCanvas))
     }
 }
 
@@ -245,6 +250,7 @@ struct OathWalletSettingsScreen: View {
     private let switcherPath: Binding<NavigationPath>?
     private let switcherRoot: ((@escaping (String) -> Void, @escaping () -> Void) -> AnyView)?
     @Environment(OathAppSettings.self) private var settings
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.oathLocalizer) private var strings
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
@@ -289,6 +295,7 @@ struct OathWalletSettingsScreen: View {
         case .recentlyDeleted: rootRoute = .recentlyDeleted
         case .sidebar(.customize, let id): rootRoute = .customize(id)
         case .sidebar(.revealRecoveryPhrase, let id): rootRoute = .recoveryWarning(id)
+        case .sidebar(.revealPrivateKey, let id): rootRoute = .importedPrivateKey(id)
         case .sidebar(_, let id): rootRoute = .wallet(id)
         case .helpCenter: rootRoute = .helpCenter
         case .wallet(let id): rootRoute = .wallet(id)
@@ -311,16 +318,18 @@ struct OathWalletSettingsScreen: View {
     }
 
     private enum Route: Hashable {
-        case settings, wallets, languages, appearance, wallet(String), customize(String), backupPassword(String), hiddenAssets(String)
+        case settings, wallets, languages, appearance, wallet(String), customize(String), backupPassword(String), hiddenAssets(String), manageTokens(String)
         case importWallet, restoreWallet, restorePassword, chooseImportChain, importPrivateKey(OathPrivateKeyChoice)
         case recoveryWarning(String), recoveryPasscode(String), recoveryWords(String)
         case privateKeyTypes(String), privateKeyAddresses(String)
+        case importedPrivateKey(String)
         case privateKeys(String), privateKeyPasscode(String), privateKeyWarning(String), privateKeyValue(String)
         case contacts, contact(String), contactEditor(String)
         case security, securityAccess, securityVerify, securityNewPasscode, securityDelay
-        case currency, appIcon, helpCenter
+        case currency, browser, searchEngine, appIcon, helpCenter
         case allBackup, allBackupPassword, about, permissions, walletConnect
         case resetPasscode, resetWarning, recentlyDeleted, walletRemovalPasscode
+        case accountChains(String), accounts(String, HDAccountFamily)
         case passphraseIntroduction(String), passphraseEntry(String), seedPasswordEntry(String)
 
         var title: OathStringKey {
@@ -335,15 +344,18 @@ struct OathWalletSettingsScreen: View {
             case .restoreWallet, .restorePassword: .restoreICloud
             case .languages: .language
             case .appearance: .appearance
+            case .accountChains: .chooseChain
+            case .accounts(_, let family): family.accountsTitleKey
             case .wallet: .walletDetails
             case .hiddenAssets: .hiddenAssets
+            case .manageTokens: .manageTokens
             case .customize: .customizeWallet
             case .backupPassword: .cloudBackupPasswordTitle
             case .recoveryWarning, .recoveryPasscode, .recoveryWords: .viewRecoveryPhrase
             case .privateKeys: .viewPrivateKeys
             case .privateKeyTypes: .bitcoinAddressType
             case .privateKeyAddresses: .privateKeyAddressesTitle
-            case .privateKeyPasscode, .privateKeyWarning, .privateKeyValue: .viewPrivateKey
+            case .importedPrivateKey, .privateKeyPasscode, .privateKeyWarning, .privateKeyValue: .viewPrivateKey
             case .contacts: .contacts
             case .contact: .contactDetails
             case .contactEditor: .editContact
@@ -352,6 +364,8 @@ struct OathWalletSettingsScreen: View {
             case .securityNewPasscode: .changePasscode
             case .securityDelay: .requirePasscode
             case .currency: .currency
+            case .browser: .browserTitle
+            case .searchEngine: .browserSearchEngine
             case .appIcon: .appIcon
             case .helpCenter: .helpCenter
             case .allBackup: .backup
@@ -367,10 +381,10 @@ struct OathWalletSettingsScreen: View {
 
         var walletID: String? {
             switch self {
-            case .wallet(let id), .customize(let id), .backupPassword(let id), .hiddenAssets(let id),
+            case .accountChains(let id), .accounts(let id, _), .wallet(let id), .customize(let id), .backupPassword(let id), .hiddenAssets(let id), .manageTokens(let id),
                  .passphraseIntroduction(let id), .passphraseEntry(let id), .seedPasswordEntry(let id),
                  .recoveryWarning(let id), .recoveryPasscode(let id), .recoveryWords(let id),
-                 .privateKeys(let id), .privateKeyTypes(let id), .privateKeyAddresses(let id),
+                 .importedPrivateKey(let id), .privateKeys(let id), .privateKeyTypes(let id), .privateKeyAddresses(let id),
                  .privateKeyPasscode(let id), .privateKeyWarning(let id), .privateKeyValue(let id): id
             default: nil
             }
@@ -434,6 +448,7 @@ struct OathWalletSettingsScreen: View {
         // Each destination has its own retained screen. The system owns push,
         // pop, interactive back, keyboard avoidance and Reduce Motion behavior.
         navigationStack
+        .walletRefreshNavigation()
         .task {
             guard !didStartDestination, session.isUnlocked else { return }
             didStartDestination = true
@@ -450,7 +465,8 @@ struct OathWalletSettingsScreen: View {
                     }
                     recovery = OathRecoveryPhraseModel(walletID: id, reader: session.vault)
                 case .revealPrivateKey:
-                    if wallet.kind == "privateKey" { startPrivateKeys(walletID: id) }
+                    guard wallet.kind == "privateKey" else { dismiss(); return }
+                    startPrivateKeys(walletID: id)
                 case .customize, .settings: break
                 }
             default: break
@@ -600,9 +616,16 @@ struct OathWalletSettingsScreen: View {
         .onChange(of: privateKeys?.phase) { _, phase in
             guard let privateKeys else { return }
             let id = privateKeys.walletID
+            // The imported-key flow changes authentication/warning states in
+            // one page. It must not push the HD browser behind the sidebar sheet.
+            guard route != .importedPrivateKey(id) else { return }
             if phase == .chains {
-                let browserRoute: Route = privateKeys.browserAccount == nil ? .privateKeys(id) : .privateKeyAddresses(id)
-                if let index = path.lastIndex(of: browserRoute), index < path.count - 1 {
+                // Authentication may start from the network or type picker
+                // when redundant choices were skipped. Pop to an actual page.
+                if let index = path.lastIndex(where: {
+                    $0 == .privateKeys(id) || (privateKeys.browserAccount != nil &&
+                        ($0 == .privateKeyTypes(id) || $0 == .privateKeyAddresses(id)))
+                }), index < path.count - 1 {
                     path.removeSubrange((index + 1)...)
                 }
                 return
@@ -610,9 +633,11 @@ struct OathWalletSettingsScreen: View {
             guard session.isUnlocked else { return }
             switch (route, phase) {
             case (.privateKeys(let current), .passcode) where current == id,
+                 (.privateKeyTypes(let current), .passcode) where current == id,
                  (.privateKeyAddresses(let current), .passcode) where current == id:
                 path.append(.privateKeyPasscode(id))
             case (.privateKeys(let current), .warning) where current == id,
+                 (.privateKeyTypes(let current), .warning) where current == id,
                  (.privateKeyAddresses(let current), .warning) where current == id,
                  (.privateKeyPasscode(let current), .warning) where current == id:
                 path.append(.privateKeyWarning(id))
@@ -760,7 +785,6 @@ struct OathWalletSettingsScreen: View {
         }
         if walletRemoval.action?.resetsApp == true {
             return strings.text(.resetWalletsDetail) + "\n\n" + strings.text(.resetDataDetail)
-                + "\n\n" + strings.text(.resetCloudDetail)
         }
         return strings.text(walletRemoval.action?.permanently == true ? .walletPermanentRemovalDetail : .walletRemovalDetail)
     }
@@ -853,6 +877,15 @@ struct OathWalletSettingsScreen: View {
                     .frame(maxWidth: 700).frame(maxWidth: .infinity)
                 }
                 .navigationBarBackButtonHidden(cloudRestore.phase == .saving)
+            } else if case .accountChains(let id) = destination {
+                OathChooseChainScreen(allowedNetworks: OathImportChain.enabledCases.filter { $0.hdAccountFamily != nil },
+                                      accessibilityPrefix: "walletAccounts") { choice in
+                    guard session.isUnlocked, !session.changingWallet, route == destination,
+                          let family = choice.networks.first?.hdAccountFamily else { return }
+                    path.append(.accounts(id, family))
+                }
+            } else if case .accounts(let id, let family) = destination {
+                OathHDAccountsPage(session: session, walletID: id, family: family)
             } else if case .passphraseIntroduction(let id) = destination {
                 OathPassphraseIntroductionPage(walletName: session.walletName(session.wallets.first { $0.id == id }, strings: strings)) {
                     guard session.isUnlocked, !session.changingWallet else { return }
@@ -876,6 +909,8 @@ struct OathWalletSettingsScreen: View {
                 OathWalletConnectPage(session: session)
             } else if case .hiddenAssets(let id) = destination {
                 OathHiddenAssetsPage(session: session, walletID: id)
+            } else if case .manageTokens(let id) = destination {
+                OathManageTokensScreen(session: session, walletID: id, currency: settings.currency)
             } else if destination == .currency {
                 OathCurrencyPage()
             } else if destination == .helpCenter {
@@ -935,10 +970,18 @@ struct OathWalletSettingsScreen: View {
                 OathRecoveryPasscodePage(model: recovery, session: session)
             } else if case .recoveryWords(let id) = destination, let recovery, recovery.walletID == id {
                 OathRecoveryWordsPage(model: recovery, session: session)
+            } else if case .importedPrivateKey(let id) = destination, let privateKeys, privateKeys.walletID == id {
+                OathDirectPrivateKeyPage(model: privateKeys, session: session)
             } else if case .privateKeys(let id) = destination, let privateKeys, privateKeys.walletID == id {
-                OathPrivateKeyChainsPage(model: privateKeys, session: session) { path.append(.privateKeyTypes(id)) }
+                OathPrivateKeyChainsPage(model: privateKeys, session: session) { next in
+                    guard route == .privateKeys(id) else { return }
+                    continuePrivateKeyBrowser(next, model: privateKeys)
+                }
             } else if case .privateKeyTypes(let id) = destination, let privateKeys, privateKeys.walletID == id {
-                OathPrivateKeyTypesPage(model: privateKeys) { path.append(.privateKeyAddresses(id)) }
+                OathPrivateKeyTypesPage(model: privateKeys, session: session) { next in
+                    guard route == .privateKeyTypes(id) else { return }
+                    continuePrivateKeyBrowser(next, model: privateKeys)
+                }
             } else if case .privateKeyAddresses(let id) = destination, let privateKeys, privateKeys.walletID == id {
                 OathPrivateKeyAddressesPage(model: privateKeys, session: session)
             } else if case .privateKeyPasscode(let id) = destination, let privateKeys, privateKeys.walletID == id {
@@ -967,7 +1010,7 @@ struct OathWalletSettingsScreen: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.visible, for: .navigationBar)
         .toolbar {
-            // The selected root dismisses the full-screen presentation.
+            // The selected root dismisses its sheet or full-screen presentation.
             // Every pushed destination uses the NavigationStack's native Back.
             if destination == .wallets {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -1021,8 +1064,13 @@ struct OathWalletSettingsScreen: View {
         }
         // Configure the native Back item; never replace it with a custom button
         // (which would disable the system's interactive back gesture).
-        .oathNativeLocalization(navigationTint: destination.isCustomization ? .white : .label,
-            onArtwork: destination.isCustomization, navigationBackground: destination.isCustomization ? .hidden : .automatic)
+        .oathNativeLocalization(navigationTint: destination == .appIcon ? .white : .label,
+            onArtwork: destination == .appIcon,
+            navigationBackground: destination == .appIcon ? .hidden : .automatic,
+            navigationMaterial: destination == .appIcon ? nil : .regular)
+        // Keep this destination dark from its first frame without changing the
+        // enclosing presentation, saved appearance, or adjacent settings pages.
+        .environment(\.colorScheme, destination == .appIcon ? .dark : colorScheme)
     }
 
     @ViewBuilder private func content(for destination: Route) -> some View {
@@ -1046,13 +1094,39 @@ struct OathWalletSettingsScreen: View {
             }
             .onAppear { if session.isUnlocked { cloudRestore.start() } }
         case .appearance: appearanceContent
+        case .browser:
+            VStack(spacing: 0) {
+                settingsButton(.browserSearchEngine, icon: "magnifyingglass", value: settings.browserSearchEngine.name) {
+                    path.append(.searchEngine)
+                }
+                .accessibilityIdentifier("settings.searchEngine")
+                Toggle(isOn: Binding(get: { settings.browserShowsRecentSites }, set: settings.setBrowserShowsRecentSites)) {
+                    OathSettingsRow(title: strings.text(.browserShowRecentSites), icon: "clock", accessory: .none)
+                }
+                .oathSwitchStyle()
+                .padding(.trailing, 20)
+                .accessibilityIdentifier("settings.browser.showRecentSites")
+            }
+        case .searchEngine:
+            VStack(spacing: 0) {
+                ForEach(BrowserSearchEngine.allCases, id: \.self) { engine in
+                    OathButton(feedback: .selection) { settings.selectBrowserSearchEngine(engine) } label: {
+                        OathSettingsRow(title: engine.name, accessory: .selection(settings.browserSearchEngine == engine))
+                    }
+                    .buttonStyle(OathSettingsRowButtonStyle())
+                    .accessibilityAddTraits(settings.browserSearchEngine == engine ? .isSelected : [])
+                    .accessibilityIdentifier("settings.searchEngine.\(engine.rawValue)")
+                }
+            }
         case .wallet(let id):
             OathWalletNameSettings(session: session, walletID: id, cloudBackup: cloudBackup,
                 onCustomize: { path.append(.customize(id)) },
                 onHiddenAssets: { path.append(.hiddenAssets(id)) },
+                onManageTokens: { path.append(.manageTokens(id)) },
                 onBackupPassword: { path.append(.backupPassword(id)) },
                 onRecovery: { startRecovery(walletID: id) },
                 onPrivateKeys: { startPrivateKeys(walletID: id) },
+                onAccounts: { path.append(.accountChains(id)) },
                 onAddPassphrase: { path.append(.passphraseIntroduction(id)) },
                 onAddSeedPassword: { path.append(.seedPasswordEntry(id)) },
                 onDelete: {
@@ -1072,11 +1146,11 @@ struct OathWalletSettingsScreen: View {
                 pop(.backupPassword(id))
             }
             .padding(20)
-        case .languages, .customize, .hiddenAssets, .importWallet, .chooseImportChain, .importPrivateKey, .recoveryWarning, .recoveryPasscode, .recoveryWords,
-             .privateKeys, .privateKeyTypes, .privateKeyAddresses, .privateKeyPasscode, .privateKeyWarning, .privateKeyValue,
+        case .languages, .customize, .hiddenAssets, .manageTokens, .importWallet, .chooseImportChain, .importPrivateKey, .recoveryWarning, .recoveryPasscode, .recoveryWords,
+             .importedPrivateKey, .privateKeys, .privateKeyTypes, .privateKeyAddresses, .privateKeyPasscode, .privateKeyWarning, .privateKeyValue,
              .contacts, .contact, .contactEditor,
              .security, .securityAccess, .securityVerify, .securityNewPasscode, .securityDelay, .currency, .appIcon,
-             .resetPasscode, .resetWarning, .passphraseIntroduction, .passphraseEntry, .seedPasswordEntry, .restorePassword: EmptyView()
+             .resetPasscode, .resetWarning, .accountChains, .accounts, .passphraseIntroduction, .passphraseEntry, .seedPasswordEntry, .restorePassword: EmptyView()
         }
     }
 
@@ -1159,13 +1233,27 @@ struct OathWalletSettingsScreen: View {
               session.wallets.contains(where: { $0.id == walletID }) else { return }
         privateKeys?.returnToChains()
         privateKeys = OathPrivateKeyModel(walletID: walletID, reader: session.vault)
-        path.append(.privateKeys(walletID))
+        let destination: Route = session.wallets.first(where: { $0.id == walletID })?.kind == "privateKey"
+            ? .importedPrivateKey(walletID) : .privateKeys(walletID)
+        if route != destination { path.append(destination) }
+    }
+
+    private func continuePrivateKeyBrowser(_ next: OathPrivateKeyModel.BrowserDestination, model: OathPrivateKeyModel) {
+        guard session.isUnlocked, !session.changingWallet, scenePhase != .background else { return }
+        switch next {
+        case .types: path.append(.privateKeyTypes(model.walletID))
+        case .addresses: path.append(.privateKeyAddresses(model.walletID))
+        case .singleAddress(let account):
+            model.select(account, reason: strings.format(.privateKeyAuthenticationReason,
+                strings.invariant(account.displayName)))
+        }
     }
 
     private func updatePrivateKeyNavigation() {
         guard let privateKeys else { return }
         let id = privateKeys.walletID
         switch route {
+        case .importedPrivateKey(let current) where current == id: break
         case .privateKeys(let current) where current == id:
             if privateKeys.phase != .chains || privateKeys.browserAccount != nil { privateKeys.returnToChains() }
         case .privateKeyTypes(let current) where current == id,
@@ -1203,6 +1291,10 @@ struct OathWalletSettingsScreen: View {
             OathSettingsSectionRule()
             settingsButton(.currency, icon: "banknote", value: settings.currency) { path.append(.currency) }
                 .accessibilityIdentifier("settings.currency")
+            if settings.browserEnabled {
+                settingsButton(.browserTitle, icon: "safari") { path.append(.browser) }
+                    .accessibilityIdentifier("settings.browser")
+            }
             settingsButton(.language, icon: "globe", value: settings.language.nativeName) { path.append(.languages) }
                 .accessibilityIdentifier("settings.language")
             settingsButton(.appearance, icon: "circle.lefthalf.filled", value: strings.text(settings.appearance.title)) {
@@ -1300,14 +1392,17 @@ private struct OathWalletNameSettings: View {
     let cloudBackup: OathCloudBackupModel
     let onCustomize: () -> Void
     let onHiddenAssets: () -> Void
+    let onManageTokens: () -> Void
     let onBackupPassword: () -> Void
     let onRecovery: () -> Void
     let onPrivateKeys: () -> Void
+    let onAccounts: () -> Void
     let onAddPassphrase: () -> Void
     let onAddSeedPassword: () -> Void
     let onDelete: () -> Void
     @Environment(\.oathLocalizer) private var strings
     @Environment(\.scenePhase) private var scenePhase
+    @State private var canAddAccounts = false
     @State private var canAddSeedPassword = false
     @State private var activating = false
     @State private var activationFailed = false
@@ -1315,8 +1410,6 @@ private struct OathWalletNameSettings: View {
     @State private var showsXrplSetup = false
     @State private var showsTronSetup = false
     @State private var showsNearSetup = false
-    @State private var showsEVMSetup = false
-    @State private var showsSolanaSetup = false
 
     private var wallet: WalletRecord? { session.wallets.first { $0.id == walletID } }
     private var isActive: Bool { session.displayedProfile?.id.uuidString == walletID }
@@ -1326,6 +1419,20 @@ private struct OathWalletNameSettings: View {
         VStack(alignment: .leading, spacing: 0) {
             walletOptions
             OathSettingsSectionRule()
+            OathButton(action: onManageTokens) {
+                OathSettingsRow(title: strings.text(.manageTokens), icon: "slider.horizontal.3")
+            }
+            .buttonStyle(OathSettingsRowButtonStyle())
+            .accessibilityIdentifier("walletSettings.manageTokens")
+            OathSettingsSectionRule()
+            if canAddAccounts {
+                OathButton(action: onAccounts) {
+                    OathSettingsRow(title: strings.text(.walletAccounts), icon: "person.2")
+                }.buttonStyle(OathSettingsRowButtonStyle())
+                    .accessibilityIdentifier("walletSettings.account")
+                OathSettingsFooter { Text(strings.text(.evmAccountsDetail)) }
+                OathSettingsSectionRule()
+            }
             // Use the selected settings wallet, including when it is inactive.
             // Passphrase-derived wallets already have their own passphrase.
             if let wallet, wallet.kind == "hd" || wallet.kind == "imported" {
@@ -1369,18 +1476,6 @@ private struct OathWalletNameSettings: View {
                 }.buttonStyle(OathSettingsRowButtonStyle())
                 OathSettingsSectionRule()
             }
-            if wallet?.kind == "evmMultisig" {
-                OathButton { showsEVMSetup = true } label: {
-                    OathSettingsRow(title: strings.text(.multisigEVMSetup), icon: "signature")
-                }.buttonStyle(OathSettingsRowButtonStyle())
-                OathSettingsSectionRule()
-            }
-            if wallet?.kind == "solanaMultisig" {
-                OathButton { showsSolanaSetup = true } label: {
-                    OathSettingsRow(title: strings.text(.multisigSolanaSetup), icon: "signature")
-                }.buttonStyle(OathSettingsRowButtonStyle())
-                OathSettingsSectionRule()
-            }
             backupAndKeys
             OathSettingsSectionRule()
             OathButton(role: .destructive, action: onDelete) {
@@ -1393,25 +1488,26 @@ private struct OathWalletNameSettings: View {
             let eligible = await session.vault.canAddSeedPasswordWallet(sourceID: walletID)
             guard !Task.isCancelled else { return }
             canAddSeedPassword = eligible
+            let accountsEligible = await session.vault.canAddHDAccounts(walletID: walletID)
+            guard !Task.isCancelled else { return }
+            canAddAccounts = accountsEligible
         }
         .disabled(actionsDisabled)
         .sheet(isPresented: $showsStellarSetup) {
             NavigationStack { OathStellarMultisigSetupScreen(session: session, walletID: walletID) }
+                .presentationBackground(Color(uiColor: OathSurfaceColors.canvas))
         }
         .sheet(isPresented: $showsXrplSetup) {
             NavigationStack { OathXrplMultisigSetupScreen(session: session, walletID: walletID) }
+                .presentationBackground(Color(uiColor: OathSurfaceColors.canvas))
         }
         .sheet(isPresented: $showsTronSetup) {
             NavigationStack { OathTronMultisigSetupScreen(session: session, walletID: walletID) }
+                .presentationBackground(Color(uiColor: OathSurfaceColors.canvas))
         }
         .sheet(isPresented: $showsNearSetup) {
             NavigationStack { OathNearMultisigSetupScreen(session: session, walletID: walletID) }
-        }
-        .sheet(isPresented: $showsEVMSetup) {
-            NavigationStack { OathEVMMultisigSetupScreen(session: session, walletID: walletID) }
-        }
-        .sheet(isPresented: $showsSolanaSetup) {
-            NavigationStack { OathSolanaMultisigSetupScreen(session: session, walletID: walletID) }
+                .presentationBackground(Color(uiColor: OathSurfaceColors.canvas))
         }
         .alert(strings.text(.walletChangeFailed), isPresented: $activationFailed) {
             OathButton(strings.text(.done), feedback: nil) { activationFailed = false }
@@ -1486,5 +1582,513 @@ private struct OathWalletNameSettings: View {
                 }
             }
         }
+    }
+}
+
+/// Public account/path management. Derivation and encrypted commits stay in the vault.
+private extension OathImportChain {
+    var hdAccountFamily: HDAccountFamily? {
+        if isEVM { return .evm }
+        if self == .solana { return .solana }
+        return nil
+    }
+}
+
+extension HDAccountFamily {
+    var accountsTitleKey: OathStringKey { self == .evm ? .evmAccounts : .solanaAccounts }
+    var accountNumberKey: OathStringKey { self == .evm ? .evmAccountNumber : .solanaAccountNumber }
+}
+
+private struct OathHDAccountsPage: View {
+    let session: OathWalletSession
+    let walletID: String
+    let family: HDAccountFamily
+    @Environment(\.oathLocalizer) private var strings
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var balances = OathWalletListBalances()
+    @State private var details: OathHDAccountDestination?
+    @State private var accounts: [EVMAccountGroup] = []
+    @State private var loaded = false
+    @State private var eligible = false
+    @State private var custom = false
+    @State private var drafts: [HDAccountPathDraft] = []
+    @FocusState private var focusedPath: UUID?
+    @State private var notice: OathStringKey?
+    @State private var work: Task<Void, Never>?
+    @State private var busy = false
+
+    // Expected live form validation; invalid drafts disable import without logging user input.
+    private var parsed: [String]? { try? HDAccountPathDraft.paths(drafts, family: family) }
+    private var newPaths: [String] {
+        let saved = Set(accounts.map(\.path))
+        return (parsed ?? []).filter { !saved.contains($0) }
+    }
+    private var enabled: Bool { loaded && eligible && session.isUnlocked && !session.changingWallet && !busy }
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                OathSettingsFooter { Text(strings.text(.evmAccountsDetail)) }.padding(.top, 20)
+                if let wallet = session.wallets.first(where: { $0.id == walletID }) {
+                    ForEach(accounts) { account in
+                        OathButton {
+                            details = .init(wallet: wallet, selection: .init(family: family, path: account.path))
+                        } label: {
+                            OathHDAccountSummary(wallet: wallet, account: account, family: family,
+                                session: session, balances: balances,
+                                selected: session.displayedProfile?.id.uuidString == walletID && session.selectedHomeAccount == .init(family: family, path: account.path),
+                                disclosure: true)
+                        }
+                        .buttonStyle(OathSettingsRowButtonStyle())
+                        .accessibilityIdentifier("hdAccounts.account.\(account.index)")
+                    }
+                }
+                if !loaded { ProgressView().padding(20) }
+                OathSettingsSectionRule()
+                OathButton {
+                    // Expected bounded account-limit validation, not an operational failure.
+                    if let path = try? family.nextDefaultPath(existing: Set(accounts.map(\.path))) { save([path]) }
+                    else { notice = .evmAccountLimit }
+                } label: {
+                    OathSettingsRow(title: strings.text(.evmAddAccount), icon: "plus")
+                }
+                .buttonStyle(OathSettingsRowButtonStyle()).disabled(!enabled)
+                .accessibilityIdentifier("\(family.rawValue)Accounts.add")
+                OathButton {
+                    custom.toggle(); notice = nil; focusedPath = nil
+                    if custom && drafts.isEmpty { addPath() }
+                } label: {
+                    OathSettingsRow(title: strings.text(.evmCustomPaths), icon: "point.3.connected.trianglepath.dotted")
+                }
+                .buttonStyle(OathSettingsRowButtonStyle()).disabled(!enabled)
+                .accessibilityIdentifier("\(family.rawValue)Accounts.custom")
+                OathSettingsFooter { Text(strings.text(.evmBackupPaths)) }
+                if custom {
+                    OathSettingsSectionRule()
+                    OathSettingsFooter { Text(strings.text(.evmPathsHelp)) }
+                    ForEach(drafts) { draft in
+                        OathHDPathEditor(draft: OathHDPathBindings.draft(draft, in: $drafts),
+                            number: (drafts.firstIndex(where: { $0.id == draft.id }) ?? 0) + 1,
+                            focusedPath: $focusedPath) {
+                                let id = draft.id
+                                drafts.removeAll { $0.id == id }
+                            }
+                            .disabled(!enabled)
+                    }
+                    OathButton { addPath() } label: {
+                        OathSettingsRow(title: strings.text(.hdAddPath), icon: "plus", accessory: .none)
+                    }
+                    .buttonStyle(OathSettingsRowButtonStyle())
+                    .disabled(!enabled || drafts.count >= HDAccountPathDraft.maximumPaths)
+                    .accessibilityIdentifier("\(family.rawValue)Accounts.addPath")
+                    if !drafts.isEmpty {
+                        if parsed == nil { OathSettingsFooter { Text(strings.text(.evmInvalidPaths)) }.foregroundStyle(.red) }
+                        else if newPaths.isEmpty { OathSettingsFooter { Text(strings.text(.evmPathsAlreadyAdded)) } }
+                    }
+                }
+                if let notice { Text(strings.text(notice)).foregroundStyle(.red).padding(20) }
+            }.padding(.bottom, 24)
+        }
+        .scrollDismissesKeyboard(.interactively)
+        .background(Color(uiColor: OathSurfaceColors.canvas))
+        .sheet(item: $details) { OathHDAccountDetails(session: session, destination: $0) }
+        .task(id: session.isUnlocked) { await balances.observe(session: session, walletIDs: [walletID]) }
+        .navigationTitle(strings.text(family.accountsTitleKey))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                if focusedPath != nil {
+                    Spacer()
+                    Button { focusedPath = nil } label: { Image(systemName: "keyboard.chevron.compact.down") }
+                        .accessibilityLabel(strings.text(.done))
+                }
+            }
+            if custom || busy {
+                OathToolbarAction(title: .importAction, isEnabled: enabled && !newPaths.isEmpty,
+                    isWorking: busy, identifier: "\(family.rawValue)Accounts.import") { save(newPaths) }
+            }
+        }
+        .task(id: session.isUnlocked ? walletID : "") {
+            guard session.isUnlocked else { return }
+            await OathDiagnostics.$operationID.withValue(UUID()) {
+                do {
+                    eligible = await session.vault.canAddHDAccounts(walletID: walletID)
+                    let db = try await session.vault.database()
+                    for try await values in db.observeHDAccounts(family: family) {
+                        guard !Task.isCancelled else { return }
+                        accounts = values[walletID] ?? []; loaded = true
+                    }
+                } catch {
+                    guard !Task.isCancelled else { return }
+                    OathDiagnostics.record(error, component: "hd_accounts", operation: "observe")
+                    notice = .walletChangeFailedDetail
+                }
+            }
+        }
+        .onDisappear { work?.cancel(); work = nil; focusedPath = nil }
+        .onChange(of: scenePhase) { _, phase in if phase == .background { work?.cancel() } }
+        .onChange(of: session.isUnlocked) { _, unlocked in if !unlocked { work?.cancel(); focusedPath = nil; drafts = []; custom = false } }
+    }
+
+    private func addPath() {
+        guard drafts.count < HDAccountPathDraft.maximumPaths else { return }
+        let used = Set(accounts.map(\.path) + drafts.compactMap(\.canonicalPath))
+        drafts.append(HDAccountPathDraft(family: family, excluding: used))
+    }
+
+    private func save(_ values: [String]) {
+        guard enabled, !values.isEmpty else { return }
+        focusedPath = nil; busy = true; notice = nil
+        work = Task { @MainActor in
+            defer { busy = false; work = nil }
+            do {
+                try await session.addHDAccounts(walletID: walletID, family: family, paths: values)
+                guard !Task.isCancelled else { return }
+                drafts = []; custom = false
+            } catch is CancellationError { /* Expected navigation, lock or background cancellation. */ }
+            catch let error as EVMAccountDerivation.ValidationError {
+                // diagnostics: hd-account-form-validation; expected user input or account limit.
+                notice = error == .accountLimit ? .evmAccountLimit : .evmInvalidPaths
+            } catch {
+                // diagnostics: hd-account-commit-propagation; changeWallet reports and reconciles the original failure.
+                notice = .walletChangeFailedDetail
+            }
+        }
+    }
+}
+
+extension EVMAccountGroup {
+    func displayName(family: HDAccountFamily, strings: OathLocalizer) -> String {
+        name ?? strings.format(family.accountNumberKey, strings.number(index + 1))
+    }
+}
+
+struct OathHDAccountDestination: Identifiable {
+    let wallet: WalletRecord
+    let selection: HomeAccountSelection
+    var id: String { selection.balanceID(walletID: wallet.id) }
+}
+
+/// Its balance dependency is deliberately owned by the row, not the sidebar.
+struct OathHDAccountSummary: View {
+    let wallet: WalletRecord
+    let account: EVMAccountGroup
+    let family: HDAccountFamily
+    let session: OathWalletSession
+    let balances: OathWalletListBalances
+    var selected = false
+    var disclosure = false
+    var showsAddress = true
+    @Environment(\.oathLocalizer) private var strings
+
+    var body: some View {
+        OathListRow {
+            OathWalletListIcon(colorHex: wallet.colorHex, isActive: selected)
+        } content: {
+            VStack(alignment: .leading, spacing: 5) {
+                Text(account.displayName(family: family, strings: strings)).oathFont(.body)
+                    .foregroundStyle(.primary).lineLimit(2)
+                Text(balances.amount(walletID: wallet.id, selection: .init(family: family, path: account.path),
+                    session: session, locale: strings.language.locale))
+                    .oathFont(.body, weight: .medium).foregroundStyle(.primary).monospacedDigit()
+                    .lineLimit(1).minimumScaleFactor(0.75).environment(\.layoutDirection, .leftToRight)
+                    .oathBalanceConcealed(session.balancesHidden)
+                    .accessibilityIdentifier("hdAccount.balance")
+                if showsAddress {
+                    Text(strings.invariant(account.address)).oathFont(.subheadline)
+                        .foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+                }
+            }
+            Spacer(minLength: 0)
+        } accessory: {
+            if disclosure { Image(systemName: "chevron.forward").font(.footnote.weight(.semibold)).foregroundStyle(.tertiary) }
+        }
+    }
+}
+
+struct OathHDAccountDetails: View {
+    private enum CopyField: String { case address, path }
+    let session: OathWalletSession
+    let destination: OathHDAccountDestination
+    @Environment(\.oathLocalizer) private var strings
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var balances = OathWalletListBalances()
+    @State private var accounts: [EVMAccountGroup] = []
+    @State private var eligible = false
+    @State private var renaming = false
+    @State private var draftName = ""
+    @State private var confirmingRemoval = false
+    @State private var busy = false
+    @State private var notice: OathStringKey?
+    @State private var work: Task<Void, Never>?
+    @State private var copiedField: CopyField?
+    @State private var privateKeys: OathPrivateKeyModel?
+    @State private var privateKeyAccount: OathPrivateKeyAccount?
+    @State private var privateKeyNavigation = OathAccountPrivateKeyNavigation()
+    @State private var privateKeyRequestID: UUID?
+    @State private var removal: OathHDAccountRemovalModel?
+    @State private var showsRemovalPasscode = false
+    @FocusState private var nameFocused: Bool
+
+    private var account: EVMAccountGroup? { accounts.first { $0.path == destination.selection.path } }
+    private var enabled: Bool {
+        eligible && account != nil && session.isUnlocked && !session.changingWallet && !busy &&
+            (removal == nil || removal?.phase == .idle)
+    }
+    private var validName: Bool {
+        let name = draftName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !name.isEmpty && name.count <= 80 && !name.unicodeScalars.contains { CharacterSet.controlCharacters.contains($0) }
+    }
+
+    var body: some View {
+        NavigationStack(path: $privateKeyNavigation.path) {
+            ScrollView {
+                VStack(spacing: 0) {
+                    if let account {
+                        OathHDAccountSummary(wallet: destination.wallet, account: account,
+                            family: destination.selection.family, session: session, balances: balances, showsAddress: false)
+                            .padding(.top, 12)
+                        OathSettingsSectionRule()
+                        detail(strings.text(.walletTab), value: session.walletName(destination.wallet, strings: strings))
+                        detail(strings.text(.tokenNetwork), value: destination.selection.family == .solana ? "Solana" : "EVM")
+                        detail(strings.text(.contactAddress), value: account.address, copyField: .address)
+                        detail(strings.text(.privateKeyPath), value: account.path, copyField: .path)
+                        OathSettingsSectionRule()
+                        if renaming {
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text(strings.text(.hdAccountName)).oathFont(.footnote).foregroundStyle(.secondary)
+                                TextField(strings.text(.hdAccountName), text: $draftName)
+                                    .oathSettingsField().focused($nameFocused).submitLabel(.done)
+                                    .disabled(busy).onSubmit { if enabled && validName { rename() } }
+                                    .accessibilityIdentifier("hdAccount.name")
+                            }.padding(.horizontal, 20).padding(.bottom, 20)
+                        } else {
+                            OathButton {
+                                draftName = account.displayName(family: destination.selection.family, strings: strings)
+                                renaming = true; nameFocused = true; notice = nil
+                            } label: {
+                                OathSettingsRow(title: strings.text(.hdAccountRename), icon: "pencil")
+                            }.buttonStyle(OathSettingsRowButtonStyle()).disabled(!enabled)
+                                .accessibilityIdentifier("hdAccount.rename")
+                        }
+                        OathButton { beginPrivateKeyExport() } label: {
+                            OathSettingsRow(title: strings.text(.sidebarRevealKey), icon: "key")
+                        }.buttonStyle(OathSettingsRowButtonStyle()).disabled(!enabled)
+                            .accessibilityIdentifier("hdAccount.exportPrivateKey")
+                        OathSettingsSectionRule()
+                        OathButton(role: .destructive) { confirmingRemoval = true } label: {
+                            OathSettingsRow(title: strings.text(.hdAccountRemove), icon: "trash", accessory: .none, color: .red)
+                        }.buttonStyle(OathSettingsRowButtonStyle()).disabled(!enabled || accounts.count <= 1)
+                            .accessibilityIdentifier("hdAccount.remove")
+                        OathSettingsFooter {
+                            Text(strings.text(accounts.count > 1 ? .hdAccountRemovalHelp : .hdAccountKeepOne))
+                        }
+                    } else if notice == nil { ProgressView().padding(32) }
+                    if removal?.busy == true { ProgressView().padding(20) }
+                    if let notice = removal?.notice { Text(strings.text(notice)).oathFont(.footnote).foregroundStyle(.red).padding(20) }
+                    if let notice { Text(strings.text(notice)).oathFont(.footnote).foregroundStyle(.red).padding(20) }
+                }.padding(.bottom, 24)
+            }
+            .background(Color(uiColor: OathSurfaceColors.canvas))
+            .navigationTitle(strings.text(.hdAccountDetails)).navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                if privateKeyNavigation.path.isEmpty && !showsRemovalPasscode {
+                    ToolbarItem(placement: .topBarLeading) {
+                        OathCloseButton { removal?.cancel(); dismiss() }.disabled(busy || removal?.phase == .removing)
+                    }
+                }
+                if privateKeyNavigation.path.isEmpty && !showsRemovalPasscode && (renaming || busy) {
+                    OathToolbarAction(title: .save, isEnabled: enabled && validName, isWorking: busy,
+                        identifier: "hdAccount.save") { rename() }
+                }
+            }
+            .alert(strings.text(.hdAccountRemove), isPresented: $confirmingRemoval) {
+                Button(strings.text(.cancel), role: .cancel) {}
+                Button(strings.text(.hdAccountRemove), role: .destructive) { remove() }
+            } message: { Text(strings.text(.hdAccountRemovalHelp)) }
+            .navigationDestination(for: OathAccountPrivateKeyNavigation.Route.self, destination: privateKeyScreen)
+            .navigationDestination(isPresented: $showsRemovalPasscode) {
+                if let removal {
+                    OathSecretPasscodePage(session: session, busy: removal.busy,
+                        notice: Binding(get: { removal.notice }, set: { removal.notice = $0 }),
+                        title: .hdAccountRemove, identifier: "hdAccount.remove.passcode", onSubmit: removal.submit)
+                        .background(Color(uiColor: OathSurfaceColors.canvas))
+                        .navigationTitle(strings.text(.hdAccountRemove)).navigationBarTitleDisplayMode(.inline)
+                        .navigationBarBackButtonHidden(removal.phase == .removing)
+                }
+            }
+        }
+        .presentationDetents([.large]).presentationDragIndicator(.visible)
+        .presentationBackground(Color(uiColor: OathSurfaceColors.canvas))
+        .interactiveDismissDisabled(busy || removal?.phase == .removing)
+        .onChange(of: removal?.phase) { _, phase in
+            if phase == .passcode { showsRemovalPasscode = true }
+            else if phase == .removed { dismiss() }
+            else if phase == .idle { showsRemovalPasscode = false }
+        }
+        .onChange(of: showsRemovalPasscode) { _, presented in
+            if !presented && removal?.phase == .passcode { removal?.cancel() }
+        }
+        .task(id: privateKeyRequestID) {
+            guard privateKeyRequestID != nil, let privateKeys, let privateKeyAccount,
+                  session.isUnlocked, scenePhase != .background else { return }
+            await privateKeys.selectAccount(privateKeyAccount, reason:
+                strings.format(.privateKeyAuthenticationReason, strings.invariant(privateKeyAccount.displayName)))
+        }
+        .onChange(of: privateKeys?.phase) { _, phase in
+            if let phase { privateKeyNavigation.update(phase: phase) }
+        }
+        .onChange(of: privateKeyNavigation.path) { _, path in
+            if let privateKeys { privateKeyNavigation.reconcile(model: privateKeys) }
+            if path.isEmpty { clearPrivateKeyExport() }
+        }
+        .task(id: session.isUnlocked) { await balances.observe(session: session, walletIDs: [destination.wallet.id]) }
+        .task(id: session.isUnlocked) {
+            guard session.isUnlocked else { dismiss(); return }
+            await OathDiagnostics.$operationID.withValue(UUID()) {
+                do {
+                    eligible = await session.vault.canAddHDAccounts(walletID: destination.wallet.id)
+                    let db = try await session.vault.database()
+                    for try await values in db.observeHDAccounts(family: destination.selection.family) {
+                        guard !Task.isCancelled else { return }
+                        accounts = values[destination.wallet.id] ?? []
+                        if !busy && removal?.phase != .removing && !accounts.contains(where: { $0.path == destination.selection.path }) { dismiss(); return }
+                    }
+                } catch {
+                    guard !Task.isCancelled else { return }
+                    OathDiagnostics.record(error, component: "hd_accounts", operation: "observe_details")
+                    notice = .walletChangeFailedDetail
+                }
+            }
+        }
+        .task(id: copiedField) {
+            guard copiedField != nil else { return }
+            do { try await Task.sleep(for: .seconds(2)); copiedField = nil }
+            catch is CancellationError { /* A new copy or dismissed details cancels feedback. */ }
+            catch { OathDiagnostics.record(error, component: "hd_accounts", operation: "copy_feedback") }
+        }
+        .onDisappear { work?.cancel(); work = nil; clearPrivateKeyExport(); removal?.cancel() }
+        .onChange(of: scenePhase) { _, phase in
+            // System authentication may briefly be inactive; only backgrounding
+            // abandons this export and its pending authorization.
+            if phase == .background { work?.cancel(); clearPrivateKeyExport(); removal?.cancel() }
+        }
+        .onChange(of: session.isUnlocked) { _, unlocked in if !unlocked { clearPrivateKeyExport(); removal?.cancel() } }
+    }
+
+    private func detail(_ title: String, value: String, copyField: CopyField? = nil) -> some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(title).oathFont(.footnote).foregroundStyle(.secondary)
+                if copyField != nil {
+                    Text(strings.invariant(value)).oathFont(.body).textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else { Text(value).oathFont(.body) }
+            }.frame(maxWidth: .infinity, alignment: .leading)
+            if let copyField {
+                OathButton {
+                    guard session.isUnlocked, scenePhase != .background else { return }
+                    OathClipboard.copy(value)
+                    copiedField = copyField
+                } label: {
+                    Image(systemName: copiedField == copyField ? "checkmark" : "doc.on.doc")
+                        .font(.system(size: 17, weight: .regular))
+                        .foregroundStyle(copiedField == copyField ? OathOnboardingColors.blue : Color(uiColor: .secondaryLabel))
+                        .frame(width: 44, height: 44).contentShape(Rectangle())
+                }.buttonStyle(.plain)
+                    .accessibilityLabel(copyField == .address ? strings.text(.copyAddress) : strings.text(.recoveryCopy) + ", " + title)
+                    .accessibilityValue(copiedField == copyField ? strings.text(.recoveryCopied) : "")
+                    .accessibilityIdentifier("hdAccount.copy." + copyField.rawValue)
+            }
+        }.frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 20).padding(.vertical, 12)
+    }
+
+    private func beginPrivateKeyExport() {
+        guard enabled, scenePhase != .background, let account,
+              let record = account.accounts.first,
+              let chain = OathImportChain(rawValue: record.networkID) else { return }
+        nameFocused = false; renaming = false
+        privateKeys?.returnToChains()
+        privateKeys = OathPrivateKeyModel(walletID: destination.wallet.id, reader: session.vault)
+        privateKeyAccount = .init(id: record.id, chain: chain, address: record.address, path: record.derivationPath)
+        privateKeyNavigation.begin()
+        privateKeyRequestID = UUID()
+    }
+
+    @ViewBuilder private func privateKeyScreen(_ route: OathAccountPrivateKeyNavigation.Route) -> some View {
+        Group {
+            if let privateKeys {
+                switch route {
+                case .authorization:
+                    VStack(spacing: 20) {
+                        if privateKeys.busy || (!privateKeys.loaded && privateKeys.notice == nil) { ProgressView() }
+                        else {
+                            if let notice = privateKeys.notice {
+                                Text(strings.text(notice)).oathFont(.footnote).foregroundStyle(.red)
+                            }
+                            OathActionButton(title: strings.text(.tryAgain), appearance: .secondary) {
+                                guard session.isUnlocked, !session.changingWallet, scenePhase != .background else { return }
+                                privateKeys.returnToChains()
+                                privateKeyRequestID = UUID()
+                            }
+                            .accessibilityIdentifier("privateKey.retry")
+                        }
+                    }.padding(24).frame(maxWidth: .infinity, maxHeight: .infinity)
+                case .passcode:
+                    OathSecretPasscodePage(session: session, busy: privateKeys.busy,
+                        notice: Binding(get: { privateKeys.notice }, set: { privateKeys.notice = $0 }),
+                        title: .viewPrivateKey, identifier: "privateKey.passcode", onSubmit: privateKeys.submit)
+                case .warning:
+                    OathPrivateKeyWarningPage(model: privateKeys, session: session)
+                case .value:
+                    OathPrivateKeyValuePage(model: privateKeys, session: session)
+                }
+            }
+        }
+        .background(Color(uiColor: OathSurfaceColors.canvas))
+        .navigationTitle(strings.text(.viewPrivateKey)).navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(false)
+    }
+
+    private func clearPrivateKeyExport() {
+        privateKeys?.returnToChains()
+        privateKeyRequestID = nil
+        privateKeyNavigation.path = []
+        privateKeys = nil; privateKeyAccount = nil
+    }
+
+    private func rename() {
+        guard enabled, validName else { return }
+        busy = true; notice = nil; nameFocused = false
+        let name = draftName
+        work = Task { @MainActor in
+            defer { busy = false; work = nil }
+            await OathDiagnostics.$operationID.withValue(UUID()) {
+                do {
+                    let db = try await session.vault.database()
+                    try Task.checkCancellation()
+                    guard session.isUnlocked else { return }
+                    try await db.renameHDAccount(walletID: destination.wallet.id, selection: destination.selection, name: name)
+                    renaming = false
+                    OathHaptics.shared.play(.success)
+                } catch is CancellationError { /* Expected dismissal or background cancellation. */ }
+                catch is OathDatabase.AccountManagementError {
+                    // diagnostics: hd-account-form-validation; expected name validation.
+                    notice = .walletRenameFailed
+                }
+                catch {
+                    OathDiagnostics.record(error, component: "hd_accounts", operation: "rename")
+                    notice = .walletRenameFailed
+                }
+            }
+        }
+    }
+
+    private func remove() {
+        guard enabled, accounts.count > 1, scenePhase != .background else { return }
+        nameFocused = false; renaming = false; notice = nil
+        if removal == nil { removal = OathHDAccountRemovalModel(session: session) }
+        removal?.begin(walletID: destination.wallet.id, selection: destination.selection, reason: strings.text(.hdAccountRemove))
     }
 }

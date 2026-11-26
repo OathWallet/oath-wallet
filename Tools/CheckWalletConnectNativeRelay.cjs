@@ -7,11 +7,13 @@ const {randomUUID} = require('node:crypto');
 const {SignClient} = require('@walletconnect/sign-client');
 const {Wallet, verifyMessage, verifyTypedData, hexlify, toUtf8Bytes} = require('ethers');
 for (const method of ['log','info','warn','error','debug']) console[method] = () => {};
-const report = {checks: [], stage: 'initializing'};
+const matrix = JSON.parse(process.env.OATH_WC_EVM_MATRIX || '[]');
+const chains = matrix.length ? matrix.map(row => 'eip155:' + row.chainID) : ['eip155:1','eip155:42161'];
+const report = {layer:'Real native iOS wallet and JS dApp over WalletConnect relay; isolated public test vector; no funds sent', checks: [], stage: 'initializing'};
 const reportPath = '/tmp/oath-wc-native-relay-public.json';
 const save = stage => { report.stage = stage; fs.writeFileSync(reportPath, JSON.stringify(report, null, 2), {mode:0o600}); };
 const pass = name => { report.checks.push({name, passed:true}); save(name); };
-const timeout = setTimeout(() => { save('timeout'); process.stdout.write('Native relay check timed out.\n'); process.exit(1); }, 600000);
+const timeout = setTimeout(() => { save('timeout'); process.stdout.write('Native relay check timed out.\n'); process.exit(1); }, matrix.length ? 1200000 : 600000);
 function memory() {
   const values = new Map();
   return {getKeys:async()=>[...values.keys()],getEntries:async()=>[...values.entries()],getItem:async k=>values.get(k),setItem:async(k,v)=>{values.set(k,v);},removeItem:async k=>{values.delete(k);}};
@@ -20,7 +22,7 @@ function memory() {
   const dapp = await SignClient.init({projectId:process.env.OATH_WC_PROJECT_ID,
     metadata:{name:'Oath Review Lab',description:'Isolated native WalletConnect validation',url:'https://oathwallet.org',icons:['https://oathwallet.org/wallet-logo.png']},
     customStoragePrefix:'oath-native-peer-'+randomUUID(),logger:'silent',storage:memory()});
-  const {uri,approval} = await dapp.connect({requiredNamespaces:{eip155:{chains:['eip155:1','eip155:42161'],methods:['personal_sign','eth_signTypedData_v4','wallet_switchEthereumChain','eth_accounts','eth_chainId'],events:['accountsChanged','chainChanged']}}});
+  const {uri,approval} = await dapp.connect({requiredNamespaces:{eip155:{chains,methods:['personal_sign','eth_signTypedData_v4','wallet_switchEthereumChain','eth_accounts','eth_chainId'],events:['accountsChanged','chainChanged']}}});
   fs.writeFileSync(process.env.OATH_WC_FIXTURE_PATH, JSON.stringify({uri}), {mode:0o600});
   save('waiting-native-approval');
   const session = await approval();
@@ -33,6 +35,20 @@ function memory() {
   const [accounts, chainID] = await Promise.all([request('eth_accounts', []), request('eth_chainId', [])]);
   if (!accounts.some(a => a.toLowerCase() === address.toLowerCase()) || chainID !== '0x1') throw Error('discovery');
   pass('native-post-connect-discovery');
+  if (matrix.length) {
+    if (matrix.length !== 30) throw Error('Update native UI matrix count');
+    for (const row of matrix) {
+      chain='eip155:'+row.chainID;
+      if (!session.namespaces.eip155.accounts.includes(chain+':'+address)) throw Error('matrix account');
+      const accounts=await request('eth_accounts',[]), chainID=await request('eth_chainId',[]);
+      if (!accounts.some(a=>a.toLowerCase()===address.toLowerCase()) || chainID!=='0x'+row.chainID.toString(16)) throw Error('matrix discovery');
+      save('waiting-'+row.name);
+      const message='Oath isolated connection test: '+chain;
+      if (verifyMessage(message,await request('personal_sign',[hexlify(toUtf8Bytes(message)),address]))!==address) throw Error('matrix signature');
+      report.checks.push({name:row.name,chain,connection:true,accountDiscovery:true,signatureIndependentlyVerified:true,transaction:'NOT TESTED'}); save('verified-'+row.name);
+    }
+    chain='eip155:1';
+  } else {
   const message='Oath native WalletConnect validation';
   save('waiting-message');
   if (verifyMessage(message,await request('personal_sign',[hexlify(toUtf8Bytes(message)),address]))!==address) throw Error('message');
@@ -55,6 +71,7 @@ function memory() {
   signature=await request('eth_signTypedData_v4',[address,JSON.stringify({domain,types:{EIP712Domain:domainTypes,...permitTypes},primaryType:'Permit',message:permit})]);
   if (verifyTypedData(domain,permitTypes,permit,signature)!==address) throw Error('permit');
   pass('native-permit-verified');
+  }
   save('waiting-switch');
   const switched=await request('wallet_switchEthereumChain',[{chainId:'0xa4b1'}]);
   if (switched!==null) throw Error('switch');
@@ -71,5 +88,5 @@ function memory() {
   await new Promise(resolve=>dapp.once('session_delete',resolve));
   if (dapp.session.getAll().some(s=>s.topic===session.topic)) throw Error('disconnect');
   pass('native-disconnect-verified');
-  clearTimeout(timeout); save('passed'); process.stdout.write('PASS: native relay consent, four independently verified signatures, network switch, rejection and disconnect.\n'); process.exit(0);
+  clearTimeout(timeout); save('passed'); process.stdout.write('PASS: native relay consent, independent signatures, network switch, rejection and disconnect.\n'); process.exit(0);
 })().catch(error=>{clearTimeout(timeout);report.failedStage=report.stage;if(Number.isSafeInteger(error.code))report.errorCode=error.code;save('failed');process.stdout.write('FAIL: native relay; see fixed-stage public report.\n');process.exit(1);});

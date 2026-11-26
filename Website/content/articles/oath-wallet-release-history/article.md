@@ -1,3 +1,7 @@
+## Latest source release: 5.1.1 (111)
+
+[Oath Wallet 5.1.1, build 111](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111) adds account management for EVM and Solana, native balance charts, an updated browser with website approvals, improved Home navigation and refresh, new app icon choices, and Plasma, World Chain and Elysium support. Read the [release notes and completed checks](https://github.com/OathWallet/oath-wallet/blob/main/releases/5.1.1.md). App Store availability is recorded separately below.
+
 This page separates confirmed App Store distribution from source-code releases. A GitHub tag or prerelease does not, by itself, mean an update is available in the App Store.
 
 ## Current App Store listing: 5.1.0

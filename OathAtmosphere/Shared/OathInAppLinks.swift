@@ -103,21 +103,7 @@ private struct OathInAppLinksModifier: ViewModifier {
             let browser = SFSafariViewController(url: url)
             browser.delegate = self
             browser.dismissButtonStyle = .done
-            browser.modalPresentationStyle = .pageSheet
-            if let sheet = browser.sheetPresentationController {
-                // The native medium height is unavailable on a landscape iPhone.
-                let compact = UISheetPresentationController.Detent.custom { context in
-                    context.containerTraitCollection.verticalSizeClass == .compact
-                        ? context.maximumDetentValue * 0.75 : nil
-                }
-                sheet.detents = [.medium(), compact, .large()]
-                sheet.selectedDetentIdentifier = .large
-                sheet.prefersEdgeAttachedInCompactHeight = true
-                sheet.prefersGrabberVisible = true
-                sheet.prefersScrollingExpandsWhenScrolledToEdge = false
-            }
-            // Present Safari itself, never embed it inside a custom browser or
-            // navigation controller. It owns its native toolbar and safe areas.
+            // Safari supplies its own full-screen presentation and transition.
             activeURL = url; activeDestination = browser
             top.present(browser, animated: true)
         case .email(let recipient):
@@ -149,10 +135,6 @@ private struct OathInAppLinksModifier: ViewModifier {
         // the link, window identity or other user content.
         OathDiagnostics.record(DiagnosticFailure("No active scene for link presentation"),
             component: "navigation", operation: "open_link", severity: "warning", context: ["stage": stage])
-    }
-
-    nonisolated func safariViewControllerDidFinish(_ controller: SFSafariViewController) {
-        Task { @MainActor in controller.dismiss(animated: true) }
     }
 
     nonisolated func mailComposeController(_ controller: MFMailComposeViewController,

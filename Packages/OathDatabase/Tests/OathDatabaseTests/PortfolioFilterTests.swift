@@ -54,14 +54,12 @@ final class PortfolioFilterTests: XCTestCase {
                     holding("empty", token: true, amount: "0", activity: 3),
                     holding("quiet", token: true), holding("other", network: "solana", token: true, activity: 1)]
         var filter = PortfolioFilter()
-        filter.kind = .tokens; filter.networkIDs = ["ethereum", "sui"]
+        filter.networkIDs = ["ethereum", "sui"]
         filter.hidesZeroBalances = true
-        XCTAssertEqual(Set(result(filter, rows)), ["USDC", "token", "quiet"])
+        XCTAssertEqual(Set(result(filter, rows)), ["ETH", "USDC", "SUI", "token", "quiet"])
         filter.networkIDs = ["ethereum"]
-        XCTAssertEqual(Set(result(filter, rows)), ["USDC", "quiet"])
-        filter.kind = .coins
-        XCTAssertEqual(result(filter, rows), ["ETH"])
-        XCTAssertEqual(filter.activeCount, 3)
+        XCTAssertEqual(Set(result(filter, rows)), ["ETH", "USDC", "quiet"])
+        XCTAssertEqual(filter.activeCount, 2)
     }
 
     func testPresortedSnapshotIsFilteredWithoutReordering() {
@@ -124,13 +122,13 @@ final class PortfolioFilterTests: XCTestCase {
     }
 
     func testCurrencyChangeClearsOnlyRangeAndResetRestoresAll() {
-        var filter = PortfolioFilter(); filter.kind = .tokens; filter.sort = .lowestValue
+        var filter = PortfolioFilter(); filter.networkIDs = ["ethereum"]; filter.sort = .lowestValue
         filter.minimumValue = 100; filter.maximumValue = 200; filter.rangeCurrency = "USD"
         let euro = filter.adjusted(for: "EUR")
         XCTAssertNil(euro.minimumValue); XCTAssertNil(euro.maximumValue); XCTAssertNil(euro.rangeCurrency)
-        XCTAssertEqual(euro.kind, .tokens); XCTAssertEqual(euro.sort, .lowestValue)
+        XCTAssertEqual(euro.networkIDs, ["ethereum"]); XCTAssertEqual(euro.sort, .lowestValue)
         XCTAssertEqual(filter.adjusted(for: "USD"), filter)
-        let rows = [holding("token", token: true), holding("coin")]
+        let rows = [holding("token", token: true), holding("coin", network: "sui")]
         XCTAssertEqual(result(filter, rows, currency: "EUR"), ["token"])
         filter = .init()
         XCTAssertEqual(Set(result(filter, rows)), ["coin", "token"])
@@ -153,11 +151,11 @@ final class PortfolioFilterTests: XCTestCase {
 
     func testFilterDraftIsIndependentAndEmptySelectionIncludesNewNetworks() {
         let applied = PortfolioFilter()
-        var draft = applied; draft.networkIDs = ["ethereum"]; draft.kind = .tokens
+        var draft = applied; draft.networkIDs = ["ethereum"]
         XCTAssertEqual(applied.activeCount, 0)
         let refreshed = [holding("ETH"), holding("SUI", network: "sui")]
         XCTAssertEqual(Set(result(applied, refreshed)), ["ETH", "SUI"])
-        XCTAssertTrue(result(draft, refreshed).isEmpty)
+        XCTAssertEqual(result(draft, refreshed), ["ETH"])
         XCTAssertEqual(refreshed.count, 2)
     }
 }

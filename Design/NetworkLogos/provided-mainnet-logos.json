@@ -1,0 +1,20 @@
+{
+  "network-elysium": {
+    "preserveAlpha": true,
+    "received": "2026-11-17",
+    "sha256": "bdc0ca5f8b6759f9edfe3065d69bea9bd8e06aebfc5e0e3fab158749b9acf09f",
+    "sourceFilename": "codex-clipboard-9831cb2d-722d-4b48-a0af-5c29a9ef59a2.png"
+  },
+  "network-plasma": {
+    "preserveAlpha": true,
+    "received": "2026-11-17",
+    "sha256": "ada38aa4a2711f8fe1ae828823be39f195b6857bde6b381166cce88c0636679d",
+    "sourceFilename": "codex-clipboard-e42996ce-e35a-41e0-87a1-4bf81fa3ad64.png"
+  },
+  "network-worldchain": {
+    "preserveAlpha": true,
+    "received": "2026-11-17",
+    "sha256": "d3d7f8cc1737c28f54908b09e18b59842d7b49b7851d05d940ac599f27e7ee8d",
+    "sourceFilename": "codex-clipboard-635a6f2e-15f5-4487-a89f-958f95a15a17.png"
+  }
+}

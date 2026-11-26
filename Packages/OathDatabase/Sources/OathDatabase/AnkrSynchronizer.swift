@@ -55,10 +55,10 @@ public actor AnkrSynchronizer {
     public static func supports(networkID: String) -> Bool { AnkrChain(networkID: networkID)?.supportsAdvancedAPI == true }
     public static var supportedNetworkIDs: [String] { AnkrChain.allCases.filter(\.supportsAdvancedAPI).map(\.networkID) }
 
-    public func refresh(walletID: String) async throws -> [AnkrSyncOutcome] {
+    public func refresh(walletID: String, accountIDs: Set<String>? = nil) async throws -> [AnkrSyncOutcome] {
         try Task.checkCancellation()
         let generation = epoch
-        let accounts = try await database.accounts(walletID: walletID).filter { Self.supports(networkID: $0.networkID) }
+        let accounts = try await database.accounts(walletID: walletID).filter { Self.supports(networkID: $0.networkID) && (accountIDs?.contains($0.id) ?? true) }
         guard generation == epoch, !Task.isCancelled else { throw CancellationError() }
         async let balances = refresh(accounts: accounts, stream: "balances", generation: generation)
         async let transactions = refresh(accounts: accounts, stream: "transactions", generation: generation)
@@ -99,10 +99,10 @@ public actor AnkrSynchronizer {
     /// A changed visibility preference must not join an older filtered scan
     /// and stop there. Finish any prior balance flights, then read the saved
     /// preference again. History and other wallets are not canceled.
-    public func refreshBalances(walletID: String, networkIDs: Set<String>? = nil) async throws -> [AnkrSyncOutcome] {
+    public func refreshBalances(walletID: String, accountIDs: Set<String>? = nil, networkIDs: Set<String>? = nil) async throws -> [AnkrSyncOutcome] {
         try Task.checkCancellation()
         let generation = epoch
-        let accounts = try await database.accounts(walletID: walletID).filter { Self.supports(networkID: $0.networkID) && (networkIDs?.contains($0.networkID) ?? true) }
+        let accounts = try await database.accounts(walletID: walletID).filter { Self.supports(networkID: $0.networkID) && (accountIDs?.contains($0.id) ?? true) && (networkIDs?.contains($0.networkID) ?? true) }
         let pending = accounts.compactMap { account -> (String, UUID, Task<AnkrSyncOutcome, Never>)? in
             let key = account.id + ":balances"
             guard let flight = flights[key] else { return nil }

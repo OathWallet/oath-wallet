@@ -7,20 +7,28 @@ import OathDiagnostics
 public actor CronosBalanceSynchronizer {
     private let database: OathDatabase
     private let client: EVMSendClient
-    private var flights: [String: (UUID, Task<Void, Error>)] = [:]
+    private struct Scope: Hashable {
+        let walletID: String
+        let accountIDs: Set<String>?
+    }
+    private var flights: [Scope: (UUID, Task<Void, Error>)] = [:]
 
     public init(database: OathDatabase, client: EVMSendClient) throws {
         guard client.network == .cronos else { throw EVMSendError.wrongNetwork }
         self.database = database; self.client = client
     }
 
-    public func refresh(walletID: String) async throws {
-        if let flight = flights[walletID] { return try await flight.1.value }
+    public func refresh(walletID: String, accountIDs: Set<String>? = nil) async throws {
+        try Task.checkCancellation()
+        if accountIDs?.isEmpty == true { return }
+        // Different selected accounts must never join another account's flight.
+        let scope = Scope(walletID: walletID, accountIDs: accountIDs)
+        if let flight = flights[scope] { return try await flight.1.value }
         let id = UUID(), task = Task {
             try await OathDiagnostics.$chain.withValue("cronos") {
                 try await OathDiagnostics.$operationID.withValue(UUID()) {
                     do {
-                        let accounts = try await database.accounts(walletID: walletID).filter { $0.networkID == "cronos" }
+                        let accounts = try await database.accounts(walletID: walletID).filter { $0.networkID == "cronos" && (accountIDs?.contains($0.id) ?? true) }
                         guard !accounts.isEmpty else { return }
                         let native = try await database.asset(networkID: "cronos", reference: "native")
                         guard let native else { throw StoreError.missingRecord }
@@ -51,8 +59,8 @@ public actor CronosBalanceSynchronizer {
                 }
             }
         }
-        flights[walletID] = (id, task)
-        defer { if flights[walletID]?.0 == id { flights[walletID] = nil } }
+        flights[scope] = (id, task)
+        defer { if flights[scope]?.0 == id { flights[scope] = nil } }
         // The shared flight owns reporting; followers preserve the same error.
         return try await task.value
     }

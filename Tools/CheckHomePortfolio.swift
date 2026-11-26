@@ -5,14 +5,13 @@ import OathDatabase
 @main struct CheckHomePortfolio {
     static func holding(_ index: Int, amount: String = "123456789", timestamp: Double = 1,
                         network: String = "ethereum", activity: Int = 0, pending: Int = 0,
-                        native: Bool = false, account: String? = nil, price: String? = "12.5",
-                        rate: String? = "1", priceTimestamp: Double? = nil, verified: Bool = true, decimals: Int = 8) throws -> Holding {
+                        native: Bool = false, decimals: Int = 8, account: String? = nil, price: String? = "12.5",
+                        rate: String? = "1", priceTimestamp: Double? = nil) throws -> Holding {
         var json: [String: Any] = ["accountID": account ?? "fixture-" + network, "networkID": network,
             "address": "public-fixture", "assetID": "asset-\(index)", "reference": native ? "native" : "token-\(index)",
             "name": "Token \(index)", "symbol": "T\(index)", "decimals": decimals, "amountAtomic": amount,
-            "balanceObservedAt": timestamp,
+            "balanceObservedAt": timestamp, "homeVerified": true,
             "priceObservedAt": priceTimestamp ?? timestamp, "priceSource": "fixture", "transactionCount": activity, "pendingTransactionCount": pending]
-        json["homeVerified"] = verified
         json["usdPrice"] = price
         json["exchangeRate"] = rate
         return try JSONDecoder().decode(Holding.self, from: JSONSerialization.data(withJSONObject: json))
@@ -24,10 +23,10 @@ import OathDatabase
               filter: filter, query: query, formattingLocale: locale, sortingLocale: locale)
     }
 
-    @MainActor static func waitUntil(_ condition: () -> Bool) async throws {
+    @MainActor static func waitUntil(file: StaticString = #fileID, line: UInt = #line, _ condition: () -> Bool) async throws {
         let deadline = ContinuousClock.now.advanced(by: .seconds(15))
         while !condition() {
-            precondition(ContinuousClock.now < deadline, "Presentation did not settle")
+            precondition(ContinuousClock.now < deadline, "Presentation did not settle", file: file, line: line)
             try await Task.sleep(for: .milliseconds(5))
         }
     }
@@ -44,13 +43,13 @@ import OathDatabase
         try await db.saveExchangeRates(.init(rates: ["USD": "1", "EUR": "0.5", "JOD": "0.709"], observedAt: Date().timeIntervalSince1970, fetchedAt: Date().timeIntervalSince1970, source: "fixture"))
         let model = OathHomePortfolioModel(), coordinator = PortfolioRefreshCoordinator<WalletSnapshot>(pause: { _ in })
         defer { model.cancel(); coordinator.stop() }
+        model.configure(query: "", formattingLocale: "en_US", active: true)
         func publish(_ value: WalletSnapshot) {
-            model.update(.init(walletID: "wallet", holdings: value.holdings, currency: value.currency, total: value.totalFiat,
-                filter: .init(), query: "", formattingLocale: "en_US", sortingLocale: "en_US"))
+            model.receive(value)
         }
         coordinator.observe(stream: { AsyncThrowingStream { $0.finish(throwing: FixtureFailure.observer) } }, isCurrent: { true }, publish: publish, exhausted: {})
         try await waitUntil { !coordinator.isObserving }
-        for (currency, expected) in [("USD", "$6.00"), ("EUR", "€3.00"), ("JOD", "JOD 4.25")] {
+        for (currency, expected, number) in [("USD", "$6.00", 6.0), ("EUR", "€3.00", 3.0), ("JOD", "JOD 4.25", 4.254)] {
             try await db.selectDisplayCurrency(currency)
             do {
                 try await coordinator.perform(work: {
@@ -63,6 +62,8 @@ import OathDatabase
             } catch FixtureFailure.provider {}
             try await waitUntil { model.rows.first?.holding.amountAtomic == "2000000000000000000" && model.rows.first?.fiat == model.total && !model.total.isEmpty }
             try await waitUntil { model.total.replacingOccurrences(of: "\u{00a0}", with: " ") == expected }
+            precondition(abs((model.numericTotal ?? .nan) - number) < 1e-12,
+                         "Counting direction must use the unrounded accepted currency total")
             precondition(model.rows.first?.fiat.replacingOccurrences(of: "\u{00a0}", with: " ") == expected)
             precondition(model.rows.first?.nativeFull == "2 ETH")
         }
@@ -71,12 +72,111 @@ import OathDatabase
         coordinator.observe(stream: { db.observeWallet(walletID: "wallet", currency: "USD") }, isCurrent: { true }, publish: publish, exhausted: { preconditionFailure("Healthy database stream ended") })
         try await db.savePrices([.init(assetID: "ethereum:native", currency: "USD", value: "4", observedAt: 2, source: "fixture")])
         try await waitUntil { model.total == "$8.00" }
+        precondition(model.numericTotal == 8)
         precondition(model.rows.first?.nativeFull == "2 ETH")
+        // An inactive Home retains its display while receiving the latest raw
+        // snapshot. Reactivation must not wait for another database write.
+        coordinator.stop()
+        model.configure(query: "", formattingLocale: "en_US", active: false)
+        try await db.saveBalances([.init(accountID: "account", assetID: "ethereum:native", networkID: "ethereum", amountAtomic: "3000000000000000000", observedAt: Date().timeIntervalSince1970 + 1, source: "fixture")])
+        model.receive(try await db.snapshot(walletID: "wallet", currency: "USD"))
+        precondition(model.total == "$8.00")
+        precondition(model.numericTotal == 8, "Inactive publication must retain text and numeric total together")
+        model.configure(query: "", formattingLocale: "en_US", active: true)
+        try await waitUntil { model.total == "$12.00" && model.rows.first?.nativeFull == "3 ETH" }
+        model.configure(query: "no matching asset", formattingLocale: "en_US", active: true)
+        try await waitUntil { model.searchRows.isEmpty }
+        model.configure(query: "ETH", formattingLocale: "de_DE", active: true)
+        try await waitUntil { model.searchRows.count == 1 && model.total.contains("12,00") }
+        precondition(model.numericTotal == 12, "A locale change must not parse or reinterpret formatted money")
+        // Lock/reset must not resurrect a retained snapshot when context changes.
+        model.receive(nil)
+        model.reset()
+        model.configure(query: "", formattingLocale: "en_US", active: true)
+        precondition(model.rows.isEmpty && model.total.isEmpty && model.numericTotal == nil)
+        let startup = try await model.prepare(input([holding(0)], wallet: "startup"))
+        model.configure(query: "", formattingLocale: "en_US", active: false)
+        try model.publish(startup)
+        precondition(model.walletID == "startup" && model.hasPrepared,
+                     "A view's inactive context must not cancel session-owned startup/unlock preparation")
         print("PASS: stopped observer + partial provider failure publishes committed quantities, fiat rows and totals through production Home in USD/EUR/JOD; delayed prices revalue without reopening")
     }
 
+    @MainActor static func verifyManagedVisibility() async throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let db = try await OathDatabase.open(at: folder.appendingPathComponent("wallet.sqlite"))
+        try await db.seed(networks: [.init(id: "ethereum", name: "Ethereum", family: "evm", symbol: "ETH", decimals: 18, derivationPath: "", logo: "", sortOrder: 0)],
+            assets: [.init(id: "ethereum:native", networkID: "ethereum", reference: "native", name: "Ether", symbol: "ETH", decimals: 18)])
+        try await db.importWalletIfNeeded(.init(id: "wallet", name: "Fixture", kind: "watchOnly", vaultReference: "fixture", createdAt: 1), accounts: [.init(id: "account", walletID: "wallet", networkID: "ethereum", address: "public-fixture", derivationPath: "")])
+        let asset = AssetRecord(id: "managed-token", networkID: "ethereum", reference: "0x1111111111111111111111111111111111111111", name: "Managed Token", symbol: "MT", decimals: 6)
+        try await db.enableManagedToken(asset, walletID: "wallet")
+        try await db.saveBalances([.init(accountID: "account", assetID: asset.id, networkID: "ethereum", amountAtomic: "2000000", observedAt: 123, source: "fixture")])
+        try await db.savePrices([.init(assetID: asset.id, currency: "USD", value: "3", observedAt: 123, source: "fixture")])
+        let editor = OathAssetFilterModel(selection: .init(), currency: "USD") {
+            try await db.savePortfolioFilter($0, walletID: "wallet")
+        }
+        let model = OathHomePortfolioModel()
+        let observer = Task {
+            for try await snapshot in db.observeWallet(walletID: "wallet", currency: "USD") {
+                model.update(.init(walletID: "wallet", holdings: snapshot.holdings, currency: "USD", total: snapshot.totalFiat,
+                    filter: snapshot.assetFilter, query: "", formattingLocale: "en_US", sortingLocale: "en_US", hiddenAssetIDs: snapshot.hiddenAssetIDs))
+            }
+        }
+        defer { observer.cancel(); model.cancel() }
+        try await waitUntil { model.hasPrepared && model.rows.isEmpty }
+        precondition(model.eligibleAssetCount == 0, "Tracking cannot grant verification, and unused native coins stay off Home")
+        var filter = PortfolioFilter(); filter.hidesUnverifiedTokens = false
+        editor.set(\.self, to: filter)
+        await editor.waitForPendingSave()
+        precondition(!editor.saveFailed)
+        try await waitUntil { model.rows.count == 1 && model.total == "$6.00" }
+        let total = model.total
+        try await db.setAssetHidden(true, assetID: asset.id, walletID: "wallet")
+        try await waitUntil { model.rows.isEmpty }
+        precondition(model.total == "$0.00" && model.numericTotal == 0,
+                     "Hiding an asset must lower both the displayed total and its animation value")
+        precondition(model.searchRows.contains { $0.holding.assetID == asset.id }, "Hidden assets remain searchable")
+        let hidden = try await db.managedAssets(walletID: "wallet", currency: "USD")
+        precondition(hidden.matchingCount(filter: filter, currency: "USD", locale: .current) == model.rows.count)
+        try await db.enableManagedToken(asset, walletID: "wallet")
+        try await waitUntil { model.rows.count == 1 }
+        precondition(model.total == total && model.numericTotal == 6,
+                     "Restoring an asset must restore both totals")
+        precondition(model.rows.first { $0.holding.assetID == asset.id }?.holding.balanceObservedAt == 123)
+        filter.hidesZeroBalances = true; filter.minimumValue = 5; filter.maximumValue = 7; filter.rangeCurrency = "USD"
+        editor.set(\.self, to: filter)
+        await editor.waitForPendingSave()
+        precondition(!editor.saveFailed)
+        try await waitUntil { model.rows.count == 1 && model.rows.first?.holding.assetID == asset.id }
+        let limited = try await db.managedAssets(walletID: "wallet", currency: "USD")
+        precondition(limited.matchingCount(filter: filter, currency: "USD", locale: .current) == model.rows.count)
+        filter.networkIDs = ["bitcoin"]
+        editor.set(\.self, to: filter)
+        await editor.waitForPendingSave()
+        precondition(!editor.saveFailed)
+        try await waitUntil { model.rows.isEmpty }
+        try await db.setAssetHidden(true, assetID: asset.id, walletID: "wallet")
+        editor.reset()
+        await editor.waitForPendingSave()
+        precondition(!editor.saveFailed)
+        let reopened = try await OathDatabase.open(at: folder.appendingPathComponent("wallet.sqlite"))
+        let persisted = try await reopened.snapshot(walletID: "wallet", currency: "USD")
+        precondition(persisted.assetFilter == PortfolioFilter())
+        precondition(persisted.hiddenAssetIDs.contains(asset.id), "Reset must preserve Manage Tokens visibility")
+        precondition(persisted.totalFiat == 0, "Reset must preserve hidden-asset valuation")
+        precondition(persisted.holdings.contains { $0.assetID == asset.id && $0.amountAtomic == "2000000" })
+        try await waitUntil { model.rows.isEmpty && model.eligibleAssetCount == 0 }
+        try await db.enableManagedToken(asset, walletID: "wallet", showOnHome: true)
+        try await waitUntil { model.rows.first?.holding.assetID == asset.id }
+        let added = try await reopened.managedAssets(walletID: "wallet", currency: "USD")
+        precondition(added.enabledAssetIDs.contains(asset.id) && !model.rows[0].holding.isVerifiedForHome)
+        precondition(added.matchingCount(filter: .init(), currency: "USD", locale: .current) == model.rows.count)
+        print("PASS: explicit token addition updates the observed Home list and persisted Manage Tokens switch")
+        print("PASS: live filter saves and Reset persist after reopening, retain hidden-asset valuation, publish matching display/animation totals, preserve timestamps/search access, respect verification/network/value/zero filters, and match filter counts")
+    }
+
     static func verifyNativePickerDisplayEquality() throws {
-        precondition(OathImportChain.enabledCases.count == 42)
         for (index, chain) in OathImportChain.enabledCases.enumerated() {
             let current = try holding(index, network: chain.id, native: true)
             let timestampOnly = try holding(index, timestamp: 99, network: chain.id, activity: 20, pending: 2, native: true)
@@ -92,7 +192,7 @@ import OathDatabase
             precondition(!current.hasSameAssetSelectionContent(as: unpriced))
             precondition(!current.hasSameAssetSelectionContent(as: token))
         }
-        print("PASS: all 42 native picker rows suppress timestamp/history redraws while updating quantity, price, rate and asset identity")
+        print("PASS: all \(OathImportChain.enabledCases.count) native picker rows suppress timestamp/history redraws while updating quantity, price, rate and asset identity")
     }
 
     private final class Notifications: @unchecked Sendable {
@@ -142,25 +242,67 @@ import OathDatabase
     @MainActor static func main() async throws {
         try await verifyRowPublication()
         try verifyNativePickerDisplayEquality()
-        try await verifyLiveAssetFilters()
         try await verifyRefreshPublication()
+        try await verifyManagedVisibility()
+        try await verifyLiveAssetFilters()
         let matrix = try JSONDecoder().decode([String: String].self, from: Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1])))
         precondition(Set(matrix.keys) == Set(OathImportChain.enabledCases.map(\.id)), "Every enabled chain must have executable refresh coverage; disabled chains must not be in the matrix")
         precondition(matrix.values.allSatisfy { !$0.isEmpty })
         print("PASS: executable balance-refresh coverage matches all \(matrix.count) enabled production chains")
 
-        let verificationBuilder = OathHomePortfolioBuilder()
-        let unverified = try holding(99, verified: false)
-        let verified = try holding(100)
-        let protected = try await verificationBuilder.build(input([unverified, verified]))
-        precondition(protected.rows.map(\.id) == [verified.id])
-        precondition(protected.searchRows.count == 2, "Unverified tokens remain searchable")
-        var includeUnverified = PortfolioFilter(); includeUnverified.hidesUnverifiedTokens = false
-        let revealed = try await verificationBuilder.build(input([unverified, verified], filter: includeUnverified))
-        precondition(revealed.rows.count == 2)
-        let restored = try await verificationBuilder.build(input([unverified, verified]))
-        precondition(restored.rows.map(\.id) == [verified.id])
-        print("PASS: verification filtering toggles cached rows without changing discovery")
+        // Search uses all persisted holdings, independently of Home visibility.
+        // Regress the reported zero-balance 0G case for every enabled chain.
+        let nativeCoins = try OathImportChain.enabledCases.enumerated().map {
+            try holding($0.offset, amount: "0", network: $0.element.id, native: true)
+        }
+        var hideZero = PortfolioFilter(); hideZero.hidesZeroBalances = true
+        var browseInput = input(nativeCoins, filter: hideZero)
+        browseInput.hiddenAssetIDs = Set(nativeCoins.map(\.assetID))
+        let browseBuilder = OathHomePortfolioBuilder()
+        let browse = try await browseBuilder.build(browseInput)
+        precondition(browse.rows.isEmpty)
+        precondition(browse.searchRows.count == nativeCoins.count)
+        for chain in OathImportChain.enabledCases {
+            let scope = OathAssetSearchScope(chain: chain)
+            let scoped = browse.searchRows.filter { scope.includes(networkID: $0.holding.networkID) }
+            precondition(scoped.count == 1 && scoped[0].holding.reference == "native", chain.id)
+            precondition(scoped[0].holding.amountAtomic == "0", "Filtering must preserve observed quantities")
+        }
+        print("PASS: all \(nativeCoins.count) selected chains retain native coins in production Home search, including zero/hidden 0G")
+
+        // Fresh/imported/restored portfolios share the same empty projection.
+        // Discovery alone is not user selection, even with an observed zero.
+        let empty = try await browseBuilder.build(input(nativeCoins))
+        precondition(empty.rows.isEmpty && empty.eligibleAssetCount == 0)
+        for (index, chain) in OathImportChain.enabledCases.enumerated() {
+            let funded = try holding(index, amount: "1", network: chain.id, native: true, decimals: 18, price: nil)
+            let historical = try holding(index, amount: "0", network: chain.id, activity: 1, native: true)
+            let pending = try holding(index, amount: "0", network: chain.id, pending: 1, native: true)
+            var selected = try holding(index, amount: "0", network: chain.id, native: true)
+            selected.homeTracked = true
+            for candidate in [funded, historical, pending, selected] {
+                let result = try await browseBuilder.build(input([candidate]))
+                precondition(result.rows.count == 1 && result.eligibleAssetCount == 1, chain.id)
+            }
+        }
+        let selectionModel = OathHomePortfolioModel()
+        let unused = try holding(0, amount: "0", native: true)
+        try selectionModel.publish(try await selectionModel.prepare(input([unused])))
+        precondition(selectionModel.rows.isEmpty && selectionModel.hasPrepared)
+        var selected = unused; selected.homeTracked = true
+        selectionModel.update(input([selected]))
+        try await waitUntil { selectionModel.rows.count == 1 && selectionModel.eligibleAssetCount == 1 }
+        selectionModel.update(input([unused]))
+        try await waitUntil { selectionModel.rows.isEmpty && selectionModel.eligibleAssetCount == 0 }
+        var networkFilter = PortfolioFilter(); networkFilter.networkIDs = ["bitcoin"]
+        try selectionModel.publish(try await selectionModel.prepare(input([selected], filter: networkFilter)))
+        precondition(selectionModel.rows.isEmpty && selectionModel.eligibleAssetCount == 1,
+                     "A filtered portfolio offers Reset, not the unfunded-wallet prompt")
+        selectionModel.update(input(nativeCoins, wallet: "another-empty-wallet"))
+        try await waitUntil { selectionModel.hasPrepared && selectionModel.eligibleAssetCount == 0 }
+        precondition(selectionModel.rows.isEmpty, "Manual visibility must not leak across wallets")
+        selectionModel.cancel()
+        print("PASS: unused wallets stay empty; exact positive, historical, pending and manually selected assets appear on every enabled chain; filter emptiness and wallet switches stay distinct")
 
         let priceBuilder = OathHomePortfolioBuilder()
         func quote(_ value: String?, _ time: Double, amount: String = "123456789", rate: String? = "1") throws -> Holding {
@@ -213,13 +355,19 @@ import OathDatabase
         precondition(tree.treeRows[0].hasChildren && !tree.treeRows[0].isChild)
         precondition(tree.treeRows[1].continues && !tree.treeRows[2].continues)
         precondition(tree.treeRows.filter { $0.presentation == nil }.count == 2, "Missing native and separate account get independent headings")
-        grouped.kind = .tokens
-        let tokensOnly = try await treeBuilder.build(input(treeSource, filter: grouped))
-        precondition(tokensOnly.treeRows.compactMap(\.presentation).allSatisfy { $0.holding.reference != "native" })
+        for retiredKind in ["coins", "tokens"] {
+            var legacy = try JSONSerialization.jsonObject(with: JSONEncoder().encode(grouped)) as! [String: Any]
+            legacy["kind"] = retiredKind
+            let restored = try JSONDecoder().decode(PortfolioFilter.self, from: JSONSerialization.data(withJSONObject: legacy))
+            let legacyTree = try await treeBuilder.build(input(treeSource, filter: restored))
+            precondition(legacyTree.rows == tree.rows && legacyTree.treeRows == tree.treeRows,
+                         "Retired asset-type preferences must not hide native coins or tokens in Home")
+        }
         var hiddenTreeInput = input(treeSource, filter: grouped)
         hiddenTreeInput.hiddenAssetIDs = [tokenA.assetID, tokenA2.assetID]
         let hiddenTree = try await treeBuilder.build(hiddenTreeInput)
-        precondition(hiddenTree.treeRows.compactMap(\.presentation).map(\.id) == [tokenB, anotherAccount].map(\.id))
+        precondition(hiddenTree.treeRows.compactMap(\.presentation).map(\.id) == [tokenB, coinA, anotherAccount].map(\.id),
+                     "Groups retain the order of their first remaining asset, including native coins")
         let emptyTree = try await treeBuilder.build(input([], filter: grouped))
         precondition(emptyTree.treeRows.isEmpty)
         let restoredFlat = try await treeBuilder.build(input(treeSource))

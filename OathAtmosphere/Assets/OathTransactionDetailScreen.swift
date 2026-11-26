@@ -567,7 +567,7 @@ struct OathTransactionReceiptHeader<Logo: View>: View {
             Text(title).oathFont(.title2, weight: .semibold)
             Text(strings.invariant(fiat ?? strings.text(.assetPriceUnavailable)))
                 .oathFont(.largeTitle, weight: .medium).minimumScaleFactor(0.5).lineLimit(1)
-                .oathBalanceConcealed(balancesHidden, radius: 16)
+                .oathBalanceConcealed(balancesHidden, style: .receipt)
                 .accessibilityIdentifier("transaction.amountFiat")
             Text(strings.invariant(amount))
                 .oathFont(.body).foregroundStyle(.secondary)

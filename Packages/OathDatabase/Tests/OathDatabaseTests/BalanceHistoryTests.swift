@@ -26,6 +26,61 @@ import GRDB
         try await db.balanceDay(walletID: "w1", currency: "USD", interval: interval)
     }
 
+    func testChartCarriesOpeningAndExcludesFutureOtherWalletAndIncompleteReads() async throws {
+        let (db, _) = try await fixture()
+        try await append(db, "100", time: 900)
+        try await append(db, "110", time: 1_100)
+        try await append(db, "0", time: 1_200, complete: false)
+        try await append(db, "999", time: 1_300, wallet: "w2")
+        try await append(db, "120", time: 1_400)
+        try await append(db, "800", time: 1_800)
+        let chart = try await db.balanceChartHistory(walletID: "w1", currency: "USD", interval: interval, now: Date(timeIntervalSince1970: 1_500))
+        XCTAssertEqual(chart.points.map(\.total), [100, 110, 120])
+        XCTAssertEqual(chart.points.first?.date, interval.start)
+        XCTAssertEqual(chart.interval.end, Date(timeIntervalSince1970: 1_500))
+        XCTAssertEqual(chart.accountIDs, ["account-w1"])
+    }
+
+    func testChartBoundsWholeRangeRatherThanOnlyLatestRows() async throws {
+        let (db, _) = try await fixture()
+        for index in 0..<600 {
+            try await append(db, String(index), time: 1_000 + Double(index))
+        }
+        let chart = try await db.balanceChartHistory(walletID: "w1", currency: "USD", interval: interval, now: interval.end)
+        XCTAssertLessThanOrEqual(chart.points.count, 129)
+        XCTAssertEqual(chart.points.first?.total, 0)
+        XCTAssertEqual(chart.points.last?.total, 599)
+        XCTAssertTrue(chart.points.contains { $0.total > 0 && $0.total < 100 })
+        XCTAssertEqual(chart.points.map(\.date), chart.points.map(\.date).sorted())
+    }
+
+    func testChartAllStartsAtEarliestRetainedRecordAndCurrencyUsesUSDBasis() async throws {
+        let (db, _) = try await fixture()
+        try await db.saveExchangeRates(.init(rates: ["USD": "1", "EUR": "0.8"], observedAt: 100, fetchedAt: 100, source: "fixture"))
+        try await append(db, "100", time: 1_100)
+        try await append(db, "120", time: 1_400)
+        let chart = try await db.balanceChartHistory(walletID: "w1", currency: "EUR",
+            interval: .init(start: Date(timeIntervalSince1970: 0), end: interval.end), now: Date(timeIntervalSince1970: 1_500))
+        XCTAssertEqual(chart.interval.start, Date(timeIntervalSince1970: 1_100))
+        XCTAssertEqual(chart.points.map(\.total), [80, 96])
+        XCTAssertEqual(chart.exchangeRate, Decimal(string: "0.8"))
+    }
+
+    func testChartObservationPublishesNewCommittedPoints() async throws {
+        let (db, _) = try await fixture()
+        let observed = expectation(description: "chart refreshed")
+        let task = Task {
+            for try await chart in db.observeBalanceChartHistory(walletID: "w1", currency: "USD", interval: interval) {
+                if chart.points.last?.total == 108 { observed.fulfill(); return }
+            }
+        }
+        try await append(db, "100")
+        try await append(db, "108", time: 1_200)
+        await fulfillment(of: [observed], timeout: 5)
+        task.cancel()
+        try await task.value
+    }
+
     func testEveryEventAppendsEvenWhenValueIsUnchangedAndSurvivesReopen() async throws {
         let (db, url) = try await fixture()
         for reason in [BalanceSnapshotReason.homeVisit, .refresh, .appOpen, .refresh] {
@@ -312,6 +367,11 @@ import GRDB
         XCTAssertEqual(repriced.latest?.total, 103)
         XCTAssertEqual(repriced.change?.amount, 3); XCTAssertEqual(repriced.change?.percentage, 3)
         XCTAssertNil(repriced.opening?.holdingsJSON, "Daily observation must not load asset payloads")
+        let chart = try await reopened.balanceChartHistory(walletID: "w1", currency: "USD", interval: today)
+        XCTAssertEqual(chart.points.first?.total, 100, "Settled partial valuations match Home")
+        XCTAssertEqual(chart.points.last?.total, 103)
+        XCTAssertFalse(chart.points.contains { $0.total == 0 || $0.total == 40 }, "Initial discovery is not chart history")
+
         let history = try await reopened.balanceHistory(walletID: "w1", currency: "USD")
         XCTAssertEqual(history.count, 6)
         XCTAssertEqual(try history.first?.assets()?.first { $0.assetID == "eth" }?.usdPrice, "3")

@@ -7,6 +7,7 @@ enum OathAppIcon: String, CaseIterable, Identifiable {
     case obsidian, porcelain, verdant, ultraviolet
     case electricLime = "electric-lime"
     case ember, titanium, glacier, champagne
+    case viceSunset = "vice-sunset"
 
     var id: String { rawValue }
     var alternateName: String? {
@@ -21,6 +22,7 @@ enum OathAppIcon: String, CaseIterable, Identifiable {
         case .titanium: "AppIconTitanium"
         case .glacier: "AppIconGlacier"
         case .champagne: "AppIconChampagne"
+        case .viceSunset: "AppIconViceSunset"
         }
     }
     var assetName: String { alternateName ?? "AppIcon" }
@@ -38,6 +40,7 @@ enum OathAppIcon: String, CaseIterable, Identifiable {
         case .titanium: "Titanium"
         case .glacier: "Glacier"
         case .champagne: "Champagne"
+        case .viceSunset: "Vice Sunset"
         }
     }
 
@@ -53,6 +56,7 @@ enum OathAppIcon: String, CaseIterable, Identifiable {
         case .titanium: .appIconTitanium
         case .glacier: .appIconGlacier
         case .champagne: .appIconChampagne
+        case .viceSunset: .appIconViceSunset
         }
     }
 

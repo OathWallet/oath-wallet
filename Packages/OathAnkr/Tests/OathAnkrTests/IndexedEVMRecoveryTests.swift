@@ -93,7 +93,8 @@ final class IndexedEVMRecoveryTests: XCTestCase, @unchecked Sendable {
             .inventory(owner: recoveryOwner, tracked: [token])
     }
     func testBothChainsRecoverTLSAndPreserveExactBalances() async throws {
-        for chain in IndexedEVMChain.allCases {
+        // RPC-catalog chains have separate RPCMainnetTests fixtures.
+        for chain in IndexedEVMChain.allCases.filter({ !$0.usesRPCCatalog }) {
             let transport = IndexedRecoveryTransport(chain: chain)
             let value = try await inventory(transport, chain: chain)
             XCTAssertEqual(value.chain, chain); XCTAssertEqual(value.block, 101); XCTAssertTrue(value.complete)
@@ -104,7 +105,8 @@ final class IndexedEVMRecoveryTests: XCTestCase, @unchecked Sendable {
         }
     }
     func testFailureAfterHeadRestartsAndPinsAllNewBalances() async throws {
-        for chain in IndexedEVMChain.allCases {
+        // RPC-catalog chains have separate RPCMainnetTests fixtures.
+        for chain in IndexedEVMChain.allCases.filter({ !$0.usesRPCCatalog }) {
             let transport = IndexedRecoveryTransport(chain: chain, failure: .afterHead)
             let value = try await inventory(transport, chain: chain)
             XCTAssertEqual(value.block, 101)
@@ -121,7 +123,8 @@ final class IndexedEVMRecoveryTests: XCTestCase, @unchecked Sendable {
         }
     }
     func testRecoveryRejectsWrongChainMalformedIDsAndReorganization() async throws {
-        for chain in IndexedEVMChain.allCases {
+        // RPC-catalog chains have separate RPCMainnetTests fixtures.
+        for chain in IndexedEVMChain.allCases.filter({ !$0.usesRPCCatalog }) {
             for (failure, expected) in [(IndexedRecoveryTransport.Failure.wrongChain, AnkrError.wrongChain),(.badIDs,.invalidResponse),(.reorg,.invalidResponse)] {
                 do { _ = try await inventory(IndexedRecoveryTransport(chain: chain, failure: failure), chain: chain); XCTFail() }
                 catch { XCTAssertEqual(error as? AnkrError, expected) }
@@ -129,7 +132,8 @@ final class IndexedEVMRecoveryTests: XCTestCase, @unchecked Sendable {
         }
     }
     func testCancellationMalformedPrimaryAndAuthorizationDoNotFailOver() async throws {
-        for chain in IndexedEVMChain.allCases {
+        // RPC-catalog chains have separate RPCMainnetTests fixtures.
+        for chain in IndexedEVMChain.allCases.filter({ !$0.usesRPCCatalog }) {
             for failure in [IndexedRecoveryTransport.Failure.cancelled,.malformed,.http(401),.http(403)] {
                 let transport = IndexedRecoveryTransport(chain: chain, failure: failure)
                 do { _ = try await inventory(transport, chain: chain); XCTFail() }
@@ -142,7 +146,8 @@ final class IndexedEVMRecoveryTests: XCTestCase, @unchecked Sendable {
         }
     }
     func testPersistentOutageAndMissingKeyRemainBoundedFailures() async throws {
-        for chain in IndexedEVMChain.allCases {
+        // RPC-catalog chains have separate RPCMainnetTests fixtures.
+        for chain in IndexedEVMChain.allCases.filter({ !$0.usesRPCCatalog }) {
             for key: String? in ["fixture",nil] {
                 let transport = IndexedRecoveryTransport(chain: chain, failure: .both)
                 do { _ = try await inventory(transport, chain: chain, key: key); XCTFail("Never fabricate a zero balance") }
@@ -152,7 +157,8 @@ final class IndexedEVMRecoveryTests: XCTestCase, @unchecked Sendable {
         }
     }
     func testRateLimitsAndServerFailuresRecoverForBothChains() async throws {
-        for chain in IndexedEVMChain.allCases {
+        // RPC-catalog chains have separate RPCMainnetTests fixtures.
+        for chain in IndexedEVMChain.allCases.filter({ !$0.usesRPCCatalog }) {
             for status in [429,503] {
                 let value = try await inventory(IndexedRecoveryTransport(chain: chain, failure: .http(status)), chain: chain)
                 XCTAssertTrue(value.complete); XCTAssertEqual(value.chain,chain)
@@ -171,7 +177,8 @@ final class IndexedEVMRecoveryDiagnosticsTests: XCTestCase, @unchecked Sendable 
         let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
         defer { try? FileManager.default.removeItem(at:file) }
         OathDiagnostics.configure(file:file,transport:reports)
-        for chain in IndexedEVMChain.allCases {
+        // RPC-catalog chains have separate RPCMainnetTests fixtures.
+        for chain in IndexedEVMChain.allCases.filter({ !$0.usesRPCCatalog }) {
             let operation = UUID()
             let value = try await OathDiagnostics.$operationID.withValue(operation) {
                 try await OathDiagnostics.$chain.withValue(chain.rawValue) {

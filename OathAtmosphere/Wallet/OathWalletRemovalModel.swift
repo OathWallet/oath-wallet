@@ -1,4 +1,5 @@
 import OathDiagnostics
+import OathDatabase
 import Foundation
 import Observation
 
@@ -8,6 +9,104 @@ struct OathWalletRemovalAction: Equatable, Sendable {
     var recentlyDeletedOnly = false
     var resetsApp = false
     var recentlyDeletedIDs: Set<String> = []
+}
+
+/// The native alert confirms intent; this model then requires fresh authorization
+/// before handing the exact account mutation to the session.
+@MainActor @Observable final class OathHDAccountRemovalModel {
+    enum Phase: Equatable { case idle, authenticating, passcode, removing, removed }
+    private(set) var phase: Phase = .idle
+    private(set) var busy = false
+    var notice: OathStringKey?
+    @ObservationIgnored private var generation = UUID()
+    @ObservationIgnored private var work: Task<Void, Never>?
+    @ObservationIgnored private var target: (walletID: String, selection: HomeAccountSelection)?
+    private let session: OathWalletSession
+
+    init(session: OathWalletSession) { self.session = session }
+
+    func begin(walletID: String, selection: HomeAccountSelection, reason: String) {
+        guard phase == .idle, session.isUnlocked, !session.changingWallet else { return }
+        target = (walletID, selection)
+        phase = .authenticating
+        authorize(digits: nil, reason: reason)
+    }
+
+    func submit(_ input: [UInt8]) {
+        guard phase == .passcode, input.count == 6, input.allSatisfy({ $0 <= 9 }) else { return }
+        authorize(digits: input, reason: "")
+    }
+
+    private func authorize(digits: [UInt8]?, reason: String) {
+        guard let target, !busy, session.isUnlocked else { return }
+        busy = true; notice = nil
+        let token = generation
+        work = Task { [weak self, session] in
+            await OathDiagnostics.$operationID.withValue(UUID()) {
+                await OathDiagnostics.$chain.withValue(target.selection.family == .solana ? "solana" : nil) {
+                    var digits = digits
+                    defer { if digits != nil { _ = digits!.withUnsafeMutableBytes { $0.initializeMemory(as: UInt8.self, repeating: 0) } } }
+                    do {
+                        let grant = try await session.vault.authorizeHDAccountRemoval(walletID: target.walletID,
+                            selection: target.selection, digits: digits, reason: reason)
+                        guard let self, self.generation == token, !Task.isCancelled, session.isUnlocked else {
+                            await session.vault.cancelHDAccountRemovalAuthorization(grant)
+                            return
+                        }
+                        self.work = nil
+                        self.phase = .removing
+                        // Once authorized and confirmed, the session owns the commit
+                        // and its reconciliation, even if the view disappears.
+                        Task { [self, session] in
+                            var removed = false
+                            var failure: OathStringKey?
+                            do {
+                                try await session.removeHDAccount(walletID: target.walletID,
+                                    selection: target.selection, authorization: grant)
+                                removed = true
+                            } catch {
+                                // diagnostics: hd-account-commit-propagation; changeWallet reports original failures.
+                                failure = .walletChangeFailedDetail
+                                if error is CancellationError { failure = nil }
+                                else if error is OathDatabase.AccountManagementError { failure = .hdAccountKeepOne }
+                                else if (error as? StoreError) == .invalidTransition { failure = .wcTransactionPending }
+                            }
+                            await session.vault.cancelHDAccountRemovalAuthorization(grant)
+                            self.busy = false; self.target = nil; self.notice = failure
+                            self.phase = removed ? .removed : .idle
+                        }
+                    } catch {
+                        guard let self, self.generation == token else { return }
+                        self.busy = false; self.work = nil
+                        // PIN rejection and unavailable/cancelled biometrics are
+                        // expected authentication outcomes, never removal approval.
+                        if error is CancellationError { self.cancel() }
+                        else if let biometric = error as? OathBiometricCredentialError {
+                            if !biometric.isExpectedAuthenticationOutcome {
+                                OathDiagnostics.record(error, component: "hd_accounts", operation: "authorize_removal", context: ["stage": "biometric"])
+                            }
+                            self.phase = .passcode
+                        } else if case OathWalletError.wrongPasscode = error {
+                            self.phase = .passcode; self.notice = .unlockIncorrect
+                        } else if case OathWalletError.throttled = error {
+                            self.phase = .passcode; self.notice = .unlockWait
+                        } else if error is OathDatabase.AccountManagementError {
+                            self.cancel(); self.notice = .hdAccountKeepOne
+                        } else {
+                            OathDiagnostics.record(error, component: "hd_accounts", operation: "authorize_removal")
+                            self.cancel(); self.notice = .walletRemovalFailed
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    func cancel() {
+        guard phase != .removing else { return }
+        generation = UUID(); work?.cancel(); work = nil
+        target = nil; phase = .idle; busy = false; notice = nil
+    }
 }
 
 @MainActor @Observable final class OathWalletRemovalModel {

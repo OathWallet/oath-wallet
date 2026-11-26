@@ -32,6 +32,7 @@ public enum WalletBackupOffer: String, Codable, Sendable, DatabaseValueConvertib
 
 public struct WalletRecord: Codable, Equatable, Sendable, FetchableRecord, PersistableRecord {
     public static let databaseTableName = "wallets"
+    public var supportsActiveUse: Bool { true }
     public var id: String
     public var name: String
     public var kind: String
@@ -84,6 +85,10 @@ public struct WalletRecord: Codable, Equatable, Sendable, FetchableRecord, Persi
 
 public struct AccountRecord: Codable, Equatable, Sendable, FetchableRecord, PersistableRecord {
     public static let databaseTableName = "walletAccounts"
+    /// Browser signing supports ordinary derivation accounts.
+    public var supportsActiveUse: Bool {
+        derivationPath != "evm-multisig-v1" && derivationPath != "solana-multisig-v1"
+    }
     public var id: String
     public var walletID: String
     public var networkID: String

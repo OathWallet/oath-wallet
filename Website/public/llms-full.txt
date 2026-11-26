@@ -1,10 +1,11 @@
 # Oath public editorial documentation
 
+Latest source release: Oath Wallet 5.1.1, build 111.
 Current App Store listing: Oath Wallet 5.1.0. Checked 2026-11-25 (us storefront). Approved build number: not publicly verified.
 App Store: https://apps.apple.com/app/id6780187283
 Distribution evidence: https://itunes.apple.com/lookup?id=6780187283&country=us
 Release metadata: https://oathwallet.org/release-status.json
-Published source release: 5.1.0 (110); https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.0-build110
+Published source release: 5.1.1 (111); https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111
 Guide source: 5.0.2 (104); https://github.com/OathWallet/oath-wallet/releases/tag/v5.0.2-build104
 Published security review: https://github.com/OathWallet/oath-wallet-security-review
 Review scope: maintainer-commissioned, Codex-led security review. The whole-wallet review remains incomplete. Findings, fixes and tests apply to their recorded source commits; later releases do not automatically inherit coverage. No independent security-company certification or independently reproduced App Store binary match is established.
@@ -6107,6 +6108,10 @@ Canonical: https://oathwallet.org/
 
 # Oath — Made for your independence.
 
+<!-- current-release:start -->
+Latest source release: [Oath 5.1.1 · Build 111](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111).
+<!-- current-release:end -->
+
 Oath is a self-custody Bitcoin and crypto wallet for iPhone and iPad. You control your wallet credentials, review fees before confirming, and manage supported assets without a trading marketplace.
 
 - [Download Oath on the App Store](https://apps.apple.com/app/id6780187283) — free, for iPhone and iPad
@@ -6255,11 +6260,12 @@ This guide explains how to find, read and cite Oath's public product documentati
 
 Oath is a self-custody cryptocurrency wallet for iPhone and iPad. The user controls the wallet's recovery material. Oath's website provides product explanations, network and token guides, Help Center instructions, policies and dated articles. Use the [official App Store listing](https://apps.apple.com/app/id6780187283) to check availability and requirements for a particular device and storefront. Do not infer an Android app, browser extension or desktop wallet from a website page.
 
+Latest source release: Oath Wallet 5.1.1, build 111.
 Current App Store listing: Oath Wallet 5.1.0. Checked 2026-11-25 (us storefront). The approved build number is not publicly verified.
 
 - [App Store listing](https://apps.apple.com/app/id6780187283) and [distribution evidence](https://itunes.apple.com/lookup?id=6780187283&country=us).
 - [Machine-readable release metadata](https://oathwallet.org/release-status.json).
-- [Published source release 5.1.0, build 110](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.0-build110).
+- [Published source release 5.1.1, build 111](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111).
 - [Guide source 5.0.2, build 104](https://github.com/OathWallet/oath-wallet/releases/tag/v5.0.2-build104).
 - [Published security review](https://github.com/OathWallet/oath-wallet-security-review).
 
@@ -6348,6 +6354,10 @@ Canonical: https://oathwallet.org/features
 
 # Oath features
 
+<!-- current-release:start -->
+Latest source release: [Oath 5.1.1 · Build 111](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111).
+<!-- current-release:end -->
+
 Everything you need. Nothing you don’t.
 
 <!-- oath-feature-pages:start -->
@@ -6419,6 +6429,10 @@ Step-by-step help, with release notes and recovery limitations. Start with the g
 Canonical: https://oathwallet.org/about
 
 # About Oath Wallet — Team, Open Source & Official Links
+
+<!-- current-release:start -->
+Latest source release: [Oath 5.1.1 · Build 111](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111).
+<!-- current-release:end -->
 
 Oath Wallet is a free, open-source Bitcoin and crypto wallet for iPhone and iPad.
 
@@ -17038,6 +17052,10 @@ Updated: 2026-11-25T00:00:00Z
 # Oath Wallet release history and current version
 
 Check Oath’s current App Store version, dated release evidence, historical source records and version-specific wallet guides before relying on a feature.
+
+## Latest source release: 5.1.1 (111)
+
+[Oath Wallet 5.1.1, build 111](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111) adds account management for EVM and Solana, native balance charts, an updated browser with website approvals, improved Home navigation and refresh, new app icon choices, and Plasma, World Chain and Elysium support. Read the [release notes and completed checks](https://github.com/OathWallet/oath-wallet/blob/main/releases/5.1.1.md). App Store availability is recorded separately below.
 
 This page separates confirmed App Store distribution from source-code releases. A GitHub tag or prerelease does not, by itself, mean an update is available in the App Store.
 

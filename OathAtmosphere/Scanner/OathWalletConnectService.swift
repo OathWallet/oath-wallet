@@ -62,7 +62,7 @@ import OathBitcoin
             return "0x" + message.map { String(format: "%02x", $0) }.joined()
         }
     }
-    enum PresentationIssue { case expired, unsupported, invalid, disconnected, unavailable, changed, gas(network: String, address: String), bitcoinFunds, simulation, declined }
+    enum PresentationIssue { case expired, unsupported, invalid, disconnected, unavailable, changed, gas(network: String, address: String), bitcoinFunds, simulation, declined, transaction(OathSendFailure) }
     enum ReviewFailure: Error { case updated, quoteUpdated }
     struct TransactionCompletion {
         let sendID: String, hash: String
@@ -288,14 +288,31 @@ import OathBitcoin
         failed = true
     }
     func accounts(walletID: String) async -> [AccountRecord] {
-        guard let session, session.isUnlocked, session.wallets.contains(where: { $0.id == walletID }) else { return [] }
-        do { let db = try await session.vault.database(); var records = try await db.accounts(walletID: walletID)
-            for index in records.indices where records[index].networkID == "solana" {
-                records[index] = try await db.solanaSigningAccount(accountID: records[index].id)
-            }
-            guard session.isUnlocked, session.wallets.contains(where: { $0.id == walletID }) else { return [] }
+        await loadAccounts(walletID: walletID, scope: .session)
+    }
+    func connectionAccounts(walletID: String) async -> [AccountRecord] {
+        await loadAccounts(walletID: walletID, scope: .connection)
+    }
+    func consentAccounts(walletID: String, reviewed: [AccountRecord]) async throws -> [AccountRecord] {
+        try Task.checkCancellation()
+        let current = await connectionAccounts(walletID: walletID)
+        try Task.checkCancellation()
+        guard !current.isEmpty,
+              Set(current.map(WalletConnectAccountIdentity.init)) == Set(reviewed.map(WalletConnectAccountIdentity.init)) else {
+            throw ConfigurationFailure.invalid
+        }
+        return current
+    }
+    private func loadAccounts(walletID: String, scope: WalletConnectAccountScope) async -> [AccountRecord] {
+        guard let session, session.isUnlocked, session.wallets.contains(where: { $0.id == walletID && $0.supportsActiveUse }) else { return [] }
+        do { let db = try await session.vault.database(); var records = try await db.walletConnectAccounts(walletID: walletID, scope: scope).filter(\.supportsActiveUse)
+            guard session.isUnlocked, session.wallets.contains(where: { $0.id == walletID && $0.supportsActiveUse }) else { return [] }
             var unavailableBitcoin = Set<String>()
             for index in records.indices where records[index].networkID == "bitcoin" {
+                // Consent can arrive before Home's background Bitcoin refresh.
+                // Prepare the public descriptor locally so an absent descriptor
+                // cannot make this read discard every chain's accounts.
+                try await session.vault.prepareBitcoin(accountID: records[index].id)
                 let addresses = try await db.walletConnectBitcoinAddresses(accountID: records[index].id)
                 guard !addresses.isEmpty, addresses.allSatisfy({ $0.multisigInputWeight == nil }) else {
                     unavailableBitcoin.insert(records[index].id); continue
@@ -304,14 +321,18 @@ import OathBitcoin
                     records[index].address = primary.address
                 }
             }
-            // The consent page displays one address per network. Negotiate exactly those addresses.
+            guard session.isUnlocked, session.wallets.contains(where: { $0.id == walletID && $0.supportsActiveUse }) else { return [] }
+            // Only new consent is scoped/deduplicated. Existing requests must
+            // resolve their approved address even after selecting another account.
             var seen = Set<String>()
             return records.sorted { $0.accountIndex == $1.accountIndex ? $0.id < $1.id : $0.accountIndex < $1.accountIndex }
                 .filter {
-                    guard $0.derivationPath != "xrpl-multisig-v1", $0.derivationPath != "stellar-multisig-v1", $0.derivationPath != "near-multisig-v1", $0.derivationPath != "sui-multisig-v1", $0.derivationPath != "ton-multisig-v1", $0.derivationPath != "tron-multisig-v1", !unavailableBitcoin.contains($0.id), let blockchain = OathImportChain(rawValue: $0.networkID).flatMap(Self.blockchain),
+                    guard $0.supportsActiveUse, $0.derivationPath != "xrpl-multisig-v1", $0.derivationPath != "stellar-multisig-v1", $0.derivationPath != "near-multisig-v1", $0.derivationPath != "sui-multisig-v1", $0.derivationPath != "ton-multisig-v1", $0.derivationPath != "tron-multisig-v1", !unavailableBitcoin.contains($0.id), let blockchain = OathImportChain(rawValue: $0.networkID).flatMap(Self.blockchain),
                           OathWalletConnectPolicy.supportsConnection(blockchain.absoluteString) else { return false }
-                    return seen.insert($0.networkID).inserted
+                    if case .connection = scope { return seen.insert($0.networkID).inserted }
+                    return true
                 } }
+        catch is CancellationError { return [] }
         catch { OathDiagnostics.$operationID.withValue(operation) { OathDiagnostics.record(error, component: "walletconnect", operation: "load_accounts") }; failConnection(.accounts); return [] }
     }
     static func blockchain(_ chain: OathImportChain) -> Blockchain? {
@@ -390,9 +411,8 @@ import OathBitcoin
         defer { if token == operation { working = false } }
         do {
             // Reload ownership immediately before consent is committed.
-            let current = await self.accounts(walletID: walletID)
-            guard token == operation, session?.isUnlocked == true, self.proposal?.value.id == proposal.value.id,
-                  !current.isEmpty, Set(accounts.map(\.id)) == Set(current.map(\.id)) else { throw ConfigurationFailure.invalid }
+            let current = try await consentAccounts(walletID: walletID, reviewed: accounts)
+            guard token == operation, session?.isUnlocked == true, self.proposal?.value.id == proposal.value.id else { throw CancellationError() }
             let namespaces = try namespaces(for: proposal.value, accounts: current, selected: selected)
             // Transfer a detached value across the SDK's nonisolated async boundary.
             let encoded = try JSONEncoder().encode(namespaces)
@@ -422,9 +442,12 @@ import OathBitcoin
             }
             guard token == operation, session?.isUnlocked == true else { throw CancellationError() }
             let proofs = try await approveTonProofs(proposal.value, namespaces: namespaces, accounts: current, walletID: walletID, digits: digits, reason: reason)
-            guard token == operation, session?.isUnlocked == true else { throw CancellationError() }
+            _ = try await consentAccounts(walletID: walletID, reviewed: current)
+            guard token == operation, session?.isUnlocked == true, self.proposal?.value.id == proposal.value.id else { throw CancellationError() }
             let result = try await Self.commitProposal(id: proposal.value.id, namespaces: encoded, properties: properties, proofs: proofs)
-            guard token == operation, session?.isUnlocked == true, self.proposal?.value.id == proposal.value.id else {
+            let afterCommit = await connectionAccounts(walletID: walletID)
+            guard token == operation, session?.isUnlocked == true, self.proposal?.value.id == proposal.value.id,
+                  Set(afterCommit.map(WalletConnectAccountIdentity.init)) == Set(current.map(WalletConnectAccountIdentity.init)) else {
                 try await Sign.instance.disconnect(topic: result.topic)
                 if token == operation { working = false }
                 return
@@ -480,6 +503,15 @@ import OathBitcoin
         // in this SDK; session proposals are explicitly rejected above.
     }
     func walletID(for topic: String) -> String? { walletMapping[topic] }
+
+    func sessions(for walletID: String?) -> [Session] {
+        let mapping = walletMapping
+        let now = Date()
+        return sessions.filter {
+            OathWalletConnectConnections.isVisible(owner: mapping[$0.topic], walletID: walletID,
+                                                  expiration: $0.expiryDate, revoked: connections.isRevoked($0.topic), now: now)
+        }
+    }
 
     func refreshSessions() {
         guard configured else { return }
@@ -559,6 +591,10 @@ import OathBitcoin
         return .idle
     }
     private func receive(_ request: Request, context: VerifyContext?, replacingCompletion: UUID? = nil) {
+        if OathDAppApprovalGate.shared.browserRequest != nil {
+            if Sign.instance.getPendingRequests().count > 8 { respondError(request, code: 4001) }
+            return // Bounded SDK queue resumes when the native browser review releases ownership.
+        }
         guard !responsesInFlight.contains(requestKey(request)) else { return }
         if pendingRequest?.request.id == request.id, pendingRequest?.request.topic == request.topic { return }
         if preparingItem?.id == request.id, preparingItem?.topic == request.topic { return }
@@ -904,7 +940,7 @@ import OathBitcoin
                     // A relay replay recovers its committed transaction even after
                     // the original deposit or public swap quote has expired.
                     async let swapWork = recoveringSigned ? nil : Self.evmThorchainReview(input)
-                    async let quoteWork = OathEVMSendService.shared.walletConnectQuote(input, requestID: durableSendID(request),
+                    async let quoteWork = OathDAppEVMCoordinator.quote(input, requestID: durableSendID(request),
                         walletID: walletID, accountID: record.id, vault: session.vault)
                     let (quote, token, swap) = try await (quoteWork, tokenWork, swapWork)
                     guard current(), pendingRequest == nil else { return }
@@ -932,9 +968,13 @@ import OathBitcoin
                     case .simulationFailed: presentationIssue = .simulation
                     case .changed, .metadataChanged: presentationIssue = .changed
                     case .expired: presentationIssue = .expired
-                    default: presentationIssue = error is WalletConnectEVMRequest.Failure ? .unsupported : .unavailable
+                    default:
+                        if error is WalletConnectEVMRequest.Failure { presentationIssue = .unsupported }
+                        else if error is WalletConnectJSON.Failure { presentationIssue = .invalid }
+                        else { presentationIssue = .transaction(OathSendFailure.reason(error, fallback: .sendPreparationFailed)) }
                     } }
-                    respondError(request, code: error is WalletConnectEVMRequest.Failure ? 4200 : -32000)
+                    respondError(request, code: error is WalletConnectEVMRequest.Failure ? 4200 : -32000,
+                                 feeFailure: error as? EVMSendFeeFailure)
                 }
             }
         }
@@ -1026,15 +1066,7 @@ import OathBitcoin
         return try WalletConnectTypedData(json: data, chainID: chainID, account: account)
     }
     @concurrent nonisolated private static func evmThorchainReview(_ request: WalletConnectEVMRequest) async throws -> ThorchainEVMSwapReview? {
-        guard let deposit = ThorchainEVMDeposit(request),
-              let source = EVMSendNetwork.allCases.first(where: { $0.chainID == request.chainID }) else { return nil }
-        let client = try await OathEVMSendService.shared.connection(source)
-        let decimals = try await client.thorchainDepositDecimals(deposit)
-        guard let review = try await ThorchainClient().walletConnectEVMSwapReview(deposit, decimals: decimals) else { return nil }
-        let memo = review.quote.memo
-        guard let destination = OathImportChain(rawValue: memo.networkID),
-              OathScanAddress.decode(memo.destination, chain: destination) != nil else { throw WalletConnectEVMRequest.Failure.malformed }
-        return review
+        try await OathDAppEVMCoordinator.thorchainReview(request)
     }
     func reviseApproval(amount: String) async throws {
         guard let item = pendingRequest, let session, !signingRequest, !revisingTransaction,
@@ -1046,7 +1078,7 @@ import OathBitcoin
         let db = try await session.vault.database()
         guard try await db.send(durableSendID(item.request))?.signedPayload == nil else { throw EVMSendError.changed }
         let revised = try input.replacingApprovalAmount(amount)
-        let quote = try await OathEVMSendService.shared.walletConnectQuote(revised, requestID: durableSendID(item.request),
+        let quote = try await OathDAppEVMCoordinator.quote(revised, requestID: durableSendID(item.request),
             walletID: item.walletID, accountID: oldQuote.accountID, vault: session.vault)
         guard !Task.isCancelled, pendingRequest?.operationID == item.operationID,
               authorized(item.request, walletID: item.walletID, account: item.account), revised.matches(quote.plan) else { throw CancellationError() }
@@ -1093,8 +1125,8 @@ import OathBitcoin
             }
             let result: OathBitcoinSubmission
             do {
-                result = try await OathEVMSendService.shared.submit(quote, vault: session.vault, digits: digits, reason: reason,
-                    walletConnectRequestID: sendID, authorization: { [weak self] in
+                result = try await OathDAppEVMCoordinator.submit(quote, vault: session.vault, digits: digits, reason: reason,
+                    requestID: sendID, authorization: { [weak self] in
                         try await self?.validateTransactionAuthorization(operationID: operationID)
                         guard self != nil else { throw CancellationError() }
                     })
@@ -1343,12 +1375,12 @@ import OathBitcoin
             }
         case .message(let message, let signIn):
             try signIn?.validateTime()
-            response = AnyCodable(try await session.vault.signWalletConnectMessage(walletID: item.walletID, accountID: record.id,
-                message: message, digits: digits, reason: reason))
+            response = AnyCodable(try await OathDAppEVMCoordinator.signMessage(walletID: item.walletID, accountID: record.id,
+                message: message, vault: session.vault, digits: digits, reason: reason))
         case .typedData(let data):
             guard data.chainID == nil || data.chainID == item.request.chainId.reference else { throw WalletConnectTypedData.Failure.wrongChain }
-            response = AnyCodable(try await session.vault.signWalletConnectTypedData(walletID: item.walletID, accountID: record.id,
-                data: data, digits: digits, reason: reason))
+            response = AnyCodable(try await OathDAppEVMCoordinator.signTypedData(walletID: item.walletID, accountID: record.id,
+                data: data, vault: session.vault, digits: digits, reason: reason))
         case .thorchain(let request, let review):
             let latest = try await Self.thorchainReview(request, approvedQuote: review.swap)
             guard latest.fee == review.fee, latest.decimals == review.decimals,
@@ -1393,7 +1425,7 @@ import OathBitcoin
             let id = durableSendID(item.request)
             guard try await db.send(id)?.signedPayload == nil else { throw EVMSendError.changed }
             async let swapWork = Self.evmThorchainReview(input)
-            async let quoteWork = OathEVMSendService.shared.walletConnectQuote(input, requestID: id,
+            async let quoteWork = OathDAppEVMCoordinator.quote(input, requestID: id,
                 walletID: item.walletID, accountID: quote.accountID, vault: session.vault)
             let (updated, swap) = try await (quoteWork, swapWork)
             try Task.checkCancellation()
@@ -1537,9 +1569,9 @@ import OathBitcoin
         let deadlines = UserDefaults.standard.dictionary(forKey: "walletconnect.requestDeadlines") as? [String: Double] ?? [:]
         UserDefaults.standard.set(deadlines.filter { pending.contains($0.key) }, forKey: "walletconnect.requestDeadlines")
     }
-    private func respondError(_ request: Request, code: Int) {
+    private func respondError(_ request: Request, code: Int, feeFailure: EVMSendFeeFailure? = nil) {
         let code = request.chainId.namespace == "ton" ? (code == 4001 ? 300 : code == 4200 ? 400 : code < 0 || code == 4100 ? 1 : code) : code
-        respond(request, .error(.init(code: code, message: code == 4200 ? "Unsupported method" : "Request rejected")))
+        respond(request, .error(.init(code: code, message: feeFailure?.diagnosticMessage ?? (code == 4200 ? "Unsupported method" : "Request rejected"))))
     }
     private func requestKey(_ request: Request) -> String { request.topic + ":" + request.id.string }
     private func respond(_ request: Request, _ response: RPCResult) {
@@ -1837,16 +1869,18 @@ extension OathWalletConnectService {
                         if peers.isEmpty { return }
                         for peer in peers {
                             do {
-                                guard let walletID = walletMapping[peer.topic],
-                                      let account = await accounts(walletID:walletID).first(where: { $0.networkID == "bitcoin" }) else { continue }
+                                guard let walletID = walletMapping[peer.topic] else { continue }
+                                let owned = await accounts(walletID:walletID).filter { $0.networkID == "bitcoin" }
                                 let db = try await session.vault.database()
-                                let addresses = try await db.walletConnectBitcoinAddresses(accountID:account.id)
                                 let chains = Set(peer.namespaces.values.filter { $0.events.contains("bip122_addressesChanged") }.flatMap(\.accounts).map(\.blockchain))
                                 for chain in chains {
                                     guard let network = BitcoinConnectNetwork(chain:chain.absoluteString) else { continue }
-                                    guard peer.namespaces.values.flatMap(\.accounts).contains(where: {
-                                        $0.blockchain == chain && Self.accountMatches(account.address,$0.address,chain:chain)
+                                    guard let account = owned.first(where: { record in
+                                        peer.namespaces.values.flatMap(\.accounts).contains(where: {
+                                            $0.blockchain == chain && Self.accountMatches(record.address,$0.address,chain:chain)
+                                        })
                                     }) else { continue }
+                                    let addresses = try await db.walletConnectBitcoinAddresses(accountID:account.id)
                                     let rows = try addresses.map { try BitcoinConnectAddress($0,network:network) }
                                     let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
                                     let revision: Data

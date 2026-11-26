@@ -1,6 +1,5 @@
 import Foundation
 import OathDiagnostics
-import OathAnkr
 
 /// Receiving rules belong to the network, never to the token whose detail
 /// screen opened Receive. The catalog is illustrative, not an allowlist.
@@ -31,7 +30,7 @@ struct OathReceiveNetworkGuide: Sendable {
         case .sui: .receiveSuiExplanation
         case .ton: .receiveJettonExplanation
         case .tron: .receiveTronExplanation
-        case .arbitrum, .arc, .avalanche, .base, .bnb, .ethereum, .fantom, .flare, .somnia, .story, .gnosis,
+        case .arbitrum, .arc, .avalanche, .base, .bnb, .ethereum, .fantom, .flare, .somnia, .story, .plasma, .worldchain, .elysium, .gnosis,
              .linea, .optimism, .polygon, .chiliz, .filecoin, .sei, .zerog, .iotex, .cronos, .celo, .monad, .unichain, .hyperevm, .robinhood, .scroll, .taiko, .telos, .xlayer: .receiveEVMExplanation
         }
     }
@@ -61,21 +60,26 @@ struct OathReceiveExample: Decodable, Identifiable, Equatable, Sendable {
 struct OathReceiveExampleCatalog: Decodable, Sendable {
     let networks: [String: [OathReceiveExample]]
     private let redesigned: [String: String]
+    private let providerImages: [String: String]
 
     private enum CodingKeys: String, CodingKey { case networks }
 
     init(networks: [String: [OathReceiveExample]]) {
         self.networks = networks
         var artwork: [String: String] = [:]
+        var originals: [String: String] = [:]
         for (network, examples) in networks {
-            for example in examples where example.usesRedesignedArtwork == true {
-                let prefix = network + ":"
-                guard example.id.hasPrefix(prefix),
-                      let key = Self.artworkKey(networkID: network, reference: String(example.id.dropFirst(prefix.count))) else { continue }
-                artwork[key] = example.artwork
+            guard let chain = OathImportChain(rawValue: network) else { continue }
+            for example in examples where example.id.hasPrefix(network + ":") {
+                if example.id == network + ":native" {
+                    if example.usesRedesignedArtwork == true { artwork[network] = example.artwork }
+                } else if example.usesRedesignedArtwork != true {
+                    originals[chain.isEVM ? example.id.lowercased() : example.id] = example.artwork
+                }
             }
         }
         redesigned = artwork
+        providerImages = originals
     }
 
     init(from decoder: any Decoder) throws {
@@ -103,24 +107,17 @@ struct OathReceiveExampleCatalog: Decodable, Sendable {
         return Array((networks[chain.id] ?? []).prefix(10))
     }
 
-    /// Bundled designs override provider images only for a verified network and
-    /// token reference. Amount precision and ticker text never select artwork.
+    /// Only native coins retain custom chain artwork. Tokens always use their
+    /// provider logos, even if an older catalog still carries a redesign flag.
     func redesignedArtwork(networkID: String, reference: String) -> String? {
-        guard let key = Self.artworkKey(networkID: networkID, reference: reference) else { return nil }
-        return redesigned[key]
+        guard reference == "native", OathImportChain(rawValue: networkID) != nil else { return nil }
+        return redesigned[networkID]
     }
 
-    private static func artworkKey(networkID: String, reference: String) -> String? {
-        guard let chain = OathImportChain(rawValue: networkID), reference.utf8.count <= 4_096 else { return nil }
-        let canonical: String
-        if reference == "native" { canonical = reference }
-        else if chain.isEVM { canonical = reference.lowercased() }
-        else {
-            // Address-format alternatives are expected validation. Normalizing
-            // the exact issuer/mint never permits matching by ticker or name.
-            guard let value = try? TokenDiscoveryNetworks.canonical(reference, network: networkID) else { return nil }
-            canonical = value
-        }
-        return networkID + ":" + canonical
+    /// The installed provider original can fill the row while remote artwork is
+    /// unavailable. Only case-insensitive EVM contracts fold case.
+    func providerArtwork(networkID: String, reference: String) -> String? {
+        guard let chain = OathImportChain(rawValue: networkID) else { return nil }
+        return providerImages[networkID + ":" + (chain.isEVM ? reference.lowercased() : reference)]
     }
 }

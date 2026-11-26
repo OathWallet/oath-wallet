@@ -17,7 +17,19 @@ actor ThorchainCatalogRequests {
     private let graphQLGate = AnkrPermits(count: 1)
     private var graphQLCooldown: ContinuousClock.Instant?
 
-    init(lifetime: Duration = .seconds(60)) { self.lifetime = lifetime }
+    private let poolRecoveryLifetime: Duration
+    private var preferNodeUntil: ContinuousClock.Instant?
+
+    init(lifetime: Duration = .seconds(60), poolRecoveryLifetime: Duration = .seconds(600)) {
+        self.lifetime = lifetime
+        self.poolRecoveryLifetime = poolRecoveryLifetime
+    }
+
+    var prefersNodePools: Bool { preferNodeUntil.map { .now < $0 } ?? false }
+
+    func setNodePoolPreference(_ preferred: Bool) {
+        preferNodeUntil = preferred ? .now.advanced(by: poolRecoveryLifetime) : nil
+    }
 
     func graphQL(stage: String = "market", load: @Sendable () async throws -> SolanaJSON) async throws -> SolanaJSON {
         try await graphQLGate.acquire()

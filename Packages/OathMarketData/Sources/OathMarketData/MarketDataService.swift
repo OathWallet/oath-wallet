@@ -44,7 +44,7 @@ public actor MarketDataService {
 
     public func cachedQuote(for asset: MarketAsset) async throws -> CachedMarketValue<MarketQuote>? {
         let excluded = PriceRecord.excludedCurrentSources(networkID: asset.networkID, reference: asset.reference)
-        let versions = excluded.isEmpty ? [2, 1] : [3, 2, 1]
+        let versions = [4, 3, 2, 1]
         var result: CachedMarketValue<MarketQuote>?
         for version in versions {
             result = try await cached(key("quote", asset, version: version), excluding: excluded)
@@ -179,56 +179,14 @@ public actor MarketDataService {
         let previous = try await cachedQuote(for: asset)
         if !force, let previous,
            previous.isFresh(at: now(), lifetime: 60) || (quoteRefreshAfter[asset.cacheIdentity].map { $0 > .now } ?? false) { return previous }
-        let transport = transport, now = now
         do {
-            // Older Fantom entries may carry a retired source. A fresh load
-            // writes a new key without overwriting the original observation.
-            let version = asset.networkID == "fantom" && asset.isNative ? 3 : 2
+            // Keep the extracted quote fetch separate from its read-through cache.
+            // Eligible observations retain their original timestamps.
+            let version = 4
             let refreshed: CachedMarketValue<MarketQuote> = try decoded(await load(key: key("quote", asset, version: version), source: "Market providers", lifetime: 60, force: force, propagatingReportedFailures: propagatingReportedFailures) {
                 try await OathDiagnostics.$chain.withValue(asset.networkID) {
                     try await OathDiagnostics.$operationID.withValue(OathDiagnostics.operationID ?? UUID()) {
-                        var candidates = ContractPriceRequest.requests(for: asset).map { request in
-                            ParallelMarketPrice.Candidate(source: request.provider.rawValue) {
-                                // All native assets in a refresh share the public GET.
-                                // Decode only this asset's exact project ID and timestamp.
-                                let url = request.provider == .gecko && asset.isNative ? nativeBatchURL ?? request.url : request.url
-                                let bytes = try await transport.data(from: url)
-                                return try ContractPriceDecoding.decode(bytes, request: request, asset: asset, now: now())
-                            }
-                        }
-                        if let identity = NativeCoinPrice.identity(for: asset) {
-                            candidates.append(.init(source: "CoinPaprika") {
-                                let bytes = try await transport.data(from: identity.tickerURL)
-                                return try NativeCoinPrice.decode(bytes, for: asset, now: now())
-                            })
-                        }
-                        if let request = WrappedNativePrice.request(for: asset) {
-                            candidates.append(.init(source: WrappedNativePrice.source(for: asset)) {
-                                let fetchedAt = now()
-                                let bytes = try await transport.data(from: request.url)
-                                return try WrappedNativePrice.decode(bytes, for: asset, fetchedAt: fetchedAt)
-                            })
-                        }
-                        if let url = WrappedNativePrice.lifiURL(for: asset) {
-                            candidates.append(.init(source: "LI.FI (WXDAI)") {
-                                let fetchedAt = now()
-                                let bytes = try await transport.data(from: url)
-                                return try WrappedNativePrice.decodeLifi(bytes, for: asset, fetchedAt: fetchedAt)
-                            })
-                        }
-                        // Keep Coinbase in the race for existing supported
-                        // native coins; adding an independent source must not
-                        // replace a working route. Telos/OKB/xDAI have no spot route.
-                        // FTM's un-timestamped spot and CoinPaprika quote can retain
-                        // retired exchange prices. Opera uses its verified wrapper.
-                        if !asset.isNative || !["telos", "xlayer", "gnosis", "fantom"].contains(asset.networkID) {
-                            candidates.append(.init(source: "Coinbase") {
-                                let code = try await self.coinbaseCode(for: asset)
-                                let data = try await transport.data(from: URL(string: "https://api.coinbase.com/v2/prices/\(code)-USD/spot")!)
-                                return .init(quote: try MarketDecoding.quote(data, code: code), date: now(), source: "Coinbase")
-                            })
-                        }
-                        let result = try await ParallelMarketPrice.first(candidates, network: asset.networkID)
+                        let result = try await self.fetchQuote(for: asset, nativeBatchURL: nativeBatchURL)
                         return (try JSONEncoder().encode(result.quote), result.date.timeIntervalSince1970,
                             PriceRecord(assetID: asset.id, currency: "USD", value: result.quote.usd,
                                 observedAt: result.date.timeIntervalSince1970, source: result.source))
@@ -240,8 +198,8 @@ public actor MarketDataService {
             quoteRefreshAfter[asset.cacheIdentity] = .now.advanced(by: .seconds(60))
             // Providers refresh on different schedules. A successful but older
             // observation must not move the displayed price backwards in time.
-            // Read the shared winner so detail and Home also agree when an
-            // incidental/fallback quote finishes inside LI.FI's freshness window.
+            // Read the shared winner so detail and Home agree when another
+            // eligible provider commits a newer observation during this request.
             if let selected = try await cachedQuote(for: asset) { return selected }
             if let previous, previous.fetchedAt > refreshed.fetchedAt { return previous }
             return refreshed
@@ -256,6 +214,52 @@ public actor MarketDataService {
             throw error
         }
     }
+    func fetchQuote(for asset: MarketAsset, nativeBatchURL: URL? = nil) async throws -> ResolvedMarketPrice {
+        let transport = transport, now = now
+        var candidates = ContractPriceRequest.requests(for: asset).map { request in
+            ParallelMarketPrice.Candidate(source: request.provider.rawValue) {
+                // All native assets in a refresh share the public GET.
+                // Decode only this asset's exact project ID and timestamp.
+                let url = request.provider == .gecko && asset.isNative ? nativeBatchURL ?? request.url : request.url
+                let bytes = try await transport.data(from: url)
+                return try ContractPriceDecoding.decode(bytes, request: request, asset: asset, now: now())
+            }
+        }
+        if let identity = NativeCoinPrice.identity(for: asset) {
+            candidates.append(.init(source: "CoinPaprika") {
+                let bytes = try await transport.data(from: identity.tickerURL)
+                return try NativeCoinPrice.decode(bytes, for: asset, now: now())
+            })
+        }
+        if let request = WrappedNativePrice.request(for: asset) {
+            candidates.append(.init(source: WrappedNativePrice.source(for: asset)) {
+                let fetchedAt = now()
+                let bytes = try await transport.data(from: request.url)
+                return try WrappedNativePrice.decode(bytes, for: asset, fetchedAt: fetchedAt)
+            })
+        }
+        if let url = WrappedNativePrice.lifiURL(for: asset) {
+            candidates.append(.init(source: "LI.FI (WXDAI)") {
+                let fetchedAt = now()
+                let bytes = try await transport.data(from: url)
+                return try WrappedNativePrice.decodeLifi(bytes, for: asset, fetchedAt: fetchedAt)
+            })
+        }
+        // Keep Coinbase in the race for existing supported
+        // native coins; adding an independent source must not
+        // replace a working route. Telos/OKB/xDAI have no spot route.
+        // FTM's un-timestamped spot and CoinPaprika quote can retain
+        // retired exchange prices. Opera uses its verified wrapper.
+        if !asset.isNative || !["telos", "xlayer", "gnosis", "fantom"].contains(asset.networkID) {
+            candidates.append(.init(source: "Coinbase") {
+                let code = try await self.coinbaseCode(for: asset)
+                let data = try await transport.data(from: URL(string: "https://api.coinbase.com/v2/prices/\(code)-USD/spot")!)
+                return .init(quote: try MarketDecoding.quote(data, code: code), date: now(), source: "Coinbase")
+            })
+        }
+        return try await ParallelMarketPrice.first(candidates, network: asset.networkID)
+    }
+
     public func information(for asset: MarketAsset, force: Bool = false) async throws -> CachedMarketValue<AssetInformation> {
         try await OathDiagnostics.withChain(asset.networkID) {
             if LifiTokenMetadata.url(network: asset.networkID, reference: asset.reference) != nil {

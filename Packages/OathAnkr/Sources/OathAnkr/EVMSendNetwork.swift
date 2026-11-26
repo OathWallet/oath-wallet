@@ -9,9 +9,12 @@ public enum EVMSendNetwork: String, Codable, CaseIterable, Sendable {
     case cronos, cronosTestnet, telosTestnet, somniaTestnet, flareCoston2
     case baseSepolia, optimismSepolia, unichainSepolia, lineaSepolia, monadTestnet, xlayerTestnet
     case bnbTestnet, avalancheFuji, polygonAmoy, gnosisChiado, hyperevmTestnet, robinhoodTestnet, taikoHoodi
+    case worldchain, plasma, elysium
+    case worldchainSepolia, plasmaTestnet, elysiumTestnet
     public var isTestnet: Bool {
         switch self {
-        case .cronosTestnet, .arbitrumSepolia, .ethereumSepolia, .celoSepolia, .chilizSpicy, .filecoinCalibration,
+        case .worldchainSepolia, .plasmaTestnet, .elysiumTestnet,
+             .cronosTestnet, .arbitrumSepolia, .ethereumSepolia, .celoSepolia, .chilizSpicy, .filecoinCalibration,
              .seiTestnet, .zerogGalileo, .iotexTestnet, .telosTestnet, .somniaTestnet, .flareCoston2,
              .baseSepolia, .optimismSepolia, .unichainSepolia, .lineaSepolia, .monadTestnet, .xlayerTestnet,
              .bnbTestnet, .avalancheFuji, .polygonAmoy, .gnosisChiado, .hyperevmTestnet, .robinhoodTestnet, .taikoHoodi: true
@@ -25,7 +28,13 @@ public enum EVMSendNetwork: String, Codable, CaseIterable, Sendable {
     var isSei: Bool { self == .sei || self == .seiTestnet }
     public var chainID: UInt64 {
         switch self {
+        case .worldchain: 480
+        case .plasma: 9745
+        case .elysium: 99901
         case .taikoHoodi: 167013
+        case .worldchainSepolia: 4801
+        case .plasmaTestnet: 9746
+        case .elysiumTestnet: 99801
         case .gnosisChiado: 10200
         case .hyperevmTestnet: 998
         case .robinhoodTestnet: 46630
@@ -56,6 +65,8 @@ public enum EVMSendNetwork: String, Codable, CaseIterable, Sendable {
     public var symbol: String {
         switch self {
         case .somniaTestnet: "STT"
+        case .plasma, .plasmaTestnet: "XPL"
+        case .elysium, .elysiumTestnet: "HYPE"
         case .flareCoston2: "C2FLR"
         case .cronos: "CRO"; case .cronosTestnet: "TCRO"
         case .iotex, .iotexTestnet: "IOTX"
@@ -68,7 +79,7 @@ public enum EVMSendNetwork: String, Codable, CaseIterable, Sendable {
         default: "ETH"
         }
     }
-    var opStack: Bool { [.base, .baseSepolia, .optimism, .optimismSepolia, .unichain, .unichainSepolia].contains(self) }
+    var opStack: Bool { [.base, .baseSepolia, .optimism, .optimismSepolia, .unichain, .unichainSepolia, .worldchain, .worldchainSepolia].contains(self) }
     var oracle: String? {
         if opStack { return "0x420000000000000000000000000000000000000f" }
         if self == .scroll { return "0x5300000000000000000000000000000000000002" }

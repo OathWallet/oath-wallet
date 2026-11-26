@@ -2,6 +2,10 @@ import Foundation
 import GRDB
 
 extension OathDatabase {
+    static func hiddenAssetIDs(_ db: Database, walletID: String) throws -> Set<String> {
+        Set(try String.fetchAll(db, sql: "SELECT assetID FROM hiddenAssets WHERE walletID=?", arguments: [walletID]))
+    }
+
     static func migrateAssetVisibility(_ db: Database) throws {
         // Keep v66's historical schema for migration ordering, but never fan out
         // existing selections when an older installation skips straight to v67.
@@ -47,12 +51,12 @@ extension OathDatabase {
                 try db.execute(sql: "INSERT INTO hiddenAssets(walletID,assetID) VALUES(?,?) ON CONFLICT DO NOTHING",
                                arguments: [walletID, assetID])
             } else {
-                // Pin restored discovered tokens so they stay on Home even if a
+                // Pin restored assets so they stay on Home even if a
                 // later inventory drops a zero balance. This is not a global add.
                 try db.execute(sql: """
                     INSERT OR IGNORE INTO trackedAssets(accountID,assetID,networkID,addedAt)
                         SELECT c.id,a.id,a.networkID,? FROM walletAccounts c JOIN assets a ON a.networkID=c.networkID
-                        WHERE c.walletID=? AND a.id=? AND a.reference<>'native'
+                        WHERE c.walletID=? AND a.id=?
                         AND EXISTS(SELECT 1 FROM hiddenAssets WHERE walletID=? AND assetID=?)
                     """, arguments: [Date().timeIntervalSince1970, walletID, assetID, walletID, assetID])
                 try db.execute(sql: "DELETE FROM hiddenAssets WHERE walletID=? AND assetID=?", arguments: [walletID, assetID])

@@ -4,13 +4,16 @@ import UIKit
 extension View {
     /// Use for automatic entry focus only. Taps, Return-to-next-field and the
     /// shared keyboard's Done action continue to respond immediately.
-    func oathAutofocus(when ready: Bool = true, _ focus: @escaping @MainActor () -> Void) -> some View {
-        oathAfterAppearance(when: ready, focus)
+    func oathAutofocus(when ready: Bool = true, onDisappear: (@MainActor () -> Void)? = nil,
+                       _ focus: @escaping @MainActor () -> Void) -> some View {
+        modifier(OathAutofocusModifier(ready: ready, focus: focus, resign: onDisappear))
     }
 
     /// Run once after native appearance and any enclosing transition have completed.
-    func oathAfterAppearance(when ready: Bool = true, _ action: @escaping @MainActor () -> Void) -> some View {
-        modifier(OathAutofocusModifier(ready: ready, focus: action))
+    /// Modal readiness may ignore decorative SwiftUI animations that never end.
+    func oathAfterAppearance(when ready: Bool = true, waitForContentAnimations: Bool = true,
+                             _ action: @escaping @MainActor () -> Void) -> some View {
+        modifier(OathAutofocusModifier(ready: ready, focus: action, waitForContentAnimations: waitForContentAnimations))
     }
 }
 
@@ -18,7 +21,15 @@ private struct OathAutofocusPresentationKey: EnvironmentKey {
     static let defaultValue: OathAutofocusPresentation? = nil
 }
 
+private struct OathInputFocusGateKey: EnvironmentKey {
+    static let defaultValue: OathAutofocusGate? = nil
+}
+
 extension EnvironmentValues {
+    var oathInputFocusGate: OathAutofocusGate? {
+        get { self[OathInputFocusGateKey.self] }
+        set { self[OathInputFocusGateKey.self] = newValue }
+    }
     var oathAutofocusPresentation: OathAutofocusPresentation? {
         get { self[OathAutofocusPresentationKey.self] }
         set { self[OathAutofocusPresentationKey.self] = newValue }
@@ -28,6 +39,8 @@ extension EnvironmentValues {
 private struct OathAutofocusModifier: ViewModifier {
     let ready: Bool
     let focus: @MainActor () -> Void
+    var resign: (@MainActor () -> Void)? = nil
+    var waitForContentAnimations = true
     @Environment(\.isEnabled) private var enabled
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.oathAutofocusPresentation) private var presentation
@@ -35,9 +48,10 @@ private struct OathAutofocusModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            .environment(\.oathInputFocusGate, resign == nil ? nil : gate)
             .background {
                 OathAutofocusLifecycle(gate: gate, presentation: presentation,
-                    enabled: ready && enabled, active: scenePhase == .active, focus: focus)
+                    enabled: ready && enabled, active: scenePhase == .active, focus: focus, resign: resign)
                     .frame(width: 0, height: 0)
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
@@ -45,7 +59,7 @@ private struct OathAutofocusModifier: ViewModifier {
             .transaction { [gate] transaction in
                 // Covers a form swapped into an already visible sheet as well
                 // as SwiftUI transitions without a new navigation controller.
-                guard transaction.animation != nil else { return }
+                guard waitForContentAnimations, transaction.animation != nil else { return }
                 let token = gate.beginAnimation()
                 transaction.addAnimationCompletion(criteria: .removed) { [weak gate] in
                     Task { @MainActor in gate?.endAnimation(token) }
@@ -60,11 +74,13 @@ private struct OathAutofocusLifecycle: UIViewControllerRepresentable {
     let enabled: Bool
     let active: Bool
     let focus: @MainActor () -> Void
+    let resign: (@MainActor () -> Void)?
 
     func makeUIViewController(context: Context) -> Controller { Controller(gate: gate) }
 
     func updateUIViewController(_ controller: Controller, context: Context) {
         controller.observe(presentation)
+        controller.resign = resign
         gate.update(enabled: enabled, active: active) { [weak controller] in
             guard let controller, controller.viewIfLoaded?.window?.windowScene?.activationState == .foregroundActive,
                   !controller.isBeingDismissed, !controller.isMovingFromParent else { return }
@@ -75,6 +91,7 @@ private struct OathAutofocusLifecycle: UIViewControllerRepresentable {
     static func dismantleUIViewController(_ controller: Controller, coordinator: ()) { controller.cancel() }
 
     final class Controller: UIViewController {
+        var resign: (@MainActor () -> Void)?
         private let gate: OathAutofocusGate
         private var presentation: OathAutofocusPresentation?
         private var observation: UUID?
@@ -115,6 +132,17 @@ private struct OathAutofocusLifecycle: UIViewControllerRepresentable {
         override func viewWillDisappear(_ animated: Bool) {
             super.viewWillDisappear(animated)
             gate.setAppeared(false)
+            guard let resign else { return }
+            // End editing on this destination as native Back starts, not after
+            // SwiftUI's onDisappear (when the page may already be offscreen).
+            // Do not end editing in another window or incoming destination.
+            var screen: UIViewController = self
+            while let parent = screen.parent, !(parent is UINavigationController) { screen = parent }
+            screen.viewIfLoaded?.endEditing(true)
+            DispatchQueue.main.async { [weak self] in
+                guard let self, !self.gate.permitsResponder else { return }
+                resign()
+            }
         }
 
         func observe(_ presentation: OathAutofocusPresentation?) {

@@ -1,8 +1,8 @@
 import SwiftUI
 
-private enum OathHomeTab: Hashable { case wallet, history, search }
+private enum OathHomeTab: Hashable { case wallet, history }
 private struct Profile { let id: UUID; var revision = 0 }
-private struct Session { let balancesHidden = false }
+private struct OathWalletSession { let balancesHidden = false }
 private struct OathHistoryFilterSelection {}
 private struct Entry { let networkID = "ethereum"; let wallet: String }
 private struct Holding {}
@@ -29,7 +29,7 @@ private struct OathTransactionDetailScreen: View {
 
 private struct OathChainActivityScreen: View {
     let walletID: String
-    let session: Session
+    let session: OathWalletSession
     let query: String
     let isVisible: Bool
     let filterSelection: Binding<OathHistoryFilterSelection>
@@ -47,62 +47,46 @@ private struct OathChainActivityScreen: View {
     }
 }
 
-private struct OathHomeSearchField: ViewModifier {
-    @Binding var query: String
-    @Binding var isPresented: Bool
-    let prompt: String
-    func body(content: Content) -> some View { content }
-}
-private struct OathEmptyStateScrollView<Header: View, Content: View>: View {
-    let centersContent: Bool
-    @ViewBuilder let header: () -> Header
-    @ViewBuilder let content: () -> Content
-    var body: some View { ScrollView { header(); content() } }
-}
-private enum OathSurfaceColors { static var groupedCanvas: UIColor { .systemBackground } }
-private struct Strings { enum Key { case assets }; func text(_ key: Key) -> String { "Assets" } }
-private struct Portfolio { let searchRows: [Int] = [] }
-private struct TokenSearch { let results: [Int] = [] }
-private extension View {
-    func oathFont(_ font: Font, weight: Font.Weight) -> some View { self.font(font.weight(weight)) }
-    func oathNativeLocalization() -> some View { self }
+// PRODUCTION_HISTORY_CONTENT
+
+private struct Strings {
+    enum Key { case searchTransactions }
+    func text(_ key: Key) -> String { "Search transactions" }
 }
 
 private struct Probe: View {
     @State private var profile: Profile? = .init(id: Wallets.first)
     @State private var selectedTab = OathHomeTab.wallet
-    @State private var searchContext = OathHomeTab.wallet
     @State private var historyQuery = ""
     @State private var historyFilters = OathHistoryFilterSelection()
-    @State private var searchPresented = false
-    private let session = Session()
+    private let session = OathWalletSession()
     private let strings = Strings()
-    private let portfolioPresentation = Portfolio()
-    private let tokenSearch = TokenSearch()
-    private let searchPrompt = "Search"
-    private var searchBinding: Binding<String> { $historyQuery }
-    private func assetList(searching: Bool) -> some View { Text("Assets") }
+    private var historyVisible: Bool { selectedTab == .history }
+    private var accountScopeIdentity: String { profile?.id.uuidString ?? "" }
 
     var body: some View {
         TabView(selection: $selectedTab) {
             Tab("Wallet", systemImage: "wallet.bifold", value: OathHomeTab.wallet) {
                 NavigationStack {
-                    List {
-                        Text(Wallets.name(profile!.id.uuidString)).accessibilityIdentifier("active.wallet")
-                        Button("Switch wallet") {
-                            profile = .init(id: profile?.id == Wallets.first ? Wallets.second : Wallets.first)
-                        }.accessibilityIdentifier("switch.wallet")
-                        Button("Refresh same wallet") {
-                            profile?.revision += 1
-                        }.accessibilityIdentifier("refresh.wallet")
-                    }.navigationTitle("Wallet")
+                    Text(Wallets.name(profile!.id.uuidString)).accessibilityIdentifier("active.wallet")
+                        .navigationTitle("Wallet")
                 }
             }
-            Tab("History", systemImage: "clock", value: OathHomeTab.history) { historyNavigation }
-            Tab("Search", systemImage: "magnifyingglass", value: OathHomeTab.search, role: .search) { searchNavigation }
+            Tab("History", systemImage: "clock.arrow.circlepath", value: OathHomeTab.history) { historyNavigation }
         }
-        .onChange(of: selectedTab) { _, tab in
-            if tab != .search { searchPresented = false; searchContext = tab }
+        // Fixture-only controls exercise account changes while a receipt is open.
+        .safeAreaInset(edge: .bottom) {
+            HStack {
+                Button("Switch wallet") {
+                    profile = .init(id: profile?.id == Wallets.first ? Wallets.second : Wallets.first)
+                }.accessibilityIdentifier("switch.wallet")
+                Button("Refresh same wallet") { profile?.revision += 1 }
+                    .accessibilityIdentifier("refresh.wallet")
+            }
+        }
+        .onChange(of: profile?.id) { _, _ in
+            historyQuery = ""
+            historyFilters = .init()
         }
     }
 

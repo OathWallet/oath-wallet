@@ -50,7 +50,7 @@ extension OathDatabase {
     public func enrollAnkrNetworks(walletID: String) async throws {
         try await storageWrite { db in
             let existing = try Self.accounts(db, walletID: walletID)
-            let additions: Set<String> = ["fantom","flare","somnia","story","robinhood","hyperevm","monad","unichain","celo","chiliz","filecoin", "sei", "zerog", "iotex", "cronos"]
+            let additions: Set<String> = ["plasma","worldchain","elysium","fantom","flare","somnia","story","robinhood","hyperevm","monad","unichain","celo","chiliz","filecoin", "sei", "zerog", "iotex", "cronos"]
             // Arc belongs to the app's original full EVM import scope even
             // though it is not indexed by these Advanced account methods.
             let previousEVM = Set(AnkrChain.allCases.map(\.networkID)).subtracting(additions).union(["arc"])

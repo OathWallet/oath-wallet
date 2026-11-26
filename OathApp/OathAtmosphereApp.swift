@@ -97,6 +97,7 @@ struct OathWalletRoot: View {
         .overlay {
             if showsInitialLock {
                 NativeInitialLock(isLocked: session.isLocked, animatesUnlock: session.animatesUnlock,
+                                  greetingBackground: session.unlockGreeting == nil ? nil : OathSurfaceColors.unlockGreeting,
                                   onUnlocked: { showsInitialLock = false }) { visible in
                     OathWalletUnlockScreen(session: session, isVisible: visible)
                         .environment(\.oathLanguage, strings.language)
@@ -107,7 +108,8 @@ struct OathWalletRoot: View {
         .background {
             NativeLockPresentation(isLocked: session.isLocked && !showsInitialLock &&
                                    (scenePhase != .background || lockIsVisible),
-                                   animatesUnlock: session.animatesUnlock) { visible in
+                                   animatesUnlock: session.animatesUnlock,
+                                   greetingBackground: session.unlockGreeting == nil ? nil : OathSurfaceColors.unlockGreeting) { visible in
                 OathWalletUnlockScreen(session: session, isVisible: visible)
                     .environment(\.oathLanguage, strings.language)
                     .onChange(of: visible, initial: true) { _, value in lockIsVisible = value }
@@ -218,7 +220,6 @@ private struct OathOnboardingFlow: View {
                 onMoreOptions: { showsMoreOptions = true }
             )
             .oathNativeLocalization(navigationBackground: .hidden, navigationMaterial: nil, systemNavigationAppearance: true)
-            .modifier(OathArtworkBarAppearance(stylesNavigationBar: true))
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: Destination.self) { destination in
                 switch destination {

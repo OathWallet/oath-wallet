@@ -101,9 +101,7 @@ enum OathWalletEngine {
               let wallet = HDWallet(mnemonic: secret.mnemonic, passphrase: passphrase, check: false) else {
             throw OathWalletError.invalidPhrase
         }
-        let accounts = secret.restoration?.accounts ?? OathImportChain.allCases.map {
-            BackupWallet.Account(network: $0.id, derivationPath: $0.walletPath, index: 0)
-        }
+        let accounts = try secret.derivationAccounts()
         let addresses = try accounts.filter { account in
             guard let chains else { return true }
             return OathImportChain(rawValue: account.network).map { chains.contains($0) } == true
@@ -189,6 +187,8 @@ extension OathImportChain {
         case .flare: "FLR"
         case .somnia: "SOMI"
         case .story: "IP"
+        case .plasma: "XPL"
+        case .elysium: "HYPE"
         case .avalanche: "AVAX"
         case .polygon: "POL"
         case .gnosis: "xDAI"

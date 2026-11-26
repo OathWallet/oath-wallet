@@ -33,14 +33,14 @@
     "app_version": "5.1.0",
     "app_build": null,
     "published_source": {
-      "version": "5.1.0",
-      "build": 110,
-      "source_commit": "131116fd4b290f2c371b94ee411ba86d5803154b",
-      "source_tag": "v5.1.0-build110",
-      "release_url": "https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.0-build110",
-      "published_at": "2026-11-11T16:06:12Z",
-      "checked_on": "2026-11-25",
-      "scope": "Published GitHub source release. The public App Store listing does not establish that Apple distributes this build or a binary corresponding to this source. Existing guides and reviews retain their own older evidence scope."
+      "version": "5.1.1",
+      "build": 111,
+      "source_commit": null,
+      "source_tag": "v5.1.1-build111",
+      "release_url": "https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111",
+      "published_at": null,
+      "checked_on": "2026-11-26",
+      "scope": "Oath Wallet 5.1.1, build 111 source release. App Store availability is recorded separately. Dated guides and reviews retain their original evidence scope."
     },
     "source_version_scope": "Pinned source for the existing technical guides; see published_source for the separately published GitHub release."
   },

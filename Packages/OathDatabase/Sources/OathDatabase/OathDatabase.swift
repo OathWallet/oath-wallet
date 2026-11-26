@@ -320,9 +320,17 @@ public final class OathDatabase: Sendable {
     }
 
     func stream<Value: Equatable & Sendable>(
+        observing tables: [String]? = nil,
         _ fetch: @escaping @Sendable (Database) throws -> Value
     ) -> AsyncThrowingStream<Value, Error> {
-        let observation = ValueObservation.tracking(fetch).removeDuplicates()
+        // Explicit, stable regions let GRDB coalesce reads on the pool's readers.
+        // Dynamic tracking must fetch on the writer after every commit. Never
+        // infer a constant region from a first (possibly empty) wallet snapshot.
+        let observation = (tables.map {
+            // A table-name region does not expand SQL views. Preparing SELECT *
+            // also tracks their underlying trust, membership and activity tables.
+            ValueObservation.tracking(regions: $0.map { Table($0).all() }, fetch: fetch)
+        } ?? ValueObservation.tracking(fetch)).removeDuplicates()
         let values = observation.values(in: pool, scheduling: .async(onQueue: .global(qos: .userInitiated)), bufferingPolicy: .bufferingNewest(1))
         return AsyncThrowingStream(bufferingPolicy: .bufferingNewest(1)) { continuation in
             let task = Task {

@@ -36,7 +36,8 @@ extension Holding {
         symbol == other.symbol && decimals == other.decimals && logo == other.logo &&
         amountAtomic == other.amountAtomic && usdPrice == other.usdPrice &&
         exchangeRate == other.exchangeRate && transactionCount == other.transactionCount &&
-        pendingTransactionCount == other.pendingTransactionCount && homeVerified == other.homeVerified
+        pendingTransactionCount == other.pendingTransactionCount && homeVerified == other.homeVerified &&
+        homeTracked == other.homeTracked && explicitlyAddedToHome == other.explicitlyAddedToHome
     }
 }
 
@@ -132,6 +133,7 @@ actor OathHomePortfolioBuilder {
         let searchRows: [OathHomeAssetPresentation]
         let total: String
         let formattedRowCount: Int
+        let eligibleAssetCount: Int
     }
     private var cache: [String: OathHomeAssetPresentation] = [:]
     private var walletID: String?
@@ -162,7 +164,9 @@ actor OathHomePortfolioBuilder {
                 formatted += 1
             }
         }
-        let visibleHoldings = input.holdings.filter { !input.hiddenAssetIDs.contains($0.assetID) && (!input.filter.hidesUnverifiedTokens || $0.isVerifiedForHome) }
+        let visibleHoldings = input.holdings.filter {
+            $0.isHomeListCandidate(hidingUnverified: input.filter.hidesUnverifiedTokens, hiddenAssetIDs: input.hiddenAssetIDs)
+        }
         let rows = input.filter.applying(to: visibleHoldings, currency: input.currency,
             locale: Locale(identifier: input.sortingLocale), preservingRecommendedOrder: true)
         let query = input.query.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -182,7 +186,7 @@ actor OathHomePortfolioBuilder {
             treeRows: input.filter.groupsTokensByChain ? OathHomeAssetTreeEntry.build(presented) : [],
             searchRows: search.compactMap { next[$0.id] },
             total: String(format.fiat(.init(native: nil, fiat: input.total, currencyCode: input.currency)).characters),
-            formattedRowCount: formatted)
+            formattedRowCount: formatted, eligibleAssetCount: visibleHoldings.count)
     }
 
     /// Diff against the last *accepted* snapshot. A superseded build may have warmed
@@ -194,6 +198,7 @@ actor OathHomePortfolioBuilder {
         let layout: [OathHomeRowLayout]
         let search: [OathHomeRowLayout]
         let total: String
+        let eligibleAssetCount: Int
     }
 
     struct Changes: Sendable {
@@ -210,7 +215,8 @@ actor OathHomePortfolioBuilder {
         let latest = Dictionary(uniqueKeysWithValues: input.holdings.map { ($0.id, $0) })
         if let previous, input == previous.input {
             let snapshot = Snapshot(input: input, values: previous.values, latest: latest,
-                                    layout: previous.layout, search: previous.search, total: previous.total)
+                                    layout: previous.layout, search: previous.search, total: previous.total,
+                                    eligibleAssetCount: previous.eligibleAssetCount)
             return Changes(snapshot: snapshot, updated: [], removed: [], layoutChanged: false, searchChanged: false)
         }
         let built = try build(input)
@@ -219,7 +225,7 @@ actor OathHomePortfolioBuilder {
             : built.rows.compactMap { OathHomeRowLayout(id: $0.id, network: $0.holding.networkID) }
         let search = built.searchRows.compactMap { OathHomeRowLayout(id: $0.id, network: $0.holding.networkID) }
         let snapshot = Snapshot(input: input, values: cache, latest: latest,
-                                layout: layout, search: search, total: built.total)
+                                layout: layout, search: search, total: built.total, eligibleAssetCount: built.eligibleAssetCount)
         let updated = cache.values.filter { previous?.values[$0.id] != $0 }
         let removed = previous?.values.keys.filter { cache[$0] == nil } ?? []
         try Task.checkCancellation()
@@ -238,6 +244,7 @@ struct OathHomeHistorySnapshot: Equatable {
     let currency: String
     let localeIdentifier: String
     let items: [ChainHistoryItem]
+    var accountPath: String? = nil
 
     static func preload(database: OathDatabase, walletID: String, currency: String, localeIdentifier: String,
                         timeout: Duration = readTimeout) async throws -> [ChainHistoryItem] {
@@ -246,7 +253,7 @@ struct OathHomeHistorySnapshot: Equatable {
         try await withThrowingTaskGroup(of: [ChainHistoryItem].self) { group in
             group.addTask {
                 let pages = database.observeChainHistory(walletID: walletID, currency: currency,
-                                                         limit: pageSize + 1, localeIdentifier: localeIdentifier)
+                                                         limit: pageSize + 1, localeIdentifier: localeIdentifier, homeScope: true)
                 for try await page in pages { return page }
                 throw CancellationError()
             }
@@ -291,15 +298,53 @@ final class OathHomePortfolioModel {
     func latestHolding(_ id: String) -> Holding? { accepted?.latest[id] }
 
     private(set) var total = ""
+    // Only drives transition direction; displayed money still uses Decimal.
+    private(set) var numericTotal: Double?
     private(set) var currency = "USD"
     private(set) var filter = PortfolioFilter()
     private(set) var holdingCount = 0
+    private(set) var eligibleAssetCount = 0
     private(set) var hasPrepared = false
     @ObservationIgnored private let builder = OathHomePortfolioBuilder()
     @ObservationIgnored private var pending: OathHomePortfolioInput?
     @ObservationIgnored private var work: Task<Void, Never>?
     @ObservationIgnored private var epoch = UUID()
     @ObservationIgnored private var walletGeneration = UUID()
+
+    // Raw snapshot delivery belongs to the session, not a SwiftUI onChange.
+    // Otherwise every database revision can invalidate the Home/List root even
+    // when the builder publishes no structural changes.
+    @ObservationIgnored private var latestSnapshot: WalletSnapshot?
+    @ObservationIgnored private var presentationContext: PresentationContext?
+    private struct PresentationContext: Equatable {
+        let query: String
+        let formattingLocale: String
+        let active: Bool
+    }
+
+    func receive(_ snapshot: WalletSnapshot?) {
+        latestSnapshot = snapshot
+        guard snapshot != nil else { cancel(); return }
+        submitLatestSnapshot()
+    }
+
+    func configure(query: String, formattingLocale: String, active: Bool) {
+        let context = PresentationContext(query: query, formattingLocale: formattingLocale, active: active)
+        guard presentationContext != context else { return }
+        presentationContext = context
+        if active { submitLatestSnapshot() }
+        // Inactivity stops new work, but must not cancel a session-owned
+        // startup/unlock preparation that is waiting to publish saved data.
+    }
+
+    private func submitLatestSnapshot() {
+        guard let snapshot = latestSnapshot, let context = presentationContext, context.active else { return }
+        update(.init(walletID: snapshot.wallet.id, holdings: snapshot.holdings,
+            currency: snapshot.currency, total: snapshot.totalFiat,
+            filter: snapshot.assetFilter.adjusted(for: snapshot.currency), query: context.query,
+            formattingLocale: context.formattingLocale, sortingLocale: context.formattingLocale,
+            hiddenAssetIDs: snapshot.hiddenAssetIDs))
+    }
 
     func update(_ input: OathHomePortfolioInput) {
         if work == nil { epoch = UUID() }
@@ -363,7 +408,11 @@ final class OathHomePortfolioModel {
         accepted = changes.snapshot
         if changes.layoutChanged { layout = changes.snapshot.layout }
         if changes.searchChanged { searchLayout = changes.snapshot.search }
+        if eligibleAssetCount != changes.snapshot.eligibleAssetCount { eligibleAssetCount = changes.snapshot.eligibleAssetCount }
         if total != changes.snapshot.total { total = changes.snapshot.total }
+        let number = NSDecimalNumber(decimal: input.total).doubleValue
+        let finiteNumber = number.isFinite ? number : nil
+        if numericTotal != finiteNumber { numericTotal = finiteNumber }
         if walletID != input.walletID { walletID = input.walletID }
         updateContext(input)
         if !hasPrepared { hasPrepared = true }
@@ -372,11 +421,12 @@ final class OathHomePortfolioModel {
     private func clearRows() {
         walletGeneration = UUID()
         cells.removeAll(); accepted = nil
-        layout = []; searchLayout = []; total = ""; hasPrepared = false
+        layout = []; searchLayout = []; total = ""; numericTotal = nil; hasPrepared = false; eligibleAssetCount = 0
     }
 
     func reset() {
         cancel()
+        latestSnapshot = nil
         clearRows()
         walletID = nil
         currency = "USD"; filter = .init(); holdingCount = 0

@@ -68,7 +68,21 @@ import UIKit
             guard self?.active?.id == presentation.id else { return }
             self?.controller?.isModalInPresentation = disabled
         })
-        if let environment { return AnyView(content.environment(\.self, environment)) }
+        // A new hosting controller owns its presentation and accessibility
+        // environment. Copy only the app's display preferences from the anchor;
+        // replacing the entire environment carries the zero-size anchor's
+        // hosting state into the sheet on newer iOS versions.
+        if let environment {
+            return AnyView(content
+                .environment(\.oathLanguage, environment.oathLanguage)
+                .environment(\.locale, environment.locale)
+                .environment(\.layoutDirection, environment.layoutDirection)
+                .environment(\.dynamicTypeSize, environment.dynamicTypeSize)
+                // UIKit presents this host outside SwiftUI's scene tree. Keep
+                // foreground action guards tied to the originating scene.
+                .environment(\.scenePhase, environment.scenePhase)
+                .preferredColorScheme(environment.colorScheme))
+        }
         return content
     }
 

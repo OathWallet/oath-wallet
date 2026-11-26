@@ -1,5 +1,16 @@
 {
   "Localizable": {
+    "browserTitle": {
+      "de": "Browser is the established German term for a web browser and shares the English spelling.",
+      "fil": "Browser is the established Filipino term for a web browser and shares the English spelling.",
+      "it": "Browser is the established Italian term for a web browser and shares the English spelling.",
+      "nl": "Browser is the established Dutch term for a web browser and shares the English spelling.",
+      "ro": "Browser is the established Romanian term for a web browser and shares the English spelling.",
+      "da": "Browser is the established Danish term for a web browser and shares the English spelling."
+    },
+    "accounts.list.title": {
+      "nl": "Accounts is the standard Dutch plural for user or wallet accounts; it shares the English spelling."
+    },
     "walletConnect": {
       "am": "WalletConnect is the exact protocol brand, retained in Amharic.",
       "ar": "WalletConnect is the protocol brand name, retained in Latin script.",
@@ -287,13 +298,6 @@
       "sl": "Max is the conventional abbreviation for the local equivalent of maximum in an amount selector.",
       "sv": "Max is the usual Swedish abbreviation for maximalt."
     },
-    "asset.filter.tokens": {
-      "da": "Tokens is an established Danish borrowing for cryptographic assets.",
-      "es": "Tokens is the established Spanish cryptocurrency loanword in the plural.",
-      "nl": "Tokens is the established Dutch plural for cryptocurrency tokens.",
-      "pt-BR": "Tokens is the established plural technical borrowing in Portuguese cryptocurrency interfaces.",
-      "pt-PT": "Tokens is the established plural technical borrowing in Portuguese cryptocurrency interfaces."
-    },
     "common.scan": {
       "da": "Scan is a normal Danish imperative for scanning a code."
     },
@@ -372,6 +376,30 @@
       "pt-BR": "Status is an established Brazilian Portuguese interface noun with the same spelling.",
       "sv": "Status is the Swedish noun for the connection transaction state."
     },
+    "app_icon.obsidian": {
+      "da": "Established Danish material or color term with the same spelling as English; reviewed icon label, not untranslated app prose.",
+      "de": "Established German material or color term with the same spelling as English; reviewed icon label, not untranslated app prose.",
+      "id": "Established Indonesian material or color term with the same spelling as English; reviewed icon label, not untranslated app prose.",
+      "ms": "Established Malay material or color term with the same spelling as English; reviewed icon label, not untranslated app prose.",
+      "nb": "Established Norwegian material or color term with the same spelling as English; reviewed icon label, not untranslated app prose.",
+      "ro": "Established Romanian material or color term with the same spelling as English; reviewed icon label, not untranslated app prose.",
+      "sl": "Established Slovenian material or color term with the same spelling as English; reviewed icon label, not untranslated app prose.",
+      "sv": "Established Swedish material or color term with the same spelling as English; reviewed icon label, not untranslated app prose.",
+      "uz": "Established Uzbek material or color term with the same spelling as English; reviewed icon label, not untranslated app prose."
+    },
+    "app_icon.ultraviolet": {
+      "da": "Established Danish material or color term with the same spelling as English; reviewed icon label, not untranslated app prose.",
+      "nl": "Established Dutch material or color term with the same spelling as English; reviewed icon label, not untranslated app prose.",
+      "ro": "Established Romanian material or color term with the same spelling as English; reviewed icon label, not untranslated app prose."
+    },
+    "app_icon.champagne": {
+      "da": "Established Danish material or color term with the same spelling as English; reviewed icon label, not untranslated app prose.",
+      "fr": "Established French material or color term with the same spelling as English; reviewed icon label, not untranslated app prose.",
+      "it": "Established Italian material or color term with the same spelling as English; reviewed icon label, not untranslated app prose.",
+      "nb": "Established Norwegian material or color term with the same spelling as English; reviewed icon label, not untranslated app prose.",
+      "nl": "Established Dutch material or color term with the same spelling as English; reviewed icon label, not untranslated app prose.",
+      "sv": "Established Swedish material or color term with the same spelling as English; reviewed icon label, not untranslated app prose."
+    },
     "contacts.name": {
       "de": "Name is the German noun for a contact name."
     },
@@ -433,57 +461,60 @@
     "settings.articles": {
       "fr": "Articles is the same plural noun in French and English."
     },
+    "app_icon.titanium": {
+      "id": "Established Indonesian material or color term with the same spelling as English; reviewed icon label, not untranslated app prose.",
+      "ms": "Established Malay material or color term with the same spelling as English; reviewed icon label, not untranslated app prose.",
+      "nl": "Established Dutch material or color term with the same spelling as English; reviewed icon label, not untranslated app prose."
+    },
     "common.import": {
       "ms": "Import is the established Malay action label for importing data."
     },
     "history.filter.filters": {
       "nl": "Filters is the Dutch plural noun for filtering controls."
     },
-    "app_icon.champagne": {
-      "da": "Established color name with the same spelling in this language.",
-      "fr": "Established color name with the same spelling in this language.",
-      "it": "Established color name with the same spelling in this language.",
-      "nb": "Established color name with the same spelling in this language.",
-      "nl": "Established color name with the same spelling in this language.",
-      "sv": "Established color name with the same spelling in this language."
-    },
-    "app_icon.obsidian": {
-      "da": "Established color name with the same spelling in this language.",
-      "de": "Established color name with the same spelling in this language.",
-      "id": "Established color name with the same spelling in this language.",
-      "ms": "Established color name with the same spelling in this language.",
-      "nb": "Established color name with the same spelling in this language.",
-      "ro": "Established color name with the same spelling in this language.",
-      "sl": "Established color name with the same spelling in this language.",
-      "sv": "Established color name with the same spelling in this language.",
-      "uz": "Established color name with the same spelling in this language."
-    },
-    "app_icon.titanium": {
-      "id": "Established color name with the same spelling in this language.",
-      "ms": "Established color name with the same spelling in this language.",
-      "nl": "Established color name with the same spelling in this language."
-    },
-    "app_icon.ultraviolet": {
-      "da": "Established color name with the same spelling in this language.",
-      "nl": "Established color name with the same spelling in this language.",
-      "ro": "Established color name with the same spelling in this language."
-    },
     "seedPasswordLabel": {
-      "fil": "Commonly used password loanword in this language.",
-      "it": "Commonly used password loanword in this language."
-    },
-    "browserTabs": {
-      "de": "Tabs is the standard German browser term, with the same spelling as English."
+      "fil": "Password is the established everyday Filipino term for an account or wallet password.",
+      "it": "Password is the standard Italian word used for this credential."
     },
     "wcArguments": {
       "fr": "Established technical loanword with the same spelling in this language."
     },
-    "wcDeposit": {
-      "ms": "Established technical loanword with the same spelling in this language."
-    },
     "wcNearStake": {
       "da": "Established technical loanword with the same spelling in this language.",
       "nb": "Established technical loanword with the same spelling in this language."
+    },
+    "wcDeposit": {
+      "ms": "Established technical loanword with the same spelling in this language."
+    },
+    "accounts.title": {
+      "fil": "Account is the established borrowed Filipino label for the public wallet account shown here.",
+      "it": "Account is the standard Italian technical noun for a public wallet account.",
+      "nl": "Account is the established Dutch noun for a public blockchain account."
+    },
+    "browserOneTab": {
+      "de": "German browsers use Tab as the singular noun after the tab count.",
+      "sk": "Slovak uses the borrowed singular tab for one browser tab.",
+      "fil": "Filipino uses the borrowed noun tab after a numeric count.",
+      "id": "Indonesian uses the uninflected browser term tab after a numeral.",
+      "ms": "Malay uses the uninflected browser term tab after a numeral."
+    },
+    "browserTabCount": {
+      "de": "Tabs is the established German plural for browser tabs."
+    },
+    "browserTabs": {
+      "de": "German browser interfaces call the collection of open tabs Tabs."
+    },
+    "common.ok": {
+      "ja": "Japanese confirmation dialogs conventionally use OK in Latin letters.",
+      "pt-BR": "OK is a standard Brazilian Portuguese dialog acknowledgement.",
+      "pt-PT": "OK is a standard European Portuguese dialog acknowledgement."
+    },
+    "asset.filter.tokens": {
+      "da": "Tokens is an established Danish borrowing for cryptographic assets.",
+      "es": "Tokens is the established Spanish cryptocurrency loanword in the plural.",
+      "nl": "Tokens is the established Dutch plural for cryptocurrency tokens.",
+      "pt-BR": "Tokens is the established plural technical borrowing in Portuguese cryptocurrency interfaces.",
+      "pt-PT": "Tokens is the established plural technical borrowing in Portuguese cryptocurrency interfaces."
     }
   },
   "InfoPlist": {},

@@ -120,6 +120,17 @@ extension BitcoinSendError: OathSendFailureProviding {
     }
 }
 
+extension EVMSendFeeFailure: OathSendFailureProviding {
+    fileprivate var sendFailure: OathSendFailure {
+        switch self {
+        case .feeCapTooLow: .init(.sendFeeCapTooLow)
+        case .gasLimitTooLow: .init(.sendGasLimitTooLow)
+        case .gasLimitTooHigh, .feeLimitExceeded: .init(.arcFeeTooHigh)
+        case .invalidEstimate: .init(.sendFeeEstimateFailed)
+        }
+    }
+}
+
 extension EVMSendError: OathSendFailureProviding {
     fileprivate var sendFailure: OathSendFailure {
         switch self {

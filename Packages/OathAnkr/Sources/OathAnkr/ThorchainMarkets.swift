@@ -30,10 +30,48 @@ extension ThorchainClient {
     public func catalog() async throws -> ThorchainCatalog {
         try await catalogRequests.value { try await loadCatalog() }
     }
+    func marketPools() async throws -> SolanaJSON {
+        let nodeFirst = await catalogRequests.prefersNodePools
+        do {
+            if nodeFirst { return try await nodeMarketPools() }
+            return try await read(Self.midgard, path: "v2/pools")
+        } catch ThorchainError.transport, ThorchainError.rateLimited, ThorchainError.http(429), ThorchainError.http(500...599) {
+            // readRequest reports the failed route. One alternate remains.
+            try Task.checkCancellation()
+            if nodeFirst {
+                await catalogRequests.setNodePoolPreference(false)
+                return try await read(Self.midgard, path: "v2/pools")
+            }
+            let pools = try await nodeMarketPools()
+            try Task.checkCancellation()
+            await catalogRequests.setNodePoolPreference(true)
+            return pools
+        }
+    }
+
+    private func nodeMarketPools() async throws -> SolanaJSON {
+        let response = try await read(Self.node, path: "thorchain/pools")
+        guard let rows = response.array, !rows.isEmpty, rows.count <= 1_000 else { throw ThorchainError.malformed }
+        var assets: Set<String> = []
+        var available: [SolanaJSON] = []
+        for row in rows {
+            guard let asset = row["asset"].string, try ThorchainIdentity.reference(asset) == asset,
+                  asset.components(separatedBy: ".").count == 2, !asset.hasPrefix("."), !asset.hasSuffix("."), !asset.contains("/"),
+                  assets.insert(asset.lowercased()).inserted, let status = row["status"].string, !status.isEmpty else {
+                throw ThorchainError.malformed
+            }
+            guard status == "Available", row["trading_halted"].isNull || row["trading_halted"] == .bool(false) else { continue }
+            // The node supplies identities and availability. The catalog resolves
+            // USD prices separately and applies the secured-share ratio once.
+            available.append(.object(["asset": .string(asset), "status": .string("available")]))
+        }
+        return .array(available)
+    }
+
     private func loadCatalog() async throws -> ThorchainCatalog {
         // Independent endpoints overlap; unavailable quotes do not erase holdings.
         async let tokenResult = OathDiagnostics.attempt("thorchain_metadata") { try await metadata() }
-        async let poolsResult = OathDiagnostics.attempt("thorchain_pools") { try await read(Self.midgard,path:"v2/pools") }
+        async let poolsResult = OathDiagnostics.attempt("thorchain_pools") { try await marketPools() }
         // Midgard publishes runePriceUSD in /v2/stats. /v2/network only
         // describes nodes/bonds and cannot supply a native price.
         async let statsResult = OathDiagnostics.attempt("thorchain_native_price") { try await read(Self.midgard,path:"v2/stats") }

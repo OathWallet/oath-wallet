@@ -6,14 +6,17 @@ public struct OathOnboardingScreen: View {
     private let onImportWallet: () -> Void
     private let onMoreOptions: () -> Void
     @Environment(\.oathLocalizer) private var strings
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.layoutDirection) private var layoutDirection
     @Environment(\.accessibilityDifferentiateWithoutColor) private var differentiateWithoutColor
-    @ScaledMetric(relativeTo: .largeTitle) private var compactTitleSize = 32
-    @ScaledMetric(relativeTo: .largeTitle) private var expandedTitleSize = 40
-    @State private var actionHeight: CGFloat = 200
-    @State private var introductionHeight: CGFloat = 175
-    @State private var artworkPlacement = OathArtworkPlacement()
+    @ScaledMetric(relativeTo: .title2) private var titleSize = 28
+    @State private var visible = false
+    @State private var revealed = false
+    @State private var actionHeight: CGFloat = 270
+    @State private var introductionHeight: CGFloat = 90
+    @State private var iconFrame = CGRect.zero
 
     public init(
         onCreateWallet: @escaping () -> Void,
@@ -37,20 +40,25 @@ public struct OathOnboardingScreen: View {
                 occlusions: reservedFrames(in: geometry, division: false),
                 rightToLeft: layoutDirection == .rightToLeft
             )
-            let placement = OathArtworkPlacement(
-                logo: artworkPlacement.logo,
-                logoClip: layout.introduction,
-                copy: artworkPlacement.copy,
-                actions: artworkPlacement.actions,
-                spreadDivider: layout.spreadDivider,
-                rendersLogo: false
-            ).offsetBy(dx: layoutDirection == .rightToLeft ? safeArea.trailing : safeArea.leading, dy: safeArea.top)
+            let dx = layoutDirection == .rightToLeft ? safeArea.trailing : safeArea.leading
+            let icon = iconFrame.offsetBy(dx: dx, dy: safeArea.top)
 
-            // Both panes and the renderer keep their identity when the display
-            // folds or rotates, preserving the current phrase and motion time.
             ZStack(alignment: .topLeading) {
-                OathBackground(placement: placement)
-                    .ignoresSafeArea()
+                Color(uiColor: OathSurfaceColors.canvas).ignoresSafeArea()
+                OathWelcomeArtwork(
+                    introduction: layout.introduction.offsetBy(dx: dx, dy: safeArea.top),
+                    icon: icon, topSafeAreaInset: safeArea.top,
+                    active: visible && scenePhase == .active,
+                    reduceMotion: reducedMotion, resumeSettled: revealed,
+                    onReveal: {
+                        withAnimation(reducedMotion ? nil : .spring(response: 0.55, dampingFraction: 0.82)) {
+                            revealed = true
+                        }
+                    }
+                )
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
 
                 if OathLayoutGeometry.isUsable(layout.introduction) {
                     introductionPane(layout)
@@ -74,6 +82,8 @@ public struct OathOnboardingScreen: View {
             }
             #endif
         }
+        .onAppear { visible = true }
+        .onDisappear { visible = false }
         .oathDiagnosticsScreen()
     }
 
@@ -92,42 +102,43 @@ public struct OathOnboardingScreen: View {
         return []
     }
 
+    private var reducedMotion: Bool {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-oath-artwork-reduce-motion") { return true }
+        #endif
+        return reduceMotion
+    }
+
     private func introductionPane(_ layout: OathOnboardingLayout) -> some View {
         GeometryReader { viewport in
-            let viewportHeight = OathLayoutGeometry.finiteSize(viewport.size).height
+            let height = OathLayoutGeometry.finiteSize(viewport.size).height
             ScrollView(.vertical) {
-                VStack(spacing: 0) {
-                    // The welcome artwork is always blue, in either appearance.
-                    // Render the supplied white vector directly, without glass shading.
-                    Image("OathWelcomeMarkWhite")
-                        .renderingMode(.original)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: layout.logoSize.width, height: layout.logoSize.height)
+                VStack(spacing: 20) {
+                    // The native compositor owns this icon throughout the opening
+                    // transition. Its measured destination stays aligned at any size.
+                    Color.clear
+                        .frame(width: 80, height: 80)
                         .accessibilityHidden(true)
                         .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("oathOnboarding")) } action: {
                             guard OathLayoutGeometry.isUsable($0) else { return }
-                            artworkPlacement.logo = $0
+                            iconFrame = $0
                         }
-                        .padding(.bottom)
-
-                    introduction(expanded: layout.arrangement == .spread && layout.introduction.width >= 360)
-                        .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("oathOnboarding")) } action: {
-                            guard OathLayoutGeometry.isUsable($0) else { return }
-                            introductionHeight = $0.height
-                            artworkPlacement.copy = $0
+                    introduction
+                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
+                            if $0.isFinite { introductionHeight = $0 }
                         }
-                        .padding(.top)
+                        .opacity(revealed ? 1 : 0)
+                        .blur(radius: revealed ? 0 : 8)
+                        .offset(y: revealed ? 0 : 24)
+                        .accessibilityHidden(!revealed)
                 }
                 .frame(maxWidth: .infinity)
-                // Center the entire introduction; larger text can still scroll.
-                .frame(minHeight: viewportHeight, alignment: .center)
+                .frame(minHeight: height, alignment: .bottom)
             }
             .scrollIndicators(.hidden)
             .scrollBounceBehavior(.basedOnSize)
-            .scrollClipDisabled()
         }
-        .padding()
+        .padding(.horizontal, 24)
         .clipShape(Rectangle())
         .accessibilityIdentifier("onboarding.introductionPane")
     }
@@ -149,12 +160,12 @@ public struct OathOnboardingScreen: View {
                         .accessibilityIdentifier("onboarding.consent")
                 }
                 .frame(maxWidth: OathActionMetrics.maximumWidth)
-                .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("oathOnboarding")) } action: {
-                    guard OathLayoutGeometry.isUsable($0) else { return }
-                    // Include the system padding in the pane's requested height.
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
+                    guard $0.isFinite, $0 > 0 else { return }
+                    // Measure layout, not the reveal transform: the animation
+                    // must not feed per-frame positions back into SwiftUI state.
                     let systemPadding = max(0, layout.actions.height - viewportHeight)
-                    actionHeight = $0.height + systemPadding
-                    artworkPlacement.actions = $0
+                    actionHeight = $0 + systemPadding
                 }
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: viewportHeight, alignment: .bottom)
@@ -166,32 +177,30 @@ public struct OathOnboardingScreen: View {
         }
         .padding()
         .clipShape(Rectangle())
+        .opacity(revealed ? 1 : 0)
+        .blur(radius: revealed ? 0 : 8)
+        .offset(y: revealed ? 0 : 30)
+        .allowsHitTesting(revealed)
+        .accessibilityHidden(!revealed)
         .accessibilityIdentifier("onboarding.actionsPane")
     }
 
-    private func introduction(expanded: Bool) -> some View {
-        VStack(spacing: 0) {
-            OathFeatureCapsule()
-
-            Text(strings.text(.brandLine))
-                .oathFont(.caption2, weight: .bold)
-                .tracking(strings.language == .arabic ? 0 : 1.4)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.top)
-                .accessibilityIdentifier("onboarding.brandLine")
-
-            Text(strings.text(.headline))
-                .oathFont(.largeTitle, weight: .semibold, size: expanded ? expandedTitleSize : compactTitleSize)
-                .tracking(strings.language == .arabic ? 0 : -0.7)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.top)
+    private var introduction: some View {
+        VStack(spacing: 12) {
+            Text(verbatim: strings.appDisplayName)
+                .oathFont(.title2, weight: .semibold, size: titleSize)
+                .foregroundStyle(.primary)
                 .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier("onboarding.brandLine")
+            Text(strings.text(.headline))
+                .oathFont(.body, weight: .medium)
+                .foregroundStyle(.secondary)
+                .lineSpacing(3)
                 .accessibilityIdentifier("onboarding.headline")
         }
-        .foregroundStyle(.white)
-        .frame(maxWidth: expanded ? 380 : 360)
+        .multilineTextAlignment(.center)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: 340)
     }
 
     private var linkBlue: Color {
@@ -202,9 +211,7 @@ public struct OathOnboardingScreen: View {
         let localized = strings.text(.consent)
         var text = (try? AttributedString(markdown: localized,
             options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(localized)
-        text.foregroundColor = colorScheme == .dark
-            ? Color(red: 0.62, green: 0.66, blue: 0.74)
-            : Color(red: 0.40, green: 0.435, blue: 0.50)
+        text.foregroundColor = Color(uiColor: .secondaryLabel)
         let links = text.runs.filter { $0.link != nil }.map(\.range)
         for range in links {
             text[range].foregroundColor = linkBlue
@@ -220,10 +227,9 @@ public struct OathOnboardingScreen: View {
             }
             .accessibilityIdentifier("onboarding.createWallet")
 
-            // Keep the filled Light appearance against the white footer; Dark
-            // uses the same raised charcoal treatment as other secondary actions.
+            // The shared secondary action follows the scene's appearance.
             OathActionButton(title: strings.text(.importWallet),
-                             appearance: colorScheme == .dark ? .secondary : .primary,
+                             appearance: .secondary,
                              accent: Color(uiColor: OathSurfaceColors.field), foreground: .primary) {
                 onImportWallet()
             }

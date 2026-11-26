@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Opt-in native tab/wallet regression with production navigation and synthetic receipts."""
+"""Opt-in native History navigation regression with synthetic wallets and receipts."""
 from pathlib import Path
 import argparse
 import json
@@ -12,6 +12,15 @@ ROOT = Path(__file__).resolve().parents[1]
 def run(*args):
     return subprocess.run(args, check=True, text=True, capture_output=True, timeout=180).stdout.strip()
 
+def make_probe(home):
+    history = home[home.index('    private var historyNavigation: some View {'):home.index('    private var searchNavigation: some View {')]
+    history += home[home.index('    @ViewBuilder private func walletHistory('):home.index('    private var homeContent: some View {')]
+    wrapper = home[home.index('private struct OathHomeHistoryContent: View {'):home.index('struct OathHomeNetworkRow: View {')]
+    activity = (ROOT/'OathAtmosphere/Assets/OathChainActivityScreen.swift').read_text()
+    destination = activity[activity.index('        .navigationDestination(isPresented:'):activity.index('        .task(id: OathHistoryObservationID')]
+    probe = (ROOT/'Tools/WalletHistoryNavigationRegression/Probe.swift').read_text()
+    return probe.replace('    // PRODUCTION_NAVIGATION', history).replace('        // PRODUCTION_DESTINATION', destination).replace('// PRODUCTION_HISTORY_CONTENT', wrapper)
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--simulator-check', action='store_true')
@@ -22,11 +31,7 @@ def main():
         parser.error('Identify the unresolved native navigation concern before opting into a simulator check.')
     args.output.mkdir(parents=True, exist_ok=True)
     home = (args.home_source or ROOT/'OathAtmosphere/Home/OathHomeScreen.swift').read_text()
-    navigation = home[home.index('    private var historyNavigation: some View {'):home.index('    private var homeContent: some View {')]
-    activity = (ROOT/'OathAtmosphere/Assets/OathChainActivityScreen.swift').read_text()
-    destination = activity[activity.index('        .navigationDestination(isPresented:'):activity.index('        .task(id: OathHistoryObservationID')]
-    probe = (ROOT/'Tools/WalletHistoryNavigationRegression/Probe.swift').read_text()
-    probe = probe.replace('    // PRODUCTION_NAVIGATION', navigation).replace('        // PRODUCTION_DESTINATION', destination)
+    probe = make_probe(home)
     device = None
     with tempfile.TemporaryDirectory(prefix='oath-wallet-history-navigation-') as temporary:
         work = Path(temporary)
@@ -54,7 +59,7 @@ def main():
                     '-derivedDataPath', str(work/'build'), '-parallel-testing-enabled', 'NO', '-collect-test-diagnostics', 'never',
                     '-resultBundlePath', str(args.output/'Navigation.xcresult'), 'test'], stdout=log, stderr=subprocess.STDOUT, timeout=600)
             result.check_returncode()
-            print('PASS: History and history-search discard receipts on wallet switches and preserve same-wallet navigation (synthetic wallets).')
+            print('PASS: the History tab resets receipts on wallet switches and preserves navigation for the same wallet (synthetic wallets).')
         finally:
             if device:
                 subprocess.run(['xcrun', 'simctl', 'shutdown', device], capture_output=True, timeout=60)

@@ -75,6 +75,7 @@ public enum MarketDataError: Error, Sendable, Equatable {
 /// In particular ETH rollups are ETH (not ARB/OP/SCR/TAIKO governance tokens).
 public enum MarketIdentity {
     public static let native: [String: (coinbase: String, gecko: String)] = [
+        "plasma": ("XPL", "plasma"), "worldchain": ("ETH", "ethereum"), "elysium": ("HYPE", "hyperliquid"),
         "bitcoin": ("BTC", "bitcoin"), "ethereum": ("ETH", "ethereum"),
         "arbitrum": ("ETH", "ethereum"), "base": ("ETH", "ethereum"),
         "linea": ("ETH", "ethereum"), "optimism": ("ETH", "ethereum"),
@@ -91,6 +92,7 @@ public enum MarketIdentity {
         "xlayer": ("OKB", "okb"), "xrpl": ("XRP", "ripple")
     ]
     static let geckoPlatforms = [
+        "plasma": "plasma", "worldchain": "world-chain", "elysium": "elysium",
         "ethereum": "ethereum", "arbitrum": "arbitrum-one", "arc": "arc",
         "avalanche": "avalanche", "base": "base", "bnb": "binance-smart-chain",
         "fantom": "fantom", "flare": "flare-network", "somnia": "somnia", "story": "story",
@@ -117,14 +119,18 @@ public enum MarketIdentity {
         "USDT": ["tron": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"]
     ]
 
+    static func geckoPath(network: String, reference: String) throws -> String {
+        if reference == "native", let mapping = native[network] { return mapping.gecko }
+        if network == "thorchain", let project = thorchainProjects[reference] { return project }
+        guard let platform = geckoPlatforms[network], validReference(reference) else { throw MarketDataError.notListed }
+        return platform + "/contract/" + reference
+    }
+
     public static func informationURL(for asset: MarketAsset) throws -> URL {
-        var path: String
-        if asset.isNative, let mapping = native[asset.networkID] { path = mapping.gecko }
-        else if asset.networkID == "thorchain", let project = thorchainProjects[asset.reference] { path = project }
-        else if let platform = geckoPlatforms[asset.networkID], validReference(asset.reference) {
-            path = platform + "/contract/" + asset.reference
-        } else { throw MarketDataError.notListed }
-        return URL(string: "https://api.coingecko.com/api/v3/coins/" + path +
+        try informationURL(path: geckoPath(network: asset.networkID, reference: asset.reference))
+    }
+    static func informationURL(path: String) -> URL {
+        URL(string: "https://api.coingecko.com/api/v3/coins/" + path +
             "?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false")!
     }
     static func validReference(_ value: String) -> Bool {
@@ -134,9 +140,50 @@ public enum MarketIdentity {
     }
 
     static func chartURL(for asset: MarketAsset) throws -> URL {
-        var url = URLComponents(url: try informationURL(for: asset), resolvingAgainstBaseURL: false)!
-        url.path += "/market_chart"
-        url.queryItems = [.init(name: "vs_currency", value: "usd"), .init(name: "days", value: "1")]
+        try chartURL(path: geckoPath(network: asset.networkID, reference: asset.reference), range: .day)
+    }
+    static func chartURL(path: String, range: MarketHistoryRange) -> URL {
+        var url = URLComponents(string: "https://api.coingecko.com")!
+        url.path = "/api/v3/coins/" + path + "/market_chart"
+        url.queryItems = [.init(name: "vs_currency", value: "usd"), .init(name: "days", value: String(range.rawValue))]
         return url.url!
+    }
+}
+
+extension MarketChart {
+    /// Providers decode into ascending, unique timestamps. Keep scrubbing over
+    /// the full series even when the chart draws fewer marks.
+    public func nearestPointIndex(to time: Double) -> Int? {
+        guard time.isFinite, !points.isEmpty else { return nil }
+        var lower = 0
+        var upper = points.count
+        while lower < upper {
+            let middle = lower + (upper - lower) / 2
+            if points[middle].time < time { lower = middle + 1 } else { upper = middle }
+        }
+        if lower == 0 { return 0 }
+        if lower == points.count { return lower - 1 }
+        return time - points[lower - 1].time <= points[lower].time - time ? lower - 1 : lower
+    }
+
+    /// Plot real bucket extremes in time order. The first and last quotes and
+    /// intrabucket spikes survive even for several thousand hourly samples.
+    public func plotPoints(limit: Int) -> [MarketCandle] {
+        guard limit >= 4, points.count > limit, let first = points.first, let last = points.last else { return points }
+        let buckets = (limit - 2) / 2
+        var plot = [first]
+        plot.reserveCapacity(limit)
+        for bucket in 0..<buckets {
+            let start = 1 + bucket * (points.count - 2) / buckets
+            let end = 1 + (bucket + 1) * (points.count - 2) / buckets
+            let samples = points[start..<end]
+            guard let low = samples.min(by: { $0.close < $1.close }),
+                  let high = samples.max(by: { $0.close < $1.close }) else { continue }
+            if low.time == high.time { plot.append(low) }
+            else if low.time < high.time { plot.append(low); plot.append(high) }
+            else { plot.append(high); plot.append(low) }
+        }
+        plot.append(last)
+        return plot
     }
 }

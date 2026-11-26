@@ -24,7 +24,7 @@ extension OathDatabase {
                              verifies: @escaping @Sendable (AssetRecord) -> Bool) async throws {
         let prefix: String
         switch account.networkID {
-        case "unichain", "monad", "celo", "chiliz", "filecoin", "sei", "zerog", "iotex", "story": prefix = "indexedEVM"
+        case "unichain", "monad", "celo", "plasma", "worldchain", "elysium", "chiliz", "filecoin", "sei", "zerog", "iotex", "story": prefix = "indexedEVM"
         case "hyperevm", "robinhood", "arc", "solana", "tron", "aptos", "sui", "near", "xrpl", "stellar": prefix = account.networkID
         default: throw StoreError.invalidValue("Refresh catalog network")
         }

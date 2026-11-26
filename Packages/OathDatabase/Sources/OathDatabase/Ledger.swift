@@ -219,7 +219,7 @@ extension OathDatabase {
                     FROM nearHoldings WHERE accountID=? AND assetID=? AND amountAtomic IS NOT NULL
                     """, arguments: [accountID,assetID]) { return balance }
             }
-            if let account = try AccountRecord.fetchOne(db, key: accountID), ["chiliz", "filecoin", "sei", "zerog", "iotex", "celo", "unichain", "monad", "story"].contains(account.networkID) {
+            if let account = try AccountRecord.fetchOne(db, key: accountID), ["plasma", "worldchain", "elysium", "chiliz", "filecoin", "sei", "zerog", "iotex", "celo", "unichain", "monad", "story"].contains(account.networkID) {
                 if let balance = try BalanceRecord.fetchOne(db, sql: """
                     SELECT accountID,assetID,? AS networkID,amountAtomic,observedAt,checkpoint AS blockHeight,'indexedEVM' AS source
                     FROM indexedEVMHoldings WHERE accountID=? AND assetID=?

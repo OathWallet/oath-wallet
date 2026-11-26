@@ -40,6 +40,7 @@ struct OathSecureInput: UIViewRepresentable {
         return field
     }
     func updateUIView(_ field: Field, context: Context) {
+        field.focusGate = context.environment.oathInputFocusGate
         context.coordinator.parent = self
         context.coordinator.accessory.updateAppearance(context.environment.colorScheme == .dark ? .dark : .light)
         context.coordinator.accessory.toolbar.update(words: [], doneLabel: context.environment.oathLocalizer.text(.done),
@@ -92,6 +93,7 @@ struct OathSecureInput: UIViewRepresentable {
     }
 
     final class Field: OathEntryTextField {
+        weak var focusGate: OathAutofocusGate?
         private var wantsFocus = false
         private var resignsFocus = false
         private var scheduled = false
@@ -109,6 +111,7 @@ struct OathSecureInput: UIViewRepresentable {
                 self.scheduled = false
                 guard self.window != nil else { return }
                 if self.wantsFocus, !self.isFirstResponder {
+                    guard self.focusGate?.permitsResponder != false else { return }
                     self.inputAccessoryView?.frame.size.width = self.window?.bounds.width ?? self.bounds.width
                     self.inputAccessoryView?.sizeToFit()
                     self.becomeFirstResponder()

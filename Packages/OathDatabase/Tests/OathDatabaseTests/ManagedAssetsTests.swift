@@ -18,6 +18,55 @@ import GRDB
     private var token: AssetRecord {
         .init(id: "legacy-token-id", networkID: "ethereum", reference: "0xabcdef0000000000000000000000000000000001", name: "Fixture", symbol: "FXT", decimals: 6)
     }
+    func testEmptyWalletNativeSelectionPersistsWithoutInventingBalances() async throws {
+        let (db, url) = try await fixture(); defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let initial = try await db.managedAssets(walletID: "one", currency: "USD")
+        XCTAssertTrue(initial.enabledAssetIDs.isEmpty)
+        XCTAssertEqual(initial.matchingCount(filter: .init(), currency: "USD", locale: .current), 0)
+        let native = try XCTUnwrap(initial.assets.first { $0.reference == "native" })
+        try await db.enableManagedToken(native, walletID: "one")
+        let reopened = try await OathDatabase.open(at: url)
+        let selected = try await reopened.managedAssets(walletID: "one", currency: "USD")
+        XCTAssertEqual(selected.enabledAssetIDs, [native.id])
+        XCTAssertEqual(selected.matchingCount(filter: .init(), currency: "USD", locale: .current), 2)
+        XCTAssertTrue(selected.holdings.allSatisfy { $0.homeTracked == true && $0.amountAtomic == nil && $0.balanceObservedAt == nil })
+        let providerTokens = try await reopened.trackedAssets(walletID: "one")
+        XCTAssertTrue(providerTokens.isEmpty, "Native selections must not become contract/mint RPC requests")
+        let other = try await reopened.managedAssets(walletID: "two", currency: "USD")
+        XCTAssertTrue(other.enabledAssetIDs.isEmpty)
+        try await reopened.setAssetHidden(true, assetID: native.id, walletID: "one")
+        let hidden = try await reopened.managedAssets(walletID: "one", currency: "USD")
+        XCTAssertTrue(hidden.enabledAssetIDs.isEmpty)
+        try await reopened.setAssetHidden(false, assetID: native.id, walletID: "one")
+        let restored = try await reopened.managedAssets(walletID: "one", currency: "USD")
+        XCTAssertEqual(restored.enabledAssetIDs, [native.id])
+    }
+
+    func testHistoryOnlyTokensSurviveInventoryRemovalWithoutGrantingTrust() async throws {
+        let (db, url) = try await fixture(); defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let asset = token
+        try await db.pool.write { sql in
+            try asset.insert(sql)
+            try HistorySafety.trust(networkID: asset.networkID, reference: asset.reference, decimals: asset.decimals,
+                source: "fixture", observedAt: 1, db: sql)
+            try TransactionRecord(id: "history-only", networkID: "ethereum", hash: "history-only", state: "confirmed", timestamp: 1, updatedAt: 1).insert(sql)
+            try ActivityRecord(id: "history-only", walletID: "one", accountID: "one0", networkID: "ethereum",
+                transactionID: "history-only", assetID: asset.id, direction: "outgoing", amountAtomic: "1000000",
+                counterparty: "public-fixture", timestamp: 1).insert(sql)
+        }
+        let snapshot = try await db.snapshot(walletID: "one", currency: "USD")
+        let historical = try XCTUnwrap(snapshot.holdings.first { $0.assetID == asset.id })
+        XCTAssertTrue(historical.isHomeAsset && historical.isVerifiedForHome)
+        XCTAssertEqual(historical.transactionCount, 1)
+        XCTAssertNil(historical.amountAtomic, "History is evidence of activity, not a fresh balance read")
+        XCTAssertEqual(historical.homeTracked, false)
+        let other = try await db.snapshot(walletID: "two", currency: "USD")
+        XCTAssertFalse(other.holdings.contains { $0.assetID == asset.id })
+        try await db.pool.write { sql in try sql.execute(sql: "DELETE FROM tokenHistoryTrust WHERE source='fixture'") }
+        let untrusted = try await db.snapshot(walletID: "one", currency: "USD")
+        XCTAssertFalse(untrusted.holdings.contains { $0.assetID == asset.id }, "Unverified history must respect the existing visibility filter")
+    }
+
     func testDiscoveredIdentityRemainsManageableBeforeBalanceIsKnown() async throws {
         let (db, url) = try await fixture(); defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         let asset = token
@@ -69,9 +118,9 @@ import GRDB
         XCTAssertEqual(rows.count, 2)
         XCTAssertTrue(rows.allSatisfy { $0.amountAtomic == nil && $0.balanceObservedAt == nil && !$0.isVerifiedForHome })
         XCTAssertTrue(managed.hiddenAssetIDs.isEmpty)
-        XCTAssertEqual(managed.matchingCount(filter: .init(), currency: "USD", locale: .init(identifier: "en_US")), 2)
+        XCTAssertEqual(managed.matchingCount(filter: .init(), currency: "USD", locale: .init(identifier: "en_US")), 0)
         var filter = PortfolioFilter(); filter.hidesUnverifiedTokens = false; filter.hidesZeroBalances = true
-        XCTAssertEqual(managed.matchingCount(filter: filter, currency: "USD", locale: .init(identifier: "ar")), 4, "Unknown amounts stay unknown and visible")
+        XCTAssertEqual(managed.matchingCount(filter: filter, currency: "USD", locale: .init(identifier: "ar")), 2, "Manually added unknown amounts stay visible; unused native coins do not")
         filter.networkIDs = ["bitcoin"]
         XCTAssertEqual(managed.matchingCount(filter: filter, currency: "USD", locale: .current), 0)
         filter.networkIDs = []; filter.minimumValue = 1; filter.rangeCurrency = "USD"
@@ -79,6 +128,45 @@ import GRDB
         let other = try await reopened.managedAssets(walletID: "two", currency: "USD")
         XCTAssertFalse(other.assets.contains { $0.id == token.id })
     }
+    func testExploreAddRestoresOnlyTheChosenWalletTokenWithoutWaitingForABalance() async throws {
+        let (db, url) = try await fixture()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let asset = token
+        try await db.trackAsset(asset, walletID: "one")
+        try await db.trackAsset(asset, walletID: "two")
+        try await db.setAssetHidden(true, assetID: asset.id, walletID: "one")
+        var sameSymbol = asset
+        sameSymbol.id = "different-contract"
+        sameSymbol.reference = "0xabcdef0000000000000000000000000000000002"
+        try await db.trackAsset(sameSymbol, walletID: "one")
+
+        // Explore's network/reference ID need not match an existing database ID.
+        var selection = asset
+        selection.id = selection.networkID + ":" + selection.reference
+        for _ in 0..<2 {
+            let enabled = try await db.enableManagedToken(selection, walletID: "one", showOnHome: true)
+            XCTAssertEqual(enabled.id, asset.id)
+        }
+        let reopened = try await OathDatabase.open(at: url)
+        for store in [db, reopened] {
+            let managed = try await store.managedAssets(walletID: "one", currency: "USD")
+            XCTAssertTrue(managed.enabledAssetIDs.contains(asset.id))
+            XCTAssertEqual(managed.matchingCount(filter: .init(), currency: "USD", locale: .current), 2)
+            let home = try await store.homeSnapshot(walletID: "one", currency: "USD")
+            let rows = home.holdings.filter {
+                $0.isHomeListCandidate(hidingUnverified: home.assetFilter.hidesUnverifiedTokens, hiddenAssetIDs: home.hiddenAssetIDs)
+            }
+            XCTAssertFalse(rows.isEmpty)
+            XCTAssertTrue(rows.allSatisfy { $0.assetID == asset.id && !$0.isVerifiedForHome && $0.amountAtomic == nil })
+            let other = try await store.managedAssets(walletID: "two", currency: "USD")
+            XCTAssertEqual(other.matchingCount(filter: .init(), currency: "USD", locale: .current), 0)
+        }
+        try await reopened.setAssetHidden(true, assetID: asset.id, walletID: "one")
+        let hidden = try await reopened.managedAssets(walletID: "one", currency: "USD")
+        XCTAssertFalse(hidden.enabledAssetIDs.contains(asset.id))
+        XCTAssertEqual(hidden.matchingCount(filter: .init(), currency: "USD", locale: .current), 0)
+    }
+
     func testFailedTransactionRollsBackTrackingMetadataAndUnhide() async throws {
         let (db, url) = try await fixture(); defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         let asset = token
@@ -88,7 +176,7 @@ import GRDB
             try sql.execute(sql: "CREATE TRIGGER fail_managed_unhide BEFORE DELETE ON hiddenAssets BEGIN SELECT RAISE(ABORT,'Fixture write failure'); END")
         }
         var changed = asset; changed.name = "Replacement"
-        do { try await db.enableManagedToken(changed, walletID: "one"); XCTFail("Write should fail") } catch { }
+        do { try await db.enableManagedToken(changed, walletID: "one", showOnHome: true); XCTFail("Write should fail") } catch { }
         let failed = try await db.managedAssets(walletID: "one", currency: "USD")
         XCTAssertEqual(failed.assets.first { $0.id == asset.id }?.name, asset.name)
         XCTAssertEqual(failed.hiddenAssetIDs, [asset.id])
@@ -102,7 +190,7 @@ import GRDB
         _ = try await db.beginWalletReset()
         do { try await db.enableManagedToken(asset, walletID: "one"); XCTFail("Reset guard ignored") } catch { }
     }
-    func testHiddenDiscoveredTokenRemainsRecoverableWithoutInventoryAndTotalIsUnchanged() async throws {
+    func testHiddenDiscoveredTokenRemainsRecoverableWithoutInventoryAndIsExcludedFromTotal() async throws {
         let (db, url) = try await fixture(); defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         let asset = token
         try await db.pool.write { sql in
@@ -121,7 +209,8 @@ import GRDB
         defer { observer.cancel() }
         try await db.setAssetHidden(true, assetID: asset.id, walletID: "one")
         let after = try await db.snapshot(walletID: "one", currency: "USD")
-        XCTAssertEqual(before.totalFiat, after.totalFiat)
+        XCTAssertEqual(before.totalFiat, 6)
+        XCTAssertEqual(after.totalFiat, 0)
         XCTAssertEqual(after.holdings.first { $0.assetID == asset.id }?.balanceObservedAt, 123)
         try await observer.value; XCTAssertTrue(observed)
         try await db.pool.write { try $0.execute(sql: "DELETE FROM ankrAssets WHERE assetID=?", arguments: [asset.id]) }

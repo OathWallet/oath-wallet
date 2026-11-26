@@ -78,7 +78,7 @@ struct OathManageTokensScreen: View {
                     }
                 }
                 .oathSwitchStyle()
-                .disabled(pending || !session.isUnlocked || session.displayedProfile?.id.uuidString != walletID)
+                .disabled(pending || !session.isUnlocked || session.changingWallet || session.resetting)
                 .accessibilityIdentifier("manageTokens.switch." + item.id)
                 if pending { ProgressView().accessibilityLabel(strings.text(.manageTokens)) }
             }

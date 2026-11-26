@@ -71,62 +71,65 @@ final class PublicMarketQueueRegressionTests: XCTestCase, @unchecked Sendable {
         let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
         defer { try? FileManager.default.removeItem(at: file) }
         OathDiagnostics.configure(file: file, transport: reports)
-        let pool = PublicMarketRequests(spacing: .zero), held = HeldMarketResponse()
-        let firstRequest = request("ethereum"), secondRequest = request("bitcoin")
-        let first = Task {
-            try await pool.send(firstRequest) {
-                let response = await held.response()
-                DiagnosticHTTP.response(response.data, status: response.status, request: firstRequest)
-                return response
+        let operationID = UUID()
+        try await OathDiagnostics.$operationID.withValue(operationID) {
+            let pool = PublicMarketRequests(spacing: .zero), held = HeldMarketResponse()
+            let firstRequest = request("ethereum"), secondRequest = request("bitcoin")
+            let first = Task {
+                try await pool.send(firstRequest) {
+                    let response = await held.response()
+                    DiagnosticHTTP.response(response.data, status: response.status, request: firstRequest)
+                    return response
+                }
             }
-        }
-        while await held.count == 0 { await Task.yield() }
-        let second = Task {
-            try await pool.send(secondRequest) { XCTFail("Local cooldown issued another request"); return .init(data: Data(), status: 200) }
-        }
-        try await Task.sleep(for: .milliseconds(20))
-        await held.finish(status: 429)
-        let limited = try await first.value
-        XCTAssertEqual(limited.status, 429)
-        do { _ = try await second.value; XCTFail("Ignored shared cooldown") }
-        catch { XCTAssertEqual(error as? DiagnosticDeferral, .publicMarketCooldown) }
+            while await held.count == 0 { await Task.yield() }
+            let second = Task {
+                try await pool.send(secondRequest) { XCTFail("Local cooldown issued another request"); return .init(data: Data(), status: 200) }
+            }
+            try await Task.sleep(for: .milliseconds(20))
+            await held.finish(status: 429)
+            let limited = try await first.value
+            XCTAssertEqual(limited.status, 429)
+            do { _ = try await second.value; XCTFail("Ignored shared cooldown") }
+            catch { XCTAssertEqual(error as? DiagnosticDeferral, .publicMarketCooldown) }
 
-        // Exercise the production consumers too: a coordinator-only check
-        // misses repeated reports made by callers after a local deferral.
-        let transport = PooledNativeMarketTransport(pool: pool)
-        for _ in 0..<2 {
-            let hype = try await HyperEVMMarkets(transport: transport).nativePrice()
-            let mon = try await IndexedEVMMarkets(chain: .monad, transport: transport).nativePrice()
-            let eth = try await IndexedEVMMarkets(chain: .unichain, transport: transport).nativePrice()
-            XCTAssertEqual([hype.usd, mon.usd, eth.usd], ["12", "12", "12"])
-        }
+            // Exercise the production consumers too: a coordinator-only check
+            // misses repeated reports made by callers after a local deferral.
+            let transport = PooledNativeMarketTransport(pool: pool)
+            for _ in 0..<2 {
+                let hype = try await HyperEVMMarkets(transport: transport).nativePrice()
+                let mon = try await IndexedEVMMarkets(chain: .monad, transport: transport).nativePrice()
+                let eth = try await IndexedEVMMarkets(chain: .unichain, transport: transport).nativePrice()
+                XCTAssertEqual([hype.usd, mon.usd, eth.usd], ["12", "12", "12"])
+            }
 
-        // Availability failures retain their caller-visible errors but are
-        // excluded from telemetry under the user's shared reporting policy.
-        let failedRequest = URLRequest(url: URL(string: "https://api.coinbase.com/v2/prices/BTC-USD/spot")!)
-        do { _ = try await pool.send(failedRequest) { throw URLError(.timedOut) }; XCTFail() }
-        catch { XCTAssertEqual((error as? URLError)?.code, .timedOut) }
-        let invalidRequest = URLRequest(url: URL(string: "https://coins.llama.fi/prices/current/coingecko:bitcoin")!)
-        do { _ = try await pool.send(invalidRequest) { throw AnkrError.invalidResponse }; XCTFail() }
-        catch { XCTAssertEqual(error as? AnkrError, .invalidResponse) }
-        for _ in 0..<100 {
-            if await reports.events.contains(where: { $0.error.message == "invalidResponse" }) { break }
-            try await Task.sleep(for: .milliseconds(10))
+            // Availability failures are excluded by the shared policy; malformed
+            // responses remain observable. Local cooldowns never add duplicates.
+            let failedRequest = URLRequest(url: URL(string: "https://api.coinbase.com/v2/prices/BTC-USD/spot")!)
+            do { _ = try await pool.send(failedRequest) { throw URLError(.timedOut) }; XCTFail() }
+            catch { XCTAssertEqual((error as? URLError)?.code, .timedOut) }
+            let invalidRequest = URLRequest(url: URL(string: "https://coins.llama.fi/prices/current/coingecko:bitcoin")!)
+            do { _ = try await pool.send(invalidRequest) { throw AnkrError.invalidResponse }; XCTFail() }
+            catch { XCTAssertEqual(error as? AnkrError, .invalidResponse) }
+            for _ in 0..<100 {
+                if await reports.events.contains(where: { $0.error.message == "invalidResponse" }) { break }
+                try await Task.sleep(for: .milliseconds(10))
+            }
+            // Let all already-admitted diagnostic events finish their asynchronous upload.
+            try await Task.sleep(for: .milliseconds(100))
+            let events = await reports.events.filter { $0.operationID == operationID }
+            XCTAssertEqual(events.filter { $0.context["http_status"] == "429" }.count, 0)
+            XCTAssertEqual(events.filter { $0.operation == "public_market_request" && $0.error.domain == NSURLErrorDomain }.count, 0)
+            XCTAssertEqual(events.filter { $0.operation == "public_market_request" && $0.error.message == "invalidResponse" }.count, 1)
+            XCTAssertFalse(events.contains { $0.operation == "public_market_request" && $0.error.message == "http(429)" },
+                           "A locally deferred request is not a new remote failure")
+            XCTAssertFalse(events.contains { ["market_read", "native_price_fallback"].contains($0.operation) },
+                           "Provider cooldown must not become a new failure in each chain consumer")
+            let encoded = String(decoding: try JSONEncoder().encode(events), as: UTF8.self)
+            XCTAssertFalse(encoded.contains("?ids="))
+            let count = await held.count
+            XCTAssertEqual(count, 1)
         }
-        // Let all already-admitted diagnostic events finish their asynchronous upload.
-        try await Task.sleep(for: .milliseconds(100))
-        let events = await reports.events
-        XCTAssertEqual(events.filter { $0.context["http_status"] == "429" }.count, 0)
-        XCTAssertEqual(events.filter { $0.operation == "public_market_request" && $0.error.domain == NSURLErrorDomain }.count, 0)
-        XCTAssertEqual(events.filter { $0.operation == "public_market_request" && $0.error.message == "invalidResponse" }.count, 1)
-        XCTAssertFalse(events.contains { $0.operation == "public_market_request" && $0.error.message == "http(429)" },
-                       "A locally deferred request is not a new remote failure")
-        XCTAssertFalse(events.contains { ["market_read", "native_price_fallback"].contains($0.operation) },
-                       "Provider cooldown must not become a new failure in each chain consumer")
-        let encoded = String(decoding: try JSONEncoder().encode(events), as: UTF8.self)
-        XCTAssertFalse(encoded.contains("?ids="))
-        let count = await held.count
-        XCTAssertEqual(count, 1)
     }
 
     func testCancelledFlightsLateCompletionCannotReplaceNewConsumerOrCache() async throws {

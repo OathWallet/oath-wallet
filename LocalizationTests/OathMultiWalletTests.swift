@@ -111,7 +111,7 @@ private actor MultiWalletBiometrics: OathBiometricCredentialStoring {
     func hasEnrollment() -> Bool { credential != nil }
     func disable() { credential = nil }
     init(credential: Data?) { self.credential = credential }
-    func read(reason: String) throws -> Data {
+    func read(reason: String, requiringFreshMatch: Bool) throws -> Data {
         guard let credential else { throw OathBiometricCredentialError.missing }
         return credential
     }

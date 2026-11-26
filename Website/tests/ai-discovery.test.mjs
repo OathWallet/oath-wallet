@@ -39,7 +39,7 @@ test('provider identities are sourced and News retains private-path restrictions
  assert.ok(news.includes('Disallow: /'));assert.ok(news.includes('Allow: /llms.txt$'));
 });
 test('release facts keep the App Store version, unknown build and reviewed source separate',()=>{
- assert.equal(currentStatus.published_source.version,'5.1.0');assert.equal(currentStatus.published_source.build,110);assert.equal(currentStatus.app_store.version,'5.1.0');assert.equal(currentStatus.app_store.build,null);
+ assert.equal(currentStatus.published_source.version,'5.1.1');assert.equal(currentStatus.published_source.build,111);assert.equal(currentStatus.app_store.version,'5.1.0');assert.equal(currentStatus.app_store.build,null);
  assert.equal(currentStatus.guide_source.version,'5.0.2');assert.equal(currentStatus.guide_source.build,104);
  assert.equal(currentStatus.source_commit,null);assert.equal(currentStatus.security_review.independent_certification,false);
 });

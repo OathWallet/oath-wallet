@@ -1,5 +1,9 @@
 # Oath — Made for your independence.
 
+<!-- current-release:start -->
+Latest source release: [Oath 5.1.1 · Build 111](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111).
+<!-- current-release:end -->
+
 Oath is a self-custody Bitcoin and crypto wallet for iPhone and iPad. You control your wallet credentials, review fees before confirming, and manage supported assets without a trading marketplace.
 
 - [Download Oath on the App Store](https://apps.apple.com/app/id6780187283) — free, for iPhone and iPad

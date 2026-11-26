@@ -38,6 +38,7 @@ struct OathSettingsRow: View {
     let title: String
     var icon: String? = nil
     var value: String? = nil
+    var keepsValueInline = false
     var truncatesTitle = false
     var isSelected = false
     var accessory: Accessory = .disclosure
@@ -72,14 +73,14 @@ struct OathSettingsRow: View {
             else if let networkLogo { OathNetworkLogo(asset: networkLogo, size: iconSize) }
             else if let icon { OathSettingsIcon(symbol: icon, color: actionColor) }
         } content: {
-            if typeSize.isAccessibilitySize {
+            if typeSize.isAccessibilitySize && !keepsValueInline {
                 VStack(alignment: .leading, spacing: 5) {
                     titleLabel
                     valueLabel
                 }
                 Spacer(minLength: 8)
             } else {
-                titleLabel.layoutPriority(1)
+                titleLabel.layoutPriority(keepsValueInline ? 0 : 1)
                 Spacer(minLength: 12)
                 valueLabel
             }
@@ -144,10 +145,10 @@ struct OathSettingsRow: View {
     @ViewBuilder private var valueLabel: some View {
         if let value {
             Text(value)
-                .oathFont(.body)
+                .oathFont(keepsValueInline ? .subheadline : .body)
                 .foregroundStyle(Color(uiColor: .secondaryLabel))
                 .lineLimit(1)
-                .truncationMode(.tail)
+                .truncationMode(keepsValueInline ? .middle : .tail)
         }
     }
 }

@@ -43,7 +43,7 @@ public struct SolanaReceiveState: Equatable, Sendable {
 extension OathDatabase {
     /// Only public addresses are persisted. Keep the original account immutable
     /// so old receive requests and future history still identify the same wallet.
-    public func prepareSolanaReceive(accountID: String, addresses: [SolanaReceiveAddress], preferredPath: String) async throws -> SolanaReceiveState {
+    public func prepareSolanaReceive(accountID: String, addresses: [SolanaReceiveAddress], preferredPath: String, singlePath: Bool = false) async throws -> SolanaReceiveState {
         guard (1...3).contains(addresses.count), Set(addresses.map(\.path)).count == addresses.count,
               Set(addresses.map(\.address)).count == addresses.count, addresses.contains(where: { $0.path == preferredPath }),
               addresses.allSatisfy({ (32...44).contains($0.address.utf8.count) && $0.path.utf8.count <= 128 &&
@@ -57,6 +57,9 @@ extension OathDatabase {
                 guard addresses.count == 1, try WalletRecord.fetchOne(db,key:account.walletID)?.kind == "solanaMultisig" else { throw StoreError.conflictingIdentity }
             } else if account.derivationPath == "imported" {
                 guard addresses.count == 1 else { throw StoreError.conflictingIdentity }
+            } else if singlePath {
+                guard addresses.count == 1,
+                      try HDAccountFamily.solana.canonicalPath(account.derivationPath) == account.derivationPath else { throw StoreError.conflictingIdentity }
             } else {
                 let index = SolanaDerivation.accountIndex(in: account.derivationPath) ?? account.accountIndex
                 let paths = try SolanaDerivation.allCases.map { try $0.path(accountIndex: index) }

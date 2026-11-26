@@ -109,6 +109,7 @@ struct OathLocalizer: Sendable {
     static var current: Self { Self(OathLanguagePreference.current.resolve()) }
 
     func text(_ key: OathStringKey) -> String { string(key.rawValue, table: "Localizable") }
+    var appDisplayName: String { string("CFBundleDisplayName", table: "InfoPlist") }
     func name(of language: OathLanguage) -> String {
         let value = string(language.nameKey, table: "LanguageNames")
         return value == language.nameKey ? language.englishName : value

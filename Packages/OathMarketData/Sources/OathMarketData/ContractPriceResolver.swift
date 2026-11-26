@@ -13,6 +13,7 @@ struct ContractPriceRequest: Sendable {
     let network: String
 
     static let terminalNetworks = [
+        "plasma":"plasma", "worldchain":"world-chain", "elysium":"elysium",
         "ethereum":"eth", "arbitrum":"arbitrum", "arc":"arc", "avalanche":"avax", "base":"base",
         "bnb":"bsc", "fantom":"ftm", "flare":"flare", "gnosis":"xdai", "linea":"linea",
         "optimism":"optimism", "polygon":"polygon_pos", "iotex":"iotx", "zerog":"0g", "sei":"sei-evm", "filecoin":"filecoin", "chiliz":"chiliz-chain", "celo":"celo", "monad":"monad", "unichain":"unichain",

@@ -230,7 +230,8 @@ extension TokenDiscoveryCatalog: OathManagedTokenCatalog {}
         // not the catalog membership. They must not cancel SwiftUI's load task.
         let needsRows = snapshot?.assets != value.assets || snapshot?.networks != value.networks
         snapshot = value
-        let enabled = Set(value.assets.filter { !value.hiddenAssetIDs.contains($0.id) }.map { $0.networkID + ":" + $0.reference })
+        let enabledIDs = value.enabledAssetIDs
+        let enabled = Set(value.assets.filter { enabledIDs.contains($0.id) }.map { $0.networkID + ":" + $0.reference })
         if enabled != enabledIdentities { enabledIdentities = enabled }
         let networks = Set(value.networks.compactMap { OathImportChain(rawValue: $0.id) }).filter(\.isEnabled)
         if networks != permittedNetworks { permittedNetworks = networks }

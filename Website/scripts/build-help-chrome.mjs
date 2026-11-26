@@ -4,6 +4,7 @@ import {readFile, writeFile} from 'node:fs/promises';
 import {runInNewContext} from 'node:vm';
 import {fileURLToPath} from 'node:url';
 import {themeCSS} from '../src/theme.js';
+import release from '../content/published-source-release.json' with {type:'json'};
 
 const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function value(expression, scope) {
@@ -86,6 +87,8 @@ function rules(part,styles,previous=[],state='') {
 }
 export async function buildSiteChrome({light=false}={}) {
   const sources=await Promise.all(['Header','Footer'].map(name=>readFile(new URL(`../public/Oath ${name}.dc.html`,import.meta.url),'utf8')));
+  const releaseLink=`<p style="margin:24px 0 0;font:400 13px/1.5 'IBM Plex Mono',monospace;color:#8E8C86"><a href="${escape(release.release_url)}" style="color:inherit;text-decoration:none">Oath ${escape(release.version)} · Build ${escape(release.build)}</a></p>`;
+  sources[1]=sources[1].replace('</footer>',releaseLink+'</footer>');
   const header=(width,open)=>extractStyles((light ? lightHeader : v=>v)(component(sources[0],width,open,'')),'header');
   const footer=width=>extractStyles((light ? lightFooter : v=>v)(component(sources[1],width)),'footer');
   const desktop=header(1200,false), mobile=header(390,false), narrow=header(320,false), expanded=header(390,true);

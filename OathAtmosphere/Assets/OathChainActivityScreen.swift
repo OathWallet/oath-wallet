@@ -1,4 +1,5 @@
 import SwiftUI
+import OathAnkr
 import OathDatabase
 import OathDiagnostics
 
@@ -12,7 +13,6 @@ struct OathChainActivityScreen: View {
     var query = ""
     var isVisible = true
     var filterSelection: Binding<OathHistoryFilterSelection>? = nil
-    let showsWalletSidebar: Bool
     @State private var chainQuery = ""
     @State private var localFilters = OathHistoryFilterSelection()
     @State private var showsFilters = false
@@ -27,11 +27,10 @@ struct OathChainActivityScreen: View {
     init(walletID: String, networkID: String? = nil, networkName: String? = nil,
          accountID: String? = nil, assetID: String? = nil, session: OathWalletSession,
          query: String = "", isVisible: Bool = true,
-         filterSelection: Binding<OathHistoryFilterSelection>? = nil, showsWalletSidebar: Bool = false) {
+         filterSelection: Binding<OathHistoryFilterSelection>? = nil) {
         self.walletID = walletID; self.networkID = networkID; self.networkName = networkName
         self.accountID = accountID; self.assetID = assetID; self.session = session
         self.query = query; self.isVisible = isVisible; self.filterSelection = filterSelection
-        self.showsWalletSidebar = showsWalletSidebar
         let seed = session.homeHistory
         let canSeed = networkID == nil && accountID == nil && assetID == nil && query.isEmpty
             && (filterSelection?.wrappedValue.activeCount ?? 0) == 0
@@ -112,18 +111,14 @@ struct OathChainActivityScreen: View {
         }
         .background(Color(uiColor: OathSurfaceColors.groupedCanvas).ignoresSafeArea())
         .toolbar(.hidden, for: .bottomBar)
-        .toolbar(networkID == nil ? .visible : .hidden, for: .tabBar)
         .toolbar {
-            if showsWalletSidebar {
-                ToolbarItem(placement: .topBarLeading) { OathWalletSidebarButton() }
-            }
             ToolbarItem(placement: .topBarTrailing) {
                 filterButton
                     .badge(filters.wrappedValue.activeCount)
                     .id(filters.wrappedValue.activeCount)
             }
         }
-        .oathNativeAppBar(title: strings.text(networkID == nil ? .historyTab : .assetActivity), hasArtworkHeader: false)
+        .oathNativeAppBar(title: strings.text(networkID == nil ? .historyTab : .assetActivity))
         .sheet(isPresented: $showsFilters, onDismiss: {
             // Apply after the sheet is gone so the native list's diff is visible.
             // Cancel or interactive dismissal leaves the committed filter alone.
@@ -194,7 +189,7 @@ struct OathChainActivityScreen: View {
         } else {
             OathEmptyState(strings.text(historyIsIncomplete ? .historyTab : .assetActivityEmpty),
                 systemImage: "clock.arrow.circlepath",
-                description: strings.text(networkID == nil ? .historyEmptyDetail : .assetActivityEmptyDetail))
+                description: strings.text(IndexedEVMChain(rawValue: networkID ?? "")?.usesRPCCatalog == true ? .assetActivityLocalOnly : networkID == nil ? .historyEmptyDetail : .assetActivityEmptyDetail))
         }
     }
 

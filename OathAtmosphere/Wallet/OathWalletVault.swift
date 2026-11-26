@@ -97,6 +97,8 @@ actor OathWalletVault: OathRecoveryPhraseReading, OathPrivateKeyReading {
     private var securityAuthorization: (id: UUID, deadline: ContinuousClock.Instant)?
     private var biometricEnrollment: UUID?
     private var removalAuthorization: (id: UUID, action: OathWalletRemovalAction, deadline: ContinuousClock.Instant)?
+    private var accountRemovalRequest = UUID()
+    private var accountRemovalAuthorization: (id: UUID, walletID: String, selection: HomeAccountSelection, deadline: ContinuousClock.Instant)?
     private var resetAuthorization: (id: UUID, deadline: ContinuousClock.Instant)?
     private let permissionClock: @Sendable () -> ContinuousClock.Instant
     private var permissionAuthorization: (id: UUID, walletID: String, scopes: [String: PermissionBatchScope], deadline: ContinuousClock.Instant)?
@@ -406,6 +408,7 @@ actor OathWalletVault: OathRecoveryPhraseReading, OathPrivateKeyReading {
 
     func lock() {
         authenticationGeneration = UUID()
+        accountRemovalRequest = UUID(); accountRemovalAuthorization = nil
         signingRevocations.removeAll()
         permissionAuthorization = nil
         securityAuthorization = nil
@@ -1336,7 +1339,7 @@ actor OathWalletVault: OathRecoveryPhraseReading, OathPrivateKeyReading {
             $0.network == "solana" && $0.index == account.accountIndex
         }?.solanaReceivePath
         let preferred = restoredPreference ?? addresses.first!.path // Phantom first; a raw key has one address.
-        let state = try await database.prepareSolanaReceive(accountID: account.id, addresses: addresses, preferredPath: preferred)
+        let state = try await database.prepareSolanaReceive(accountID: account.id, addresses: addresses, preferredPath: preferred, singlePath: secret.solanaPathOnly(account: account))
         try checkAuthentication(token)
         return state
     }
@@ -1358,7 +1361,8 @@ actor OathWalletVault: OathRecoveryPhraseReading, OathPrivateKeyReading {
         for account in snapshot.accounts {
             let state = account.networkID == "solana" ? try await prepareSolanaReceive(account: account, secret: wallet, database: db, token: token) : nil
             portableAccounts.append(.init(network: account.networkID, derivationPath: account.derivationPath, index: account.accountIndex,
-                solanaReceivePath: wallet.privateKey == nil ? state?.selected.path : nil))
+                solanaReceivePath: wallet.privateKey == nil ? state?.selected.path : nil,
+                solanaPathOnly: wallet.solanaPathOnly(account: account) ? true : nil))
         }
         let portable = BackupWallet(id: id, name: snapshot.wallet.name, mnemonic: wallet.mnemonic,
             language: wallet.language, createdAt: wallet.createdAt,
@@ -1405,6 +1409,15 @@ actor OathWalletVault: OathRecoveryPhraseReading, OathPrivateKeyReading {
                 })
         }
         try checkAuthentication(token)
+        if secret.additionalSolanaAccounts != nil || secret.restoration?.accounts.contains(where: { $0.solanaPathOnly == true }) == true {
+            let originalPath: String?
+            if let restored = secret.restoration {
+                originalPath = restored.accounts.filter { $0.network == "solana" && $0.solanaPathOnly != true }
+                    .min { $0.index < $1.index }?.derivationPath
+            } else { originalPath = OathImportChain.solana.walletPath }
+            try await db.setOriginalHomeAccount(walletID: id, family: .solana, path: originalPath)
+            try checkAuthentication(token)
+        }
         // Add only the newly supported public account on authenticated unlock.
         // Imported private keys and explicitly scoped backups retain their scope.
         if !secret.isLocalMnemonic, !secret.isMultisig, secret.privateKey == nil, secret.restoration == nil,
@@ -1421,13 +1434,37 @@ actor OathWalletVault: OathRecoveryPhraseReading, OathPrivateKeyReading {
                 try checkAuthentication(token)
             }
         }
+        // Rebuild account additions from authenticated metadata after a crash
+        // between the encrypted commit and the public database transaction.
+        let additions = (secret.additionalEVMAccounts ?? []) + (secret.additionalSolanaAccounts ?? [])
+        if !additions.isEmpty || secret.removedHDAccounts != nil,
+           let wallet = try await db.wallet(id), wallet.deletedAt == nil {
+            let active = try secret.derivationAccounts().filter { account in
+                HDAccountFamily.allCases.contains { $0.owns(network: account.network) }
+            }
+            let keys = Set(active.map { $0.network + ":" + String($0.index) + ":" + $0.derivationPath })
+            let existing = Set(try await db.accounts(walletID: id).map { $0.networkID + ":" + String($0.accountIndex) + ":" + $0.derivationPath })
+            if !keys.isSubset(of: existing) {
+                let initial = try derived ?? OathWalletEngine.profile(for: secret,
+                    chains: Set(active.compactMap { OathImportChain(rawValue: $0.network) }))
+                try checkAuthentication(token)
+                try await db.importWalletIfNeeded(wallet, accounts: initial.addresses.filter {
+                    keys.contains($0.chain.id + ":" + String($0.accountIndex) + ":" + $0.path)
+                }.map {
+                    AccountRecord(id: id + ":" + $0.chain.id + ":" + String($0.accountIndex), walletID: id,
+                        networkID: $0.chain.id, address: $0.address, derivationPath: $0.path, accountIndex: $0.accountIndex)
+                })
+                try checkAuthentication(token)
+            }
+        }
+        for removed in secret.removedHDAccounts ?? [] {
+            try await db.removeHDAccount(walletID: id, selection: removed)
+            try checkAuthentication(token)
+        }
         try await db.enrollAnkrNetworks(walletID: id)
-        // Prepare public receive policies before publishing a created/imported
-        // wallet. Receive must not first queue behind unrelated vault work.
-        // Saved accounts, HD lookahead/change and Solana variants atomically
-        // generate their public QR cache through the shared database triggers.
+        // Background synchronization and on-demand Receive prepare HD lookahead and Solana variants.
         guard let storedWallet = try await db.wallet(id), storedWallet.vaultReference == reference else {
-            throw OathWalletError.corruptVault
+            throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "stored_wallet_identity_mismatch")
         }
         if storedWallet.needsBackupOfferReview == true {
             // A v103 wallet with an initial offer and a cleared SQL value was already handled.
@@ -1679,7 +1716,7 @@ actor OathWalletVault: OathRecoveryPhraseReading, OathPrivateKeyReading {
         if secret.solanaMultisig != nil { return ["solana:0:solana-multisig-v1"] }
         if secret.tronMultisig != nil { return ["tron:0:tron-multisig-v1"] }
         if let multisig = secret.bitcoinMultisig { return ["\(multisig.chainID):0:\(multisig.accountPath)/0/0"] }
-        let accounts = secret.restoration?.accounts ?? (secret.privateKey?.networks ?? OathImportChain.allCases).map {
+        let accounts = (secret.privateKey == nil ? try? secret.derivationAccounts() : secret.restoration?.accounts) ?? (secret.privateKey?.networks ?? OathImportChain.allCases).map {
             BackupWallet.Account(network: $0.id, derivationPath: secret.privateKey == nil ? $0.walletPath : "imported", index: 0)
         }
         return Set(accounts.map {
@@ -1756,6 +1793,159 @@ actor OathWalletVault: OathRecoveryPhraseReading, OathPrivateKeyReading {
         // Commit encrypted recovery material first. The ordinary unlock repair
         // reconstructs the public SQL row after interruption at this boundary.
         return try await activateWallet(candidate, rootID: current.id, token: token, derived: derived)
+    }
+
+    func canAddEVMAccounts(walletID: String) -> Bool { canAddHDAccounts(walletID: walletID) }
+
+    func canAddHDAccounts(walletID: String) -> Bool {
+        guard encryptionKey != nil, profile != nil,
+              let source = contents?.activeWallets.first(where: { $0.id.uuidString == walletID }) else { return false }
+        return !source.isLocalMnemonic && !source.isMultisig && source.privateKey == nil
+    }
+
+    func addEVMAccounts(walletID: String, paths: [String]) async throws -> OathWalletProfile {
+        try await addHDAccounts(walletID: walletID, family: .evm, paths: paths)
+    }
+
+    func addHDAccounts(walletID: String, family: HDAccountFamily, paths input: [String]) async throws -> OathWalletProfile {
+        try Task.checkCancellation()
+        guard canAddHDAccounts(walletID: walletID), let contents, let envelope,
+              var source = contents.activeWallets.first(where: { $0.id.uuidString == walletID }) else { throw OathWalletError.locked }
+        guard walletMutation == nil else { throw OathWalletError.unavailable }
+        let paths = try family.paths(in: input.joined(separator: "\n"))
+        let mutation = UUID(), token = authenticationGeneration
+        walletMutation = mutation
+        defer { if walletMutation == mutation { walletMutation = nil } }
+        let database = try await database()
+        let stored = try await database.accounts(walletID: walletID)
+        try checkAuthentication(token)
+        let existing = try source.derivationAccounts(includingRemoved: true)
+        let restoring = Set(paths.map { HomeAccountSelection(family: family, path: $0) })
+        let previousRemovals = source.removedHDAccounts
+        source.removedHDAccounts?.removeAll { restoring.contains($0) }
+        func belongs(_ network: String) -> Bool {
+            family == .solana ? network == "solana" : OathImportChain(rawValue: network)?.isEVM == true
+        }
+        let occupied = Set(existing.filter { belongs($0.network) }.map(\.derivationPath))
+            .union(stored.filter { belongs($0.networkID) }.map(\.derivationPath))
+        if family == .solana {
+            // Legacy Solana accounts own both receive conventions. Do not create a
+            // second account for an address already reachable through that account.
+            var reserved = Set<String>()
+            for account in existing where account.network == "solana" && account.solanaPathOnly != true {
+                let index = SolanaDerivation.accountIndex(in: account.derivationPath) ?? account.index
+                reserved.formUnion(try SolanaDerivation.allCases.map { try $0.path(accountIndex: index) })
+            }
+            guard !paths.contains(where: { reserved.contains($0) && !occupied.contains($0) }) else {
+                throw HDAccountDerivation.ValidationError.duplicatePath
+            }
+        }
+        let newPaths = paths.filter { !occupied.contains($0) }
+        // Retrying an interrupted public commit repairs it without making a duplicate.
+        if newPaths.isEmpty && source.removedHDAccounts == previousRemovals { return try await activateWallet(source, rootID: envelope.id, token: token) }
+        let networks = family == .solana ? ["solana"] : OathImportChain.enabledCases.filter(\.isEVM).map(\.id).sorted()
+        var next = max(existing.filter { belongs($0.network) }.map(\.index).max() ?? -1,
+            stored.filter { belongs($0.networkID) }.map(\.accountIndex).max() ?? -1) + 1
+        var additions = (family == .evm ? source.additionalEVMAccounts : source.additionalSolanaAccounts) ?? []
+        guard next + newPaths.count <= 2_147_483_648, additions.count + newPaths.count <= 32,
+              existing.count + newPaths.count * networks.count <= 1_024 else { throw EVMAccountDerivation.ValidationError.accountLimit }
+        for path in newPaths {
+            additions.append(.init(index: next, path: path, networks: networks))
+            next += 1
+        }
+        if family == .evm { source.additionalEVMAccounts = additions }
+        else { source.additionalSolanaAccounts = additions }
+        _ = try source.derivationAccounts()
+        let candidate = source
+        let work = Task.detached(priority: .userInitiated) {
+            try OathWalletEngine.profile(for: candidate)
+        }
+        let derived = try await withTaskCancellationHandler { try await work.value } onCancel: { work.cancel() }
+        try checkAuthentication(token)
+        guard var latest = self.contents, let key = encryptionKey, let current = self.envelope,
+              current.id == envelope.id, let index = latest.wallets.firstIndex(where: { $0.id == candidate.id }),
+              latest.wallets[index].deletedAt == nil else { throw OathWalletError.locked }
+        latest.wallets[index] = candidate
+        let sealed = try OathVaultEnvelope.seal(latest, rootID: current.id, key: key,
+            salt: current.salt, iterations: current.iterations, protection: current.protection,
+            biometricAccess: current.biometricAccess)
+        try checkAuthentication(token)
+        try storage.update(JSONEncoder().encode(sealed), account: "vault-v1")
+        self.contents = latest; self.envelope = sealed
+        return try await activateWallet(candidate, rootID: current.id, token: token, derived: derived)
+    }
+
+    /// Authorize the exact account, even while the wallet is already unlocked.
+    /// A disabled app passcode also disables biometric protection in this vault.
+    func authorizeHDAccountRemoval(walletID: String, selection: HomeAccountSelection,
+                                   digits: [UInt8]? = nil, reason: String,
+                                   now: ContinuousClock.Instant = .now) async throws -> UUID {
+        guard !resetting, walletMutation == nil, let envelope else { throw OathWalletError.locked }
+        try validateHDAccountRemoval(walletID: walletID, selection: selection)
+        let token = authenticationGeneration, request = UUID()
+        accountRemovalRequest = request
+        accountRemovalAuthorization = nil
+        if envelope.passcodeEnabled {
+            if let digits { _ = try openWithPasscode(digits, now: .now) }
+            else { _ = try await openWithBiometrics(reason: reason) }
+        }
+        try checkAuthentication(token)
+        guard accountRemovalRequest == request, walletMutation == nil else { throw CancellationError() }
+        try validateHDAccountRemoval(walletID: walletID, selection: selection)
+        let id = UUID()
+        accountRemovalAuthorization = (id, walletID, selection, now.advanced(by: .seconds(120)))
+        return id
+    }
+
+    func cancelHDAccountRemovalAuthorization(_ id: UUID) {
+        if accountRemovalAuthorization?.id == id { accountRemovalAuthorization = nil }
+    }
+
+    private func validateHDAccountRemoval(walletID: String, selection: HomeAccountSelection) throws {
+        guard canAddHDAccounts(walletID: walletID),
+              let source = contents?.activeWallets.first(where: { $0.id.uuidString == walletID }) else { throw OathWalletError.locked }
+        let paths = Set(try source.derivationAccounts().filter { selection.family.owns(network: $0.network) }.map(\.derivationPath))
+        guard paths.contains(selection.path) else { throw OathWalletError.unavailable }
+        guard paths.count > 1 else { throw OathDatabase.AccountManagementError.lastAccount }
+    }
+
+    func removeHDAccount(walletID: String, selection: HomeAccountSelection, authorization: UUID,
+                         clock: ContinuousClock.Instant = .now) async throws -> OathWalletProfile {
+        try Task.checkCancellation()
+        guard let grant = accountRemovalAuthorization, grant.id == authorization,
+              grant.walletID == walletID, grant.selection == selection, clock <= grant.deadline else { throw OathWalletError.locked }
+        try validateHDAccountRemoval(walletID: walletID, selection: selection)
+        guard canAddHDAccounts(walletID: walletID), let contents, let current = envelope, let key = encryptionKey,
+              let activeID = profile?.id,
+              var source = contents.activeWallets.first(where: { $0.id.uuidString == walletID }) else { throw OathWalletError.locked }
+        guard walletMutation == nil else { throw OathWalletError.unavailable }
+        accountRemovalAuthorization = nil // Single use, before any mutation or suspension.
+        let mutation = UUID(), token = authenticationGeneration
+        walletMutation = mutation
+        defer { if walletMutation == mutation { walletMutation = nil } }
+        let active = try source.derivationAccounts()
+        let paths = Set(active.filter { selection.family.owns(network: $0.network) }.map(\.derivationPath))
+        guard paths.contains(selection.path) else { throw OathWalletError.unavailable }
+        guard paths.count > 1 else { throw OathDatabase.AccountManagementError.lastAccount }
+        let database = try await database()
+        try await database.validateHDAccountRemoval(walletID: walletID, selection: selection)
+        try checkAuthentication(token)
+        source.removedHDAccounts = (source.removedHDAccounts ?? []) + [selection]
+        _ = try source.derivationAccounts()
+        var updated = contents
+        guard let index = updated.wallets.firstIndex(where: { $0.id == source.id }) else { throw OathWalletError.unavailable }
+        updated.wallets[index] = source
+        let sealed = try OathVaultEnvelope.seal(updated, rootID: current.id, key: key,
+            salt: current.salt, iterations: current.iterations, protection: current.protection,
+            biometricAccess: current.biometricAccess)
+        try checkAuthentication(token)
+        try storage.update(JSONEncoder().encode(sealed), account: "vault-v1")
+        self.contents = updated; self.envelope = sealed
+        let changed = try await storedProfile(for: source, rootID: current.id, token: token)
+        try checkAuthentication(token)
+        if activeID == source.id { profile = changed; return changed }
+        guard let activeSecret = updated.activeWallets.first(where: { $0.id == activeID }) else { throw OathWalletError.locked }
+        return try await activateWallet(activeSecret, rootID: current.id, token: token)
     }
 
     func canAddSeedPasswordWallet(sourceID: String) -> Bool {
@@ -2150,6 +2340,7 @@ actor OathWalletVault: OathRecoveryPhraseReading, OathPrivateKeyReading {
         biometricEnrollment = nil
         resetAuthorization = nil
         removalAuthorization = nil
+        accountRemovalRequest = UUID(); accountRemovalAuthorization = nil
         // The disabled flag and rotated key already revoke the old credential
         // atomically. A failed OS cleanup cannot accidentally re-enable Face ID.
         if !updated.passcodeEnabled { await OathDiagnostics.attempt("disable_biometrics") { try await biometricStore.disable() } }
@@ -2198,6 +2389,7 @@ actor OathWalletVault: OathRecoveryPhraseReading, OathPrivateKeyReading {
         permissionAuthorization = nil
         resetAuthorization = nil
         removalAuthorization = nil
+        accountRemovalRequest = UUID(); accountRemovalAuthorization = nil
     }
 
     private struct BiometricKey: Codable { let walletID: UUID; var key: Data }
@@ -2207,7 +2399,7 @@ actor OathWalletVault: OathRecoveryPhraseReading, OathPrivateKeyReading {
         return try JSONEncoder().encode(BiometricKey(walletID: envelope.id, key: encryptionKey.withUnsafeBytes { Data($0) }))
     }
 
-    func unlockWithBiometrics(reason: String) async throws -> OathWalletProfile {
+    func unlockWithBiometrics(reason: String, requiringFreshMatch: Bool = false) async throws -> OathWalletProfile {
         guard walletMutation == nil, !resetting else { throw OathWalletError.locked }
         let mutation = UUID()
         walletMutation = mutation
@@ -2215,14 +2407,14 @@ actor OathWalletVault: OathRecoveryPhraseReading, OathPrivateKeyReading {
         try Task.checkCancellation()
         let token = UUID()
         authenticationGeneration = token
-        let (sealed, key, opened) = try await openWithBiometrics(reason: reason)
+        let (sealed, key, opened) = try await openWithBiometrics(reason: reason, requiringFreshMatch: requiringFreshMatch)
         let (current, recovered, derived) = try await reconcileUnlocked(sealed: sealed, key: key, opened: opened, token: token)
         try checkAuthentication(token)
         contents = recovered; encryptionKey = key; envelope = current; profile = derived
         return derived
     }
 
-    private func openWithBiometrics(reason: String) async throws
+    private func openWithBiometrics(reason: String, requiringFreshMatch: Bool = false) async throws
         -> (OathVaultEnvelope, SymmetricKey, OathVaultContents) {
         guard !resetting else { throw OathWalletError.locked }
         let token = authenticationGeneration
@@ -2239,11 +2431,12 @@ actor OathWalletVault: OathRecoveryPhraseReading, OathPrivateKeyReading {
             current = try JSONDecoder().decode(OathVaultEnvelope.self, from: data)
         }
         if !current.passcodeEnabled {
+            guard !requiringFreshMatch else { throw OathBiometricCredentialError.unavailable }
             let key = try current.deviceKey()
             return (current, key, try current.openContents(using: key))
         }
         guard current.biometricAccess != false else { throw OathBiometricCredentialError.missing }
-        var credentialData = try await biometricStore.read(reason: reason)
+        var credentialData = try await biometricStore.read(reason: reason, requiringFreshMatch: requiringFreshMatch)
         defer { credentialData.resetBytes(in: credentialData.startIndex..<credentialData.endIndex) }
         try Task.checkCancellation()
         guard token == authenticationGeneration else { throw CancellationError() }
@@ -2340,6 +2533,9 @@ actor OathWalletVault: OathRecoveryPhraseReading, OathPrivateKeyReading {
     private func validateRemoval(_ action: OathWalletRemovalAction) throws {
         guard let contents, !action.ids.isEmpty else { throw OathWalletError.unavailable }
         let active = Set(contents.activeWallets.map { $0.id.uuidString })
+        guard !action.recentlyDeletedOnly || (!action.permanently && !action.resetsApp) else {
+            throw OathWalletError.unavailable
+        }
         if action.resetsApp {
             guard !action.permanently, !active.isEmpty, action.ids == active,
                   action.recentlyDeletedIDs == Set(contents.wallets.filter { $0.deletedAt != nil }.map { $0.id.uuidString })

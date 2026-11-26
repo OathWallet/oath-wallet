@@ -9,6 +9,13 @@ import OathBitcoin
 import UIKit
 #endif
 
+private extension WalletSnapshot {
+    var hasObservedBalance: Bool {
+        totalFiat != 0 || holdings.contains { $0.amountAtomic != nil }
+            || accountSync.contains { $0.lastSuccess != nil && $0.totalBalanceUsd != nil }
+    }
+}
+
 @MainActor @Observable
 final class OathWalletSession {
     enum State { case loading, upgrading, onboarding, locked, home(OathWalletProfile), unavailable }
@@ -22,23 +29,37 @@ final class OathWalletSession {
     var state: State = .loading
     var busy = false
     private(set) var animatesUnlock = true
+    private(set) var unlockGreeting: OathStringKey?
+    private(set) var unlockBiometrics: OathBiometricKind?
+    private(set) var lockVisitID = UUID()
+    @ObservationIgnored private var automaticPrompt = OathAutomaticBiometricPrompt()
+    @ObservationIgnored private var isInBackground = false
+    @ObservationIgnored private let availableUnlockBiometrics: @MainActor () -> OathBiometricKind?
     var notice: OathStringKey?
     // Display-only metadata survives a lock so SwiftUI does not destroy the
     // current navigation/sheet hierarchy. Secrets still live only in the vault.
     private(set) var displayedProfile: OathWalletProfile?
     @ObservationIgnored private var storedPortfolio: WalletSnapshot?
     private(set) var portfolioRevision: UInt64 = 0
+    private(set) var hasObservedHomeBalance = false
+    // Navigation observes identity, not every quantity/checkpoint in a snapshot.
+    private(set) var selectedHomeAccount: HomeAccountSelection?
     @ObservationIgnored private var snapshotRequest: UInt64 = 0
     private(set) var portfolio: WalletSnapshot? {
         get { access(keyPath: \.portfolio); return storedPortfolio }
         set {
             withMutation(keyPath: \.portfolio) { storedPortfolio = newValue }
+            let selection = newValue?.selectedAccount
+            if selectedHomeAccount != selection { selectedHomeAccount = selection }
             portfolioRevision &+= 1
             let hidden = portfolio?.settings["balancesHidden"] == "true"
             if balancesHidden != hidden { balancesHidden = hidden }
             if let portfolio, assetFilterEditorState?.walletID == portfolio.wallet.id {
                 assetFilterEditorState?.model.acceptCommitted(portfolio.assetFilter)
             }
+            homePortfolio.receive(newValue)
+            let observed = newValue?.hasObservedBalance == true
+            if hasObservedHomeBalance != observed { hasObservedHomeBalance = observed }
         }
     }
     let homePortfolio = OathHomePortfolioModel()
@@ -73,6 +94,8 @@ final class OathWalletSession {
     private(set) var bitcoinRefreshing = false
     private(set) var bitcoinRefreshFailed = false
     private(set) var bitcoinRevision = 0
+    private(set) var usesSyntheticPortfolio = false
+    @ObservationIgnored private var fixtureRefreshWork: (@MainActor @Sendable () async throws -> Void)?
     @ObservationIgnored private var homeActivationWork: Task<Void, Never>?
     @ObservationIgnored private var bitcoinWork: Task<Void, Never>?
     @ObservationIgnored private var solanaWork: Task<Void, Never>?
@@ -128,10 +151,13 @@ final class OathWalletSession {
     @ObservationIgnored private var walletWork: Task<OathWalletProfile, Error>?
     @ObservationIgnored private let protectedDataAvailable: @MainActor () -> Bool
     @ObservationIgnored private var waitingForProtectedStartup = false
+    @ObservationIgnored private var loadingProtectedWallet = false
 
     init(vault: OathWalletVault? = nil, legacySourceURL: URL = OathLegacyUpgrade.sourceURL,
          legacySecrets: any OathLegacySecretReading = OathLegacyKeychain(),
-         protectedDataAvailable: (@MainActor () -> Bool)? = nil) {
+         protectedDataAvailable: (@MainActor () -> Bool)? = nil,
+         availableUnlockBiometrics: @escaping @MainActor () -> OathBiometricKind? = OathBiometricKind.availableForUnlock) {
+        self.availableUnlockBiometrics = availableUnlockBiometrics
         self.legacySourceURL = legacySourceURL
         self.legacySecrets = legacySecrets
         self.protectedDataAvailable = protectedDataAvailable ?? {
@@ -164,11 +190,15 @@ final class OathWalletSession {
     }
 
     func load() async {
-        guard case .loading = state else { return }
+        guard !loadingProtectedWallet, case .loading = state else { return }
         // A background/cold scene may connect before iOS releases protected
         // files. Return promptly so scene restoration never waits for unlock.
         // In particular, no absent key/credential can be inferred in this state.
         guard protectedDataAvailable() else { waitingForProtectedStartup = true; return }
+        // MainActor methods can reenter at await. Scene/protected-data callbacks
+        // must not open the same vault again while the first load is suspended.
+        loadingProtectedWallet = true
+        defer { loadingProtectedWallet = false }
         waitingForProtectedStartup = false
         await OathDiagnostics.$operationID.withValue(UUID()) {
             await loadProtectedWallet()
@@ -238,6 +268,7 @@ final class OathWalletSession {
             }
             guard token == generation, case .loading = state else { return }
             state = exists ? .locked : .onboarding
+            if exists { prepareUnlockPresentation() }
         } catch is CancellationError {
             // An interrupted scene connection can retry local readiness; it is
             // not a failed vault or a reason to manufacture an unavailable UI.
@@ -335,7 +366,10 @@ final class OathWalletSession {
         completingInitialSetup = requiresCustomization
         let token = generation
         do { try await openHome(try await vault.unlockedProfile(), token: token) }
-        catch { OathDiagnostics.record(error); if token == generation { state = .locked } }
+        catch {
+            OathDiagnostics.record(error)
+            if token == generation { state = .locked; prepareUnlockPresentation() }
+        }
     }
 
     func finishInitialCustomization() {
@@ -361,6 +395,7 @@ final class OathWalletSession {
     }
 
     func enteredBackground(delay: OathLockDelay, now: ContinuousClock.Instant = .now) {
+        isInBackground = true
         if isUpgrading {
             if resetting || legacyPhase == .failed { return }
             if legacySource == nil { requestLock(reason: .automatic); return }
@@ -371,7 +406,14 @@ final class OathWalletSession {
             vaultLockWork = Task { [vault] in await previous?.value; await vault.lock() }
             return
         }
-        guard security.passcodeEnabled, isUnlocked else { return }
+        guard security.passcodeEnabled else { return }
+        if isLocked, busy {
+            // Invalidate the credential read and any local Home preparation
+            // before a late Face ID reply can publish an unlocked session.
+            requestLock(reason: .automatic)
+            return
+        }
+        guard isUnlocked else { return }
         lockPolicy.leave(delay: delay, now: now)
         if lockPolicy.requiresLock(now: now) { requestLock(reason: .automatic); return }
         backgroundLock?.cancel()
@@ -386,11 +428,17 @@ final class OathWalletSession {
     /// Called synchronously before foreground content becomes interactive.
     /// iOS may suspend the timer, so elapsed time is checked again on return.
     func enteringForeground(now: ContinuousClock.Instant = .now) {
+        let returning = isInBackground
+        isInBackground = false
         if isUpgrading, !busy, legacyPhase == .migrating {
             Task { await upgradeLegacy(digits: nil) }
         }
         backgroundLock?.cancel(); backgroundLock = nil
-        if security.passcodeEnabled, lockPolicy.requiresLock(now: now) { requestLock(reason: .automatic) }
+        if security.passcodeEnabled, lockPolicy.requiresLock(now: now) {
+            requestLock(reason: .automatic)
+        } else if returning, isLocked {
+            prepareUnlockPresentation()
+        }
         lockPolicy.reset()
         Task { await purgeExpiredWallets() }
         Task {
@@ -450,6 +498,7 @@ final class OathWalletSession {
         busy = false
         notice = nil
         state = .locked
+        prepareUnlockPresentation()
         let previous = vaultLockWork
         vaultLockWork = Task { [vault] in
             await previous?.value
@@ -460,8 +509,25 @@ final class OathWalletSession {
         }
     }
 
+    private func prepareUnlockPresentation() {
+        guard !isInBackground else { return }
+        lockVisitID = UUID()
+        automaticPrompt.didEnterBackground()
+        unlockBiometrics = security.biometricsEnabled && !biometricRepairNeeded ? availableUnlockBiometrics() : nil
+        unlockGreeting = allowsAutomaticBiometricUnlock && unlockBiometrics == .faceID ? OathUnlockGreetings.next() : nil
+    }
+
+    func choseUnlockInput() { automaticPrompt.userChoseAuthentication() }
+
+    func attemptAutomaticUnlock(visit: UUID, hasPasscodeInput: Bool) async {
+        guard visit == lockVisitID, !isInBackground, allowsAutomaticBiometricUnlock,
+              automaticPrompt.claim(isActive: true, isBusy: busy, canUseBiometrics: unlockBiometrics != nil,
+                                    hasPasscodeInput: hasPasscodeInput, hasNotice: notice != nil) else { return }
+        await unlockWithBiometrics(automatically: true)
+    }
+
     func unlock(_ digits: [UInt8]) async {
-        guard !busy, case .locked = state else { return }
+        guard !isInBackground, !busy, case .locked = state else { return }
         animatesUnlock = true
         busy = true; notice = nil
         let token = UUID()
@@ -508,7 +574,7 @@ final class OathWalletSession {
     }
 
     func unlockWithBiometrics(automatically: Bool = false) async {
-        guard !busy, security.biometricsEnabled, !biometricRepairNeeded, case .locked = state else { return }
+        guard !isInBackground, !busy, security.biometricsEnabled, !biometricRepairNeeded, case .locked = state else { return }
         // Enforce intent here as well as in the view: a queued automatic request
         // must not start authentication after the user explicitly locks the app.
         guard !automatically || allowsAutomaticBiometricUnlock else { return }
@@ -519,24 +585,36 @@ final class OathWalletSession {
         guard token == generation else { return }
         let vault = vault
         let reason = OathLocalizer.current.text(.unlockReason)
-        let work = Task { try await vault.unlockWithBiometrics(reason: reason) }
+        let requiresFreshMatch = automatically && unlockBiometrics == .faceID
+        let work = Task {
+            try await OathDiagnostics.$operationID.withValue(token) {
+                try await vault.unlockWithBiometrics(reason: reason, requiringFreshMatch: requiresFreshMatch)
+            }
+        }
         unlockWork = work
-        defer { if token == generation { busy = false; unlockWork = nil } }
+        defer {
+            if token == generation {
+                busy = false
+                unlockWork = nil
+                if isLocked { unlockGreeting = nil }
+            }
+        }
         do {
             let profile = try await work.value
             guard token == generation else { return }
-            // Face ID already supplies the success animation. Remove our lock
-            // as soon as the authenticated Home state is ready, without stacking
-            // a second input-blocking dissolve after the system prompt.
-            animatesUnlock = false
-            try await openHome(profile, token: token)
+            animatesUnlock = automatically && unlockGreeting != nil
+            try await OathDiagnostics.$operationID.withValue(token) {
+                try await openHome(profile, token: token)
+            }
         } catch is CancellationError {
             // Never resurrect an attempt after the app has been locked.
         } catch {
             // A declined/locked biometric prompt uses the app PIN fallback;
             // it is expected authentication control flow, not an app failure.
             if (error as? OathBiometricCredentialError)?.isExpectedAuthenticationOutcome != true {
-                OathDiagnostics.record(error)
+                OathDiagnostics.$operationID.withValue(token) {
+                    OathDiagnostics.record(error, component: "wallet_session", operation: "biometric_unlock")
+                }
             }
             guard token == generation else { return }
             switch error as? OathBiometricCredentialError {
@@ -577,7 +655,7 @@ final class OathWalletSession {
                 if token == generation { await recordBalanceSnapshot(.balanceUpdate, settled: true) }
                 return [BalanceRefreshOutcome(results.0), BalanceRefreshOutcome(results.1)]
             }, read: {
-                try await database.snapshot(walletID: current.id.uuidString, currency: currency)
+                try await database.homeSnapshot(walletID: current.id.uuidString, currency: currency)
             }, isCurrent: {
                 token == generation && isUnlocked && displayedProfile?.id == current.id
             }, publish: { value in
@@ -625,8 +703,9 @@ final class OathWalletSession {
     func balanceChange(on interval: DateInterval) -> BalanceDayChange? {
         guard let portfolio, let summary = balanceDaySummary,
               summary.walletID == portfolio.wallet.id,
+              summary.hiddenAssetIDs == portfolio.hiddenAssetIDs,
               summary.interval == interval else { return nil }
-        if let change = summary.change(current: portfolio.totalFiat, currency: portfolio.currency, exchangeRate: portfolio.displayExchangeRate) { return change }
+        if let change = summary.change(for: portfolio) { return change }
         // An empty first-discovery history has no measured change yet. An
         // interrupted read is different: it retains its last valid summary.
         guard summary.opening == nil else { return nil }
@@ -644,6 +723,17 @@ final class OathWalletSession {
               self.portfolio?.currency == portfolio.currency else { throw CancellationError() }
         return database.observeBalanceDay(walletID: portfolio.wallet.id, currency: portfolio.currency,
             interval: period.interval(containing: date))
+    }
+
+    func observeBalanceChart(_ period: BalanceHistoryPeriod, at date: Date) async throws -> AsyncThrowingStream<BalanceChartHistory, Error> {
+        guard isUnlocked, !resetting, !changingWallet, let portfolio else { throw CancellationError() }
+        let token = generation
+        let database = try await vault.database()
+        try Task.checkCancellation()
+        guard token == generation, isUnlocked, self.portfolio?.wallet.id == portfolio.wallet.id,
+              self.portfolio?.currency == portfolio.currency else { throw CancellationError() }
+        return database.observeBalanceChartHistory(walletID: portfolio.wallet.id, currency: portfolio.currency,
+            interval: period.interval(containing: date), homeScope: true)
     }
 
     /// Resume/re-scope only when needed. Navigation never clears display data.
@@ -725,20 +815,23 @@ final class OathWalletSession {
     }
     func refreshAnkr() async throws {
         guard case .home(let current) = state,
-              current.addresses.contains(where: { AnkrSynchronizer.supports(networkID: $0.chain.id) || $0.chain == .cronos || $0.chain == .story || $0.chain == .solana || $0.chain == .tron || $0.chain == .ton || $0.chain == .aptos || $0.chain == .sui || $0.chain == .thorchain || $0.chain == .near || $0.chain == .xrpl || $0.chain == .stellar || $0.chain == .polkadot || $0.chain == .robinhood || $0.chain == .arc || $0.chain == .hyperevm || $0.chain == .monad || $0.chain == .unichain || $0.chain == .celo || $0.chain == .chiliz || $0.chain == .filecoin || $0.chain == .sei || $0.chain == .zerog || $0.chain == .iotex }) else { return }
+              current.addresses.contains(where: { AnkrSynchronizer.supports(networkID: $0.chain.id) || IndexedEVMChain(rawValue: $0.chain.id) != nil || $0.chain == .cronos || $0.chain == .story || $0.chain == .solana || $0.chain == .tron || $0.chain == .ton || $0.chain == .aptos || $0.chain == .sui || $0.chain == .thorchain || $0.chain == .near || $0.chain == .xrpl || $0.chain == .stellar || $0.chain == .polkadot || $0.chain == .robinhood || $0.chain == .arc || $0.chain == .hyperevm || $0.chain == .monad || $0.chain == .unichain || $0.chain == .celo || $0.chain == .chiliz || $0.chain == .filecoin || $0.chain == .sei || $0.chain == .zerog || $0.chain == .iotex }) else { return }
         let token = generation
         do {
             let database = try await vault.database()
             try await database.checkStorageForRefresh()
+            let accountIDs = Set(current.addresses.compactMap(\.accountID))
+            let evmAccountIDs = Set(current.addresses.filter { AnkrSynchronizer.supports(networkID: $0.chain.id) }.compactMap(\.accountID))
+            let cronosAccountIDs = Set(current.addresses.filter { $0.chain == .cronos }.compactMap(\.accountID))
             // Ankr inventories can omit unfunded native coins or their prices.
             // Fetch their public quotes independently, including Telos/X Layer,
             // on both initial Home load and pull-to-refresh. A ledger failure
             // must not cancel otherwise usable market prices.
-            async let tokenQuotes: Void = refreshPortfolioTokenQuotes(walletID: current.id.uuidString)
+            async let tokenQuotes: Void = refreshPortfolioTokenQuotes(walletID: current.id.uuidString, accountIDs: accountIDs)
             async let nativeQuotes: Void = refreshAnkrNativeQuotes(networkIDs: current.addresses.map { $0.chain.id })
-            async let cronos: Result<Void, Error> = refreshCronosResult(walletID: current.id.uuidString)
+            async let cronos: Result<Void, Error> = refreshCronosResult(walletID: current.id.uuidString, accountIDs: cronosAccountIDs)
             async let solana: Result<Void, Error> = refreshSolanaResult()
-            async let evm: Result<Void, Error> = refreshEVMResult(walletID: current.id.uuidString)
+            async let evm: Result<Void, Error> = refreshEVMResult(walletID: current.id.uuidString, accountIDs: evmAccountIDs)
             async let tron: Result<Void, Error> = refreshTronResult()
             async let ton: Result<Void, Error> = refreshTonResult()
             async let aptos: Result<Void, Error> = refreshAptosResult()
@@ -753,6 +846,9 @@ final class OathWalletSession {
             async let chiliz: Result<Void, Error> = refreshIndexedEVMResult(.chiliz)
             async let filecoin: Result<Void, Error> = refreshIndexedEVMResult(.filecoin)
             async let iotex: Result<Void, Error> = refreshIndexedEVMResult(.iotex)
+            async let plasma = refreshIndexedEVMResult(.plasma)
+            async let worldchain = refreshIndexedEVMResult(.worldchain)
+            async let elysium = refreshIndexedEVMResult(.elysium)
             async let story: Result<Void, Error> = refreshIndexedEVMResult(.story)
             async let zerog: Result<Void, Error> = refreshIndexedEVMResult(.zerog)
             async let sei: Result<Void, Error> = refreshIndexedEVMResult(.sei)
@@ -761,17 +857,19 @@ final class OathWalletSession {
             async let hyperevm: Result<Void, Error> = refreshHyperEVMResult()
             async let arc: Result<Void, Error> = refreshArcResult()
             let results = await (solana, evm, tron, ton, aptos, sui, near, xrpl, stellar, robinhood, arc, hyperevm, monad, unichain, thorchain, celo, chiliz, polkadot, filecoin, sei, zerog, iotex, story)
+            let newMainnets = await [plasma, worldchain, elysium]
             let cronosResult = await cronos
             await nativeQuotes
             await tokenQuotes
             guard token == generation, !Task.isCancelled else { throw CancellationError() }
             // Include tokens discovered by this inventory. Existing quotes reuse
             // their short cache; this never delays committed balance observation.
-            await refreshPortfolioTokenQuotes(walletID: current.id.uuidString)
+            await refreshPortfolioTokenQuotes(walletID: current.id.uuidString, accountIDs: accountIDs)
             guard token == generation, !Task.isCancelled else { throw CancellationError() }
             // All chains have finished before propagating an original failure.
             // Successful chains keep their committed state even when another fails.
             for result in [results.0, results.1, results.2, results.3, results.4, results.5, results.6, results.7, results.8, results.9, results.10, results.11, results.12, results.13, results.14, results.15, results.16, results.17, results.18, results.19, results.20, results.21, results.22] { try result.get() }
+            for result in newMainnets { try result.get() }
             try cronosResult.get()
             ankrRefreshFailed = false; ankrRevision += 1
         } catch {
@@ -785,9 +883,13 @@ final class OathWalletSession {
         }
     }
 
-    private func refreshCronosResult(walletID: String) async -> Result<Void, Error> {
-        do { try await refreshCronos(); return .success(()) }
-        catch { OathDiagnostics.record(error, context: ["chain": "cronos"]); return .failure(error) }
+    private func refreshCronosResult(walletID: String, accountIDs: Set<String>) async -> Result<Void, Error> {
+        do {
+            try await OathAnkrSync.shared.refreshCronos(walletID: walletID, accountIDs: accountIDs)
+            return .success(())
+        } catch {
+            return .failure(OathDiagnostics.recordedForPropagation(error, context: ["chain": "cronos"]))
+        }
     }
 
     func refreshCronos() async throws {
@@ -795,23 +897,23 @@ final class OathWalletSession {
         guard case .home(let current) = state, isUnlocked,
               current.addresses.contains(where: { $0.chain == .cronos }) else { return }
         let token = generation
-        try await OathAnkrSync.shared.refreshCronos(walletID: current.id.uuidString)
+        try await OathAnkrSync.shared.refreshCronos(walletID: current.id.uuidString, accountIDs: Set(current.addresses.filter { $0.chain == .cronos }.compactMap(\.accountID)))
         guard token == generation, isUnlocked, !Task.isCancelled else { throw CancellationError() }
     }
 
-    private func refreshEVMResult(walletID: String) async -> Result<Void, Error> {
-        do { try await OathAnkrSync.shared.refresh(walletID: walletID); return .success(()) }
+    private func refreshEVMResult(walletID: String, accountIDs: Set<String>) async -> Result<Void, Error> {
+        do { try await OathAnkrSync.shared.refresh(walletID: walletID, accountIDs: accountIDs); return .success(()) }
         catch {
             // Preserve failure and partial-balance UI state. The refreshAnkr,
             // Result and automatic-refresh callers must not log this again.
             return .failure(OathDiagnostics.recordedForPropagation(error))
         }
     }
-    private func refreshPortfolioTokenQuotes(walletID: String) async {
+    private func refreshPortfolioTokenQuotes(walletID: String, accountIDs: Set<String>) async {
         guard !Task.isCancelled else { return }
         await OathDiagnostics.attempt("portfolio_token_quotes") {
             let service = try await OathMarketEnvironment.shared.service()
-            await service.refreshTokenQuotes(walletID: walletID)
+            await service.refreshTokenQuotes(walletID: walletID, accountIDs: accountIDs)
         }
     }
 
@@ -824,10 +926,20 @@ final class OathWalletSession {
         }
     }
     private func refreshSolanaResult() async -> Result<Void, Error> {
-        do { try await refreshSolana(); return .success(()) } catch { OathDiagnostics.record(error); return .failure(error) }
+        do {
+            try await refreshSolana()
+            return .success(())
+        } catch {
+            return .failure(OathDiagnostics.recordedForPropagation(error, context: ["chain": "solana"]))
+        }
     }
     private func refreshTronResult() async -> Result<Void, Error> {
-        do { try await refreshTron(); return .success(()) } catch { OathDiagnostics.record(error); return .failure(error) }
+        do {
+            try await refreshTron()
+            return .success(())
+        } catch {
+            return .failure(OathDiagnostics.recordedForPropagation(error, context: ["chain": "tron"]))
+        }
     }
     func refreshTron() async throws {
         guard case .home(let current) = state, isUnlocked else { return }
@@ -840,7 +952,12 @@ final class OathWalletSession {
         guard token == generation, isUnlocked, !Task.isCancelled else { throw CancellationError() }
     }
     private func refreshTonResult() async -> Result<Void, Error> {
-        do { try await refreshTon(); return .success(()) } catch { OathDiagnostics.record(error); return .failure(error) }
+        do {
+            try await refreshTon()
+            return .success(())
+        } catch {
+            return .failure(OathDiagnostics.recordedForPropagation(error, context: ["chain": "ton"]))
+        }
     }
     func refreshTon() async throws {
         guard case .home(let current) = state, isUnlocked else { return }
@@ -873,7 +990,12 @@ final class OathWalletSession {
         guard token == generation, isUnlocked, !Task.isCancelled else { throw CancellationError() }
     }
     private func refreshSuiResult() async -> Result<Void, Error> {
-        do { try await refreshSui(); return .success(()) } catch { OathDiagnostics.record(error); return .failure(error) }
+        do {
+            try await refreshSui()
+            return .success(())
+        } catch {
+            return .failure(OathDiagnostics.recordedForPropagation(error, context: ["chain": "sui"]))
+        }
     }
     func refreshSui() async throws {
         guard case .home(let current) = state, isUnlocked else { return }
@@ -886,7 +1008,12 @@ final class OathWalletSession {
         guard token == generation, isUnlocked, !Task.isCancelled else { throw CancellationError() }
     }
     private func refreshThorchainResult() async -> Result<Void, Error> {
-        do { try await refreshThorchain(); return .success(()) } catch { OathDiagnostics.record(error); return .failure(error) }
+        do {
+            try await refreshThorchain()
+            return .success(())
+        } catch {
+            return .failure(OathDiagnostics.recordedForPropagation(error, context: ["chain": "thorchain"]))
+        }
     }
     func refreshThorchain() async throws {
         guard case .home(let current) = state, isUnlocked else { return }
@@ -899,7 +1026,12 @@ final class OathWalletSession {
         guard token == generation, isUnlocked, !Task.isCancelled else { throw CancellationError() }
     }
     private func refreshNearResult() async -> Result<Void, Error> {
-        do { try await refreshNear(); return .success(()) } catch { OathDiagnostics.record(error); return .failure(error) }
+        do {
+            try await refreshNear()
+            return .success(())
+        } catch {
+            return .failure(OathDiagnostics.recordedForPropagation(error, context: ["chain": "near"]))
+        }
     }
     func refreshNear() async throws {
         guard case .home(let current) = state, isUnlocked else { return }
@@ -912,7 +1044,12 @@ final class OathWalletSession {
         guard token == generation, isUnlocked, !Task.isCancelled else { throw CancellationError() }
     }
     private func refreshXrplResult() async -> Result<Void, Error> {
-        do { try await refreshXrpl(); return .success(()) } catch { OathDiagnostics.record(error); return .failure(error) }
+        do {
+            try await refreshXrpl()
+            return .success(())
+        } catch {
+            return .failure(OathDiagnostics.recordedForPropagation(error, context: ["chain": "xrpl"]))
+        }
     }
     func refreshXrpl() async throws {
         guard case .home(let current) = state, isUnlocked else { return }
@@ -925,7 +1062,12 @@ final class OathWalletSession {
         guard token == generation, isUnlocked, !Task.isCancelled else { throw CancellationError() }
     }
     private func refreshPolkadotResult() async -> Result<Void, Error> {
-        do { try await refreshPolkadot(); return .success(()) } catch { OathDiagnostics.record(error); return .failure(error) }
+        do {
+            try await refreshPolkadot()
+            return .success(())
+        } catch {
+            return .failure(OathDiagnostics.recordedForPropagation(error, context: ["chain": "polkadot"]))
+        }
     }
     func refreshPolkadot() async throws {
         guard case .home(let current) = state, isUnlocked else { return }
@@ -938,7 +1080,12 @@ final class OathWalletSession {
         guard token == generation, isUnlocked, !Task.isCancelled else { throw CancellationError() }
     }
     private func refreshStellarResult() async -> Result<Void, Error> {
-        do { try await refreshStellar(); return .success(()) } catch { OathDiagnostics.record(error); return .failure(error) }
+        do {
+            try await refreshStellar()
+            return .success(())
+        } catch {
+            return .failure(OathDiagnostics.recordedForPropagation(error, context: ["chain": "stellar"]))
+        }
     }
     func refreshStellar() async throws {
         guard case .home(let current) = state, isUnlocked else { return }
@@ -951,8 +1098,12 @@ final class OathWalletSession {
         guard token == generation, isUnlocked, !Task.isCancelled else { throw CancellationError() }
     }
     private func refreshIndexedEVMResult(_ chain: IndexedEVMChain) async -> Result<Void, Error> {
-        do { try await refreshIndexedEVM(chain); return .success(()) }
-        catch { OathDiagnostics.record(error, context: ["chain": chain.rawValue]); return .failure(error) }
+        do {
+            try await refreshIndexedEVM(chain)
+            return .success(())
+        } catch {
+            return .failure(OathDiagnostics.recordedForPropagation(error, context: ["chain": chain.rawValue]))
+        }
     }
     func refreshIndexedEVM(_ chain: IndexedEVMChain) async throws {
         guard case .home(let current) = state, isUnlocked else { return }
@@ -965,7 +1116,12 @@ final class OathWalletSession {
         guard token == generation, isUnlocked, !Task.isCancelled else { throw CancellationError() }
     }
     private func refreshHyperEVMResult() async -> Result<Void, Error> {
-        do { try await refreshHyperEVM(); return .success(()) } catch { OathDiagnostics.record(error); return .failure(error) }
+        do {
+            try await refreshHyperEVM()
+            return .success(())
+        } catch {
+            return .failure(OathDiagnostics.recordedForPropagation(error, context: ["chain": "hyperevm"]))
+        }
     }
     func refreshHyperEVM() async throws {
         guard case .home(let current) = state, isUnlocked else { return }
@@ -978,7 +1134,12 @@ final class OathWalletSession {
         guard token == generation, isUnlocked, !Task.isCancelled else { throw CancellationError() }
     }
     private func refreshRobinhoodResult() async -> Result<Void, Error> {
-        do { try await refreshRobinhood(); return .success(()) } catch { OathDiagnostics.record(error); return .failure(error) }
+        do {
+            try await refreshRobinhood()
+            return .success(())
+        } catch {
+            return .failure(OathDiagnostics.recordedForPropagation(error, context: ["chain": "robinhood"]))
+        }
     }
     func refreshRobinhood() async throws {
         guard case .home(let current) = state, isUnlocked else { return }
@@ -991,7 +1152,12 @@ final class OathWalletSession {
         guard token == generation, isUnlocked, !Task.isCancelled else { throw CancellationError() }
     }
     private func refreshArcResult() async -> Result<Void, Error> {
-        do { try await refreshArc(); return .success(()) } catch { OathDiagnostics.record(error); return .failure(error) }
+        do {
+            try await refreshArc()
+            return .success(())
+        } catch {
+            return .failure(OathDiagnostics.recordedForPropagation(error, context: ["chain": "arc"]))
+        }
     }
     func refreshArc() async throws {
         guard case .home(let current) = state, isUnlocked else { return }
@@ -1140,7 +1306,7 @@ final class OathWalletSession {
         guard token == generation, isUnlocked, !changingWallet, !resetting,
               displayedProfile?.id.uuidString == walletID else { throw CancellationError() }
         try await database.savePortfolioFilter(selection, walletID: walletID)
-        let snapshot = try await database.snapshot(walletID: walletID, currency: portfolio?.currency ?? "USD")
+        let snapshot = try await database.homeSnapshot(walletID: walletID, currency: portfolio?.currency ?? "USD")
         try Task.checkCancellation()
         guard token == generation, isUnlocked, !changingWallet, !resetting,
               displayedProfile?.id.uuidString == walletID else { throw CancellationError() }
@@ -1149,7 +1315,7 @@ final class OathWalletSession {
             assetFilterWork?.cancel()
             assetFilterWork = Task {
                 await OathDiagnostics.attempt("refresh_unfiltered_balances") {
-                    try await OathAnkrSync.shared.refreshBalances(walletID: walletID)
+                    try await OathAnkrSync.shared.refreshBalances(walletID: walletID, accountIDs: Set(portfolio?.accounts.map(\.id) ?? []))
                 }
             }
         }
@@ -1165,7 +1331,7 @@ final class OathWalletSession {
         guard request == generation, isUnlocked, !resetting else { throw CancellationError() }
         try await database.setAssetHidden(hidden, assetID: assetID, walletID: walletID)
         guard portfolio?.wallet.id == walletID else { return }
-        let snapshot = try await database.snapshot(walletID: walletID, currency: portfolio?.currency ?? "USD")
+        let snapshot = try await database.homeSnapshot(walletID: walletID, currency: portfolio?.currency ?? "USD")
         guard request == generation, isUnlocked, portfolio?.wallet.id == walletID else { throw CancellationError() }
         portfolio = snapshot
     }
@@ -1175,7 +1341,7 @@ final class OathWalletSession {
         func check() throws {
             try Task.checkCancellation()
             guard ticket == generation, isUnlocked, !changingWallet, !resetting,
-                  portfolio?.wallet.id == walletID else { throw CancellationError() }
+                  wallets.contains(where: { $0.id == walletID && $0.deletedAt == nil }) else { throw CancellationError() }
         }
         try check()
         let database = try await vault.database()
@@ -1191,7 +1357,7 @@ final class OathWalletSession {
         let existing = cached
         var enabledAsset: AssetRecord?
         if let existing {
-            if enabled && existing.reference != "native" {
+            if enabled {
                 enabledAsset = try await database.enableManagedToken(existing, walletID: walletID)
             } else {
                 try await database.setAssetHidden(!enabled, assetID: existing.id, walletID: walletID)
@@ -1202,7 +1368,7 @@ final class OathWalletSession {
                   try TokenDiscoveryNetworks.canonical(token.reference, network: token.network.id) == token.reference else {
                 throw StoreError.conflictingIdentity
             }
-            let owner = portfolio?.accounts.first { $0.networkID == token.network.id }?.address
+            let owner = managed.holdings.first { $0.networkID == token.network.id }?.address
             let resolved = try await OathTokenService.shared.resolveForAdding(token, owner: owner)
             guard let decimals = resolved.decimals else { throw OathTokenLookupError.metadataUnavailable }
             try check()
@@ -1211,10 +1377,13 @@ final class OathWalletSession {
                 logo: resolved.logoURL?.absoluteString), walletID: walletID)
         }
         try check()
+        // Settings can manage an inactive wallet. Its observer owns the update;
+        // never replace the active portfolio or refresh using another wallet's accounts.
+        guard portfolio?.wallet.id == walletID else { return }
         // The write succeeded. A presentation read failure must not roll back a
         // committed switch; the independent database observer can still recover.
         if let snapshot = await OathDiagnostics.attempt("managed_token_snapshot", body: {
-            try await database.snapshot(walletID: walletID, currency: self.portfolio?.currency ?? "USD")
+            try await database.homeSnapshot(walletID: walletID, currency: self.portfolio?.currency ?? "USD")
         }) {
             try check()
             portfolio = snapshot
@@ -1248,8 +1417,10 @@ final class OathWalletSession {
             await OathDiagnostics.$chain.withValue(asset.networkID) {
                 await OathDiagnostics.$operationID.withValue(UUID()) {
                     do {
-                        if AnkrSynchronizer.supports(networkID: asset.networkID) {
-                            try await OathAnkrSync.shared.refreshBalances(walletID: walletID, networkIDs: [asset.networkID])
+                        if asset.networkID == "cronos" {
+                            try await OathAnkrSync.shared.refreshCronos(walletID: walletID, accountIDs: Set(accounts.map(\.id)))
+                        } else if AnkrSynchronizer.supports(networkID: asset.networkID) {
+                            try await OathAnkrSync.shared.refreshBalances(walletID: walletID, accountIDs: Set(accounts.map(\.id)), networkIDs: [asset.networkID])
                         } else {
                             for account in accounts {
                                 try Task.checkCancellation()
@@ -1288,47 +1459,59 @@ final class OathWalletSession {
     }
 
     @discardableResult
-    func addToken(_ token: OathTokenDefinition, walletID: String) async throws -> WalletSnapshot {
+    func addToken(_ token: OathTokenDefinition, walletID: String, showOnHome: Bool = false) async throws -> WalletSnapshot {
         guard token.network.chain.isEnabled, isUnlocked, !changingWallet, !resetting, displayedProfile?.id.uuidString == walletID else {
             throw OathWalletError.locked
         }
         let request = generation
-        guard try TokenDiscoveryNetworks.canonical(token.reference, network: token.network.id) ==
-            (token.isNativeRepresentation ? "native" : token.reference) else { throw OathTokenLookupError.invalidAddress }
-        // A catalog contains identity/name data, not necessarily decimals. Never
-        // guess a scale: resolve only the selected contract, off the UI actor.
-        let owner = portfolio?.accounts.first { $0.networkID == token.network.id }?.address
-        let token = try await OathDiagnostics.$chain.withValue(token.network.id) {
-            try await OathDiagnostics.$operationID.withValue(UUID()) {
+        func checkWallet() throws {
+            try Task.checkCancellation()
+            guard request == generation, isUnlocked, !changingWallet, !resetting,
+                  displayedProfile?.id.uuidString == walletID else { throw CancellationError() }
+        }
+        let reference = token.isNativeRepresentation ? "native" : token.reference
+        guard try TokenDiscoveryNetworks.canonical(token.reference, network: token.network.id) == reference else {
+            throw OathTokenLookupError.invalidAddress
+        }
+        let database = try await vault.database()
+        try checkWallet()
+        var record: AssetRecord
+        if showOnHome, let saved = try await database.asset(networkID: token.network.id, reference: reference) {
+            if let decimals = token.decimals, decimals != saved.decimals { throw StoreError.conflictingIdentity }
+            record = saved
+        } else {
+            let owner = portfolio?.accounts.first { $0.networkID == token.network.id }?.address
+            let resolved = try await OathDiagnostics.withChain(token.network.id) {
                 try await OathTokenService.shared.resolveForAdding(token, owner: owner)
             }
+            guard let decimals = resolved.decimals else { throw OathTokenLookupError.metadataUnavailable }
+            record = AssetRecord(id: resolved.id, networkID: resolved.network.id, reference: reference,
+                name: resolved.name, symbol: resolved.symbol,
+                decimals: resolved.isNativeRepresentation ? resolved.network.chain.nativeDecimals : decimals,
+                logo: resolved.logoURL?.absoluteString)
         }
-        guard let decimals = token.decimals else { throw OathTokenLookupError.metadataUnavailable }
-        try Task.checkCancellation()
-        guard request == generation, isUnlocked, !changingWallet, !resetting,
-              displayedProfile?.id.uuidString == walletID else { throw CancellationError() }
-        let database = try await vault.database()
-        try Task.checkCancellation()
-        guard request == generation, isUnlocked else { throw OathWalletError.locked }
-        if !token.isNativeRepresentation {
-            try await database.trackAsset(AssetRecord(id: token.id, networkID: token.network.id,
-                reference: token.reference, name: token.name, symbol: token.symbol, decimals: decimals,
-                logo: token.logoURL?.absoluteString), walletID: walletID)
+        try checkWallet()
+        if showOnHome {
+            record = try await database.enableManagedToken(record, walletID: walletID, showOnHome: true)
+        } else if !token.isNativeRepresentation {
+            record = try await database.trackAsset(record, walletID: walletID)
         }
-        let snapshot = try await database.snapshot(walletID: walletID, currency: portfolio?.currency ?? "USD")
-        guard request == generation, isUnlocked else { throw OathWalletError.locked }
+        let snapshot = try await database.homeSnapshot(walletID: walletID, currency: portfolio?.currency ?? "USD")
+        try checkWallet()
         portfolio = snapshot
+        if showOnHome {
+            queueManagedTokenRefresh(record, walletID: walletID, ticket: request)
+            return snapshot
+        }
         // Adding a token publishes immediately. Resolve its public price without
         // waiting for a balance refresh or requiring the user to open details.
         // The shared service coalesces detail/other callers and publishes to the
         // same price table observed by Home. No wallet identity enters a request.
-        let asset = MarketAsset(id: token.isNativeRepresentation ? token.network.id + ":native" : token.id,
-            networkID: token.network.id, reference: token.isNativeRepresentation ? "native" : token.reference,
-            decimals: token.isNativeRepresentation ? token.network.chain.nativeDecimals : decimals)
+        let asset = MarketAsset(id: record.id, networkID: record.networkID, reference: record.reference, decimals: record.decimals)
         addedTokenPriceWork?.cancel()
         addedTokenPriceWork = Task {
             async let balanceRefresh: Void? = OathDiagnostics.attempt("added_cronos_balance") {
-                if asset.networkID == "cronos" { try await OathAnkrSync.shared.refreshCronos(walletID: walletID) }
+                if asset.networkID == "cronos" { try await OathAnkrSync.shared.refreshCronos(walletID: walletID, accountIDs: Set(snapshot.accounts.map(\.id))) }
             }
             await OathDiagnostics.$chain.withValue(asset.networkID) {
                 await OathDiagnostics.$operationID.withValue(UUID()) {
@@ -1353,9 +1536,21 @@ final class OathWalletSession {
     }
 
     func selectWallet(_ id: UUID) async throws {
+        try await selectWalletAccount(id, path: nil)
+    }
+
+    func selectWalletAccount(_ id: UUID, path: String?) async throws {
+        try await selectWalletAccount(id, selection: path.map { .init(family: .evm, path: $0) })
+    }
+
+    func selectWalletAccount(_ id: UUID, selection: HomeAccountSelection?) async throws {
         guard isUnlocked else { throw OathWalletError.locked }
-        guard displayedProfile?.id != id else { return }
-        try await changeWallet { try await $0.selectWallet(id) }
+        guard displayedProfile?.id != id || portfolio?.selectedAccount != selection else { return }
+        _ = try await changeWallet { vault in
+            let database = try await vault.database()
+            try await database.setHomeAccount(walletID: id.uuidString, selection: selection)
+            return try await vault.selectWallet(id)
+        }
         OathHaptics.shared.play(.selection)
     }
 
@@ -1378,6 +1573,12 @@ final class OathWalletSession {
             }
             return
         }
+        let token = generation
+        let database = try await vault.database()
+        try await database.validateWalletRemoval(action.ids)
+        guard token == generation, isUnlocked else { throw CancellationError() }
+        // The vault repeats validation before committing; preflight avoids a
+        // Home teardown for the ordinary pending-transaction rejection.
         _ = try await changeWallet { try await $0.removeWallets(action, authorization: authorization) }
         OathHaptics.shared.play(.success)
     }
@@ -1463,6 +1664,28 @@ final class OathWalletSession {
         }
         OathHaptics.shared.play(.success)
         return profile.id.uuidString
+    }
+
+    func addEVMAccounts(walletID: String, paths: [String]) async throws {
+        try await addHDAccounts(walletID: walletID, family: .evm, paths: paths)
+    }
+
+    func addHDAccounts(walletID: String, family: HDAccountFamily, paths: [String]) async throws {
+        try await OathDiagnostics.$operationID.withValue(UUID()) {
+            try await OathDiagnostics.$chain.withValue(family == .solana ? "solana" : nil) {
+                _ = try await changeWallet { try await $0.addHDAccounts(walletID: walletID, family: family, paths: paths) }
+            }
+        }
+        OathHaptics.shared.play(.success)
+    }
+
+    func removeHDAccount(walletID: String, selection: HomeAccountSelection, authorization: UUID) async throws {
+        try await OathDiagnostics.$operationID.withValue(OathDiagnostics.operationID ?? UUID()) {
+            try await OathDiagnostics.$chain.withValue(selection.family == .solana ? "solana" : nil) {
+                _ = try await changeWallet { try await $0.removeHDAccount(walletID: walletID, selection: selection, authorization: authorization) }
+            }
+        }
+        OathHaptics.shared.play(.success)
     }
 
     func addSeedPasswordWallet(sourceID: String, password: String, requestID: UUID) async throws -> String {
@@ -1567,8 +1790,11 @@ final class OathWalletSession {
         let currency = Locale.autoupdatingCurrent.currency?.identifier ?? "USD"
         let records = try await vault.wallets(includingDeleted: true)
         let active = records.filter { $0.deletedAt == nil }
+        if active.contains(where: { $0.id == profile.id.uuidString }) {
+            try await database.normalizeHomeAccountSelection(walletID: profile.id.uuidString)
+        }
         let snapshot = active.contains(where: { $0.id == profile.id.uuidString })
-            ? try await database.snapshot(walletID: profile.id.uuidString, currency: currency) : nil
+            ? try await database.homeSnapshot(walletID: profile.id.uuidString, currency: currency) : nil
         if let snapshot { try await prepareHomeDisplay(snapshot, database: database, token: token) }
         guard token == generation else { throw CancellationError() }
         self.security = security
@@ -1665,22 +1891,23 @@ final class OathWalletSession {
 
     func rememberHomeHistory(_ page: OathHomeHistorySnapshot) {
         guard isUnlocked, !changingWallet, !resetting, portfolio?.wallet.id == page.walletID,
-              portfolio?.currency == page.currency, homeHistory != page else { return }
+              portfolio?.currency == page.currency, portfolio?.selectedAccountIdentity == page.accountPath, homeHistory != page else { return }
         homeHistory = page
     }
 
     // Keep one local page ready for transactions committed while another tab is open.
     func observeHomeHistory(walletID: String, currency: String, localeIdentifier: String) async {
         let token = generation
+        let accountPath = portfolio?.selectedAccountIdentity
         await OathDiagnostics.$operationID.withValue(UUID()) {
             do {
                 let db = try await vault.database()
                 try Task.checkCancellation()
                 for try await page in db.observeChainHistory(walletID: walletID, currency: currency,
-                    limit: OathHomeHistorySnapshot.pageSize + 1, localeIdentifier: localeIdentifier) {
+                    limit: OathHomeHistorySnapshot.pageSize + 1, localeIdentifier: localeIdentifier, homeScope: true) {
                     guard !Task.isCancelled, token == generation else { return }
                     rememberHomeHistory(.init(walletID: walletID, currency: currency,
-                                              localeIdentifier: localeIdentifier, items: page))
+                                              localeIdentifier: localeIdentifier, items: page, accountPath: accountPath))
                 }
             } catch {
                 guard !Task.isCancelled, token == generation else { return }
@@ -1716,7 +1943,7 @@ final class OathWalletSession {
     private func observePortfolio(database: OathDatabase, walletID: UUID, token: UUID, currency: String) {
         observationCurrency = currency
         portfolioRefresh.observe(stream: {
-            database.observeWallet(walletID: walletID.uuidString, currency: currency)
+            database.observeHomeWallet(walletID: walletID.uuidString, currency: currency)
         }, isCurrent: { [weak self] in
             guard let self else { return false }
             return token == self.generation && self.isUnlocked && self.displayedProfile?.id == walletID
@@ -1753,6 +1980,30 @@ final class OathWalletSession {
         return (balanceChanged || previous != value, balanceChanged)
     }
 
+    #if DEBUG && targetEnvironment(simulator)
+    /// Used only with the fixture's freshly created, keyless wallet and temporary database.
+    static func scrollFixtureSession(database: OathDatabase, walletID: UUID,
+                                     refresh: (@MainActor @Sendable () async throws -> Void)? = nil) async throws -> OathWalletSession {
+        let scope = "org.oathwallet.scroll-fixture." + walletID.uuidString
+        let installation = OathInstallationSecurity.live(namespace: scope)
+        let vault = OathWalletVault(storage: OathVaultKeychain(service: scope + ".vault"),
+                                    biometricStore: OathBiometricCredentialStore(service: scope + ".biometry",
+                                                                                 installation: installation),
+                                    database: database)
+        let session = OathWalletSession(vault: vault)
+        session.usesSyntheticPortfolio = true
+        session.fixtureRefreshWork = refresh
+        let snapshot = try await database.homeSnapshot(walletID: walletID.uuidString, currency: "USD")
+        try await session.prepareHomeDisplay(snapshot, database: database, token: session.generation)
+        session.portfolio = snapshot
+        let records = try await database.wallets(includingDeleted: true)
+        session.wallets = records.filter { $0.deletedAt == nil }
+        session.recentlyDeletedWallets = records.filter { $0.deletedAt != nil }
+        session.publishHome(try OathWalletProfile.stored(snapshot))
+        session.observePortfolio(database: database, walletID: walletID, token: session.generation, currency: "USD")
+        return session
+    }
+    #endif
 
     private func publishHome(_ profile: OathWalletProfile) {
         if displayedProfile != profile { displayedProfile = profile }

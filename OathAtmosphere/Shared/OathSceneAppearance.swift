@@ -10,6 +10,8 @@ import OathDatabase
     static let groupedCanvas = adaptive(light: OathNeutralColors.lightGroupedCanvas, dark: OathNeutralColors.darkCanvas)
     static let card = adaptive(light: OathNeutralColors.lightCanvas, dark: OathNeutralColors.darkCard)
     static let field = adaptive(light: OathNeutralColors.lightField, dark: OathNeutralColors.darkField)
+    static let exploreCard = adaptive(light: 0xF8F8F9, dark: 0x202022)
+    static let unlockGreeting = adaptive(light: OathNeutralColors.lightField, dark: OathNeutralColors.darkCanvas)
     static let sheet = adaptive(light: OathNeutralColors.lightGroupedCanvas, dark: OathNeutralColors.darkSheet)
     static let sheetCard = adaptive(light: OathNeutralColors.lightCanvas, dark: OathNeutralColors.darkSheetCard)
     // Quiet neutral badges retain contrast without the heavy foreground fill.

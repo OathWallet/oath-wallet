@@ -353,7 +353,6 @@ struct OathScanner: View {
                 }
             }
             .toolbarBackground(.hidden, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
         }
         .oathLanguage(strings.language)
         .accessibilityIdentifier(identifier)

@@ -7,7 +7,7 @@ extension OathDatabase {
     /// failure may retry only an unsigned draft. Never delete or replace bytes
     /// already journaled for this request, even after cancellation or a restart.
     public func resetUnsentWalletConnectEVM(_ id: String, walletID: String, accountID: String) async throws {
-        guard id.hasPrefix("wc:"), id.count == 67, id.dropFirst(3).allSatisfy({ $0.isASCII && $0.isHexDigit }) else { throw EVMSendError.changed }
+        guard DAppEVMRequestID.isValid(id) else { throw EVMSendError.changed }
         try await storageWrite { db in
             guard let send = try SendRecord.fetchOne(db, key: id) else { return }
             guard send.walletID == walletID, send.accountID == accountID,
@@ -48,7 +48,7 @@ extension OathDatabase {
             case .arc:"arcHoldings"
             case .hyperevm:"hyperevmHoldings"
             case .robinhood:"robinhoodHoldings"
-            case .chiliz,.filecoin,.sei,.zerog,.iotex,.celo,.monad,.unichain,.story:"indexedEVMHoldings"
+            case .plasma,.worldchain,.elysium,.chiliz,.filecoin,.sei,.zerog,.iotex,.celo,.monad,.unichain,.story:"indexedEVMHoldings"
             default:nil
             }
             let accounts=try AccountRecord.fetchAll(db,sql:"SELECT a.* FROM walletAccounts a JOIN wallets w ON w.id=a.walletID WHERE a.networkID=? AND lower(a.address)=? AND w.deletedAt IS NULL",arguments:[send.networkID,plan.sender])

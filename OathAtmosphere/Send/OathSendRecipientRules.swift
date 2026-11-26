@@ -44,7 +44,7 @@ enum OathSendRecipientRules {
         case .aptos, .ton, .stellar, .thorchain, .solana,
              .arbitrum, .arc, .avalanche, .base, .bnb, .ethereum, .fantom, .flare, .gnosis,
              .linea, .optimism, .polygon, .chiliz, .filecoin, .sei, .zerog, .iotex, .cronos, .celo, .monad, .unichain, .hyperevm, .robinhood,
-             .scroll, .somnia, .story, .taiko, .telos, .xlayer:
+             .scroll, .somnia, .story, .plasma, .worldchain, .elysium, .taiko, .telos, .xlayer:
             // These send plans already reject the same sender/recipient. Move
             // their late generic quote failure to Recipient, without claiming
             // that the underlying networks prohibit self-transfers.

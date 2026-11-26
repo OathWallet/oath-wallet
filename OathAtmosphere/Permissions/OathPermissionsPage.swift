@@ -2,7 +2,6 @@ import SwiftUI
 import OathAnkr
 import OathDatabase
 import OathDiagnostics
-import OathNativeRefresh
 
 struct OathPermissionsPage: View {
     let session:OathWalletSession
@@ -11,10 +10,15 @@ struct OathPermissionsPage: View {
     @State private var connections=OathWalletConnectService.shared
     var body:some View {
         OathPermissionContent(refreshAction: { await model.refresh(session:session) },
-            refreshIdentity: model.walletID, refreshEnabled: session.isUnlocked && !session.changingWallet) {
+            refreshIdentity: model.walletID, refreshEnabled: session.isUnlocked && !session.changingWallet,
+            colorHex: session.wallets.first { $0.id == model.walletID }?.colorHex) {
             Menu {
-                ForEach(session.wallets,id:\.id) { wallet in
-                    Button(session.walletName(wallet,strings:strings)) { model.walletID=wallet.id }
+                ForEach(WalletTree(session.wallets).sections) { section in
+                    Section(strings.text(section.category.titleKey)) {
+                        ForEach(section.wallets, id: \.id) { wallet in
+                            Button(session.walletName(wallet,strings:strings)) { model.walletID=wallet.id }
+                        }
+                    }
                 }
             } label: { OathSettingsRow(title:session.walletName(session.wallets.first{$0.id==model.walletID},strings:strings),icon:"wallet.bifold",accessory:.none) }
                 .buttonStyle(OathSettingsRowButtonStyle())
@@ -76,22 +80,20 @@ struct OathPermissionContent<Content:View>:View {
     var refreshAction: (@MainActor @Sendable () async throws -> Void)? = nil
     var refreshIdentity: String? = nil
     var refreshEnabled = true
+    var colorHex: String?
     @ViewBuilder let content:()->Content
     @Environment(\.oathLocalizer) private var strings
 
     var body: some View {
         Group {
             if let refreshAction {
-                NativeRefreshScroll(identifier: "permissions.scroll", tint: .label,
-                    labels: NativeRefreshLabels(pull: strings.text(.pullToRefresh), refreshing: strings.text(.refreshing),
-                        succeeded: strings.text(.refreshSucceeded), failed: strings.text(.refreshFailed)),
+                OathWalletRefreshScroll(identifier: "permissions.scroll", colorHex: colorHex,
                     isEnabled: refreshEnabled, refreshIdentity: refreshIdentity,
-                    action: refreshAction, onFailure: {}, onScroll: { _ in }) {
+                    action: refreshAction) {
                     Color.clear.frame(height: 12).accessibilityHidden(true)
                     content().frame(maxWidth: 700).frame(maxWidth: .infinity)
                     Color.clear.frame(height: 12).accessibilityHidden(true)
                 }
-                .id(strings.language.isRightToLeft)
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0, content: content).padding(.vertical, 12)

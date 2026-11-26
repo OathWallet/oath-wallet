@@ -9,6 +9,7 @@ public enum NativeRefreshFeedback: Sendable { case pullStep, started, succeeded,
 /// system can reuse cells; do not put them in one enclosing stack.
 public struct NativeRefreshScroll<Content: View>: View {
     @State private var attachmentOwner = AttachmentOwner()
+    @Environment(\.walletRefreshHost) private var navigationHost
     private let identifier: String
     private let tint: UIColor
     private let indicator: NativeRefreshIndicator
@@ -53,6 +54,24 @@ public struct NativeRefreshScroll<Content: View>: View {
     }
 
     public var body: some View {
+        if indicator == .walletBand && navigationHost == nil {
+            scrollContent.walletRefreshNavigation()
+        } else {
+            scrollContent
+        }
+    }
+
+    @ViewBuilder private var refreshableRows: some View {
+        if indicator == .walletBand {
+            // The navigation inset owns this style's hold. A second inset
+            // from UIRefreshControl would move every row down twice.
+            rows
+        } else {
+            rows.refreshable { await attachmentOwner.controller?.refreshFromSystem() }
+        }
+    }
+
+    private var rows: some View {
         // ScrollView.refreshable shifts rendered content but leaves SwiftUI
         // button targets at the pre-refresh origin on affected iOS versions.
         // Native list cells move their content and interaction geometry together.
@@ -68,8 +87,10 @@ public struct NativeRefreshScroll<Content: View>: View {
         .environment(\.defaultMinListRowHeight, 0)
         .contentMargins(.all, 0, for: .scrollContent)
         .scrollContentBackground(.hidden)
-        .refreshable { await attachmentOwner.controller?.refreshFromSystem() }
-        .scrollIndicators(.hidden)
+    }
+
+    private var scrollContent: some View {
+        refreshableRows.scrollIndicators(.hidden)
         .scrollBounceBehavior(.always, axes: .vertical)
         .scrollDismissesKeyboard(.interactively)
         .accessibilityIdentifier(identifier)
@@ -102,18 +123,18 @@ public struct NativeRefreshScroll<Content: View>: View {
     private func configure(_ controller: Controller, environment: EnvironmentValues) {
         controller.loadViewIfNeeded()
         controller.identifier = identifier
-        controller.scroll.accessibilityIdentifier = identifier
-        controller.control.accessibilityIdentifier = identifier + ".refresh"
         let enabled = isEnabled && environment.scenePhase == .active
         controller.requestedEnabled = enabled
         if controller.refreshIdentity != refreshIdentity || controller.indicator != indicator || controller.timing != timing
+            || controller.bandHost !== environment.walletRefreshHost
             || (controller.enabled && !enabled) {
             controller.stop()
         }
         controller.refreshIdentity = refreshIdentity
-        if controller.indicator != indicator { controller.indicatorView.removeFromSuperview() }
+        controller.bandHost = environment.walletRefreshHost
+        if controller.indicator != indicator { controller.indicatorView?.removeFromSuperview() }
         controller.indicator = indicator
-        controller.indicatorView.accessibilityIdentifier = identifier + ".brand"
+        controller.indicatorView?.accessibilityIdentifier = identifier + ".brand"
         controller.timing = timing
         controller.enabled = enabled
         if controller.model.isActive != enabled { controller.model.isActive = enabled }
@@ -121,9 +142,6 @@ public struct NativeRefreshScroll<Content: View>: View {
         controller.tint = tint
         controller.indicatorLayoutDirection = environment.layoutDirection
         controller.indicatorLocale = environment.locale
-        controller.control.tintColor = indicator == .system ? tint : .clear
-        controller.control.isEnabled = controller.enabled
-        controller.control.accessibilityElementsHidden = indicator != .system
         if indicator == .oathLogo {
             controller.logoIndicatorView.configuration = UIHostingConfiguration {
                 AnyView(BrandedRefreshIndicator(model: controller.model)
@@ -133,10 +151,6 @@ public struct NativeRefreshScroll<Content: View>: View {
                     .environment(\.colorScheme, environment.colorScheme))
             }.margins(.all, 0)
         }
-        controller.scroll.accessibilityCustomActions = indicator != .system ? [
-            UIAccessibilityCustomAction(name: labels.pull, target: controller,
-                                       selector: #selector(Controller.accessibilityRefresh))
-        ] : nil
         controller.action = action
         controller.onFailure = onFailure
         controller.onScroll = onScroll
@@ -149,23 +163,32 @@ public struct NativeRefreshScroll<Content: View>: View {
 
     @MainActor public final class Controller: UIViewController {
         private weak var attachedScroll: UIScrollView?
-        private let unattachedScroll = UIScrollView()
+        private lazy var unattachedScroll = UIScrollView()
         fileprivate var scroll: UIScrollView { attachedScroll ?? unattachedScroll }
         private var offsetObservation: NSKeyValueObservation?
         private var restingTopInset: CGFloat?
-        private let unattachedControl = UIRefreshControl()
+        private lazy var unattachedControl = UIRefreshControl()
         fileprivate var control: UIRefreshControl { scroll.refreshControl ?? unattachedControl }
         fileprivate var tint = UIColor.label
         fileprivate var indicatorLayoutDirection: LayoutDirection = .leftToRight
         fileprivate var indicatorLocale = Locale.current
         fileprivate var identifier = ""
-        fileprivate let ringIndicatorView = ProgressRingRefreshIndicator(frame: .zero)
-        fileprivate var indicatorView: UIView { indicator == .progressRing ? ringIndicatorView : logoIndicatorView }
+        fileprivate lazy var ringIndicatorView = ProgressRingRefreshIndicator(frame: .zero)
+        fileprivate var indicatorView: UIView? {
+            switch indicator {
+            case .progressRing: ringIndicatorView
+            case .oathLogo: logoIndicatorView
+            case .system, .walletBand: nil
+            }
+        }
         fileprivate lazy var logoIndicatorView: UIView & UIContentView = UIHostingConfiguration {
             AnyView(BrandedRefreshIndicator(model: self.model))
         }.margins(.all, 0).makeContentView()
         fileprivate let model = RefreshIndicatorModel()
         fileprivate var indicator: NativeRefreshIndicator = .system
+        fileprivate weak var bandHost: WalletRefreshHost?
+        private var trackingBandPull = false
+        private var pullViewportHeight: CGFloat = 0
         fileprivate var timing: NativeRefreshTiming = .untilFinished
         fileprivate var enabled = true
         fileprivate var requestedEnabled = true
@@ -216,28 +239,23 @@ public struct NativeRefreshScroll<Content: View>: View {
             super.viewDidLoad()
             view.backgroundColor = .clear
             view.isUserInteractionEnabled = false
-            indicatorView.backgroundColor = .clear
-            indicatorView.isUserInteractionEnabled = false
-            logoIndicatorView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-            indicatorView.alpha = 0
         }
 
         fileprivate func attachIfPossible() {
-            guard isViewLoaded, view.window != nil else { return }
-            if let attachedScroll, attachedScroll.window === view.window {
+            guard isViewLoaded, let window = view.window, let screen = parent?.viewIfLoaded,
+                  view.isDescendant(of: screen) else { return }
+            if let attachedScroll, attachedScroll.window === window, attachedScroll.isDescendant(of: screen) {
                 styleControl()
                 return
             }
-            var ancestor = view.superview
-            while let candidate = ancestor, !(candidate is UIWindow) {
+            if offsetObservation != nil {
+                let wasEnabled = enabled
+                detach()
+                enabled = wasEnabled
+            }
+            var ancestor: UIView? = view
+            while let candidate = ancestor {
                 if let target = findScroll(in: candidate) {
-                    if attachedScroll === target {
-                        styleControl()
-                        return
-                    }
-                    let wasEnabled = enabled
-                    detach()
-                    enabled = wasEnabled
                     attachedScroll = target
                     restingTopInset = target.adjustedContentInset.top
                     pullGesture.observe(position: target.contentOffset.y + target.adjustedContentInset.top,
@@ -252,6 +270,9 @@ public struct NativeRefreshScroll<Content: View>: View {
                     target.panGestureRecognizer.addTarget(self, action: #selector(panChanged))
                     return
                 }
+                // The sidebar list can mount before Home's list in the same window.
+                // Wait for our screen to finish mounting instead of borrowing its sibling.
+                if candidate === screen { break }
                 ancestor = candidate.superview
             }
         }
@@ -261,8 +282,10 @@ public struct NativeRefreshScroll<Content: View>: View {
         /// background anchor can have a different safe-area frame from List,
         /// so its frame is not used to reposition content or to test touches.
         private func findScroll(in candidate: UIView) -> UIScrollView? {
-            if let scroll = candidate as? UIScrollView, !scroll.isHidden,
-               scroll.window === view.window, scroll.refreshControl != nil,
+            guard !candidate.isHidden else { return nil }
+            if let scroll = candidate as? UIScrollView,
+               scroll.window === view.window,
+               (indicator == .walletBand ? scroll is UICollectionView || scroll is UITableView : scroll.refreshControl != nil),
                scroll.accessibilityIdentifier == nil || scroll.accessibilityIdentifier == identifier {
                 return scroll
             }
@@ -278,7 +301,7 @@ public struct NativeRefreshScroll<Content: View>: View {
             if let target = attachedScroll {
                 target.panGestureRecognizer.removeTarget(self, action: #selector(panChanged))
             }
-            indicatorView.removeFromSuperview()
+            indicatorView?.removeFromSuperview()
             attachedScroll = nil
             restingTopInset = nil
         }
@@ -287,8 +310,22 @@ public struct NativeRefreshScroll<Content: View>: View {
             switch pan.state {
             case .began:
                 pullGesture.beginPan()
+                pullViewportHeight = scroll.bounds.height
                 updateDragging(enabled)
+                trackingBandPull = indicator == .walletBand && enabled && activeRequest == nil
+                    && pullGesture.allowsRefresh && !model.cycle.isReturning
+            case .changed:
+                if trackingBandPull { followBandPull(pan) }
             case .ended, .cancelled, .failed:
+                if trackingBandPull {
+                    trackingBandPull = false
+                    if activeRequest != nil {
+                        bandHost?.hold(tint: tint, owner: self, scroll: scroll)
+                    } else {
+                        bandHost?.releasePartial(owner: self)
+                        model.resetIfNeeded()
+                    }
+                }
                 pullGesture.endPan(at: restingPosition)
                 pullFeedback = RefreshPullFeedback()
                 updateDragging(false)
@@ -297,7 +334,21 @@ public struct NativeRefreshScroll<Content: View>: View {
         }
 
         private var restingPosition: CGFloat {
-            scroll.contentOffset.y + (restingTopInset ?? scroll.adjustedContentInset.top)
+            if indicator == .walletBand { return scroll.contentOffset.y + scroll.adjustedContentInset.top }
+            return scroll.contentOffset.y + (restingTopInset ?? scroll.adjustedContentInset.top)
+        }
+
+        private func followBandPull(_ pan: UIPanGestureRecognizer) {
+            let distance = WalletRefreshMotion.pullDistance(translation: pan.translation(in: view.window).y,
+                                                           viewport: pullViewportHeight)
+            bandHost?.follow(distance: distance, tint: tint, owner: self, scroll: scroll)
+            if activeRequest == nil {
+                var cycle = model.cycle
+                cycle.pull(distance: distance, isDragging: true)
+                let starts = cycle.beginIfFilled(isDragging: true, eligible: action != nil)
+                if cycle != model.cycle { model.cycle = cycle }
+                if starts { startRefresh() }
+            }
         }
 
         public override func viewWillAppear(_ animated: Bool) {
@@ -306,6 +357,16 @@ public struct NativeRefreshScroll<Content: View>: View {
             if model.isActive != enabled { model.isActive = enabled }
             attachIfPossible()
             presentation.attach(scroll)
+        }
+
+        public override func viewDidAppear(_ animated: Bool) {
+            super.viewDidAppear(animated)
+            attachIfPossible()
+        }
+
+        public override func viewWillDisappear(_ animated: Bool) {
+            super.viewWillDisappear(animated)
+            if indicator == .walletBand { stop() }
         }
 
         public override func viewDidDisappear(_ animated: Bool) {
@@ -320,6 +381,13 @@ public struct NativeRefreshScroll<Content: View>: View {
         }
 
         public func scrollViewDidScroll(_ scrollView: UIScrollView) {
+            if indicator == .walletBand {
+                let position = scrollView.contentOffset.y + scrollView.adjustedContentInset.top
+                let pan = scrollView.panGestureRecognizer.state
+                pullGesture.observe(position: position, isPanning: pan == .began || pan == .changed)
+                onScroll?(-position)
+                return
+            }
             if activeRequest == nil && !control.isRefreshing && !model.cycle.isReturning {
                 restingTopInset = scrollView.adjustedContentInset.top
             }
@@ -359,7 +427,7 @@ public struct NativeRefreshScroll<Content: View>: View {
         private var positionedIdleRing = false
 
         fileprivate func positionIndicator() {
-            guard isViewLoaded, let nativeControl = attachedScroll?.refreshControl else { return }
+            guard let indicatorView, isViewLoaded, let nativeControl = attachedScroll?.refreshControl else { return }
             let idleRing = indicator == .progressRing && model.cycle.phase == .idle
             if idleRing && positionedIdleRing && restingPosition >= 0 &&
                 ringIndicatorView.superview === nativeControl { return }
@@ -367,6 +435,9 @@ public struct NativeRefreshScroll<Content: View>: View {
             // Keep the visual inside UIRefreshControl for its entire lifetime,
             // exactly like the logo. UIKit owns reveal, inset and return motion.
             if indicatorView.superview !== nativeControl {
+                indicatorView.backgroundColor = .clear
+                indicatorView.isUserInteractionEnabled = false
+                indicatorView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
                 nativeControl.addSubview(indicatorView)
             }
             if indicator == .progressRing {
@@ -382,6 +453,8 @@ public struct NativeRefreshScroll<Content: View>: View {
 
         fileprivate func stop() {
             enabled = false
+            trackingBandPull = false
+            bandHost?.reset(owner: self)
             updatePresentation(false)
             updateDragging(false)
             activeRequest = nil
@@ -392,7 +465,7 @@ public struct NativeRefreshScroll<Content: View>: View {
             backgroundRefresh.cancel()
             presentation.detach()
             model.resetIfNeeded()
-            if control.isRefreshing { control.endRefreshing() }
+            if let control = attachedScroll?.refreshControl, control.isRefreshing { control.endRefreshing() }
             positionIndicator()
         }
 
@@ -401,14 +474,15 @@ public struct NativeRefreshScroll<Content: View>: View {
             // requiring an offset change first. Never change a live pan's gate.
             let panState = scroll.panGestureRecognizer.state
             if panState != .began && panState != .changed {
-                pullGesture.observe(position: scroll.contentOffset.y
-                    + (restingTopInset ?? scroll.adjustedContentInset.top), isPanning: false)
+                pullGesture.observe(position: restingPosition, isPanning: false)
             }
             scroll.accessibilityIdentifier = identifier
-            control.accessibilityIdentifier = identifier + ".refresh"
-            control.tintColor = indicator == .system ? tint : .clear
-            control.isEnabled = enabled
-            control.accessibilityElementsHidden = indicator != .system
+            if let control = scroll.refreshControl {
+                control.accessibilityIdentifier = identifier + ".refresh"
+                control.tintColor = indicator == .system ? tint : .clear
+                control.isEnabled = enabled
+                control.accessibilityElementsHidden = indicator != .system
+            }
             scroll.accessibilityCustomActions = indicator != .system ? [
                 UIAccessibilityCustomAction(name: model.labels.pull, target: self,
                     selector: #selector(accessibilityRefresh))
@@ -440,9 +514,10 @@ public struct NativeRefreshScroll<Content: View>: View {
         }
 
         @objc fileprivate func accessibilityRefresh() -> Bool {
-            guard enabled, attachedScroll?.refreshControl != nil,
+            guard enabled, attachedScroll != nil, indicator == .walletBand || attachedScroll?.refreshControl != nil,
                   activeRequest == nil, model.cycle.begin() else { return false }
             startRefresh()
+            if indicator == .walletBand { return true }
             // Only an explicit accessibility action needs programmatic reveal.
             // Touch gestures never write offsets or manually change insets.
             scroll.setContentOffset(CGPoint(x: scroll.contentOffset.x,
@@ -460,12 +535,15 @@ public struct NativeRefreshScroll<Content: View>: View {
             presentation.attach(scroll)
             let startedAt = CACurrentMediaTime()
             model.startedAt = .now
-            if !control.isRefreshing { control.beginRefreshing() }
+            if indicator == .walletBand {
+                if !trackingBandPull { bandHost?.hold(tint: tint, owner: self, scroll: scroll) }
+                UIAccessibility.post(notification: .announcement, argument: model.labels.refreshing)
+            } else if !control.isRefreshing { control.beginRefreshing() }
             positionIndicator()
             work = Task { [weak self] in
                 guard let self else { return }
-                if timing == .brief {
-                    await presentBriefRefresh(request: request, action: action)
+                if let duration = timing.duration {
+                    await presentTimedRefresh(request: request, duration: duration, action: action)
                     return
                 }
                 let outcome = await RefreshAction.run(action: action,
@@ -488,9 +566,27 @@ public struct NativeRefreshScroll<Content: View>: View {
         }
 
         private func presentResult(request: UUID, outcome: RefreshAction.Outcome?) async -> Bool {
-            updatePresentation(false)
             let failed = outcome == .failed
             let event: NativeRefreshFeedback = failed ? .failed : (outcome == nil ? .finished : .succeeded)
+            if indicator == .walletBand {
+                if scroll.isTracking || scroll.isDragging {
+                    await presentation.finishPresentation(startedAt: CACurrentMediaTime(),
+                        minimumDuration: 0, releaseOnly: true)
+                }
+                guard !Task.isCancelled, activeRequest == request else { return false }
+                model.cycle.finishPresentation()
+                updatePresentation(false)
+                feedback?(event)
+                if outcome != nil {
+                    UIAccessibility.post(notification: .announcement,
+                        argument: failed ? model.labels.failed : model.labels.succeeded)
+                }
+                await bandHost?.close(owner: self)
+                guard !Task.isCancelled, activeRequest == request else { return false }
+                model.resetIfNeeded()
+                return true
+            }
+            updatePresentation(false)
             if indicator != .system {
                 if outcome == nil { model.cycle.acknowledge() }
                 else { model.cycle.complete(succeeded: !failed) }
@@ -515,11 +611,11 @@ public struct NativeRefreshScroll<Content: View>: View {
             return true
         }
 
-        private func presentBriefRefresh(request: UUID,
+        private func presentTimedRefresh(request: UUID, duration: Duration,
                                          action: @escaping @MainActor @Sendable () async throws -> Void) async {
             let outcome: RefreshAction.Outcome?
             do {
-                outcome = try await backgroundRefresh.present(action: action, onCompletion: { [weak self] result in
+                outcome = try await backgroundRefresh.present(for: duration, action: action, onCompletion: { [weak self] result in
                     // This callback can arrive after the animation is gone.
                     // RefreshAction still reports the original failure, and
                     // ownership cancellation suppresses obsolete callbacks.
@@ -538,7 +634,7 @@ public struct NativeRefreshScroll<Content: View>: View {
             // A pending action acknowledges this gesture at the fixed deadline;
             // the separately owned provider task continues and publishes data.
             guard await presentResult(request: request, outcome: outcome) else { return }
-            control.endRefreshing()
+            attachedScroll?.refreshControl?.endRefreshing()
             activeRequest = nil
             work = nil
             scrollViewDidScroll(scroll)

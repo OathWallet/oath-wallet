@@ -446,3 +446,110 @@ struct OathContentSizedSheet<Content: View>: UIViewControllerRepresentable {
         }
     }
 }
+
+/// Attach below the native navigation bar. A parent that already controls its
+/// detents can receive the measured height instead of installing a second one.
+struct OathNavigationSheetDetentAnchor: UIViewControllerRepresentable {
+    let contentHeight: CGFloat?
+    let reduceMotion: Bool
+
+    var onMeasuredHeight: ((CGFloat) -> Void)? = nil
+
+    func makeUIViewController(context: Context) -> Controller { Controller() }
+    func updateUIViewController(_ controller: Controller, context: Context) {
+        controller.contentHeight = contentHeight
+        controller.reduceMotion = reduceMotion
+        controller.onMeasuredHeight = onMeasuredHeight
+        controller.scheduleUpdate()
+    }
+
+    @MainActor final class Controller: UIViewController {
+        var contentHeight: CGFloat?
+        var reduceMotion = false
+        var onMeasuredHeight: ((CGFloat) -> Void)?
+        private weak var fittedSheet: UISheetPresentationController?
+        private var resolvedHeight: CGFloat?
+        private var scheduled = false
+        private var appeared = false
+        private let identifier = UISheetPresentationController.Detent.Identifier("oath.walletconnect.flow")
+
+        override func loadView() {
+            view = UIView()
+            view.backgroundColor = .clear
+            view.isUserInteractionEnabled = false
+        }
+        override func viewDidAppear(_ animated: Bool) {
+            super.viewDidAppear(animated)
+            appeared = true
+            scheduleUpdate()
+        }
+        override func viewDidLayoutSubviews() {
+            super.viewDidLayoutSubviews()
+            scheduleUpdate()
+        }
+        override func viewSafeAreaInsetsDidChange() {
+            super.viewSafeAreaInsetsDidChange()
+            scheduleUpdate()
+        }
+        override func didMove(toParent parent: UIViewController?) {
+            super.didMove(toParent: parent)
+            scheduleUpdate()
+        }
+
+        func scheduleUpdate() {
+            guard !scheduled else { return }
+            scheduled = true
+            // Layout and SwiftUI preference changes can arrive together. Never
+            // invalidate detents recursively from their resolver or layout.
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.scheduled = false
+                self.updateDetent()
+            }
+        }
+
+        private func updateDetent() {
+            guard viewIfLoaded?.window != nil else { return }
+            var ancestor = parent
+            while let controller = ancestor {
+                if controller.presentingViewController != nil,
+                   let sheet = controller.presentationController as? UISheetPresentationController {
+                    guard !controller.isBeingDismissed else { return }
+                    // This anchor occupies the navigation content below its
+                    // toolbar. The system adds the bottom safe area itself.
+                    let topInset = max(0, view.convert(.zero, to: controller.view).y)
+                    let scale = max(traitCollection.displayScale, 1)
+                    let height = contentHeight.map { ceil(($0 + topInset) * scale) / scale }
+                    let isNewSheet = fittedSheet !== sheet
+                    guard isNewSheet || height != resolvedHeight else { return }
+                    fittedSheet = sheet
+                    resolvedHeight = height
+                    if let onMeasuredHeight {
+                        if let height { onMeasuredHeight(height) }
+                        return
+                    }
+                    let changes = {
+                        if isNewSheet {
+                            self.installDetent(on: sheet)
+                        } else {
+                            sheet.invalidateDetents()
+                        }
+                    }
+                    if appeared && !reduceMotion { sheet.animateChanges(changes) }
+                    else { changes() }
+                    return
+                }
+                ancestor = controller.parent
+            }
+        }
+
+        private func installDetent(on sheet: UISheetPresentationController) {
+            sheet.detents = [.custom(identifier: identifier) { [weak self] context in
+                let maximum = context.maximumDetentValue
+                return min(self?.resolvedHeight ?? maximum, maximum)
+            }]
+            sheet.selectedDetentIdentifier = identifier
+            sheet.prefersScrollingExpandsWhenScrolledToEdge = false
+        }
+    }
+}

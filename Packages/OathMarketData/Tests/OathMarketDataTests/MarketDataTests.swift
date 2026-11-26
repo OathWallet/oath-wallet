@@ -297,7 +297,10 @@ private actor Feed: MarketTransport {
     }
 
     func testVerifiedNativeNetworksResolveIdentityAndRollupGasIsETH() throws {
-        XCTAssertEqual(MarketIdentity.native.count, 42)
+        XCTAssertEqual(MarketIdentity.native.count, 45)
+        XCTAssertEqual(MarketIdentity.native["plasma"]?.gecko, "plasma")
+        XCTAssertEqual(MarketIdentity.native["worldchain"]?.gecko, "ethereum")
+        XCTAssertEqual(MarketIdentity.native["elysium"]?.gecko, "hyperliquid")
         XCTAssertEqual(MarketIdentity.native["cronos"]?.gecko, "crypto-com-chain")
         XCTAssertEqual(MarketIdentity.native["polkadot"]?.gecko, "polkadot")
         XCTAssertEqual(MarketIdentity.native["polkadot"]?.coinbase, "DOT")

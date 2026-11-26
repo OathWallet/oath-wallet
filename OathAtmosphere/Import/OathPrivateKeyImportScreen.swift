@@ -71,6 +71,7 @@ struct OathPrivateKeyImportScreen: View {
                 }
             }
             .padding(24).frame(maxWidth: 650).frame(maxWidth: .infinity)
+            .oathWalletEntryContent()
             .disabled(busy || !isAllowed)
         }
         .background(Color(uiColor: OathSurfaceColors.canvas).ignoresSafeArea())
@@ -90,7 +91,7 @@ struct OathPrivateKeyImportScreen: View {
             OathKeyboardDismissal(requested: pendingAction != nil, onDismiss: performPendingAction)
                 .frame(width: 0, height: 0)
         }
-        .oathAutofocus(when: ready && scanError == nil) { focused = true }
+        .oathAutofocus(when: ready && scanError == nil, onDisappear: { focused = false }) { focused = true }
         .oathScannerCover(isPresented: $showsScanner, onDismiss: {
             scanError = pendingScanError
             pendingScanError = nil

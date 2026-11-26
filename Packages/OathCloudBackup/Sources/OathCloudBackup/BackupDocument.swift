@@ -64,9 +64,11 @@ public struct BackupWallet: Codable, Sendable, Equatable {
         /// A receive preference, not a replacement for the original account.
         /// Older backups omit this and open with the app's default.
         public let solanaReceivePath: String?
-        public init(network: String, derivationPath: String, index: Int, solanaReceivePath: String? = nil) {
+        /// An independent Solana account stays on its exact imported path.
+        public let solanaPathOnly: Bool?
+        public init(network: String, derivationPath: String, index: Int, solanaReceivePath: String? = nil, solanaPathOnly: Bool? = nil) {
             self.network = network; self.derivationPath = derivationPath; self.index = index
-            self.solanaReceivePath = solanaReceivePath
+            self.solanaReceivePath = solanaReceivePath; self.solanaPathOnly = solanaPathOnly
         }
     }
 
@@ -125,7 +127,7 @@ public enum BackupDocument {
         guard result == errSecSuccess else { throw CloudBackupError.unavailable }
         // Version 2 requires passphrase support. Version 1 readers must fail
         // closed instead of restoring these words as the empty-passphrase wallet.
-        let header = Header(version: wallet.evmMultisig != nil ? 21 : wallet.bitcoinMultisig?.chainID == "dogecoin" ? 20 : wallet.bitcoinMultisig?.chainID == "bitcoincash" ? 19 : wallet.bitcoinMultisig?.chainID == "litecoin" ? 18 : wallet.tonMultisig != nil ? 17 : wallet.thorchainMultisig != nil ? 16 : wallet.nearMultisig != nil ? 15 : wallet.suiMultisig != nil ? 14 : wallet.aptosMultisig != nil ? 13 : wallet.stellarMultisig != nil ? 12 : wallet.xrplMultisig != nil ? 11 : wallet.solanaMultisig != nil ? 10 : wallet.tronMultisig != nil ? 9 : wallet.bitcoinMultisig != nil ? 8 : wallet.legacyPassphrase == true ? 7 : wallet.privateKey?.requiresBitcoinCashV2 == true ? 6 : wallet.privateKey?.requiresLitecoinV2 == true ? 5 : wallet.privateKey?.requiresDogecoinV2 == true ? 4 : wallet.privateKey?.requiresBitcoinV2 == true ? 3 : (wallet.passphrase == nil ? 1 : 2), salt: salt)
+        let header = Header(version: wallet.accounts.contains(where: { $0.solanaPathOnly == true }) ? 22 : wallet.evmMultisig != nil ? 21 : wallet.bitcoinMultisig?.chainID == "dogecoin" ? 20 : wallet.bitcoinMultisig?.chainID == "bitcoincash" ? 19 : wallet.bitcoinMultisig?.chainID == "litecoin" ? 18 : wallet.tonMultisig != nil ? 17 : wallet.thorchainMultisig != nil ? 16 : wallet.nearMultisig != nil ? 15 : wallet.suiMultisig != nil ? 14 : wallet.aptosMultisig != nil ? 13 : wallet.stellarMultisig != nil ? 12 : wallet.xrplMultisig != nil ? 11 : wallet.solanaMultisig != nil ? 10 : wallet.tronMultisig != nil ? 9 : wallet.bitcoinMultisig != nil ? 8 : wallet.legacyPassphrase == true ? 7 : wallet.privateKey?.requiresBitcoinCashV2 == true ? 6 : wallet.privateKey?.requiresLitecoinV2 == true ? 5 : wallet.privateKey?.requiresDogecoinV2 == true ? 4 : wallet.privateKey?.requiresBitcoinV2 == true ? 3 : (wallet.passphrase == nil ? 1 : 2), salt: salt)
         let key = try derive(password, salt: salt)
         var plaintext = try encoder().encode(wallet)
         defer { plaintext.resetBytes(in: 0..<plaintext.count) }
@@ -142,7 +144,7 @@ public enum BackupDocument {
         do { envelope = try JSONDecoder().decode(Envelope.self, from: data) }
         catch { OathDiagnostics.record(error); throw CloudBackupError.invalidDocument }
         let h = envelope.header
-        guard h.format == "org.oathwallet.encrypted-wallet", (1...21).contains(h.version),
+        guard h.format == "org.oathwallet.encrypted-wallet", (1...22).contains(h.version),
               h.cipher == "AES-256-GCM", h.kdf == "PBKDF2-HMAC-SHA256",
               h.passwordNormalization == "NFC",
               h.rounds == iterations, h.salt.count == 32, envelope.sealed.count >= 28 else {
@@ -159,6 +161,7 @@ public enum BackupDocument {
         do { wallet = try JSONDecoder().decode(BackupWallet.self, from: plaintext) }
         catch { OathDiagnostics.record(error); throw CloudBackupError.invalidDocument }
         try validate(wallet: wallet)
+        guard h.version >= 22 || wallet.accounts.allSatisfy({ $0.solanaPathOnly != true }) else { throw CloudBackupError.invalidDocument }
         guard h.version >= 21 || wallet.evmMultisig == nil else { throw CloudBackupError.invalidDocument }
         guard h.version >= 20 || wallet.bitcoinMultisig?.chainID != "dogecoin" else { throw CloudBackupError.invalidDocument }
         guard h.version >= 19 || wallet.bitcoinMultisig?.chainID != "bitcoincash" else { throw CloudBackupError.invalidDocument }
@@ -184,6 +187,14 @@ public enum BackupDocument {
 
     private static func validate(wallet: BackupWallet) throws {
         guard wallet.accounts.allSatisfy({ account in
+            if account.solanaPathOnly == true {
+                let parts = account.derivationPath.split(separator: "/", omittingEmptySubsequences: false)
+                guard wallet.privateKey == nil, account.network == "solana", parts.first == "m", (2...11).contains(parts.count),
+                      parts.dropFirst().allSatisfy({ part in
+                          guard part.last == "'", let value = UInt32(part.dropLast()), value < 0x8000_0000 else { return false }
+                          return part == "\(value)'"
+                      }), account.solanaReceivePath == nil || account.solanaReceivePath == account.derivationPath else { return false }
+            }
             guard let path = account.solanaReceivePath else { return true }
             return wallet.privateKey == nil && account.network == "solana" && !path.isEmpty && path.utf8.count <= 128
         }) else { throw CloudBackupError.invalidDocument }

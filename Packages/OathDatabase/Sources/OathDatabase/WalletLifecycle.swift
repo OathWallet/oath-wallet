@@ -9,6 +9,7 @@ public struct WalletLifecycle: Sendable {
 }
 
 extension OathDatabase {
+    public enum WalletRemovalError: Error, Sendable, Equatable { case pendingTransaction }
     public func reorderWallets(_ ids: [String]) async throws {
         guard Set(ids).count == ids.count else { throw StoreError.invalidValue("wallet order") }
         try await storageWrite { db in

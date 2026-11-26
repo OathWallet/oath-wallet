@@ -302,3 +302,9 @@ Vendor/Reown/Tests/WalletConnectSignTests/SIWEFromCacaoPayloadFormatterTests.swi
 Packages/OathAnkr/Tests/OathAnkrTests/Fixtures/WalletConnectTron/vectors.json:generic-api-key:6
 Tools/GenerateWalletConnectTronVectors.cjs:generic-api-key:4
 Packages/OathDatabase/Sources/OathDatabase/TransactionDetails.swift:generic-api-key:412
+Packages/OathAnkr/Tests/OathAnkrTests/TronUnactivatedDiscoveryTests.swift:generic-api-key:16
+Packages/OathMarketData/Sources/OathMarketData/ExploreDataService.swift:generic-api-key:171
+Packages/OathMarketData/Sources/OathMarketData/ExploreDataService.swift:generic-api-key:208
+Packages/OathMarketData/Tests/OathMarketDataTests/ExploreRecoveryTests.swift:generic-api-key:159
+Packages/OathMarketData/Tests/OathMarketDataTests/ExploreRecoveryTests.swift:generic-api-key:163
+Packages/OathMarketData/Tests/OathMarketDataTests/ExploreRecoveryTests.swift:generic-api-key:188

@@ -12,12 +12,14 @@ import Foundation
         gate.update(enabled: true, active: true, action: focus)
         await drain()
         precondition(deliveries == 0, "Focus must wait for native appearance")
+        precondition(!gate.permitsResponder)
 
         let push = gate.beginAnimation()
         let content = gate.beginAnimation()
         gate.setAppeared(true)
         await drain()
         precondition(deliveries == 0, "The first frame is not transition completion")
+        precondition(!gate.permitsResponder, "A queued UITextView request cannot bypass a transition")
         gate.endAnimation(push)
         await drain()
         precondition(deliveries == 0, "Overlapping animations must all finish")
@@ -25,6 +27,7 @@ import Foundation
         precondition(deliveries == 0, "Focus must leave the current layout transaction")
         await drain()
         precondition(deliveries == 1)
+        precondition(gate.permitsResponder, "A delivered callback must still allow the native responder hop")
         gate.update(enabled: true, active: true, action: focus)
         gate.endAnimation(content)
         gate.setAppeared(true)
@@ -34,6 +37,7 @@ import Foundation
         // Data arriving after navigation is complete is a separate readiness
         // condition (for example, loading the contact editor's networks).
         gate.setAppeared(false)
+        precondition(!gate.permitsResponder, "Back invalidates already-delivered focus before the field leaves its window")
         gate.update(enabled: false, active: true, action: focus)
         gate.setAppeared(true)
         await drain()
@@ -76,9 +80,11 @@ import Foundation
         sheet.end(layout)
         await drain()
         precondition(!sheet.isReady && deliveries == 3)
+        precondition(!gate.permitsResponder, "Keyboard entry must wait for the sheet as well as the push")
         sheet.end(resize)
         await drain()
         precondition(sheet.isReady && deliveries == 4)
+        precondition(gate.permitsResponder)
 
         // Reduce Motion / no-animation paths need no artificial delay; a new
         // resize arriving before the scheduled callback still blocks it.
@@ -100,6 +106,7 @@ import Foundation
 
         gate.setPresentationReady(true)
         gate.invalidate()
+        precondition(!gate.permitsResponder)
         await drain()
         precondition(deliveries == 5)
         // SwiftUI may rebuild the lifecycle bridge while retaining View state.

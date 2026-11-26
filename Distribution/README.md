@@ -22,9 +22,9 @@ platforms; they are not changed by a website release.
 
 ## App releases
 
-For **5.1.0 (110)**, use source tag `v5.1.0-build110`. The
-[release verification record](../releases/5.1.0.md) includes the exact workflow
-inputs and receipt checks. Earlier tags retain their original version and build.
+For **5.1.1 (111)**, use source tag `v5.1.1-build111`. The
+[release verification record](../releases/5.1.1.md) includes the completed checks
+and generic iOS build command. Earlier tags retain their original version and build.
 
 1. Update both project version/build settings, release notes, in-app version history
    and all affected localization strings. Put App Store release notes at

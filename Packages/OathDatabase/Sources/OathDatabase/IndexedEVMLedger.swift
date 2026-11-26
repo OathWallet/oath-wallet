@@ -68,11 +68,21 @@ extension OathDatabase {
             let previous = try Int64.fetchOne(db, sql: "SELECT checkpoint FROM indexedEVMSync WHERE accountID=?", arguments: [ticket.account.id])
             guard previous.map({ $0 <= value.block }) ?? true else { throw StoreError.staleSync }
             let now = value.observedAt.timeIntervalSince1970
+            // RPC catalogs enumerate contracts, not assets owned by this account.
+            // Match the other EVM ledgers: retain known/manual zero balances,
+            // but do not turn every successfully probed contract into a holding.
+            let knownReferences: Set<String> = value.chain.usesRPCCatalog ? Set(try String.fetchAll(db, sql: """
+                SELECT reference FROM indexedEVMHoldings WHERE accountID=?
+                UNION SELECT a.reference FROM trackedAssets t JOIN assets a ON a.id=t.assetID
+                WHERE t.accountID=? AND a.networkID=?
+                """, arguments: [ticket.account.id, ticket.account.id, ticket.account.networkID])) : []
             for holding in value.holdings {
                 // A single reverting contract cannot clear its last known balance.
                 guard let amount = holding.amount else { continue }
                 try Validation.amount(amount)
                 let token = holding.token
+                if value.chain.usesRPCCatalog, token.reference != "native", amount == "0",
+                   !knownReferences.contains(token.reference) { continue }
                 let asset = try Self.ankrAsset(networkID: ticket.account.networkID, reference: token.reference,
                     name: token.name, symbol: token.symbol, decimals: token.decimals, logo: token.logo, db: db)
                 let oldVerified = (try Int.fetchOne(db, sql: "SELECT verified FROM indexedEVMHoldings WHERE accountID=? AND reference=?", arguments: [ticket.account.id,token.reference])) == 1

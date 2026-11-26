@@ -10,6 +10,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 source = (ROOT / 'OathAtmosphere/Shared/OathAppSettings.swift').read_text()
 source = source.replace('import SwiftUI', 'import Foundation').replace('import OathDiagnostics\n', '').replace('import OathDatabase\n', '')
+source = source.replace('import OathBrowser\n', '')
 fixture = r'''
 import Foundation
 
@@ -146,6 +147,7 @@ with tempfile.TemporaryDirectory(prefix='oath-switcher-settings-') as directory:
     (work / 'Checks.swift').write_text(fixture)
     executable = work / 'checks'
     subprocess.run(['swiftc', '-swift-version', '6', '-parse-as-library',
+                    str(ROOT / 'Packages/OathBrowser/Sources/OathBrowser/BrowserPolicy.swift'),
                     str(ROOT / 'OathAtmosphere/Localization/OathStringKey.swift'),
                     str(ROOT / 'OathAtmosphere/Security/OathSecurityPolicy.swift'),
                     str(work / 'Settings.swift'), str(work / 'Checks.swift'), '-o', str(executable)], check=True)

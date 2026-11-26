@@ -1,6 +1,8 @@
 # OathNativeRefresh
 
-iOS 17+ native SwiftUI `List` with its native `.refreshable` control, exposed
+Current release: [5.1.1 (111)](../../releases/5.1.1.md).
+
+iOS 17+ native SwiftUI `List` with wallet-band and native refresh-control styles, exposed
 through the existing `NativeRefreshScroll` API. Native reusable cells keep both
 rendered content and button hit testing in the same coordinate space during the
 refresh inset animation. The list has no added row insets, backgrounds, spacing,
@@ -38,8 +40,21 @@ Do not add a second `.refreshable` modifier or adjust content insets manually.
 
 ## Pull-to-refresh indicators
 
-The default `.system` mode retains the original native spinner. Home and Asset Detail opt into
-`.progressRing`: a 28-point circular stroke fills with the pull distance, then
+Home, Asset Detail and Permissions use the `.walletBand` indicator. Apply
+`.walletRefreshNavigation()` to the owning navigation stack. A pull beginning at the top
+reveals an opaque Aurora gradient derived from the selected wallet color. Two radial
+gradients follow the pull and drift across the band while refresh is visible. Once the band reaches
+the toolbar's 12-point clearance, the toolbar follows its edge. The action starts at
+96 points of resisted pull. At the hold, the band extends 80 points below the top safe area.
+Eight round-ended spokes step clockwise every 100 ms. The band holds for 2 seconds on Home,
+1.5 seconds on Asset Detail, and 3.5 seconds on Permissions. Once the timer
+has elapsed and the pull is released, it closes with a 280 ms UIKit animation.
+Slow actions continue after dismissal. The bottom bars retain
+their positions. Reduce Motion holds the gradient and spinner still and shortens the return.
+Run `Tools/CheckRefreshActions.py` for the palette, motion, timing and geometry checks. The focused
+placement fixture runs with `Tools/CheckNativeRefreshPlacement.py --simulator-check --wallet-band --output <directory>`.
+
+The default `.system` mode uses the native spinner. The optional `.progressRing` style draws a 28-point circular stroke fills with the pull distance, then
 rotates while refreshing. Its 96-point fill threshold starts work and the started
 haptic immediately, even while the finger remains down. Drawing and activation
 share the same progress, so no extra pull is required after the stroke fills.
@@ -79,7 +94,7 @@ Failure shows `exclamationmark` before the failure callback, never a success che
 Reduce Motion uses static colors and a fade; Reduce Transparency uses an opaque
 vector. Labels and VoiceOver completion announcements are supplied by the caller.
 
-Home and Asset Detail use `timing: .brief`: the loading ring runs for 2.5 seconds,
+For callers using `timing: .brief`, the loading ring runs for 2.5 seconds,
 then blur-replaces the ring with a check and holds it briefly while provider work continues.
 A timed check acknowledges the gesture (`.finished` feedback); it does not
 announce “Updated” while data is still loading. Already-known failures show the

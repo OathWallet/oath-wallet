@@ -9,6 +9,23 @@ import Foundation
             precondition(condition(), message); checks += 1
         }
         typealias Failure = OathWalletConnectPolicy.ConnectionFailure
+        let scopeTime = Date()
+        var owners = ["site": "first-wallet"]
+        func visibleCount(for wallet: String?, until expiry: Date, revoked: Bool = false) -> Int {
+            ["site"].filter {
+                OathWalletConnectConnections.isVisible(owner: owners[$0], walletID: wallet, expiration: expiry,
+                                                      revoked: revoked, now: scopeTime)
+            }.count
+        }
+        check(visibleCount(for: "first-wallet", until: .distantFuture) == 1, "The selected wallet has one connected site")
+        check(visibleCount(for: "second-wallet", until: .distantFuture) == 0, "Switching wallets hides other connections")
+        check(visibleCount(for: "first-wallet", until: scopeTime) == 0, "An expired session is hidden")
+        check(visibleCount(for: "first-wallet", until: .distantFuture, revoked: true) == 0,
+              "Local revocation hides the connected site before relay acknowledgement")
+        check(visibleCount(for: nil, until: .distantFuture, revoked: true) == 1,
+              "The all-wallet manager can show a pending disconnection")
+        owners.removeValue(forKey: "site")
+        check(visibleCount(for: "first-wallet", until: .distantFuture) == 0, "Disconnecting the last session hides the row")
         let secret = "wc:private-topic?symKey=private-key"
         let cases: [(String, Int, Failure)] = [
             ("WalletConnectPairing.WalletPairService.Errors", 0, .usedQR),

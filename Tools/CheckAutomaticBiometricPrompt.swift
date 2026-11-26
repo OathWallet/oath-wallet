@@ -42,6 +42,16 @@ struct CheckAutomaticBiometricPrompt {
         check(!eligible(&manual), "Clearing the PIN does not restart Face ID")
         manual.didEnterBackground()
         check(eligible(&manual), "A new foreground visit can use Face ID after manual authentication")
-        print("Passed \(checks) automatic biometric prompt lifecycle checks.")
+        let suite = "OathGreetingTests." + UUID().uuidString
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        check(Set(OathUnlockGreetings.phrases).count == 12, "The greeting pool has twelve distinct phrases")
+        var last = OathUnlockGreetings.next(in: defaults)
+        for _ in 0..<100 {
+            let next = OathUnlockGreetings.next(in: UserDefaults(suiteName: suite)!)
+            check(next != last && OathUnlockGreetings.phrases.contains(next), "A fresh reader excludes the last greeting")
+            last = next
+        }
+        print("Passed \(checks) automatic biometric prompt and greeting checks.")
     }
 }

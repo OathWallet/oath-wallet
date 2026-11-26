@@ -70,19 +70,23 @@ extension OathImportChain {
 
 extension OathWalletProfile {
     static func stored(_ snapshot: WalletSnapshot) throws -> Self {
-        guard let id = UUID(uuidString: snapshot.wallet.id) else {
+        try stored(wallet: snapshot.wallet, accounts: snapshot.accounts, networks: snapshot.networks)
+    }
+
+    static func stored(wallet: WalletRecord, accounts: [AccountRecord], networks: [NetworkRecord]) throws -> Self {
+        guard let id = UUID(uuidString: wallet.id) else {
             throw OathDiagnostics.failure(OathWalletError.corruptVault, reason: "invalid_stored_wallet_identity")
         }
-        let addresses = snapshot.accounts.compactMap { account -> OathWalletAddress? in
+        let addresses = (accounts).compactMap { account -> OathWalletAddress? in
             // A newer build can enroll chains this binary does not implement.
             // This is a display/capability projection, not vault validation:
             // retain every account in SQL and the full snapshot, and expose
             // only addresses whose chain this binary can operate safely.
             // Expected forward-compatible metadata is not a diagnostic error.
-            OathWalletAddress.stored(account, network: snapshot.networks.first { $0.id == account.networkID })
+            OathWalletAddress.stored(account, network: networks.first { $0.id == account.networkID })
         }
-        return Self(id: id, addresses: addresses, createdAt: Date(timeIntervalSince1970: snapshot.wallet.createdAt),
-                    backedUp: snapshot.wallet.backedUp)
+        return Self(id: id, addresses: addresses, createdAt: Date(timeIntervalSince1970: wallet.createdAt),
+                    backedUp: wallet.backedUp)
     }
 }
 

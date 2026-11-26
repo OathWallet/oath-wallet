@@ -1,7 +1,7 @@
 import XCTest
 import UIKit
 
-/// One device, only welcome startup. No wallet secrets, camera, or Keychain use.
+/// Native welcome artwork and navigation checks.
 final class OathArtworkStartupUITests: XCTestCase {
     /// The 27.0 startup check cannot exercise GeometryProxy.reservedRegions.
     /// Verify the newer layout branch without fixed screenshot coordinates,
@@ -35,102 +35,89 @@ final class OathArtworkStartupUITests: XCTestCase {
         XCTAssertTrue(create.isHittable)
     }
 
+    /// Perspective transforms and native glass compositing need a real render;
+    /// arithmetic tests alone cannot prove the logos are visible or clipped.
     @MainActor
-    func testArtworkPrecedesDelayedRendererAndSurvivesReturn() {
+    func testWelcomeStreamAndActionsSurviveNavigation() async throws {
         continueAfterFailure = false
-        let app = launch(arguments: ["-oath-artwork-delay", "15"])
-        let artwork = app.otherElements["onboarding.artwork"]
-        XCTAssertTrue(artwork.waitForExistence(timeout: 5))
-        XCTAssertEqual(artwork.value as? String, "bundled")
-        XCTAssertTrue(app.buttons["onboarding.createWallet"].isHittable)
-        assertArtwork(XCUIScreen.main.screenshot(), name: "startup-bundled")
-        XCTAssertTrue(waitForRenderer(artwork), "Metal must finish rendering; pixel checks below verify its visible output")
-        let first = XCUIScreen.main.screenshot()
-        assertArtwork(first, name: "startup-live")
-        Thread.sleep(forTimeInterval: 1.5)
-        let next = XCUIScreen.main.screenshot()
-        let before = pixels(first.image), after = pixels(next.image)
-        // Only sample the silk at the side of the screen, away from logo,
-        // clock, feature capsule, or any other UI animation.
-        var changes = 0
-        for y in stride(from: 100, to: 500, by: 3) {
-            for x in 5..<30 {
-                let offset = (y * 300 + x) * 4
-                if abs(Int(before[offset + 2]) - Int(after[offset + 2])) > 3 { changes += 1 }
-            }
-        }
-        XCTAssertGreaterThan(changes, 100, "The live silk must actually animate")
+        let app = launch(arguments: [])
+        defer { app.terminate() }
+        let create = app.buttons["onboarding.createWallet"]
+        XCTAssertTrue(create.waitForExistence(timeout: 10))
+        try await Task.sleep(for: .seconds(2))
+        XCTAssertTrue(create.isHittable)
+        XCTAssertTrue(app.buttons["onboarding.importWallet"].isHittable)
+        XCTAssertTrue(app.buttons["onboarding.moreOptions"].isHittable)
+        XCTAssertTrue(app.descendants(matching: .any)["onboarding.consent"].firstMatch.exists)
+        let before = XCUIScreen.main.screenshot()
+        attach(before, name: "Welcome chain stream")
+        try await Task.sleep(for: .seconds(1.5))
+        let after = XCUIScreen.main.screenshot()
+        XCTAssertGreaterThan(changedArtworkPixels(before, after), 500, "Chain tiles must advance")
+        attach(after, name: "Welcome stream advancing")
         app.buttons["onboarding.importWallet"].tap()
         XCTAssertTrue(app.textViews["recovery.phrase"].waitForExistence(timeout: 5))
         app.navigationBars.buttons.firstMatch.tap()
-        XCTAssertTrue(artwork.waitForExistence(timeout: 5))
-        XCTAssertTrue(waitForRenderer(artwork, timeout: 5), "Returning should reuse the prepared resources")
-        assertArtwork(XCUIScreen.main.screenshot(), name: "startup-return")
-        XCUIDevice.shared.press(.home)
-        app.activate()
-        XCTAssertTrue(waitForRenderer(artwork, timeout: 5))
-        assertArtwork(XCUIScreen.main.screenshot(), name: "startup-foreground")
-        app.terminate()
-    }
-
-    @MainActor
-    func testArtworkRemainsVisibleWhenRendererUnavailable() {
-        continueAfterFailure = false
-        let app = launch(arguments: ["-oath-artwork-unavailable"])
-        let artwork = app.otherElements["onboarding.artwork"]
-        XCTAssertTrue(artwork.waitForExistence(timeout: 5))
-        XCTAssertEqual(artwork.value as? String, "bundled")
-        assertArtwork(XCUIScreen.main.screenshot(), name: "startup-unavailable")
-        // Preparation failure must not block any welcome action.
+        XCTAssertTrue(create.waitForExistence(timeout: 5))
+        XCTAssertTrue(create.isHittable, "Returning must not replay the opening cover")
         app.buttons["onboarding.moreOptions"].tap()
         XCTAssertTrue(app.buttons["onboarding.restoreICloud"].waitForExistence(timeout: 5))
-        app.terminate()
+        app.buttons["options.close"].tap()
+        XCTAssertTrue(create.waitForExistence(timeout: 5))
+        XCUIDevice.shared.press(.home)
+        app.activate()
+        XCTAssertTrue(create.waitForExistence(timeout: 5))
+        try await Task.sleep(for: .seconds(1))
+        let resumed = XCUIScreen.main.screenshot()
+        try await Task.sleep(for: .seconds(1))
+        XCTAssertGreaterThan(changedArtworkPixels(resumed, XCUIScreen.main.screenshot()), 500,
+                             "The stream resumes after foregrounding")
     }
 
     @MainActor
-    func testReducedMotionStillPresentsFirstFrame() {
+    func testReducedMotionWelcomeIsStaticAndUsable() async throws {
         continueAfterFailure = false
         let app = launch(arguments: ["-oath-artwork-reduce-motion"])
-        let artwork = app.otherElements["onboarding.artwork"]
-        XCTAssertTrue(artwork.waitForExistence(timeout: 5))
-        XCTAssertTrue(waitForRenderer(artwork, timeout: 10), "A paused animation still owes the view a first frame")
-        assertArtwork(XCUIScreen.main.screenshot(), name: "startup-reduced-motion")
-        app.terminate()
+        defer { app.terminate() }
+        XCTAssertTrue(app.buttons["onboarding.createWallet"].waitForExistence(timeout: 5))
+        try await Task.sleep(for: .seconds(1))
+        let before = XCUIScreen.main.screenshot()
+        try await Task.sleep(for: .seconds(1))
+        XCTAssertLessThan(changedArtworkPixels(before, XCUIScreen.main.screenshot()), 30,
+                          "Reduce Motion must stop the perspective animation")
+        XCTAssertTrue(app.buttons["onboarding.importWallet"].isHittable)
+        XCTAssertTrue(app.buttons["onboarding.moreOptions"].isHittable)
+        attach(before, name: "Welcome reduced motion")
+    }
+
+    @MainActor private func changedArtworkPixels(_ first: XCUIScreenshot, _ second: XCUIScreenshot) -> Int {
+        let a = pixels(first.image), b = pixels(second.image)
+        var changed = 0
+        // Upper artwork only; exclude status indicators, copy and native controls.
+        for y in 75..<260 {
+            for x in 15..<285 {
+                let offset = (y * 300 + x) * 4
+                if (0..<3).contains(where: { abs(Int(a[offset + $0]) - Int(b[offset + $0])) > 12 }) { changed += 1 }
+            }
+        }
+        return changed
+    }
+
+    @MainActor private func attach(_ screenshot: XCUIScreenshot, name: String) {
+        let attachment = XCTAttachment(screenshot: screenshot)
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
     }
 
     @MainActor
     private func launch(arguments: [String]) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US",
-                               "-oath.languagePreference", "en", "-oath-artwork-diagnostics"] + arguments
+                               "-oath.languagePreference", "en", "-oath-artwork-diagnostics",
+                               "-oath.walletTestScope", UUID().uuidString] + arguments
         app.launch()
         return app
-    }
-
-    @MainActor
-    private func waitForRenderer(_ artwork: XCUIElement, timeout: TimeInterval = 25) -> Bool {
-        let predicate = NSPredicate(format: "value == %@", "rendered")
-        return XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: predicate, object: artwork)], timeout: timeout) == .completed
-    }
-
-    @MainActor
-    private func assertArtwork(_ screenshot: XCUIScreenshot, name: String) {
-        let bytes = pixels(screenshot.image)
-        var blue = 0, whiteLogo = 0
-        for y in 70..<340 {
-            for x in 12..<288 {
-                let p = (y * 300 + x) * 4
-                let r = Int(bytes[p]), g = Int(bytes[p + 1]), b = Int(bytes[p + 2])
-                if b > r + 20 && b > 35 { blue += 1 }
-                if y < 210 && x > 50 && x < 250 && r > 185 && g > 185 && b > 185 { whiteLogo += 1 }
-            }
-        }
-        XCTAssertGreaterThan(blue, 15000, "Welcome must contain blue artwork before Metal is ready")
-        XCTAssertGreaterThan(whiteLogo, 2000, "The opaque white logo must also be present")
-        let attachment = XCTAttachment(screenshot: screenshot)
-        attachment.name = name
-        attachment.lifetime = .keepAlways
-        add(attachment)
     }
 
     @MainActor

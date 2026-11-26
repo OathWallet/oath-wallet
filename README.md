@@ -1,26 +1,29 @@
-# Oath Wallet
+# Oath Wallet 5.1.1
 
 A native multichain wallet for iPhone and iPad.
 
-**Available on the App Store:** [Oath 5.0.2 (104)](https://apps.apple.com/app/id6780187283) for iPhone and iPad, iOS/iPadOS 17 or later. [Distribution evidence](releases/5.0.2-distribution.json).
+**Version 5.1.1 · Build 111** — [source release](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111) for iPhone and iPad, iOS/iPadOS 17 or later. [Get Oath on the App Store](https://apps.apple.com/app/id6780187283).
 
 [Is Oath right for me?](https://oathwallet.org/about#wallet-fit) · [Dated wallet compatibility results](https://oathwallet.org/compatibility/2026-11-09)
 
 [Published security review and remaining scope](https://github.com/OathWallet/oath-wallet-security-review) · [Current release metadata](https://oathwallet.org/release-status.json)
 
-[Release notes and verification](releases/5.0.2.md) · [Website](https://oathwallet.org) ·
+[Release notes and verification](releases/5.1.1.md) · [Website](https://oathwallet.org) ·
 [Security model](Documentation/SecurityModel.md) · [Reporting policy](SECURITY.md) · [Build configuration](Documentation/PublicBuild.md) ·
 [MIT license](LICENSE)
 
-## Latest source release
+## What's new in 5.1.1 (111)
 
-[Oath 5.1.0 (110)](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.0-build110) identifies the current release source. See its [changes and build-verification record](releases/5.1.0.md). Apple upload, processing and public availability are recorded separately.
+- Add, select, rename and remove EVM and Solana accounts, including custom derivation paths and backup recovery.
+- View native balance history charts with interactive scrubbing and haptic feedback.
+- Browse with tabs, private sessions, favorites, recent sites and configurable search; review website connections and EVM signing requests in the app.
+- Use Plasma, World Chain and Elysium alongside the existing supported networks.
+- Find History and the scanner in Home's toolbar, with account-aware balances, improved scrolling and pull-to-refresh.
+- See funded assets, assets with activity and explicitly added tokens in Home, with consistent hidden-asset valuation.
+- Choose app icons in the new carousel, including Vice Sunset, and use the refreshed welcome and unlock screens.
+- Benefit from improved biometric prompting, import keyboard behavior, market-data recovery and token artwork handling.
 
-## In Oath 5.0.2
-
-- Check the transferred asset and network fee in their native units on a transaction receipt.
-- Identify an asset by its symbol, full name and network before selecting it.
-- Review [WalletConnect requests](https://oathwallet.org/features/walletconnect) and [token permissions](https://oathwallet.org/features/revoke-token-approvals) for the networks each tool supports.
+See the [release record](releases/5.1.1.md) for completed validation and scope.
 
 ## Public source boundaries
 
@@ -30,9 +33,7 @@ Website service implementations and [deployment workflows](Distribution/README.m
 Credentials, provider API keys, signing material, personal data, and local validation
 outputs remain outside Git. Website services are separate from the self-custodial iOS app. Recovery input stays local; signing happens on the device.
 
-Diagnostics use privacy filtering and bounded on-device storage. Optional encrypted
-iCloud backup is separate from diagnostics and requires your own Apple capability
-configuration. Never put real wallet material in tests, issues, or support reports.
+Optional encrypted iCloud backup requires your own Apple capability configuration. Never put real wallet material in tests, issues, or support reports.
 
 ## Release verification
 

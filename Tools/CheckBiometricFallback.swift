@@ -2,6 +2,10 @@ import Foundation
 import OathDatabase
 import Security
 
+@MainActor private final class BiometricHardwareProbe {
+    var kind: OathBiometricKind? = .faceID
+}
+
 private final class BiometricRequestProbe: @unchecked Sendable {
     private let lock = NSLock()
     private var invalidations = 0
@@ -58,6 +62,29 @@ extension CheckMultiWallet {
         stalled.release.signal()
         try await Task.sleep(for: .milliseconds(30))
         check(stalled.invalidationCount == 1, "Late OS success cannot finish the timed-out request again")
+
+        let lateMatch = BiometricRequestProbe()
+        let awaitingFace = OathBiometricRequest(invalidate: { lateMatch.invalidate() })
+        do {
+            _ = try await awaitingFace.read(timeout: 0.03, authorize: { reply in
+                DispatchQueue.global().asyncAfter(deadline: .now() + 0.12) { reply(nil) }
+            }) { lateMatch.read() }
+            preconditionFailure("A stalled face match opened the credential")
+        } catch {
+            check(error as? OathBiometricCredentialError == .unavailable, "The deadline covers the system prompt too")
+        }
+        try await Task.sleep(for: .milliseconds(150))
+        check(lateMatch.readCount == 0 && lateMatch.invalidationCount == 1,
+              "A late match cannot start a protected read after fallback")
+        let rejected = BiometricRequestProbe()
+        let denied = OathBiometricRequest(invalidate: { rejected.invalidate() })
+        do {
+            _ = try await denied.read(authorize: { $0(OathBiometricCredentialError.cancelled) }) { rejected.read() }
+            preconditionFailure("A cancelled face match opened the credential")
+        } catch {
+            check(error as? OathBiometricCredentialError == .cancelled && rejected.readCount == 0,
+                  "A cancelled system prompt skips the Keychain read")
+        }
 
         let cancelled = BiometricRequestProbe()
         let cancelling = OathBiometricRequest(invalidate: { cancelled.invalidate() })
@@ -149,7 +176,8 @@ extension CheckMultiWallet {
         try await vault.create(digits: pin, importing: .init(phrase: "synthetic fallback fixture", language: "english"))
         await biometrics.enroll(try await vault.biometricCredential())
         await biometrics.allowEnrollment()
-        let session = OathWalletSession(vault: vault)
+        let hardware = BiometricHardwareProbe()
+        let session = OathWalletSession(vault: vault, availableUnlockBiometrics: { hardware.kind })
         await session.finishedSetup()
         let root = session.displayedProfile!.id.uuidString
         session.finishInitialCustomization()
@@ -170,9 +198,62 @@ extension CheckMultiWallet {
               "Successful Face ID advances directly to reset confirmation without erasing a wallet")
         reset.cancel()
         await session.lock()
+        check(session.unlockGreeting == nil, "Manual lock opens the keypad")
         await session.unlockWithBiometrics()
         check(session.isUnlocked && !session.busy && !session.animatesUnlock,
               "Successful Face ID opens the app without an activation callback or second lock animation")
+
+        let departure = ContinuousClock.now
+        session.enteredBackground(delay: .oneMinute, now: departure)
+        session.enteringForeground(now: departure.advanced(by: .seconds(30)))
+        check(session.isUnlocked, "Returning within the grace period resumes the existing screen")
+        session.enteredBackground(delay: .oneMinute, now: departure)
+        session.enteringForeground(now: departure.advanced(by: .seconds(61)))
+        let visit = session.lockVisitID
+        let phrase = session.unlockGreeting
+        check(session.isLocked && phrase != nil, "Expired grace selects the Face ID greeting before input")
+        await biometrics.pauseNextRead()
+        let pending = Task { await session.attemptAutomaticUnlock(visit: visit, hasPasscodeInput: false) }
+        for _ in 0..<1_000 where !(await biometrics.isWaiting) { try await Task.sleep(for: .milliseconds(5)) }
+        check(await biometrics.isWaiting, "A visible protected visit starts the credential read")
+        let reads = await biometrics.reads
+        await session.attemptAutomaticUnlock(visit: visit, hasPasscodeInput: false)
+        check(await biometrics.reads == reads && session.unlockGreeting == phrase,
+              "Repeated presentations share the pending read and greeting")
+        session.enteredBackground(delay: .immediately)
+        await biometrics.releaseRead()
+        await pending.value
+        check(session.isLocked, "Leaving during a read rejects a late match")
+        session.enteringForeground()
+        check(session.lockVisitID != visit && session.unlockGreeting != nil && session.unlockGreeting != phrase,
+              "A new foreground visit gets a different greeting")
+        await session.attemptAutomaticUnlock(visit: visit, hasPasscodeInput: false)
+        check(await biometrics.reads == reads, "A previous view cannot start a new visit's authentication")
+        await session.attemptAutomaticUnlock(visit: session.lockVisitID, hasPasscodeInput: false)
+        check(session.isUnlocked && session.animatesUnlock && session.unlockGreeting != nil,
+              "The authenticated greeting stays mounted for the native dissolve")
+        check(await biometrics.lastReadRequiredFreshMatch, "Automatic Face ID requires a fresh foreground match")
+
+        await session.lock(reason: .automatic)
+        await biometrics.failNextRead(.keychain(errSecAuthFailed))
+        await session.attemptAutomaticUnlock(visit: session.lockVisitID, hasPasscodeInput: false)
+        check(session.isLocked && session.unlockGreeting == nil && !session.busy, "A mismatch shows the fallback PIN")
+        let failedReads = await biometrics.reads
+        await session.attemptAutomaticUnlock(visit: session.lockVisitID, hasPasscodeInput: false)
+        check(await biometrics.reads == failedReads, "The PIN fallback survives view reconstruction without reprompting")
+        await session.unlock(pin)
+
+        hardware.kind = nil
+        await session.lock(reason: .automatic)
+        check(session.unlockGreeting == nil && session.unlockBiometrics == nil, "Unavailable hardware uses the keypad immediately")
+        await session.unlock(pin)
+        hardware.kind = .touchID
+        await session.lock(reason: .automatic)
+        check(session.unlockGreeting == nil && session.unlockBiometrics == .touchID, "Touch ID retains its keypad")
+        await session.attemptAutomaticUnlock(visit: session.lockVisitID, hasPasscodeInput: false)
+        check(session.isUnlocked && !session.animatesUnlock, "Touch ID can still unlock automatically")
+        check(!(await biometrics.lastReadRequiredFreshMatch), "Touch ID retains its existing protected-item interaction")
+        hardware.kind = .faceID
         let failures: [OathBiometricCredentialError] = [.cancelled, .unavailable, .missing, .invalid,
             .keychain(errSecAuthFailed), .keychain(errSecInteractionNotAllowed), .keychain(errSecNotAvailable)]
 

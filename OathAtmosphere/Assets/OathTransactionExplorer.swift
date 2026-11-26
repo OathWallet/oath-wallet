@@ -8,6 +8,9 @@ extension OathImportChain {
               hash.unicodeScalars.allSatisfy({ CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-=+/").contains($0) }) else { return nil }
         let route: String
         switch self {
+        case .plasma: route = "https://plasmascan.to/tx/"
+        case .worldchain: route = "https://worldscan.org/tx/"
+        case .elysium: route = "https://elyscan.live/tx/"
         case .cronos: route = "https://explorer.cronos.com/tx/"
         case .bitcoin: route = "https://mempool.space/tx/"
         case .bitcoincash: route = "https://blockchair.com/bitcoin-cash/transaction/"

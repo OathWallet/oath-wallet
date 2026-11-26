@@ -118,6 +118,7 @@ struct OathWCStatePage: View {
     var identity: OathWCIdentity? = nil
     var isError = false
     var isWorking = false
+    var detailCode: String? = nil
     var primaryTitle: OathStringKey = .done
     var secondaryTitle: OathStringKey? = nil
     let primary: () -> Void
@@ -137,6 +138,7 @@ struct OathWCStatePage: View {
             }
             Text(strings.text(title)).oathFont(.title2, weight: .semibold)
             Text(strings.text(detail)).oathFont(.body).foregroundStyle(.secondary)
+            if let detailCode { Text(verbatim: detailCode).oathFont(.caption).foregroundStyle(.secondary) }
         }.multilineTextAlignment(.center).frame(maxWidth: .infinity)
     }
     var body: some View {

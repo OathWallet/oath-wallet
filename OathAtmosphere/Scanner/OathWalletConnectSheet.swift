@@ -312,6 +312,9 @@ struct OathWalletConnectSheet: View {
     @ViewBuilder private func issuePage(_ issue: OathWalletConnectService.PresentationIssue) -> some View {
         if case .gas(let network, let address) = issue {
             OathWCGasPage(network: network, address: address, close: close)
+        } else if case .transaction(let failure) = issue {
+            OathWCStatePage(title: .sendPreparationFailed, detail: failure.key, symbol: "exclamationmark.circle",
+                isError: true, detailCode: failure.code, primary: close)
         } else if case .declined = issue {
             OathWCDeclinedPage(close: close)
         } else {
@@ -325,6 +328,7 @@ struct OathWalletConnectSheet: View {
         case .gas: (.wcNeedGas, .wcNeedGasDetail)
         case .bitcoinFunds: (.sendInsufficient, .sendFeeNotIncluded)
         case .simulation: (.wcSimulationFailed, .wcSimulationFailedDetail)
+        case .transaction(let failure): (.sendPreparationFailed, failure.key)
         case .declined: (.wcRequestDeclined, .wcRequestDeclinedDetail)
         }
         OathWCStatePage(title: keys.0, detail: keys.1, symbol: keys.0 == .wcRequestDeclined ? "xmark.circle" : "exclamationmark.circle", isError: keys.0 != .wcRequestDeclined, primary: close)

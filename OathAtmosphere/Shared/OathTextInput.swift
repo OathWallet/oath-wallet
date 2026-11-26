@@ -34,6 +34,7 @@ struct OathTextInput: UIViewRepresentable {
     }
 
     func updateUIView(_ field: Field, context: Context) {
+        field.focusGate = context.environment.oathInputFocusGate
         context.coordinator.parent = self
         context.coordinator.accessory.updateAppearance(context.environment.colorScheme == .dark ? .dark : .light)
         context.coordinator.focus.update(focused: focused, enabled: context.environment.isEnabled)
@@ -51,20 +52,20 @@ struct OathTextInput: UIViewRepresentable {
             let style: UIFont.TextStyle = prominent ? .largeTitle : .body
             field.font = UIFontMetrics(forTextStyle: style).scaledFont(for: .systemFont(ofSize: prominent ? 34 : 17,
                                                                                       weight: prominent ? .medium : .regular))
-            field.textColor = prominent ? .white : .label
+            field.textColor = .label
             field.keyboardType = keyboardType ?? (secret || address ? .asciiCapable : .default)
             field.returnKeyType = returnKeyType
             field.smartQuotesType = .no
             field.smartDashesType = .no
             field.smartInsertDeleteType = .no
             if secret { field.font = UIFont.preferredFont(forTextStyle: .body) }
-            field.tintColor = prominent ? .white : .tintColor
+            field.tintColor = .tintColor
             field.textAlignment = prominent ? .center : .natural
             field.autocapitalizationType = prominent ? .words : .none
             field.semanticContentAttribute = secret || address ? .forceLeftToRight : (language.isRightToLeft ? .forceRightToLeft : .forceLeftToRight)
             if secret || address { field.textAlignment = .left }
             context.coordinator.accessory.toolbar.semanticContentAttribute = language.isRightToLeft ? .forceRightToLeft : .forceLeftToRight
-            field.attributedPlaceholder = NSAttributedString(string: title, attributes: [.foregroundColor: prominent ? UIColor.white.withAlphaComponent(0.7) : UIColor.placeholderText])
+            field.attributedPlaceholder = NSAttributedString(string: title, attributes: [.foregroundColor: UIColor.placeholderText])
             field.accessibilityLabel = title
             field.accessibilityIdentifier = identifier
             field.configureVisibility(sensitive: secret, showsControl: showsSecretVisibility, rightToLeft: language.isRightToLeft,
@@ -162,6 +163,7 @@ struct OathTextInput: UIViewRepresentable {
     }
 
     final class Field: OathEntryTextField {
+        weak var focusGate: OathAutofocusGate?
         private var wantsFocus = false
         private var scheduled = false
         func setFocus(_ wanted: Bool) {
@@ -178,6 +180,7 @@ struct OathTextInput: UIViewRepresentable {
                 self.scheduled = false
                 guard self.window != nil else { return }
                 if self.wantsFocus, !self.isFirstResponder {
+                    guard self.focusGate?.permitsResponder != false else { return }
                     self.inputAccessoryView?.frame.size.width = self.window?.bounds.width ?? self.bounds.width
                     self.inputAccessoryView?.sizeToFit()
                     self.becomeFirstResponder()

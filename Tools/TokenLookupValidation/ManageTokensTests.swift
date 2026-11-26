@@ -119,19 +119,24 @@ private final class ManagementInvalidations: @unchecked Sendable {
         await model.refreshCatalog()
         await model.load(query: "", scope: .all)
         let enabled = Set(OathImportChain.enabledCases.map(\.id))
-        XCTAssertEqual(enabled.count, 42)
         XCTAssertEqual(Set(model.rows.map(\.networkID)), enabled)
         XCTAssertEqual(model.rows.count, enabled.count)
         XCTAssertTrue(model.catalogUnavailable)
         for chain in OathImportChain.enabledCases {
             await model.load(query: "", scope: .init(chain: chain))
             XCTAssertEqual(model.rows.map(\.id), [chain.id + ":native"], chain.id)
-            XCTAssertTrue(model.enabled(try XCTUnwrap(model.rows.first)))
+            let row = try XCTUnwrap(model.rows.first)
+            XCTAssertFalse(model.enabled(row), "Unused coins stay available here without appearing on Home")
+            let asset = try XCTUnwrap(model.snapshot?.assets.first { $0.id == chain.id + ":native" })
+            try await db.enableManagedToken(asset, walletID: "one")
+            model.accept(try await db.managedAssets(walletID: "one", currency: "USD"))
+            XCTAssertTrue(model.enabled(row), "Explicit selection enables even an unknown/zero native balance")
             try await db.setAssetHidden(true, assetID: chain.id + ":native", walletID: "one")
+            model.accept(try await db.managedAssets(walletID: "one", currency: "USD"))
         }
         model.accept(try await db.managedAssets(walletID: "one", currency: "USD"))
         await model.load(query: "", scope: .all)
-        XCTAssertEqual(model.rows.count, 42)
+        XCTAssertEqual(model.rows.count, OathImportChain.enabledCases.count)
         XCTAssertTrue(model.rows.allSatisfy { !model.enabled($0) })
         let other = try await db.managedAssets(walletID: "two", currency: "USD")
         XCTAssertTrue(other.hiddenAssetIDs.isEmpty)
@@ -145,10 +150,10 @@ private final class ManagementInvalidations: @unchecked Sendable {
         let model = OathManageTokensModel(catalog: catalog, lookup: OathTokenSearchModel(service: UnexpectedManagedLookup(), catalog: OfflineManagedCatalog()))
         model.accept(try await db.managedAssets(walletID: "one", currency: "USD"))
         await model.load(query: "", scope: .all)
-        XCTAssertEqual(model.rows.count, 944)
+        XCTAssertEqual(model.rows.count, 902 + OathImportChain.enabledCases.count)
         XCTAssertEqual(model.visibleRows.count, 200)
         while model.visibleRows.count < model.rows.count { model.revealMore(after: try XCTUnwrap(model.visibleRows.last)) }
-        XCTAssertEqual(model.visibleRows.count, 944)
+        XCTAssertEqual(model.visibleRows.count, 902 + OathImportChain.enabledCases.count)
         let before = model.rows.map(\.id)
         _ = try await db.enableManagedToken(token(450), walletID: "one")
         model.accept(try await db.managedAssets(walletID: "one", currency: "USD"))
@@ -166,12 +171,47 @@ private final class ManagementInvalidations: @unchecked Sendable {
         await reopened.load(query: "", scope: .all)
         XCTAssertTrue(reopened.enabled(try XCTUnwrap(reopened.rows.first { $0.id == token(450).id })), "A selected token survives loss of catalog coverage")
     }
+    func testCoinGeckoMigrationKeepsSavedLifiEraTokenAndItsBalance() async throws {
+        let (db, directory) = try await fixture(); defer { try? FileManager.default.removeItem(at: directory) }
+        let saved = token(1)
+        _ = try await db.enableManagedToken(saved, walletID: "one")
+        try await db.saveBalances([.init(accountID: "oneethereum", assetID: saved.id, networkID: "ethereum",
+            amountAtomic: "1234567", observedAt: 1, source: "fixture")])
+        let prepared = try JSONSerialization.data(withJSONObject: ["format": 1, "entries": [
+            ["network": "ethereum", "reference": saved.reference, "name": saved.name, "symbol": saved.symbol, "source": "lifi"]
+        ]])
+        let disk: [String: Any] = ["version": 1, "fetchedAt": Date().timeIntervalSinceReferenceDate,
+            "retryAt": Date.distantPast.timeIntervalSinceReferenceDate, "orderVersion": 1,
+            "data": prepared.base64EncodedString()]
+        try JSONSerialization.data(withJSONObject: disk).write(to: directory.appendingPathComponent("catalog-v1.json"))
+        let seed = try JSONSerialization.data(withJSONObject: [["id": "new-token", "name": token(2).name,
+            "symbol": "new", "platforms": ["ethereum": token(2).reference]]])
+        let catalog = TokenDiscoveryCatalog(transport: FailedManagedProvider(), directory: directory, seed: seed)
+        let discovered = await catalog.tokens(on: "ethereum")
+        XCTAssertEqual(discovered.map(\.reference), [token(2).reference])
+        let model = OathManageTokensModel(catalog: catalog,
+            lookup: OathTokenSearchModel(service: UnexpectedManagedLookup(), catalog: OfflineManagedCatalog()))
+        let snapshot = try await db.managedAssets(walletID: "one", currency: "USD")
+        model.accept(snapshot)
+        await model.load(query: saved.reference, scope: .init(chain: .ethereum))
+        XCTAssertEqual(model.rows.map(\.id), [saved.id])
+        XCTAssertTrue(model.enabled(try XCTUnwrap(model.rows.first)))
+        let after = try await db.managedAssets(walletID: "one", currency: "USD")
+        XCTAssertEqual(after, snapshot,
+            "Migrating the public directory must not modify wallet assets, balances or visibility")
+    }
+
     func testWritesAreSerializedBoundedCommittedAndRetryable() async throws {
         let (db, directory) = try await fixture(); defer { try? FileManager.default.removeItem(at: directory) }
         let model = OathManageTokensModel(catalog: OfflineManagedCatalog(), lookup: OathTokenSearchModel(service: UnexpectedManagedLookup(), catalog: OfflineManagedCatalog()))
         model.accept(try await db.managedAssets(walletID: "one", currency: "USD"))
         await model.load(query: "", scope: .all)
         let rows = Array(model.rows.prefix(8)), gate = ManagedGate(), operations = OathManagedTokenOperations()
+        for row in rows {
+            let asset = try XCTUnwrap(model.snapshot?.assets.first { $0.id == row.id })
+            try await db.enableManagedToken(asset, walletID: "one")
+        }
+        model.accept(try await db.managedAssets(walletID: "one", currency: "USD"))
         var started = 0
         for row in rows {
             operations.set(false, row: row, walletID: "one") { _, row, wallet in
@@ -229,7 +269,7 @@ private final class ManagementInvalidations: @unchecked Sendable {
         XCTAssertTrue(tracked.isEmpty)
         await model.load(query: "", scope: .all)
         XCTAssertFalse(model.lookupFailed)
-        XCTAssertEqual(model.rows.count, 42)
+        XCTAssertEqual(model.rows.count, OathImportChain.enabledCases.count)
     }
     func testLateCatalogResponseCannotReplaceNewChainOrDismissedPage() async throws {
         let (db, directory) = try await fixture(); defer { try? FileManager.default.removeItem(at: directory) }
@@ -276,7 +316,7 @@ private final class ManagementInvalidations: @unchecked Sendable {
         let revision = model.revision
         let load = Task { await model.load(query: "", scope: .all) }
         while await catalog.calls == 0 { await Task.yield() }
-        XCTAssertEqual(model.rows.count, 42, "All native coins must show before disk/provider work completes")
+        XCTAssertEqual(model.rows.count, OathImportChain.enabledCases.count, "All native coins must show before disk/provider work completes")
         XCTAssertFalse(model.loading, "Wallet assets must not be replaced by a blocking spinner")
         // Use the production database observation while the initial catalog is
         // held. SwiftUI restarts only if revision changes; it must stay constant.
@@ -300,8 +340,8 @@ private final class ManagementInvalidations: @unchecked Sendable {
         try await until { model.snapshot?.holdings.first { $0.assetID == "ethereum:native" }?.balanceObservedAt == 179 }
         let updatesElapsed = start.duration(to: .now)
         XCTAssertEqual(model.revision, revision)
-        XCTAssertEqual(model.rows.count, 42)
-        XCTAssertEqual(invalidations.value, 0, "80 balance/price commits must not invalidate the visible management list")
+        XCTAssertEqual(model.rows.count, OathImportChain.enabledCases.count)
+        XCTAssertEqual(invalidations.value, 1, "The first funded balance enables its switch; the catalog must not rebuild for price/balance updates")
         let publishStart = ContinuousClock.now
         await catalog.release(); await load.value
         XCTAssertGreaterThan(model.rows.count, 30_000, "Regression must use the full production seed, not a tiny fixture")

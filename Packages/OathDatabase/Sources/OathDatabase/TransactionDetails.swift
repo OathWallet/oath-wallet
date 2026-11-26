@@ -126,7 +126,7 @@ extension OathDatabase {
                                                  transaction tx: TransactionRecord, state: String) throws -> Int64? {
         let utxo = UTXONetwork(rawValue: tx.networkID) != nil
         let evm = AnkrChain(networkID: tx.networkID) != nil ||
-            ["arc", "robinhood", "hyperevm", "chiliz", "filecoin", "sei", "zerog", "iotex", "celo", "unichain", "monad"].contains(tx.networkID)
+            ["arc", "robinhood", "hyperevm", "plasma", "worldchain", "elysium", "chiliz", "filecoin", "sei", "zerog", "iotex", "celo", "unichain", "monad"].contains(tx.networkID)
         // Slots, ledger versions and finality flags are not confirmation counts.
         guard utxo || evm, ["pending", "confirmed", "failed"].contains(state) else { return nil }
         if state == "pending" { return 0 }
@@ -140,7 +140,7 @@ extension OathDatabase {
             case "arc": "arcSync"
             case "robinhood": "robinhoodSync"
             case "hyperevm": "hyperevmSync"
-            case "chiliz", "filecoin", "sei", "zerog", "iotex", "celo", "unichain", "monad", "story": "indexedEVMSync"
+            case "plasma", "worldchain", "elysium", "chiliz", "filecoin", "sei", "zerog", "iotex", "celo", "unichain", "monad", "story": "indexedEVMSync"
             default: nil
             }
             if let table {

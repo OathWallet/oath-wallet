@@ -39,17 +39,21 @@ extension CheckMultiWallet {
               "Creation date and wallet kind must be restored")
         check(session.portfolio?.wallet.parentWalletID == originalParentID.uuidString && WalletTree(session.wallets).roots.count == 1,
               "A child restores independently when its parent is absent")
-        check(session.portfolio?.accounts.count == 3 && session.portfolio?.accounts.contains(where: {
+        // Home contains the selected account. The unfiltered snapshot covers every restored path.
+        let firstRows = try await db.snapshot(walletID: original.id.uuidString, currency: "USD")
+        check(firstRows.accounts.count == 3 && firstRows.accounts.contains(where: {
             $0.networkID == "ethereum" && $0.accountIndex == 3 && $0.derivationPath == accounts[1].derivationPath
-        }) == true, "Each restored account must retain its index and path")
+        }), "Each restored account must retain its index and path")
+        check(firstRows.totalFiat == 0 && session.portfolio?.totalFiat == firstRows.totalFiat,
+              "A first restore must show the stored balance")
         let credential = try await vault.biometricCredential()
         await biometrics.enroll(credential)
-        let firstRows = try await db.snapshot(walletID: original.id.uuidString, currency: "USD")
         let key = BackupWallet.ImportedPrivateKey(bytes: Data(repeating: 7, count: 32), networks: ["ethereum", "base"])
         let second = BackupWallet(id: UUID(), name: "Key fixture", mnemonic: "", language: "", createdAt: .now,
             accounts: key.networks.map { .init(network: $0, derivationPath: "imported", index: 0) }, colorHex: "209750", privateKey: key)
         let next = try OathRestoredWallet(backup: second)
         try await session.restoreWallet(next)
+        check(session.portfolio?.totalFiat == 0, "The second restored wallet must show its own balance")
         check(session.wallets.count == 2 && session.displayedProfile?.id == second.id && session.pendingCustomizationID == nil,
               "Additional restore must add and select the recovered wallet without new setup")
         let unchanged = try await db.snapshot(walletID: original.id.uuidString, currency: "USD")
@@ -106,8 +110,9 @@ extension CheckMultiWallet {
         let parent = BackupWallet(id: originalParentID, name: "Original", mnemonic: words, language: "english",
             createdAt: Date(timeIntervalSince1970: 1000), accounts: accounts)
         try await reopened.restoreWallet(OathRestoredWallet(backup: parent, validator: validator))
-        check(WalletTree(reopened.wallets).roots.first { $0.id == originalParentID.uuidString }?.children.first?.id == original.id.uuidString,
-              "Restoring the original parent reconnects its independently restored child")
+        check(reopened.wallets.contains { $0.id == originalParentID.uuidString }
+              && reopened.wallets.first { $0.id == original.id.uuidString }?.parentWalletID == originalParentID.uuidString,
+              "Restoring the parent preserves the original wallet relationship in independent rows")
         await reopened.lock()
         do { try await reopened.restoreWallet(third); preconditionFailure("Locked session restored a wallet") }
         catch { check(error as? OathWalletError == .locked, "Restore requires an unlocked existing app") }

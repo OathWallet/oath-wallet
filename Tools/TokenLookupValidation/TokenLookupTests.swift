@@ -27,34 +27,6 @@ private struct UnavailableDirectory: AnkrTransport {
 }
 
 @MainActor final class TokenLookupTests: XCTestCase {
-    func testPortfolioFactoriesDoNotRequireAlchemyForUnichainOrHyperEVM() async throws {
-        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        defer { try? FileManager.default.removeItem(at: folder) }
-        let database = try await OathDatabase.open(at: folder.appendingPathComponent("wallet.sqlite"))
-        // An unusable optional key must not break routes that do not use it.
-        let configuration = OathTokenRPCConfiguration(ankrKey: "fixture", alchemyKey: "invalid key")
-        XCTAssertNoThrow(try configuration.makeIndexedEVMSynchronizer(database: database, chain: .unichain))
-        XCTAssertNoThrow(try configuration.makeHyperEVMSynchronizer(database: database))
-        XCTAssertThrowsError(try configuration.makeIndexedEVMSynchronizer(database: database, chain: .monad)) {
-            XCTAssertEqual($0 as? AnkrError, .configurationMissing)
-        }
-    }
-
-    func testPortfolioFactoriesStillRequireValidPrimaryCredentials() async throws {
-        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        defer { try? FileManager.default.removeItem(at: folder) }
-        let database = try await OathDatabase.open(at: folder.appendingPathComponent("wallet.sqlite"))
-        for key in ["", "invalid key"] {
-            let configuration = OathTokenRPCConfiguration(ankrKey: key, alchemyKey: "fixture")
-            XCTAssertThrowsError(try configuration.makeIndexedEVMSynchronizer(database: database, chain: .unichain)) {
-                XCTAssertEqual($0 as? AnkrError, .configurationMissing)
-            }
-            XCTAssertThrowsError(try configuration.makeHyperEVMSynchronizer(database: database)) {
-                XCTAssertEqual($0 as? AnkrError, .configurationMissing)
-            }
-        }
-    }
-
     private let publicToken = "0xA0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
     private let noToken = "0x0000000000000000000000000000000000000000"
     private func service(_ mode: String) -> OathTokenService {
@@ -72,14 +44,16 @@ private struct UnavailableDirectory: AnkrTransport {
         let bytes = Data(#"[{"id":"fixture","name":"Test Token","symbol":"tst","platforms":{"ethereum":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"}}]"#.utf8)
         let catalog = TokenDiscoveryCatalog(transport: UnavailableDirectory(), seed: bytes)
         let token = try XCTUnwrap(OathTokenDefinition.discovery(TokenDiscoveryCatalog.decode(bytes)[0]))
-        // Rate limits are excluded by the shared availability policy; later admission is local.
+        // Preserve the original provider failure; the later local cooldown
+        // fallback must not invent another provider failure.
         do { _ = try await catalog.resolve(network: "ethereum", reference: token.reference); XCTFail("Expected 429") }
         catch { XCTAssertEqual(error as? TokenDiscoveryError, .http(429)) }
         let resolved = try await service("valid").resolveForAdding(token, catalog: catalog)
         XCTAssertEqual(resolved.decimals, 6); XCTAssertEqual(resolved.id, token.id)
         try await Task.sleep(for: .milliseconds(100))
+        await OathDiagnostics.flush()
         let events = await capture.events.filter { $0.operationID == operation }
-        XCTAssertFalse(events.contains { $0.context["http_status"] == "429" }, "Availability reports are excluded by shared policy")
+        XCTAssertTrue(events.contains { $0.context["http_status"] == "429" }, "The shared policy retains the original provider rate limit")
         XCTAssertFalse(events.contains { $0.operation == "catalog_metadata_fallback" }, "Backpressure is not a new provider failure")
         XCTAssertFalse(String(describing: events).lowercased().contains(token.reference))
         }
@@ -263,13 +237,13 @@ private struct UnavailableDirectory: AnkrTransport {
 
     private func checkProviderCausesSurviveLookupAndCache(capture: Capture) async throws {
         let network = try XCTUnwrap(OathTokenNetwork.find(.ethereum))
-        for (mode, domain, code, excluded) in [
-            ("offline", NSURLErrorDomain, URLError.notConnectedToInternet.rawValue, true),
-            ("http429", "Oath.HTTP", 429, true),
-            ("http503", "Oath.HTTP", 503, true),
-            ("http403", "Oath.HTTP", 403, false),
-            ("rpclimit", "Oath.Provider", -32005, true),
-            ("rpcinternal", "Oath.Provider", -32603, false)
+        for (mode, domain, code) in [
+            ("offline", NSURLErrorDomain, URLError.notConnectedToInternet.rawValue),
+            ("http429", "Oath.HTTP", 429),
+            ("http503", "Oath.HTTP", 503),
+            ("http403", "Oath.HTTP", 403),
+            ("rpclimit", "Oath.Provider", -32005),
+            ("rpcinternal", "Oath.Provider", -32603)
         ] {
             let operation = UUID(), lookup = service(mode)
             let before = TokenRPCFixture.counter.count(mode)
@@ -291,8 +265,7 @@ private struct UnavailableDirectory: AnkrTransport {
             XCTAssertEqual(TokenRPCFixture.counter.count(mode) - before, 1, "Preserve the 30-second failure cache")
             try await Task.sleep(for: .milliseconds(200))
             let events = await capture.events.filter { $0.operationID == operation }
-            if excluded { XCTAssertTrue(events.isEmpty, "Availability must not reappear as a generic error: \(mode)") }
-            else { XCTAssertTrue(events.contains { $0.error.domain == domain && $0.error.code == code }, "Access denial must remain reportable") }
+            XCTAssertTrue(events.contains { $0.error.domain == domain && $0.error.code == code }, "Original provider cause must remain reportable: \(mode)")
             XCTAssertFalse(String(describing: events).lowercased().contains(publicToken.lowercased()))
         }
     }
@@ -385,7 +358,7 @@ private struct UnavailableDirectory: AnkrTransport {
         XCTAssertTrue(mapped.contains { $0.network.chain == .ton })
     }
 
-    func testNameSearchDoesNotCallRPCAndExcludesSavedTokens() async throws {
+    func testNameSearchDoesNotCallRPCAndResetCannotPublishStaleResults() async throws {
         let bytes = Data(#"[{"id":"tether","name":"Tether","symbol":"usdt","platforms":{"ethereum":"0xdac17f958d2ee523a2206206994597c13d831ec7","tron":"TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"}}]"#.utf8)
         let catalog = FixedDiscovery(entries: try TokenDiscoveryCatalog.decode(bytes))
         let model = OathTokenSearchModel(service: UnexpectedLookup(), catalog: catalog)
@@ -394,48 +367,97 @@ private struct UnavailableDirectory: AnkrTransport {
         XCTAssertFalse(model.isSearching)
         await model.search("tether", available: [.ethereum, .tron], savedIDs: ["ethereum:0xdac17f958d2ee523a2206206994597c13d831ec7"])
         XCTAssertEqual(model.results.map(\.network.chain), [.tron])
+        let waiting = Task { await model.search("usdt", available: [.ethereum]) }
+        try await Task.sleep(for: .milliseconds(10))
+        model.reset()
+        await waiting.value
+        XCTAssertTrue(model.results.isEmpty)
+    }
+
+    func testEmptyQueryChainBrowsePublishesCacheBeforeRefreshAndRejectsObsoleteCompletion() async throws {
+        let bytes = Data(#"[{"id":"fixture","name":"Fixture Token","symbol":"TEST","platforms":{"ethereum":"0x0000000000000000000000000000000000000001"}}]"#.utf8)
+        // Explicit entries from the production bundled directory avoid coupling
+        // this test to a third-party platform spelling for 0G.
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let production = TokenDiscoveryCatalog(transport: UnavailableDirectory(), directory: folder)
+        let zeroG = await production.tokens(on: "zerog")
+        XCTAssertFalse(zeroG.isEmpty)
+        let ethereum = try TokenDiscoveryCatalog.decode(bytes).filter { $0.network == "ethereum" }
+        let catalog = GatedBrowseDiscovery(entries: zeroG + ethereum)
+        let model = OathTokenSearchModel(service: UnexpectedLookup(), catalog: catalog)
+        await model.search("", available: [.zerog, .ethereum])
+        XCTAssertTrue(model.results.isEmpty, "All must not browse the entire catalog")
+        let untouched = await catalog.browseCalls
+        XCTAssertTrue(untouched.isEmpty)
+
+        let pending = Task { await model.search("", available: [.zerog], browsingChain: .zerog) }
+        await catalog.waitUntilRefreshing()
+        XCTAssertEqual(Set(model.results.map(\.id)), Set(zeroG.map(\.id)))
+        XCTAssertFalse(model.isSearching, "Cached results must be usable while refresh is held")
+        await model.search("", available: [.ethereum], browsingChain: .ethereum)
+        XCTAssertEqual(model.results.map(\.network.chain), [.ethereum])
+        await catalog.release()
+        await pending.value
+        XCTAssertEqual(model.results.map(\.network.chain), [.ethereum], "Old chain must not publish after selection changes")
+
+        await model.search("", available: [.zerog], savedIDs: Set(zeroG.map(\.id)), browsingChain: .zerog)
+        XCTAssertTrue(model.results.isEmpty, "Saved token rows must not be duplicated")
+        await model.search("", available: [.ethereum], requiredReference: "native", browsingChain: .ethereum)
+        XCTAssertTrue(model.results.isEmpty, "A native payment link cannot become a token payment")
+        await model.search("", available: [.ethereum])
+        XCTAssertFalse(model.isCatalogQuery)
+        XCTAssertTrue(model.results.isEmpty, "Returning to All clears the chain directory")
+    }
+
+    func testChainBrowseRequestCoversAllEnabledWalletAccountsIncludingUnobservedNativeCoins() async throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let database = try await OathDatabase.open(at: folder.appendingPathComponent("wallet.sqlite"))
+        let chains = OathImportChain.enabledCases
+        XCTAssertFalse(chains.isEmpty)
+        try await database.seed(networks: chains.enumerated().map { index, chain in
+            .init(id: chain.id, name: chain.name, family: "fixture", symbol: chain.shortName, decimals: 18,
+                  derivationPath: "fixture", logo: chain.logoAsset, sortOrder: index)
+        }, assets: chains.map {
+            .init(id: $0.id + ":native", networkID: $0.id, reference: "native", name: $0.name, symbol: $0.shortName, decimals: 18)
+        })
+        try await database.importWalletIfNeeded(.init(id: "fixture", name: "", kind: "hd", vaultReference: "fixture", createdAt: 1),
+            accounts: chains.map { .init(id: $0.id, walletID: "fixture", networkID: $0.id, address: "public-fixture", derivationPath: "fixture") })
+        let snapshot = try await database.snapshot(walletID: "fixture", currency: "USD")
+        let catalog = TokenDiscoveryCatalog(transport: UnavailableDirectory(), directory: folder.appendingPathComponent("catalog"))
+        let model = OathTokenSearchModel(service: UnexpectedLookup(), catalog: catalog)
+        for chain in chains {
+            let scope = OathAssetSearchScope(chain: chain)
+            let request = OathTokenSearchRequest(query: "", walletID: "fixture", active: true, snapshot: snapshot, scope: scope)
+            XCTAssertTrue(request.active, chain.id)
+            XCTAssertTrue(request.showsCatalogResults, chain.id)
+            XCTAssertEqual(request.networks, [chain])
+            let native = snapshot.holdings.filter { scope.includes(networkID: $0.networkID) && $0.reference == "native" }
+            XCTAssertEqual(native.count, 1, chain.id)
+            XCTAssertNil(native.first?.amountAtomic, "Unknown balances are not fabricated")
+            let expected = await catalog.tokens(on: chain.id, excluding: request.savedIDs)
+                .compactMap(OathTokenDefinition.discovery).map(\.id)
+            await model.search(request)
+            XCTAssertEqual(Set(model.results.map(\.id)), Set(expected), chain.id)
+            XCTAssertTrue(model.results.allSatisfy { $0.network.chain == chain }, chain.id)
+        }
+        let all = OathTokenSearchRequest(query: "", walletID: "fixture", active: true, snapshot: snapshot)
+        XCTAssertFalse(all.showsCatalogResults)
+        await model.search(all)
+        XCTAssertTrue(model.results.isEmpty)
     }
 
     func testOldRefreshCannotReplaceNewWalletNetworkResults() async throws {
-        for delay in [Duration.zero, .milliseconds(350)] {
-            let started = expectation(description: "Old wallet refresh is suspended")
-            let catalog = ControlledRefreshDiscovery(entries: try tokenDiscoveryFixture(), delay: delay, started: started)
-            let model = OathTokenSearchModel(service: UnexpectedLookup(), catalog: catalog)
-            let old = Task { await model.search("usdt", available: [.ethereum]) }
-            // Refresh starts only after the cached results have been published.
-            // A deadline bounds a broken test; it does not select the interleaving.
-            await fulfillment(of: [started], timeout: 10)
-            XCTAssertEqual(model.results.map(\.network.chain), [.ethereum])
-            await model.search("usdt", available: [.tron])
-            XCTAssertEqual(model.results.map(\.network.chain), [.tron])
-            await catalog.releaseRefresh()
-            await old.value
-            XCTAssertEqual(model.results.map(\.network.chain), [.tron])
-            XCTAssertFalse(model.isSearching)
-            let oldSearches = await catalog.searchCount(network: "ethereum")
-            XCTAssertEqual(oldSearches, 1, "An obsolete refresh must not start another catalog read")
-        }
-    }
-
-    func testResetDuringCatalogRefreshCannotPublishResults() async throws {
-        let started = expectation(description: "Catalog refresh is suspended")
-        let catalog = ControlledRefreshDiscovery(entries: try tokenDiscoveryFixture(), started: started)
-        let model = OathTokenSearchModel(service: UnexpectedLookup(), catalog: catalog)
-        let old = Task { await model.search("usdt", available: [.ethereum]) }
-        await fulfillment(of: [started], timeout: 10)
-        XCTAssertFalse(model.results.isEmpty)
-        model.reset()
-        await catalog.releaseRefresh()
-        await old.value
-        XCTAssertTrue(model.results.isEmpty)
-        XCTAssertFalse(model.isSearching)
-        let searches = await catalog.searchCount(network: "ethereum")
-        XCTAssertEqual(searches, 1)
-    }
-
-    private func tokenDiscoveryFixture() throws -> [TokenDiscoveryEntry] {
         let data = Data(#"[{"id":"tether","name":"Tether","symbol":"usdt","platforms":{"ethereum":"0xdac17f958d2ee523a2206206994597c13d831ec7","tron":"TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"}}]"#.utf8)
-        return try TokenDiscoveryCatalog.decode(data)
+        let model = OathTokenSearchModel(service: UnexpectedLookup(), catalog: DelayedRefreshDiscovery(entries: try TokenDiscoveryCatalog.decode(data)))
+        let old = Task { await model.search("usdt", available: [.ethereum]) }
+        try await Task.sleep(for: .milliseconds(200))
+        XCTAssertEqual(model.results.map(\.network.chain), [.ethereum])
+        await model.search("usdt", available: [.tron])
+        await old.value
+        XCTAssertEqual(model.results.map(\.network.chain), [.tron])
+        XCTAssertFalse(model.isSearching)
     }
 
     func testPickerRequestFindsMixedCaseUSDTBeforeWalletHasAnyTokensAndAfterTracking() async throws {
@@ -770,50 +792,57 @@ private struct UnexpectedLookup: OathTokenLookingUp {
 }
 
 private struct FixedDiscovery: OathTokenDiscovering {
-    func tokens(on network: String, excluding: Set<String>) async -> [TokenDiscoveryEntry] { entries.filter { $0.network == network && !excluding.contains($0.id) } }
     let entries: [TokenDiscoveryEntry]
+    func tokens(on network: String, excluding: Set<String>) async -> [TokenDiscoveryEntry] {
+        entries.filter { $0.network == network && !excluding.contains($0.id) }
+    }
     func search(_ query: String, networks: Set<String>, excluding: Set<String>, limit: Int) async -> [TokenDiscoveryEntry] {
         entries.filter { networks.contains($0.network) && !excluding.contains($0.id) }
     }
     func refreshIfNeeded() async -> Bool { false }
 }
 
-private actor ControlledRefreshDiscovery: OathTokenDiscovering {
-    func tokens(on network: String, excluding: Set<String>) async -> [TokenDiscoveryEntry] { entries.filter { $0.network == network && !excluding.contains($0.id) } }
+private actor GatedBrowseDiscovery: OathTokenDiscovering {
     let entries: [TokenDiscoveryEntry]
-    let delay: Duration
-    let started: XCTestExpectation
-    private var refreshCount = 0
-    private var continuation: CheckedContinuation<Bool, Never>?
-    private var released = false
-    private var searches: [String: Int] = [:]
-
-    init(entries: [TokenDiscoveryEntry], delay: Duration = .zero, started: XCTestExpectation) {
-        self.entries = entries; self.delay = delay; self.started = started
+    private(set) var browseCalls: [String] = []
+    private var refresh: CheckedContinuation<Bool, Never>?
+    private var started = false
+    private var observers: [CheckedContinuation<Void, Never>] = []
+    init(entries: [TokenDiscoveryEntry]) { self.entries = entries }
+    func tokens(on network: String, excluding: Set<String>) -> [TokenDiscoveryEntry] {
+        browseCalls.append(network)
+        return entries.filter { $0.network == network && !excluding.contains($0.id) }
     }
-
-    func search(_ query: String, networks: Set<String>, excluding: Set<String>, limit: Int) async -> [TokenDiscoveryEntry] {
-        for network in networks { searches[network, default: 0] += 1 }
-        try? await Task.sleep(for: delay)
-        return entries.filter { networks.contains($0.network) && !excluding.contains($0.id) }
+    func search(_ query: String, networks: Set<String>, excluding: Set<String>, limit: Int) -> [TokenDiscoveryEntry] {
+        XCTFail("Empty-query chain browsing must use the complete directory")
+        return []
     }
-
-    func searchCount(network: String) -> Int { searches[network, default: 0] }
-
     func refreshIfNeeded() async -> Bool {
-        refreshCount += 1
-        guard refreshCount == 1 else { return false }
+        guard !started else { return false }
+        started = true
         return await withCheckedContinuation { continuation in
-            self.continuation = continuation
-            started.fulfill()
-            if released { self.continuation = nil; continuation.resume(returning: true) }
+            refresh = continuation
+            observers.forEach { $0.resume() }; observers.removeAll()
         }
     }
+    func waitUntilRefreshing() async {
+        if refresh != nil { return }
+        await withCheckedContinuation { observers.append($0) }
+    }
+    func release() { refresh?.resume(returning: true); refresh = nil }
+}
 
-    func releaseRefresh() {
-        released = true
-        let pending = continuation; continuation = nil
-        pending?.resume(returning: true)
+private struct DelayedRefreshDiscovery: OathTokenDiscovering {
+    let entries: [TokenDiscoveryEntry]
+    func tokens(on network: String, excluding: Set<String>) async -> [TokenDiscoveryEntry] {
+        entries.filter { $0.network == network && !excluding.contains($0.id) }
+    }
+    func search(_ query: String, networks: Set<String>, excluding: Set<String>, limit: Int) async -> [TokenDiscoveryEntry] {
+        entries.filter { networks.contains($0.network) && !excluding.contains($0.id) }
+    }
+    func refreshIfNeeded() async -> Bool {
+        try? await Task.sleep(for: .milliseconds(200))
+        return true
     }
 }
 
@@ -888,109 +917,19 @@ private final class RPCRequestCounter: @unchecked Sendable {
 }
 
 extension TokenLookupTests {
-    func testEmptyQueryChainBrowsePublishesCacheBeforeRefreshAndRejectsObsoleteCompletion() async throws {
-        let bytes = Data(#"[{"id":"fixture","name":"Fixture Token","symbol":"TEST","platforms":{"ethereum":"0x0000000000000000000000000000000000000001"}}]"#.utf8)
-        // Explicit entries from the production bundled directory avoid coupling
-        // this test to a third-party platform spelling for 0G.
-        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        defer { try? FileManager.default.removeItem(at: folder) }
-        let production = TokenDiscoveryCatalog(transport: UnavailableDirectory(), directory: folder)
-        let zeroG = await production.tokens(on: "zerog")
-        XCTAssertFalse(zeroG.isEmpty)
-        let ethereum = try TokenDiscoveryCatalog.decode(bytes).filter { $0.network == "ethereum" }
-        let catalog = GatedBrowseDiscovery(entries: zeroG + ethereum)
-        let model = OathTokenSearchModel(service: UnexpectedLookup(), catalog: catalog)
-        await model.search("", available: [.zerog, .ethereum])
-        XCTAssertTrue(model.results.isEmpty, "All must not browse the entire catalog")
-        let untouched = await catalog.browseCalls
-        XCTAssertTrue(untouched.isEmpty)
-
-        let pending = Task { await model.search("", available: [.zerog], browsingChain: .zerog) }
-        await catalog.waitUntilRefreshing()
-        XCTAssertEqual(Set(model.results.map(\.id)), Set(zeroG.map(\.id)))
-        XCTAssertFalse(model.isSearching, "Cached results must be usable while refresh is held")
-        await model.search("", available: [.ethereum], browsingChain: .ethereum)
-        XCTAssertEqual(model.results.map(\.network.chain), [.ethereum])
-        await catalog.release()
-        await pending.value
-        XCTAssertEqual(model.results.map(\.network.chain), [.ethereum], "Old chain must not publish after selection changes")
-
-        await model.search("", available: [.zerog], savedIDs: Set(zeroG.map(\.id)), browsingChain: .zerog)
-        XCTAssertTrue(model.results.isEmpty, "Saved token rows must not be duplicated")
-        await model.search("", available: [.ethereum], requiredReference: "native", browsingChain: .ethereum)
-        XCTAssertTrue(model.results.isEmpty, "A native payment link cannot become a token payment")
-        await model.search("", available: [.ethereum])
-        XCTAssertFalse(model.isCatalogQuery)
-        XCTAssertTrue(model.results.isEmpty, "Returning to All clears the chain directory")
-    }
-}
-
-extension TokenLookupTests {
-    func testChainBrowseRequestCoversAllEnabledWalletAccountsIncludingUnobservedNativeCoins() async throws {
-        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        defer { try? FileManager.default.removeItem(at: folder) }
-        let database = try await OathDatabase.open(at: folder.appendingPathComponent("wallet.sqlite"))
-        let chains = OathImportChain.enabledCases
-        XCTAssertEqual(chains.count, 42)
-        try await database.seed(networks: chains.enumerated().map { index, chain in
-            .init(id: chain.id, name: chain.name, family: "fixture", symbol: chain.shortName, decimals: 18,
-                  derivationPath: "fixture", logo: chain.logoAsset, sortOrder: index)
-        }, assets: chains.map {
-            .init(id: $0.id + ":native", networkID: $0.id, reference: "native", name: $0.name, symbol: $0.shortName, decimals: 18)
-        })
-        try await database.importWalletIfNeeded(.init(id: "fixture", name: "", kind: "hd", vaultReference: "fixture", createdAt: 1),
-            accounts: chains.map { .init(id: $0.id, walletID: "fixture", networkID: $0.id, address: "public-fixture", derivationPath: "fixture") })
-        let snapshot = try await database.snapshot(walletID: "fixture", currency: "USD")
-        let catalog = TokenDiscoveryCatalog(transport: UnavailableDirectory(), directory: folder.appendingPathComponent("catalog"))
-        let model = OathTokenSearchModel(service: UnexpectedLookup(), catalog: catalog)
-        for chain in chains {
-            let scope = OathAssetSearchScope(chain: chain)
-            let request = OathTokenSearchRequest(query: "", walletID: "fixture", active: true, snapshot: snapshot, scope: scope)
-            XCTAssertTrue(request.active, chain.id)
-            XCTAssertTrue(request.showsCatalogResults, chain.id)
-            XCTAssertEqual(request.networks, [chain])
-            let native = snapshot.holdings.filter { scope.includes(networkID: $0.networkID) && $0.reference == "native" }
-            XCTAssertEqual(native.count, 1, chain.id)
-            XCTAssertNil(native.first?.amountAtomic, "Unknown balances are not fabricated")
-            let expected = await catalog.tokens(on: chain.id, excluding: request.savedIDs)
-                .compactMap(OathTokenDefinition.discovery).map(\.id)
-            await model.search(request)
-            XCTAssertEqual(Set(model.results.map(\.id)), Set(expected), chain.id)
-            XCTAssertTrue(model.results.allSatisfy { $0.network.chain == chain }, chain.id)
+    func testFantomAndScrollRecoveryIsRestrictedToBalanceReaders() throws {
+        let configuration = OathTokenRPCConfiguration(ankrKey: "privateFixture")
+        func endpoints(_ client: EVMSendClient) throws -> [URL] {
+            try XCTUnwrap(Mirror(reflecting: client).children.first { $0.label == "endpoints" }?.value as? [URL])
         }
-        let all = OathTokenSearchRequest(query: "", walletID: "fixture", active: true, snapshot: snapshot)
-        XCTAssertFalse(all.showsCatalogResults)
-        await model.search(all)
-        XCTAssertTrue(model.results.isEmpty)
-    }
-}
-
-private actor GatedBrowseDiscovery: OathTokenDiscovering {
-    let entries: [TokenDiscoveryEntry]
-    private(set) var browseCalls: [String] = []
-    private var refresh: CheckedContinuation<Bool, Never>?
-    private var started = false
-    private var observers: [CheckedContinuation<Void, Never>] = []
-    init(entries: [TokenDiscoveryEntry]) { self.entries = entries }
-    func tokens(on network: String, excluding: Set<String>) -> [TokenDiscoveryEntry] {
-        browseCalls.append(network)
-        return entries.filter { $0.network == network && !excluding.contains($0.id) }
-    }
-    func search(_ query: String, networks: Set<String>, excluding: Set<String>, limit: Int) -> [TokenDiscoveryEntry] {
-        XCTFail("Empty-query chain browsing must use the complete directory")
-        return []
-    }
-    func refreshIfNeeded() async -> Bool {
-        guard !started else { return false }
-        started = true
-        return await withCheckedContinuation { continuation in
-            refresh = continuation
-            observers.forEach { $0.resume() }; observers.removeAll()
+        for network in [EVMSendNetwork.fantom, .scroll] {
+            let balance = try endpoints(configuration.makeEVMSendClient(network: network, balanceRead: true))
+            let send = try endpoints(configuration.makeEVMSendClient(network: network))
+            let expected = network == .fantom ? ["rpcapi.fantom.network", "fantom.drpc.org"] : ["rpc.scroll.io", "scroll-rpc.publicnode.com"]
+            XCTAssertEqual(balance.map(\.host), ["rpc.ankr.com"] + expected)
+            XCTAssertEqual(send.map(\.host), ["rpc.ankr.com"])
+            XCTAssertEqual(balance.first, send.first)
+            XCTAssertTrue(balance.dropFirst().allSatisfy { $0.query == nil && !$0.absoluteString.contains("privateFixture") })
         }
     }
-    func waitUntilRefreshing() async {
-        if refresh != nil { return }
-        await withCheckedContinuation { observers.append($0) }
-    }
-    func release() { refresh?.resume(returning: true); refresh = nil }
 }

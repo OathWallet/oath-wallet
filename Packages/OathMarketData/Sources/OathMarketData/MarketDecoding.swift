@@ -63,20 +63,42 @@ public enum MarketDecoding {
     }
 
     public static func information(_ data: Data, for asset: MarketAsset) throws -> AssetInformation {
+        try information(data) { coin in
+            if asset.isNative {
+                guard coin.id == MarketIdentity.native[asset.networkID]?.gecko else { throw MarketDataError.invalidResponse }
+            } else {
+                guard let platform = MarketIdentity.geckoPlatforms[asset.networkID],
+                      let definition = coin.detail_platforms?[platform], asset.matches(definition.contract_address),
+                      definition.decimal_place == nil || definition.decimal_place == asset.decimals else {
+                    throw MarketDataError.invalidResponse
+                }
+            }
+        }
+    }
+
+    static func discoveryInformation(_ data: Data, request: ExploreHistoryRequest) throws -> AssetInformation {
+        try information(data) { coin in
+            if let project = request.geckoID {
+                // The catalogue supplied this exact project's ID for the selected asset.
+                guard coin.id == project else { throw MarketDataError.invalidResponse }
+            } else {
+                let asset = request.asset
+                guard let platform = MarketIdentity.geckoPlatforms[asset.network],
+                      let definition = coin.detail_platforms?[platform],
+                      try ExploreAsset(network: asset.network, reference: definition.contract_address).id == asset.id else {
+                    throw MarketDataError.invalidResponse
+                }
+            }
+        }
+    }
+
+    private static func information(_ data: Data, validating validate: (Coin) throws -> Void) throws -> AssetInformation {
         let coin = try JSONDecoder().decode(Coin.self, from: data)
         guard !coin.name.isEmpty, coin.name.count <= 200, !coin.symbol.isEmpty, coin.symbol.count <= 80,
               coin.id.count <= 200, coin.id.range(of: "^[a-z0-9-]+$", options: .regularExpression) != nil else {
             throw MarketDataError.invalidResponse
         }
-        if asset.isNative {
-            guard coin.id == MarketIdentity.native[asset.networkID]?.gecko else { throw MarketDataError.invalidResponse }
-        } else {
-            guard let platform = MarketIdentity.geckoPlatforms[asset.networkID],
-                  let definition = coin.detail_platforms?[platform], asset.matches(definition.contract_address),
-                  definition.decimal_place == nil || definition.decimal_place == asset.decimals else {
-                throw MarketDataError.invalidResponse
-            }
-        }
+        try validate(coin)
         let image = [coin.image?.large, coin.image?.small].compactMap { $0 }.first {
             guard let url = safeURL($0) else { return false }
             return ["assets.coingecko.com", "coin-images.coingecko.com"].contains(url.host ?? "")
@@ -125,17 +147,18 @@ public enum MarketDecoding {
         code.count <= 30 && code.range(of: "^[A-Z0-9]+$", options: .regularExpression) != nil
     }
 
-    static func geckoChart(_ data: Data, now: Date) throws -> MarketChart {
+    static func geckoChart(_ data: Data, now: Date, range: MarketHistoryRange = .day) throws -> MarketChart {
         struct Series: Decodable { let prices: [[Double]] }
         let rows = try JSONDecoder().decode(Series.self, from: data).prices
-        guard rows.count <= 2000 else { throw MarketDataError.invalidResponse }
+        // A 90-day response can contain 2,161 hourly observations.
+        guard rows.count <= 2_400 else { throw MarketDataError.invalidResponse }
         guard !rows.isEmpty else { throw MarketDataError.notListed }
         var samples: [Double: MarketCandle] = [:]
         let end = now.timeIntervalSince1970
         for row in rows {
             guard row.count == 2, row.allSatisfy(\.isFinite), row[0] > 0, row[1] > 0 else { throw MarketDataError.invalidResponse }
             let time = row[0] / 1000
-            if time >= end - 86400, time <= end + 60 { samples[time] = .init(time: time, close: row[1]) }
+            if time >= end - range.duration, time <= end + 60 { samples[time] = .init(time: time, close: row[1]) }
         }
         let points = samples.values.sorted { $0.time < $1.time }
         guard let first = points.first, let last = points.last, points.count >= 2 else { throw MarketDataError.notListed }

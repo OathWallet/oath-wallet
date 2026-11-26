@@ -60,6 +60,33 @@ for root in roots:
                 # cover both supersession and genuine cursor conflicts.
                 observed += 1
                 continue
+            if (file.relative_to(ROOT).as_posix() == 'Packages/OathAnkr/Sources/OathAnkr/ThorchainMarkets.swift'
+                    and 'try await read(Self.midgard, path: "v2/pools")' in before
+                    and 'let pools = try await nodeMarketPools()' in body):
+                continue  # read records the Midgard failure before the node catalog fallback.
+            if file.relative_to(ROOT).as_posix() == 'OathAtmosphere/Browser/OathBrowserController.swift':
+                if 'diagnostics: browser-address-validation' in body:
+                    continue  # URL/search form validation only; never report user-entered addresses.
+                if 'diagnostics: browser-storage-propagation' in body:
+                    continue  # BrowserStorage records safe read/write failures, without URLs or titles.
+            if file.relative_to(ROOT).as_posix() in (
+                    'OathAtmosphere/Browser/OathBrowserController.swift',
+                    'OathAtmosphere/Browser/OathBrowserApproval.swift'):
+                if label.strip() == 'let error as BrowserRPCError' and 'diagnostics: browser-peer-validation' in body:
+                    continue  # Expected origin/permission/method rejection, not a backend failure.
+            if file.relative_to(ROOT).as_posix() == 'OathAtmosphere/Browser/OathBrowserApproval.swift' and 'diagnostics: browser-approval-propagation' in body and 'throw error' in body:
+                continue  # Shared submit service and native review own reporting; preserves auth fallback.
+            if any(kind in label for kind in expected):
+                continue
+            if (file.relative_to(ROOT).as_posix() == 'Packages/OathAnkr/Sources/OathAnkr/ThorchainClient.swift'
+                    and label.strip() == 'let failure as ReportedDiagnosticFailure'
+                    and 'try await historyForRefresh(' in before
+                    and 'throw (failure.underlying as? ThorchainError) ?? .transport' in body):
+                continue  # The archive reports the original error; direct history callers receive the domain error.
+            if (file.relative_to(ROOT).as_posix() == 'OathAtmosphere/Wallet/OathBitcoinSync.swift'
+                    and label.strip() == 'let failure as ReportedDiagnosticFailure'
+                    and 'throw failure.underlying' in body):
+                continue  # The shared scan already recorded this failure. Send preparation needs its domain.
             if file.relative_to(ROOT).as_posix() == 'OathAtmosphere/Home/OathWalletSidebarModel.swift' and 'diagnostics: sidebar-selection-reconciliation' in body and 'report(error)' in body:
                 continue  # The injected production session boundary records the failure.
             if file.relative_to(ROOT).as_posix() == 'OathAtmosphere/Wallet/OathWalletSession.swift' and 'diagnostics: wallet-creation-feedback' in body and 'self.failed =' in body:
@@ -122,10 +149,20 @@ for root in roots:
             if (file.relative_to(ROOT).as_posix() in (
                     'OathAtmosphere/Assets/OathAssetDetailModel.swift',
                     'Packages/OathMarketData/Sources/OathMarketData/MarketDataService.swift',
-                    'Packages/OathMarketData/Sources/OathMarketData/LifiMarketData.swift')
+                    'Packages/OathMarketData/Sources/OathMarketData/LifiMarketData.swift',
+                    'OathAtmosphere/Assets/OathAssetDetailModel.swift')
                     and 'diagnostics: lifi-provider-recovery' in body):
-                continue  # Optional metadata recovery; market_load owns provider failures and cancellation stays expected.
-            if file.name == 'MarketDataService.swift' and label.strip() == 'MarketDataError.notListed' and 'diagnostics: optional-market-absence' in body:
+                # Reviewed delegation: MarketDataService.load records original
+                # LI.FI/enrichment provider failures; database methods record
+                # storage failures. These callers only keep cached UI or start
+                # fallback quotes. Missing listings/cancellation are expected.
+                continue
+            if file.relative_to(ROOT).as_posix() == 'Packages/OathMarketData/Sources/OathMarketData/TokenQuoteRefresh.swift' and 'diagnostics: token-quote-refresh-recovery' in body:
+                # Same bounded refresh worker, now independent of LI.FI metadata.
+                # quote/load reports original failures; cancellation and optional
+                # market absence are expected. No new reporting suppression.
+                continue
+            if file.name in ('MarketDataService.swift', 'ExplorePriceHistory.swift') and label.strip() == 'MarketDataError.notListed' and 'diagnostics: optional-market-absence' in body:
                 continue  # Exact optional listing/empty trading window; malformed identities and provider failures still report.
             if file.name == 'MarketDataService.swift' and 'diagnostics: market-chart-recovery' in body and 'throw error' in body and 'geckoChart(for: asset' in body:
                 continue  # load reports the original failure; tested recovery preserves cancellation and rejects malformed data.
@@ -154,6 +191,22 @@ for root in roots:
                 continue  # Unchanged rethrow: sheet reports original failures and excludes PIN fallback/cancellation.
             if (file.name, label.strip()) in (('OathEVMSendService.swift', 'EVMSendError.multisigFunding'), ('OathTronSendService.swift', 'TronSendError.insufficientFunds'), ('OathSolanaSendService.swift', 'SolanaSendError.multisigFunding')) and 'diagnostics: multisig-funding-incomplete' in body:
                 continue  # Expected incomplete funding state; transport and provider failures are reported by the client.
+            if (file.name == 'OathWalletSheets.swift' and label.strip() == 'let error as EVMAccountDerivation.ValidationError'
+                    and 'diagnostics: hd-account-form-validation' in body):
+                continue  # Bounded explicit-path form validation has no external failure.
+            if (file.name == 'OathWalletSheets.swift' and label.strip() == 'is OathDatabase.AccountManagementError'
+                    and 'diagnostics: hd-account-form-validation' in body):
+                continue  # Exact local name/last-account validation; no transport, storage or provider errors are suppressed.
+            if (file.name in ('OathWalletSheets.swift', 'OathWalletRemovalModel.swift') and not label.strip()
+                    and 'diagnostics: hd-account-commit-propagation' in body
+                    and ('notice = .walletChangeFailedDetail' in body or 'failure = .walletChangeFailedDetail' in body)):
+                continue  # Production changeWallet records the original failure before rethrowing.
+            if (file.name in ('OathWalletSession.swift', 'OathWalletRemovalModel.swift')
+                    and label.strip() == 'OathDatabase.WalletRemovalError.pendingTransaction'
+                    and 'diagnostics: wallet-removal-pending' in body):
+                continue  # Exact pending-send protection; storage/authentication failures still report.
+            if file.relative_to(ROOT).as_posix() == 'OathAtmosphere/Wallet/OathVaultEnvelope.swift' and label.strip() == 'CryptoKitError.authenticationFailure where authenticatingLegacyPasscode && protection == nil' and 'diagnostics: legacy-passcode-rejection' in body and 'throw OathWalletError.wrongPasscode' in body:
+                continue  # Only an unauthenticated legacy PIN candidate; authenticated-key payload failures still report.
             if re.search(r'Task\.sleep\([^\n]+\)\s*\}\s*$', before):
                 continue  # Cancelled debounce/timer teardown, not an app failure.
             line = source.count('\n', 0, match.start())+1

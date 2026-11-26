@@ -85,7 +85,9 @@ actor MemoryBiometrics: OathBiometricCredentialStoring {
     func clear() { credential = nil }
     func pauseNextRead() { pauseNext = true }
     func releaseRead() { pendingRead?.resume(); pendingRead = nil }
-    func read(reason: String) async throws -> Data {
+    private(set) var lastReadRequiredFreshMatch = false
+    func read(reason: String, requiringFreshMatch: Bool) async throws -> Data {
+        lastReadRequiredFreshMatch = requiringFreshMatch
         reads += 1
         if let error = nextReadError { nextReadError = nil; throw error }
         if pauseNext {
@@ -153,8 +155,10 @@ private struct CredentialIdentity: Decodable, Equatable {
         await biometrics.enroll(credential)
         check(root.addresses.count == OathImportChain.enabledCases.count, "Initial metadata must contain the supported networks")
         let session = OathWalletSession(vault: vault)
+        check(!session.hasObservedHomeBalance, "An unopened portfolio must not announce an observed balance")
         await session.finishedSetup()
         check(session.isUnlocked && session.wallets.count == 1, "Initial session must contain its first wallet")
+        check(session.portfolio?.totalFiat == 0, "First setup must use the empty fixture's actual balance")
         check(session.presentsOnboarding && session.pendingCustomizationID == root.id.uuidString,
               "Welcome import must keep its navigation stack for customization after passcode and Face ID")
         session.finishInitialCustomization()
@@ -170,6 +174,7 @@ private struct CredentialIdentity: Decodable, Equatable {
         check(!session.presentsOnboarding, "Only completed customization can finish initial setup")
         let generatedID = UUID()
         let addedID = try await session.addWallet(requestID: generatedID)
+        check(session.portfolio?.totalFiat == 0, "Creating a sidebar wallet must show its initial balance")
         check(addedID == generatedID.uuidString && session.pendingCustomizationID == addedID && !session.presentsOnboarding,
               "Additional creation must route the saved identity directly to Customize, without PIN setup")
         check(session.displayedProfile?.id == generatedID && session.wallets.count == 2, "Create must select the additional wallet")
@@ -180,6 +185,7 @@ private struct CredentialIdentity: Decodable, Equatable {
         let secondPhrase = OathValidatedMnemonic(phrase: "synthetic imported fixture", language: "english")
         let importedID = UUID()
         let addedImportID = try await session.addWallet(requestID: importedID, importing: secondPhrase)
+        check(session.portfolio?.totalFiat == 0, "Importing the empty fixture must show its own balance")
         check(addedImportID == importedID.uuidString && session.pendingCustomizationID == addedImportID,
               "Additional import must route its committed identity to Customize")
         check(session.wallets.count == 3 && session.displayedProfile?.id == importedID, "Import must select a third wallet")
@@ -204,6 +210,7 @@ private struct CredentialIdentity: Decodable, Equatable {
                           amountAtomic: "250000000", observedAt: 1, source: "host-fixture")
         ])
         try await session.selectWallet(importedID)
+        check(session.hasObservedHomeBalance, "Home must recognize a saved balance when selecting the wallet")
         check(session.portfolio?.holdings.first { $0.networkID == "bitcoin" }?.amountAtomic == "250000000", "Selected balance must not leak from another wallet")
         try await session.selectWallet(root.id)
         check(session.portfolio?.holdings.first { $0.networkID == "bitcoin" }?.amountAtomic == "100000000", "Switching back must restore the first wallet's balance")
@@ -796,11 +803,15 @@ private struct CredentialIdentity: Decodable, Equatable {
         check(session.isLocked && session.allowsAutomaticBiometricUnlock,
               "A new background lock restores automatic Face ID after explicit unlock")
         await session.unlockWithBiometrics(automatically: true)
+        check(session.isLocked, "Queued Face ID cannot start during a real background departure")
+        session.enteringForeground()
+        await session.unlockWithBiometrics(automatically: true)
         check(session.isUnlocked, "Automatic Face ID still opens a normal background lock")
 
         // An OS reply can arrive after cancellation; it must not override a
         // newer manual lock or start another prompt when the scene reactivates.
         session.enteredBackground(delay: .immediately)
+        session.enteringForeground()
         await biometrics.pauseNextRead()
         let pendingAutomaticUnlock = Task { await session.unlockWithBiometrics(automatically: true) }
         for _ in 0..<400 where !(await biometrics.isWaiting) { try await Task.sleep(for: .milliseconds(5)) }
@@ -1114,11 +1125,14 @@ private struct CredentialIdentity: Decodable, Equatable {
         cold.enteredBackground(delay: .immediately)
         check(cold.isLocked, "Default immediately policy locks synchronously on background")
         await cold.unlock(enabledPIN)
+        check(cold.isLocked, "Queued keypad input cannot open a backgrounded wallet")
+        cold.enteringForeground()
+        await cold.unlock(enabledPIN)
         cold.enteredBackground(delay: .tenMinutes)
         await cold.lock()
         check(cold.isLocked, "Manual Lock always overrides an active grace period")
-        await cold.unlock(enabledPIN)
         cold.enteringForeground()
+        await cold.unlock(enabledPIN)
         let edit = OathSecurityModel(session: cold)
         edit.begin(.disablePasscode)
         edit.verify(enabledPIN, strings: .current)

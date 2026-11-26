@@ -524,13 +524,15 @@ private struct OathReceiveContent: View {
     let onExplain: () -> Void
     @Environment(\.oathLocalizer) private var strings
     @Environment(\.dynamicTypeSize) private var typeSize
-    @State private var copied = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var copyID: UUID?
     @State private var showingShare = false
     @State private var pendingShare: OathReceiveShareItem?
     @State private var shareItem: OathReceiveShareItem?
     private var guide: OathReceiveNetworkGuide { .init(chain: address.chain) }
     private var isNativeAsset: Bool { (holding?.reference ?? "native") == "native" }
     private var noticeSymbol: String { isNativeAsset ? address.chain.ticker : (holding?.symbol ?? address.ticker) }
+    private var canUseAddress: Bool { !preparingAddress && qr != nil && payload?.isEmpty == false }
 
     var body: some View {
         GeometryReader { geometry in
@@ -586,7 +588,7 @@ private struct OathReceiveContent: View {
             receiveActions
         }
         .onChange(of: payload) { _, _ in
-            copied = false
+            copyID = nil
             pendingShare = nil
             showingShare = false
             shareItem = nil
@@ -598,7 +600,7 @@ private struct OathReceiveContent: View {
             pendingShare = nil
         }) {
             OathReceiveShareOptions { format in
-                guard showingShare, !preparingAddress, let payload, let qr else { return }
+                guard showingShare, canUseAddress, let payload, let qr else { return }
                 switch format {
                 case .qrCode: pendingShare = OathReceiveShareItem(items: [UIImage(cgImage: qr)])
                 case .address: pendingShare = OathReceiveShareItem(items: [payload])
@@ -619,10 +621,10 @@ private struct OathReceiveContent: View {
         .sheet(item: $shareItem) { item in
             OathShareSheet(items: item.items)
         }
-        .task(id: copied) {
-            guard copied else { return }
+        .task(id: copyID) {
+            guard let expectedID = copyID else { return }
             do { try await Task.sleep(for: .seconds(2)) } catch { return }
-            copied = false
+            if copyID == expectedID { copyID = nil }
         }
     }
 
@@ -668,14 +670,8 @@ private struct OathReceiveContent: View {
                 HStack(spacing: OathActionMetrics.spacing) { copy; share }
                 VStack(spacing: OathActionMetrics.spacing) { copy; share }
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.extraLarge)
-            .buttonBorderShape(.capsule)
-            .tint(Color(uiColor: OathSurfaceColors.field))
-            .foregroundStyle(Color.primary.opacity(0.8))
-            .oathFont(.body, weight: .medium)
             .padding(.top, 12)
-            .disabled(preparingAddress || qr == nil)
+            .disabled(!canUseAddress)
         }
     }
 
@@ -692,24 +688,27 @@ private struct OathReceiveContent: View {
     }
 
     private var copy: some View {
-        OathButton {
-            guard let payload else { return }
+        let copied = copyID != nil
+        return OathActionButton(title: strings.text(copied ? .addressCopied : .copyAddress),
+                                accent: copied ? OathActionButton.successAccent : nil) {
+            guard canUseAddress, let payload else { return }
             OathClipboard.copy(payload)
-            copied = true
-        } label: {
-            OathActionLabel(title: strings.text(copied ? .addressCopied : .copyAddress))
+            copyID = UUID()
         }
+        .contentTransition(reduceMotion ? .identity : .opacity)
+        .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: copied)
         .accessibilityIdentifier("receive.copy")
     }
 
     private var share: some View {
         OathButton(feedback: .share, action: {
-            guard !preparingAddress, payload != nil, qr != nil else { return }
+            guard canUseAddress else { return }
             pendingShare = nil
             showingShare = true
         }) {
             OathActionLabel(title: strings.text(.receiveShare), icon: "square.and.arrow.up")
         }
+        .oathActionStyle(.secondary)
         .accessibilityLabel(strings.text(.receiveShare))
         .accessibilityIdentifier("receive.share")
     }

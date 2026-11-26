@@ -5,10 +5,89 @@ enum OathStringKey: String, CaseIterable, Sendable {
     case assetFilterReset = "asset.filter.reset_action"
     case manageTokens = "assets.manage_tokens"
     case manageTokensFilterDetail = "assets.manage_tokens.filter_detail"
-    case browserTabs, browserNewTab
+    case sendFeeCapTooLow, sendGasLimitTooLow
+    case exploreTitle
+    case exploreMovers
+    case exploreGainers
+    case exploreLosers
+    case exploreTop
+    case exploreActive
+    case exploreTrending
+    case exploreSeeAll
+    case exploreLoading
+    case exploreUnavailable
+    case exploreDApps
+    case exploreMarketCap
+    case exploreVolume
+    case exploreLiquidity
+    case exploreTokenDisclaimer
+    case exploreValueLocked
+    case browserBookmarks
+    case browserFavorites, browserAddFavorite, browserWebsiteAddress, browserConnectedSites
+    case browserRecentSites, browserShowRecentSites, browserRemoveFromRecents, browserClearHistoryPrompt
+    case browserSearchOrAddress, browserInvalidAddress, browserTabLimit
+    case browserLibrary
+    case browserTitle
+    case browserAddress
+    case browserTabs
+    case browserNoTabs, browserOneTab, browserTabCount, browserTabOrder
+    case browserSearchWeb
+    case browserSearchEngine
+    case browserPageUnavailable
+    case browserAddBookmark
+    case browserConnections
+    case browserShare
+    case browserReload
+    case browserMenu
+    case browserPrivateConnection
+    case browserPrivateConnectionDetail
+    case browserContinue
+    case browserOpenTab
+    case browserBack
+    case browserForward
+    case browserPrivate
+    case browserNormal
+    case browserMode
+    case browserCloseTab
+    case browserNewTab
+    case browserPrivateDetail
+    case browserNoBookmarks
+    case browserHistory
+    case browserClear
+    case browserClearDetail
+    case browserRequest
+    case browserConnect
+    case browserRequestOrigin
+    case browserConnectDetail
+
+    case hdAccountDetails = "accounts.details"
+    case hdAccountName = "accounts.name"
+    case hdAccountRename = "accounts.rename"
+    case hdAccountRemove = "accounts.remove"
+    case hdAccountKeepOne = "accounts.keep_one"
+    case hdAccountRemovalHelp = "accounts.removal_help"
+    case walletAccount = "accounts.title"
+    case walletAccounts = "accounts.list.title"
+    case solanaAccounts = "accounts.solana.title"
+    case solanaAccountNumber = "accounts.solana.number"
+    case evmAccounts = "accounts.evm.title"
+    case evmAccountsDetail = "accounts.evm.detail"
+    case evmAccountNumber = "accounts.evm.number"
+    case evmAddAccount = "accounts.evm.add"
+    case evmCustomPaths = "accounts.evm.paths"
+    case evmBackupPaths = "accounts.evm.backup"
+    case hdPathComponent = "accounts.path.component"
+    case hdPathHardened = "accounts.path.hardened"
+    case hdPathAddComponent = "accounts.path.add_component"
+    case hdPathRemoveComponent = "accounts.path.remove_component"
+    case hdAddPath = "accounts.path.add"
+    case evmPathsHelp = "accounts.evm.paths_help"
+    case evmInvalidPaths = "accounts.evm.invalid_paths"
+    case evmPathsAlreadyAdded = "accounts.evm.already_added"
+    case evmAccountLimit = "accounts.evm.limit"
     case wcNearCreateAccount, wcNearDeployContract, wcNearStake, wcNearAddKey, wcNearDeleteKey, wcNearDeleteAccount, wcNearFullAccess, wcArguments, wcPublicKey, wcDeposit, wcGasAllowance, wcAllowedMethods, wcAllMethods, wcRemainingBalance, wcAtomicAmount
 
-    case browserTitle, browserAddress, browserForward, browserReload, browserAddBookmark, browserBookmarks, browserClearData, browserClearDataDetail, browserPrivateDetail, browserNoBookmarks, browserInvalidAddress, browserLoadFailed, browserPairingLink
+    case browserClearData, browserClearDataDetail, browserLoadFailed, browserPairingLink
     case assetSearchAll = "asset.search.all"
     case appIconSignalBlue = "app_icon.signal_blue"
     case appIconObsidian = "app_icon.obsidian"
@@ -20,6 +99,10 @@ enum OathStringKey: String, CaseIterable, Sendable {
     case appIconTitanium = "app_icon.titanium"
     case appIconGlacier = "app_icon.glacier"
     case appIconChampagne = "app_icon.champagne"
+    case appIconViceSunset = "app_icon.vice_sunset"
+    case appIconUse = "app_icon.use"
+    case appIconSelected = "app_icon.selected"
+    case appIconCaption = "app_icon.caption"
     case historySwap
     case historyBridge
     case multisigEVMSetupNeeded, multisigEVMFundingNeeded
@@ -457,6 +540,7 @@ enum OathStringKey: String, CaseIterable, Sendable {
     case assetActivity = "asset.activity"
     case assetViewAllActivity = "asset.view_all_activity"
     case assetActivityEmpty = "asset.activity_empty"
+    case assetActivityLocalOnly = "asset.activity_local_only"
     case assetActivityEmptyDetail = "asset.activity_empty_detail"
     case assetCanceled = "asset.canceled"
     case assetSelfTransfer = "asset.self_transfer"
@@ -552,9 +636,11 @@ enum OathStringKey: String, CaseIterable, Sendable {
     case save = "common.save"
     case add = "common.add"
     case cancel = "common.cancel"
+    case ok = "common.ok"
     case delete = "common.delete"
     case tryAgain = "common.try_again"
     case addToken = "token.add"
+    case tokenAdded = "token.added"
     case tokenDetails = "token.details"
     case tokenSearchFound = "token.search_found"
     case tokenSearchReview = "token.search_review"
@@ -745,6 +831,9 @@ enum OathStringKey: String, CaseIterable, Sendable {
     case refreshSucceeded = "home.refresh_succeeded"
     case refreshFailed = "home.refresh_failed"
     case wallets = "wallet.wallets"
+    case importedWallets = "wallets.section.imported"
+    case privateKeyWallets = "wallets.section.private_key"
+    case passphraseWallets = "wallets.section.passphrase"
     case editWallets = "wallets.edit"
     case recentlyDeleted = "wallets.recently_deleted"
     case recentlyDeletedDetail = "wallets.recently_deleted_detail"
@@ -938,6 +1027,18 @@ enum OathStringKey: String, CaseIterable, Sendable {
     case lockDelayDetail = "security.delay_detail"
     case securityChangeFailed = "security.change_failed"
     case unlockWallet = "wallet.unlock"
+    case greetingOhHey = "wallet.greeting.oh_hey"
+    case greetingWellHello = "wallet.greeting.well_hello"
+    case greetingLookWhosBack = "wallet.greeting.look_whos_back"
+    case greetingThereYouAre = "wallet.greeting.there_you_are"
+    case greetingFancySeeingYou = "wallet.greeting.fancy_seeing_you"
+    case greetingWhereWereWe = "wallet.greeting.where_were_we"
+    case greetingWhatsTheMove = "wallet.greeting.whats_the_move"
+    case greetingReadyWhenYouAre = "wallet.greeting.ready_when_you_are"
+    case greetingShallWe = "wallet.greeting.shall_we"
+    case greetingGoodTiming = "wallet.greeting.good_timing"
+    case greetingLetsRoll = "wallet.greeting.lets_roll"
+    case greetingRightThisWay = "wallet.greeting.right_this_way"
     case unlockPasscodeTitle = "wallet.unlock_passcode_title"
     case enterPasscode = "wallet.enter_passcode"
     case unlockIncorrect = "wallet.incorrect_passcode"
