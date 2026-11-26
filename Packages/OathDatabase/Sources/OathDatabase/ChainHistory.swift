@@ -52,16 +52,54 @@ extension OathDatabase {
         }
     }
 
+    private static let selectedOwner = """
+        (a.networkID<>'solana' OR EXISTS (SELECT 1 FROM solanaActivity sa WHERE sa.activityID=a.id
+            AND sa.owner=COALESCE((SELECT address FROM solanaReceiveAddresses WHERE accountID=a.accountID AND isSelected=1),owner.address)))
+        """
+
+    /// Count transaction identities across the active History scope, independently of its filters and pages.
+    public func observeHomePendingTransactionCount(walletID: String) -> AsyncThrowingStream<Int, Error> {
+        stream(observing: ["visibleActivity", "transactions", "transactionEvidence", "bitcoinHistory",
+                           "wallets", "walletAccounts", "networks", "settings", "solanaActivity", "solanaReceiveAddresses"]) { db in
+            var owners = """
+                SELECT a.id,a.networkID,a.address FROM walletAccounts a JOIN wallets w ON w.id=a.walletID
+                WHERE w.id=? AND w.deletedAt IS NULL
+                """
+            var arguments: StatementArguments = [walletID]
+            if let ids = try Self.homeAccountIDs(db, walletID: walletID) {
+                owners += " AND a.id IN (" + Array(repeating: "?", count: ids.count).joined(separator: ",") + ")"
+                arguments += StatementArguments(ids.sorted())
+            }
+            arguments += [walletID]
+            // Start with pending transactions and unconfirmed UTXOs. A UTXO can arrive before its
+            // decoded activity, and its block height can confirm it before the activity is updated.
+            return try Int.fetchOne(db, sql: """
+                WITH owners AS (\(owners)), pending(networkID,hash) AS (
+                    SELECT t.networkID,t.hash FROM transactions t
+                    WHERE t.state='pending' AND EXISTS (
+                        SELECT 1 FROM visibleActivity a JOIN owners owner ON owner.id=a.accountID
+                        LEFT JOIN transactionEvidence e ON e.accountID=a.accountID AND e.transactionID=t.id
+                        WHERE a.transactionID=t.id AND a.walletID=?
+                        AND COALESCE(e.outcome,t.state)='pending' AND \(Self.selectedOwner))
+                    UNION
+                    SELECT owner.networkID,h.txid FROM owners owner JOIN bitcoinHistory h ON h.accountID=owner.id
+                    LEFT JOIN transactions t ON t.networkID=owner.networkID AND t.hash=h.txid
+                    LEFT JOIN transactionEvidence e ON e.accountID=owner.id AND e.transactionID=t.id
+                    WHERE h.height<=0 AND COALESCE(e.outcome,t.state,'pending')='pending'
+                )
+                SELECT COUNT(*) FROM pending p WHERE NOT EXISTS (
+                    SELECT 1 FROM owners owner JOIN bitcoinHistory h ON h.accountID=owner.id
+                    WHERE owner.networkID=p.networkID AND h.txid=p.hash AND h.height>0)
+                """, arguments: arguments) ?? 0
+        }
+    }
+
     static func readChainHistory(_ db: Database, walletID: String, networkID: String?,
                                          accountID: String?, assetID: String?, currency: String,
                                          before: HistoryCursor?, limit: Int, search: String, filter: HistoryFilter,
                                          localeIdentifier: String, transactionID: String? = nil, homeScope: Bool = false) throws -> [ChainHistoryItem] {
         guard filter.isValid else { throw StoreError.invalidValue("history filter") }
         let scopeIDs = homeScope ? try homeAccountIDs(db, walletID: walletID) : nil
-        let selectedOwner = """
-            (a.networkID<>'solana' OR EXISTS (SELECT 1 FROM solanaActivity sa WHERE sa.activityID=a.id
-                AND sa.owner=COALESCE((SELECT address FROM solanaReceiveAddresses WHERE accountID=a.accountID AND isSelected=1),owner.address)))
-            """
         var source = "projectedHistoryActivity"
         var sourceArguments: StatementArguments = []
         if networkID == nil, accountID == nil, assetID == nil, transactionID == nil,

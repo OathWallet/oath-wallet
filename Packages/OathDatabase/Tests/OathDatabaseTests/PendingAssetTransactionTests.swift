@@ -31,9 +31,15 @@ import GRDB
         return (store, folder)
     }
 
-    private nonisolated static func insert(_ db: Database, id: String, network: String = "ethereum", wallet: String = "first", asset: String = "native", state: String = "pending", owner: String = "public-owner") throws {
-        try TransactionRecord(id: id, networkID: network, hash: id, state: state, timestamp: 1, updatedAt: 1).insert(db)
-        try ActivityRecord(id: id, walletID: wallet, accountID: wallet + ":" + network, networkID: network, transactionID: id, assetID: network + ":" + asset, direction: "outgoing", amountAtomic: "1", counterparty: "public-recipient", timestamp: 1).insert(db)
+    private nonisolated static func insert(
+        _ db: Database, id: String, network: String = "ethereum", wallet: String = "first",
+        asset: String = "native", state: String = "pending", owner: String = "public-owner",
+        accountID: String? = nil, hash: String? = nil
+    ) throws {
+        try TransactionRecord(id: id, networkID: network, hash: hash ?? id, state: state, timestamp: 1, updatedAt: 1).insert(db)
+        try ActivityRecord(id: id, walletID: wallet, accountID: accountID ?? wallet + ":" + network,
+                           networkID: network, transactionID: id, assetID: network + ":" + asset, direction: "outgoing",
+                           amountAtomic: "1", counterparty: "public-recipient", timestamp: 1).insert(db)
         if network == "solana" {
             try db.execute(sql: "INSERT INTO solanaActivity(activityID,owner) VALUES(?,?)", arguments: [id, owner])
         }
@@ -42,6 +48,71 @@ import GRDB
     private func count(_ store: OathDatabase, network: String = "ethereum", asset: String = "native", wallet: String = "first") async throws -> Int {
         let snapshot = try await store.snapshot(walletID: wallet, currency: "USD")
         return try XCTUnwrap(snapshot.holdings.first { $0.assetID == network + ":" + asset }).pendingTransactionCount
+    }
+
+    private func assertHistoryCount(_ store: OathDatabase, _ expected: Int, wallet: String = "first",
+                                    file: StaticString = #filePath, line: UInt = #line) async throws {
+        var updates = store.observeHomePendingTransactionCount(walletID: wallet).makeAsyncIterator()
+        let count = try await updates.next()
+        XCTAssertEqual(count, expected, file: file, line: line)
+    }
+
+    func testHistoryBadgeCountsDistinctTransactionsBeyondFirstPage() async throws {
+        let (store, folder) = try await fixture()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try await store.pool.write { db in
+            try Self.insert(db, id: "multi-asset")
+            try ActivityRecord(id: "token-leg", walletID: "first", accountID: "first:ethereum", networkID: "ethereum",
+                               transactionID: "multi-asset", assetID: "ethereum:token", direction: "incoming",
+                               amountAtomic: "2", counterparty: "public-sender", timestamp: 1).insert(db)
+            try Self.insert(db, id: "other-network", network: "aptos", hash: "multi-asset")
+            for index in 0..<3 { try Self.insert(db, id: "other-\(index)", wallet: "second") }
+            for index in 0..<55 { try Self.insert(db, id: "settled-\(index)", state: "confirmed") }
+            try db.execute(sql: "UPDATE activity SET timestamp=2 WHERE id LIKE 'settled-%'")
+        }
+        let page = try await store.chainHistory(walletID: "first", currency: "USD", limit: 50, homeScope: true)
+        XCTAssertEqual(page.count, 50)
+        XCTAssertTrue(page.allSatisfy { $0.entry.state == "confirmed" })
+        try await assertHistoryCount(store, 2)
+        try await assertHistoryCount(store, 3, wallet: "second")
+    }
+
+    func testHistoryBadgeObservesInsertAccountSwitchAndConfirmation() async throws {
+        let (store, folder) = try await fixture()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let original = "m/44'/60'/0'/0/0", added = "m/44'/60'/0'/0/1"
+        try await store.pool.write { db in
+            try db.execute(sql: "UPDATE networks SET family='evm' WHERE id='ethereum'")
+            try db.execute(sql: "UPDATE walletAccounts SET derivationPath=? WHERE id='first:ethereum'", arguments: [original])
+            try AccountRecord(id: "child", walletID: "first", networkID: "ethereum", address: "public-child",
+                              derivationPath: added, accountIndex: 1).insert(db)
+            try Self.insert(db, id: "child-one", accountID: "child")
+            try Self.insert(db, id: "child-two", accountID: "child")
+        }
+        let initial = expectation(description: "Original account is empty")
+        let inserted = expectation(description: "First pending transaction")
+        let switched = expectation(description: "Child account's two pending transactions")
+        let settled = expectation(description: "Child transactions confirmed")
+        let observer = Task {
+            var updates = store.observeHomePendingTransactionCount(walletID: "first").makeAsyncIterator()
+            do {
+                for (expected, received) in [(0, initial), (1, inserted), (2, switched), (0, settled)] {
+                    let count = try await updates.next()
+                    XCTAssertEqual(count, expected)
+                    received.fulfill()
+                }
+            } catch { XCTFail("History badge observation failed: \(error)") }
+        }
+        defer { observer.cancel() }
+        await fulfillment(of: [initial], timeout: 5)
+        try await store.pool.write { try Self.insert($0, id: "original") }
+        await fulfillment(of: [inserted], timeout: 5)
+        try await store.setHomeAccount(walletID: "first", selection: .init(family: .evm, path: added))
+        await fulfillment(of: [switched], timeout: 5)
+        try await store.pool.write { try $0.execute(sql: "UPDATE transactions SET state='confirmed' WHERE id IN ('child-one','child-two')") }
+        await fulfillment(of: [settled], timeout: 5)
+        try await store.setHomeAccount(walletID: "first", selection: nil)
+        try await assertHistoryCount(store, 1)
     }
 
     func testCountsDistinctTransactionsPerAssetWalletAndChain() async throws {
@@ -71,6 +142,7 @@ import GRDB
             try await store.pool.write { try Self.insert($0, id: outcome) }
             let before = try await count(store)
             XCTAssertEqual(before, 1)
+            try await assertHistoryCount(store, 1)
             try await store.pool.write { db in
                 if ["confirmed", "failed"].contains(outcome) {
                     try db.execute(sql: "UPDATE transactions SET state=? WHERE id=?", arguments: [outcome, outcome])
@@ -80,6 +152,7 @@ import GRDB
             }
             let after = try await count(store)
             XCTAssertEqual(after, 0, outcome)
+            try await assertHistoryCount(store, 0)
         }
     }
 
@@ -93,14 +166,17 @@ import GRDB
             }
             let historyOnly = try await count(store, network: network)
             XCTAssertEqual(historyOnly, 1)
+            try await assertHistoryCount(store, 1)
             try await store.pool.write { try Self.insert($0, id: network, network: network) }
             let decoded = try await count(store, network: network)
             XCTAssertEqual(decoded, 1)
+            try await assertHistoryCount(store, 1)
             try await store.pool.write { db in
                 try db.execute(sql: "UPDATE bitcoinHistory SET height=100 WHERE txid=?", arguments: [network])
             }
             let confirmed = try await count(store, network: network)
             XCTAssertEqual(confirmed, 0, "Confirmed history beats stale pending activity")
+            try await assertHistoryCount(store, 0)
         }
     }
 
@@ -113,6 +189,7 @@ import GRDB
         }
         let pending = try await count(store, network: "solana")
         XCTAssertEqual(pending, 1)
+        try await assertHistoryCount(store, 1)
     }
 
     func testPortfolioObserverPublishesConfirmationWithoutBalanceChange() async throws {

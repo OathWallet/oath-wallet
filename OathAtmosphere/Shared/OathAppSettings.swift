@@ -7,9 +7,11 @@ import OathBrowser
 /// One committed SQL settings stream drives the entire scene, including the
 /// locked state. Changing a preference never recreates navigation or sheets.
 @MainActor @Observable final class OathAppSettings {
+    private static let pendingTransactionBadgeKey = "history.showPendingTransactionBadge"
     let browserEnabled: Bool
     private(set) var preference: OathLanguagePreference = .system
     private(set) var appearance: AppAppearance = .system
+    private(set) var showsPendingTransactionBadge = true
     private(set) var browserSearchEngine: BrowserSearchEngine = .duckDuckGo
     private(set) var browserShowsRecentSites = true
     private(set) var currency = Locale.autoupdatingCurrent.currency?.identifier ?? "USD"
@@ -59,6 +61,9 @@ import OathBrowser
 
     func select(_ value: OathLanguagePreference) { save("language", value: value.rawValue) }
     func selectAppearance(_ value: AppAppearance) { save(AppAppearance.settingKey, value: value.rawValue) }
+    func setPendingTransactionBadgeEnabled(_ enabled: Bool) {
+        save(Self.pendingTransactionBadgeKey, value: String(enabled))
+    }
     func selectBrowserSearchEngine(_ value: BrowserSearchEngine) { save("browser.searchEngine", value: value.rawValue) }
     func setBrowserShowsRecentSites(_ value: Bool) { save("browser.showRecentSites", value: value ? "true" : "false") }
     func selectCurrency(_ code: String) async throws {
@@ -124,6 +129,7 @@ import OathBrowser
     private func apply(_ values: [String: String]) {
         preference = values["language"].flatMap(OathLanguagePreference.init(rawValue:)) ?? .system
         appearance = AppAppearance(settings: values)
+        showsPendingTransactionBadge = values[Self.pendingTransactionBadgeKey] != "false"
         browserSearchEngine = values["browser.searchEngine"].flatMap(BrowserSearchEngine.init(rawValue:)) ?? .duckDuckGo
         browserShowsRecentSites = values["browser.showRecentSites"] != "false"
         currency = values["currency"] ?? Locale.autoupdatingCurrent.currency?.identifier ?? "USD"

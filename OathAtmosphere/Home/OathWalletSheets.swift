@@ -318,7 +318,7 @@ struct OathWalletSettingsScreen: View {
     }
 
     private enum Route: Hashable {
-        case settings, wallets, languages, appearance, wallet(String), customize(String), backupPassword(String), hiddenAssets(String), manageTokens(String)
+        case settings, wallets, languages, preferences, wallet(String), customize(String), backupPassword(String), hiddenAssets(String), manageTokens(String)
         case importWallet, restoreWallet, restorePassword, chooseImportChain, importPrivateKey(OathPrivateKeyChoice)
         case recoveryWarning(String), recoveryPasscode(String), recoveryWords(String)
         case privateKeyTypes(String), privateKeyAddresses(String)
@@ -343,7 +343,7 @@ struct OathWalletSettingsScreen: View {
             case .importPrivateKey: .importPrivateKey
             case .restoreWallet, .restorePassword: .restoreICloud
             case .languages: .language
-            case .appearance: .appearance
+            case .preferences: .preferences
             case .accountChains: .chooseChain
             case .accounts(_, let family): family.accountsTitleKey
             case .wallet: .walletDetails
@@ -917,6 +917,8 @@ struct OathWalletSettingsScreen: View {
                 OathHelpCenterPage()
             } else if destination == .appIcon {
                 OathAppIconPage()
+                    .toolbarBackground(Color.clear, for: .navigationBar)
+                    .toolbarColorScheme(.dark, for: .navigationBar)
             } else if destination == .security {
                 OathSecurityPage(session: session, model: security, onLockDelay: { path.append(.securityDelay) })
             } else if destination == .securityDelay {
@@ -1064,9 +1066,9 @@ struct OathWalletSettingsScreen: View {
         }
         // Configure the native Back item; never replace it with a custom button
         // (which would disable the system's interactive back gesture).
-        .oathNativeLocalization(navigationTint: destination == .appIcon ? .white : .label,
-            onArtwork: destination == .appIcon,
-            navigationBackground: destination == .appIcon ? .hidden : .automatic,
+        .oathNativeLocalization(onArtwork: destination == .appIcon,
+            // A visible, clear bar honors the dark scheme while showing the artwork underneath.
+            navigationBackground: destination == .appIcon ? .visible : .automatic,
             navigationMaterial: destination == .appIcon ? nil : .regular)
         // Keep this destination dark from its first frame without changing the
         // enclosing presentation, saved appearance, or adjacent settings pages.
@@ -1093,7 +1095,7 @@ struct OathWalletSettingsScreen: View {
                 if cloudRestore.selected != nil { path.append(.restorePassword) }
             }
             .onAppear { if session.isUnlocked { cloudRestore.start() } }
-        case .appearance: appearanceContent
+        case .preferences: preferencesContent
         case .browser:
             VStack(spacing: 0) {
                 settingsButton(.browserSearchEngine, icon: "magnifyingglass", value: settings.browserSearchEngine.name) {
@@ -1297,8 +1299,8 @@ struct OathWalletSettingsScreen: View {
             }
             settingsButton(.language, icon: "globe", value: settings.language.nativeName) { path.append(.languages) }
                 .accessibilityIdentifier("settings.language")
-            settingsButton(.appearance, icon: "circle.lefthalf.filled", value: strings.text(settings.appearance.title)) {
-                path.append(.appearance)
+            settingsButton(.preferences, icon: "slider.horizontal.3", value: strings.text(settings.appearance.title)) {
+                path.append(.preferences)
             }
             .accessibilityIdentifier("settings.appearance")
             Toggle(isOn: Binding(get: { settings.hapticFeedbackEnabled }, set: settings.selectHapticFeedback)) {
@@ -1347,7 +1349,7 @@ struct OathWalletSettingsScreen: View {
         .accessibilityIdentifier("settings.list")
     }
 
-    private var appearanceContent: some View {
+    private var preferencesContent: some View {
         VStack(spacing: 0) {
             ForEach([AppAppearance.light, .dark, .system], id: \.self) { choice in
                 OathButton(feedback: .selection) { settings.selectAppearance(choice) } label: {
@@ -1361,6 +1363,21 @@ struct OathWalletSettingsScreen: View {
             OathSettingsSectionRule()
             settingsButton(.appIcon, icon: "app", value: settings.appIcon.map { strings.text($0.titleKey) }) { path.append(.appIcon) }
                 .accessibilityIdentifier("settings.appIcon")
+            OathSettingsSectionRule()
+            Text(strings.text(.tabBar))
+                .oathFont(.subheadline, weight: .semibold)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20).padding(.vertical, 10)
+                .accessibilityAddTraits(.isHeader)
+            Toggle(isOn: Binding(get: { settings.showsPendingTransactionBadge }, set: settings.setPendingTransactionBadgeEnabled)) {
+                OathSettingsRow(title: strings.text(.showPendingTransactionCount), icon: "number.circle", accessory: .none,
+                                subtitle: strings.format(.pendingTransactionCountDetail, strings.text(.historyTab)),
+                                subtitleLineLimit: nil)
+            }
+            .oathSwitchStyle()
+            .padding(.trailing, 20)
+            .accessibilityIdentifier("settings.pendingTransactionBadge")
         }
     }
 

@@ -1,6 +1,6 @@
 # OathNativeRefresh
 
-Current release: [5.1.1 (111)](../../releases/5.1.1.md).
+Current release: [5.1.2 (112)](../../releases/5.1.2.md).
 
 iOS 17+ native SwiftUI `List` with wallet-band and native refresh-control styles, exposed
 through the existing `NativeRefreshScroll` API. Native reusable cells keep both

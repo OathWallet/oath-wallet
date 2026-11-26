@@ -98,7 +98,8 @@ struct OathWalletSidebar: View {
                     }
                 }
             }
-            .oathNativeLocalization()
+            .oathNativeLocalization(navigationMaterial: nil)
+            .modifier(OathNativeAppBarEdge())
         }
         .accessibilityIdentifier("wallet.sidebar")
         .sheet(item: $accountDetails) { destination in

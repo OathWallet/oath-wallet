@@ -58,6 +58,8 @@ struct OathHomeScreen: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.scenePhase) private var scenePhase
     @State private var assetPath: [OathAssetRoute] = []
+    @State private var addressCopyTask: Task<Void, Never>?
+    @State private var copiedAsset: OathHomeCopiedAsset?
     @State private var showsAppSettings = false
     @State private var scanError: OathRecoveryScanError?
     @State private var pendingScanError: OathRecoveryScanError?
@@ -65,6 +67,7 @@ struct OathHomeScreen: View {
     @State private var searchScope: OathAssetSearchScope = .all
     @State private var historyQuery = ""
     @State private var historyFilters = OathHistoryFilterSelection()
+    @State private var historyBadge: (scope: String, count: Int)?
     @State private var toolbarBalance = OathHomeToolbarBalanceState()
     private var assetFilters: PortfolioFilter {
         portfolioPresentation.filter.adjusted(for: assetFilterCurrency)
@@ -131,6 +134,10 @@ struct OathHomeScreen: View {
         selectedTab == .wallet && assetPath.isEmpty && !showsAppSettings && !sidebarRemovalActive &&
         sheet == nil && !sidebar.isVisible && !showsScanner && !OathWalletConnectService.shared.presentationOpen &&
         profile?.id.uuidString == portfolioPresentation.walletID
+    }
+
+    private var addressCopyScope: String? {
+        balanceHistoryVisible && lockCoverHidden ? accountScopeIdentity : nil
     }
 
     private var canPresentVaultImport: Bool {
@@ -527,12 +534,47 @@ struct OathHomeScreen: View {
     private var tabs: some View {
         nativeTabs
             .tint(Color(uiColor: OathTabBarStyle.selectedColor))
+            .task(id: historyBadgeScope) { await observeHistoryBadge() }
             .onChange(of: selectedTab) { previous, current in
                 if previous == .browser, current != .browser { browser?.leaveBrowser() }
             }
             .onChange(of: session.displayedProfile?.id) { browser?.walletChanged() }
             .onChange(of: session.selectedHomeAccount) { browser?.walletChanged() }
             .onChange(of: session.isUnlocked) { if !session.isUnlocked { browser?.locked() } }
+    }
+
+    private var historyBadgeScope: String? {
+        guard settings.loaded, settings.showsPendingTransactionBadge,
+              profile != nil, session.isUnlocked, !session.changingWallet, !session.resetting,
+              scenePhase != .background else { return nil }
+        return accountScopeIdentity
+    }
+
+    private var pendingHistoryCount: Int {
+        guard let historyBadge, historyBadge.scope == historyBadgeScope else { return 0 }
+        return historyBadge.count
+    }
+
+    private func observeHistoryBadge() async {
+        guard !Task.isCancelled else { return }
+        guard let scope = historyBadgeScope, let walletID = profile?.id else {
+            historyBadge = nil
+            return
+        }
+        await OathDiagnostics.$operationID.withValue(UUID()) {
+            do {
+                let db = try await session.vault.database()
+                try Task.checkCancellation()
+                for try await count in db.observeHomePendingTransactionCount(walletID: walletID.uuidString) {
+                    guard !Task.isCancelled, historyBadgeScope == scope else { return }
+                    historyBadge = (scope, count)
+                }
+            } catch {
+                guard !Task.isCancelled, !(error is CancellationError), historyBadgeScope == scope else { return }
+                historyBadge = nil
+                OathDiagnostics.record(error, component: "history", operation: "observe_pending_transaction_count")
+            }
+        }
     }
 
     private func browserNavigation(_ controller: OathBrowserController) -> some View {
@@ -552,6 +594,7 @@ struct OathHomeScreen: View {
                     tabLabel(.historyTab, symbol: "clock.arrow.circlepath")
                         .environment(\.symbolVariants, .none)
                 }
+                .badge(pendingHistoryCount)
                 .accessibilityLabel(strings.text(.historyTab))
                 if let browser {
                     Tab(value: .browser) { browserNavigation(browser) } label: {
@@ -575,6 +618,7 @@ struct OathHomeScreen: View {
                     Label(strings.text(.historyTab), systemImage: "clock.arrow.circlepath")
                         .environment(\.symbolVariants, .none)
                 }.tag(OathHomeTab.history)
+                .badge(pendingHistoryCount)
                 if let browser {
                     browserNavigation(browser).tabItem {
                         Label(strings.text(.browserTitle), systemImage: "safari")
@@ -621,6 +665,9 @@ struct OathHomeScreen: View {
         }
         .walletRefreshNavigation()
         .tint(nil)
+        .overlay(alignment: .top) { OathHomeAddressCopyBanner(asset: $copiedAsset) }
+        .onChange(of: addressCopyScope) { clearAddressCopy() }
+        .onDisappear { clearAddressCopy() }
     }
 
     private var historyNavigation: some View {
@@ -1071,9 +1118,55 @@ struct OathHomeScreen: View {
         .buttonStyle(OathSettingsRowButtonStyle())
         .accessibilityIdentifier(item.reference == "native" ? "home.network.\(item.networkID)" : "home.token.\(item.assetID)")
         .oathUntrackedPriceAction(enabled: !searching && presentation.unitPrice == nil) { sheet = .priceUntracked }
+        .homeCopyAddressAction(enabled: !searching, label: strings.text(.copyAddress)) {
+            copyReceiveAddress(for: item.id)
+        }
         .frame(maxWidth: searching ? .infinity : 700)
         .frame(maxWidth: .infinity)
         .background(Color.clear)
+    }
+
+    private func copyReceiveAddress(for holdingID: String) {
+        guard let scope = addressCopyScope, let snapshot = session.portfolio,
+              snapshot.wallet.id == session.displayedProfile?.id.uuidString,
+              let holding = snapshot.holdings.first(where: { $0.id == holdingID }),
+              let chain = OathImportChain(rawValue: holding.networkID) else { return }
+        let walletID = snapshot.wallet.id
+        let network = snapshot.networks.first { $0.id == holding.networkID }
+        let confirmation = OathHomeCopiedAsset(holding: holding, networkName: network?.name ?? chain.name,
+                                              networkLogo: network?.logo ?? chain.logoAsset)
+        let vault = session.vault
+        addressCopyTask?.cancel()
+        addressCopyTask = Task { @MainActor in
+            await OathDiagnostics.$chain.withValue(chain.id) {
+                await OathDiagnostics.$operationID.withValue(UUID()) {
+                    do {
+                        let database = try await vault.database()
+                        let address = try await OathReceivePreparation.copyPayload(
+                            for: holding, walletID: walletID, database: database,
+                            prepareBitcoin: { try await vault.prepareBitcoin(accountID: holding.accountID) },
+                            prepareSolana: { try await vault.solanaReceiveState(accountID: holding.accountID) })
+                        try Task.checkCancellation()
+                        guard addressCopyScope == scope, session.displayedProfile?.id.uuidString == walletID else { return }
+                        OathClipboard.copy(address)
+                        copiedAsset = confirmation
+                    } catch is CancellationError {
+                        // Another press or leaving Home supersedes the request.
+                    } catch {
+                        guard !Task.isCancelled, addressCopyScope == scope else { return }
+                        OathDiagnostics.record(error, component: "receive", operation: "copy_home_address")
+                        copiedAsset = nil
+                        walletActionFailed = true
+                    }
+                }
+            }
+        }
+    }
+
+    private func clearAddressCopy() {
+        addressCopyTask?.cancel()
+        addressCopyTask = nil
+        copiedAsset = nil
     }
 }
 

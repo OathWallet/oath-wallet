@@ -1,6 +1,6 @@
 # OathDatabase
 
-Current release: [5.1.1 (111) verification record](../../releases/5.1.1.md). Historical checks below describe their original scope; they are not an independent audit of this release.
+Current release: [5.1.2 (112) verification record](../../releases/5.1.2.md). Historical checks below describe their original scope; they are not an independent audit of this release.
 
 
 Local application data uses SQLite through GRDB 7.11.1. The app owns one `DatabasePool` per file, opened by `OathDataEnvironment`. Views receive committed, immutable snapshots; they do not read provider responses or persist their own copies of balances/settings.

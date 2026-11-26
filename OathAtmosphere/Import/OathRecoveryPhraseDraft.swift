@@ -21,20 +21,21 @@ enum OathRecoveryFormat: String, Hashable {
         }
     }
     private(set) var preferredFormat: OathRecoveryFormat?
-    var electrumKind: ElectrumSeedKind? { ElectrumMnemonic.kind(text) }
+    var importText: String { OathMnemonicValidator.canonicalInput(text) }
+    var electrumKind: ElectrumSeedKind? { ElectrumMnemonic.kind(importText) }
 
     var matchingFormats: [OathRecoveryFormat] {
         guard !inputRejected, !isComposing, let validator else { return [] }
         var formats: [OathRecoveryFormat] = []
         // Keep the existing defaults. Recognition identifies candidates; it cannot tell which wallet the user intended.
-        if Aezeed.recognizes(text) { formats.append(.aezeed) }
+        if Aezeed.recognizes(importText) { formats.append(.aezeed) }
         if validator.verifiedPhrase(text) != nil { formats.append(.bip39) }
         if electrumKind != nil { formats.append(.electrum) }
         return formats
     }
 
     func requiresExplicitChoice(in formats: [OathRecoveryFormat]) -> Bool {
-        formats == [.electrum] && !ElectrumMnemonic.recognizesScannedPhrase(text)
+        formats == [.electrum] && !ElectrumMnemonic.recognizesScannedPhrase(importText)
     }
 
     func selectedFormat(in formats: [OathRecoveryFormat]) -> OathRecoveryFormat? {
@@ -101,7 +102,9 @@ enum OathRecoveryFormat: String, Hashable {
     /// QR input accepts the same standard as typed/pasted input, never a URL,
     /// an address, an arbitrary JSON object, or an unchecked phrase.
     func receiveScan(_ payload: String) -> Bool {
-        guard Aezeed.recognizes(payload) || ElectrumMnemonic.recognizesScannedPhrase(payload) || validator?.verifiedPhrase(payload) != nil else { return false }
+        guard payload.utf16.count <= OathMnemonicValidator.maximumInputLength else { return false }
+        let canonical = OathMnemonicValidator.canonicalInput(payload)
+        guard Aezeed.recognizes(canonical) || ElectrumMnemonic.recognizesScannedPhrase(canonical) || validator?.verifiedPhrase(payload) != nil else { return false }
         replace(with: payload)
         return true
     }

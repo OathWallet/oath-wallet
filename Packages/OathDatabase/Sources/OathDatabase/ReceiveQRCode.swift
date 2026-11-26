@@ -77,18 +77,21 @@ extension OathDatabase {
         try await receivePresentation(accountID: accountID, address: address).image
     }
 
-    /// One verified payload for the label, clipboard, share sheet and QR. Keep
-    /// the persisted account identity unchanged, including existing raw TON rows.
-    public func receivePresentation(accountID: String, address: String) async throws -> (address: String, image: CGImage) {
+    /// The same verified text is used for an address copy and for the QR.
+    public func receiveAddressPayload(accountID: String, address: String) async throws -> String {
         try Task.checkCancellation()
-        let payload = try await pool.read { db in
-            guard try Self.isSavedReceiveAddress(accountID: accountID, address: address, db: db) else {
+        return try await pool.read { db in
+            guard !address.isEmpty, try Self.isSavedReceiveAddress(accountID: accountID, address: address, db: db) else {
                 throw StoreError.conflictingIdentity
             }
             let network = try String.fetchOne(db, sql: "SELECT networkID FROM walletAccounts WHERE id=?", arguments: [accountID])
             // Non-bounceable wallet funding must work before contract deployment.
             return network == "ton" ? try TonIdentity.friendly(address, bounceable: false) : address
         }
+    }
+
+    public func receivePresentation(accountID: String, address: String) async throws -> (address: String, image: CGImage) {
+        let payload = try await receiveAddressPayload(accountID: accountID, address: address)
         let stored = try await pool.read { db -> Data? in
             guard try Self.isSavedReceiveAddress(accountID: accountID, address: address, db: db) else {
                 throw StoreError.conflictingIdentity

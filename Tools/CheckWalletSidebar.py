@@ -20,10 +20,10 @@ for fragment in ['assetPath.removeAll()', 'historyQuery = ""', 'historyFilters =
     assert fragment in change
 assert 'startsAtAddWallet: true' in home
 assert '.navigate(.support): openURL(OathSupportLinks.help)' in home
-assert 'await session.selectWallet(uuid)' in home
+assert 'await session.selectWalletAccount(uuid, selection: selection)' in home
 assert 'await sidebarBalances.observe(session: session)' in home
 assert '!sidebar.isVisible' in home
-assert '.id(profile?.id)' in home, 'History routes must be scoped to the wallet'
+assert '.id(accountScopeIdentity)' in home, 'History routes must be scoped to the selected wallet and accounts'
 toolbar = (ROOT / "OathAtmosphere/Home/OathHomeHeaderSurface.swift").read_text()
 assert 'OathWalletSidebarButton(accessibilityValue:' in toolbar.split('struct OathHomeToolbar:', 1)[1]
 history_root = home.split('private var historyNavigation:', 1)[1].split('private var searchNavigation:', 1)[0]

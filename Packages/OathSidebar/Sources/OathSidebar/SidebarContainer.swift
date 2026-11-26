@@ -7,8 +7,7 @@ public enum SidebarFeedback {
     case impact(open: Bool)
 }
 
-/// Public UIKit containment keeps both SwiftUI trees mounted. Only their root
-/// transforms change while dragging. Wallet data and routes belong to the app.
+/// Both hosted pages stay mounted and travel on the same sliding surface.
 public struct SidebarContainer<Content: View, Sidebar: View>: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.isEnabled) private var isEnabled
@@ -151,6 +150,7 @@ private struct SidebarControllerBridge: UIViewControllerRepresentable {
     fileprivate var onSettled: (Bool) -> Void = { _ in }
     fileprivate var onChange: (Bool) -> Void = { _ in }
     fileprivate var onDismiss: () -> Void = {}
+    private let slidingSurface = UIView()
     private let contentSurface = UIView()
     private let contentShadow = UIView()
     private let sidebarSurface = UIView()
@@ -159,10 +159,6 @@ private struct SidebarControllerBridge: UIViewControllerRepresentable {
     private var endpointFeedback = SidebarEndpointFeedback()
     private var feedbackDisplayLink: CADisplayLink?
     private var animator: UIViewPropertyAnimator?
-    private var constraints: [NSLayoutConstraint] = []
-    private var sidebarWidth: NSLayoutConstraint!
-    private var sidebarLeading: NSLayoutConstraint!
-    private var sidebarTrailing: NSLayoutConstraint!
     private var covered = false
     private var disposed = false
     private var pan: UIPanGestureRecognizer!
@@ -183,14 +179,11 @@ private struct SidebarControllerBridge: UIViewControllerRepresentable {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
         view.clipsToBounds = true
+        view.addSubview(slidingSurface)
         for surface in [sidebarSurface, contentShadow, contentSurface] {
-            surface.translatesAutoresizingMaskIntoConstraints = false
-            view.addSubview(surface)
+            slidingSurface.addSubview(surface)
         }
-        // The foreground is a full-height rounded screen above the rear plane.
-        // Shadow the empty, opaque rounded surface, never the live wallet tree.
-        // This preserves continuous corners without a mismatched circular path
-        // or a per-frame snapshot / shadow-path rebuild.
+        // Shadow a matching empty surface so the live Home tree needs no snapshot.
         contentSurface.backgroundColor = .systemBackground
         contentSurface.layer.cornerCurve = .continuous
         contentShadow.backgroundColor = .systemBackground
@@ -205,28 +198,12 @@ private struct SidebarControllerBridge: UIViewControllerRepresentable {
         registerForTraitChanges([UITraitUserInterfaceStyle.self, UITraitAccessibilityContrast.self]) {
             (self: Self, _: UITraitCollection) in self.updateShadowAppearance()
         }
-        sidebarWidth = sidebarSurface.widthAnchor.constraint(equalToConstant: 0)
-        sidebarLeading = sidebarSurface.leftAnchor.constraint(equalTo: view.leftAnchor)
-        sidebarTrailing = sidebarSurface.rightAnchor.constraint(equalTo: view.rightAnchor)
-        constraints = [
-            contentSurface.topAnchor.constraint(equalTo: view.topAnchor),
-            contentSurface.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            contentSurface.leftAnchor.constraint(equalTo: view.leftAnchor),
-            contentSurface.rightAnchor.constraint(equalTo: view.rightAnchor),
-            contentShadow.topAnchor.constraint(equalTo: view.topAnchor),
-            contentShadow.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            contentShadow.leftAnchor.constraint(equalTo: view.leftAnchor),
-            contentShadow.rightAnchor.constraint(equalTo: view.rightAnchor),
-            sidebarSurface.topAnchor.constraint(equalTo: view.topAnchor),
-            sidebarSurface.bottomAnchor.constraint(equalTo: view.bottomAnchor), sidebarWidth
-        ]
-        NSLayoutConstraint.activate(constraints)
         embed(sidebar, in: sidebarSurface)
         embed(content, in: contentSurface)
         shield.translatesAutoresizingMaskIntoConstraints = false
-        // The reference recedes toward the canvas (white in light appearance,
-        // dark in dark appearance), rather than placing a black scrim on it.
-        shield.backgroundColor = .systemBackground
+        shield.backgroundColor = UIColor { traits in
+            traits.userInterfaceStyle == .dark ? UIColor(white: 0.07, alpha: 1) : .white
+        }
         shield.addTarget(self, action: #selector(close), for: .touchUpInside)
         shield.accessibilityIdentifier = "sidebar.dismiss"
         contentSurface.addSubview(shield)
@@ -268,16 +245,32 @@ private struct SidebarControllerBridge: UIViewControllerRepresentable {
     public override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         guard view.bounds.size != lastSize || rightToLeft != lastDirection else { return }
-        let resume = animator != nil || motion.isDragging
-        stopAtCurrentPosition()
-        if motion.isDragging { pan.isEnabled = false; pan.isEnabled = true }
+        let travelChanged = view.bounds.width != lastSize.width || rightToLeft != lastDirection
+        let resumeAnimation = travelChanged && animator != nil
+        if resumeAnimation { stopAtCurrentPosition() }
         lastSize = view.bounds.size; lastDirection = rightToLeft
         motion.resize(windowWidth: view.bounds.width, rightToLeft: rightToLeft)
-        sidebarWidth.constant = motion.width
-        sidebarLeading.isActive = !rightToLeft
-        sidebarTrailing.isActive = rightToLeft
+        let frames = motion.frames(in: view.bounds)
+        // Bounds and center describe the resting layout even while the strip
+        // has a transform. Its bounds include the drawer for native hit testing.
+        slidingSurface.bounds = CGRect(origin: .zero, size: frames.strip.size)
+        slidingSurface.center = CGPoint(x: frames.strip.midX, y: frames.strip.midY)
+        sidebarSurface.frame = frames.sidebar
+        contentSurface.frame = frames.content
+        contentShadow.frame = frames.content
+        // The outline stays fixed while the two pages move. Cache it at layout
+        // time so the compositor can draw the shadow from the first moving frame.
+        contentShadow.layer.shadowPath = Path(roundedRect: contentShadow.bounds,
+            cornerRadius: SidebarMotion.exposedCornerRadius, style: .continuous).cgPath
+        // A height-only layout (e.g. keyboard dismissal) can keep playing the
+        // original horizontal animation without touching its model transform.
+        guard travelChanged else { return }
+        if motion.isDragging {
+            motion.beginDrag()
+            pan.setTranslation(.zero, in: view)
+        }
         apply(progress: motion.progress)
-        if resume || wantsOpen { transition(open: wantsOpen, animated: false) }
+        if resumeAnimation { transition(open: wantsOpen, animated: enabled && view.window != nil) }
     }
 
     fileprivate func scheduleUpdate(open: Bool) {
@@ -333,6 +326,7 @@ private struct SidebarControllerBridge: UIViewControllerRepresentable {
     }
 
     private func stopForegroundScrolling(in view: UIView) {
+        guard !view.isHidden else { return }
         if let scroll = view as? UIScrollView {
             let scrollPan = scroll.panGestureRecognizer
             if scrollPan.state == .began || scrollPan.state == .changed {
@@ -340,7 +334,10 @@ private struct SidebarControllerBridge: UIViewControllerRepresentable {
                 scrollPan.isEnabled = true
             }
             if #available(iOS 17.4, *) {
-                scroll.stopScrollingAndZooming()
+                if scroll.isScrollAnimating || scroll.isDecelerating || scroll.isZoomAnimating ||
+                    scroll.isZooming || scroll.isZoomBouncing {
+                    scroll.stopScrollingAndZooming()
+                }
             } else {
                 scroll.setContentOffset(scroll.contentOffset, animated: false)
             }
@@ -400,13 +397,11 @@ private struct SidebarControllerBridge: UIViewControllerRepresentable {
     }
 
     private func apply(progress: Double) {
-        contentSurface.transform = CGAffineTransform(translationX: motion.contentTranslation(at: progress), y: 0)
-        contentShadow.transform = contentSurface.transform
+        slidingSurface.transform = CGAffineTransform(translationX: motion.contentTranslation(at: progress), y: 0)
         contentShadow.alpha = progress
         let scale = reduceMotion ? 1 : motion.sidebarScale(at: progress)
-        // Scale the rendered rear plane, not its UIView geometry. A view
-        // transform changes the hosting controller's safe-area insets and
-        // relays out its SwiftUI content as the drawer moves.
+        // Apply scale only to the rendered sidebar. Its list and navigation
+        // bar keep their normal layout and safe-area insets during the swipe.
         sidebarSurface.layer.sublayerTransform = CATransform3DMakeScale(scale, scale, 1)
         sidebarSurface.alpha = increasedContrast ? 1 : motion.sidebarOpacity(at: progress)
         shield.alpha = motion.contentVeilOpacity(at: progress)
@@ -431,10 +426,13 @@ private struct SidebarControllerBridge: UIViewControllerRepresentable {
     private func stopAtCurrentPosition() {
         stopFeedbackTracking()
         guard let animator else { return }
-        let position = contentSurface.layer.presentation()?.affineTransform().tx ?? contentSurface.transform.tx
-        animator.stopAnimation(true)
+        if let position = slidingSurface.layer.presentation()?.affineTransform().tx, motion.width > 0 {
+            motion.capture(progress: position / (motion.sign * motion.width))
+        }
+        // Before the first rendered frame the model layer already contains the
+        // destination. The saved progress is still the correct starting position.
         self.animator = nil
-        motion.capture(progress: motion.width > 0 ? position / (motion.sign * motion.width) : 0)
+        animator.stopAnimation(true)
         apply(progress: motion.progress)
     }
 
@@ -451,7 +449,7 @@ private struct SidebarControllerBridge: UIViewControllerRepresentable {
     }
 
     @objc private func sampleAnimatedPosition() {
-        guard motion.width > 0, let layer = contentSurface.layer.presentation() else { return }
+        guard motion.width > 0, let layer = slidingSurface.layer.presentation() else { return }
         let progress = layer.affineTransform().tx / (motion.sign * motion.width)
         reportEndpoint(at: progress)
         if endpointFeedback.isOpen == motion.targetOpen { stopFeedbackTracking() }
@@ -476,11 +474,17 @@ private struct SidebarControllerBridge: UIViewControllerRepresentable {
         guard animated, !reduceMotion, abs(motion.progress - (open ? 1 : 0)) > 0.001 else {
             complete(open: open); return
         }
-        // A critically damped UIKit spring settles without the old bounce. Its
-        // initial velocity continues the user's drag instead of stopping first.
-        let timing = UISpringTimingParameters(dampingRatio: 1,
-            initialVelocity: CGVector(dx: motion.springVelocity(velocityX: velocityX, opening: open), dy: 0))
-        let animation = UIViewPropertyAnimator(duration: SidebarMotion.settlingDuration, timingParameters: timing)
+        let velocity = CGVector(dx: motion.springVelocity(velocityX: velocityX, opening: open), dy: 0)
+        let animation: UIViewPropertyAnimator
+        if open {
+            // The recorded reveal travels from 10% to 90% in 0.19 s and
+            // settles over roughly 0.47 s, with no visible overshoot.
+            let spring = UISpringTimingParameters(mass: 1, stiffness: 335, damping: 36.6, initialVelocity: velocity)
+            animation = UIViewPropertyAnimator(duration: 0, timingParameters: spring)
+        } else {
+            let spring = UISpringTimingParameters(dampingRatio: 1, initialVelocity: velocity)
+            animation = UIViewPropertyAnimator(duration: SidebarMotion.settlingDuration, timingParameters: spring)
+        }
         animation.addAnimations { [weak self] in
             self?.apply(progress: open ? 1 : 0)
         }

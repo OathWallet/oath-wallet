@@ -52,6 +52,9 @@ import OathBitcoin
             }
             try check(phrase.phrase == vector.phrase && phrase.aezeed == nil,
                       "QR recognition must preserve words without claiming passphrase authentication")
+            let formatted = vector.phrase.split(separator: " ").enumerated().map { "\($0.offset + 1):\n\($0.element)" }.joined(separator: "\n")
+            guard case .recovery(let cleaned) = parser.parse(formatted) else { throw Failure.assertion("Formatted aezeed scan rejected") }
+            try check(cleaned.phrase == vector.phrase && cleaned.aezeed == nil, "Formatted aezeed scans preserve words and defer authentication")
         }
         let electrumURL = root.appendingPathComponent("Packages/OathBitcoin/Tests/OathBitcoinTests/Fixtures/electrum-reference.json")
         for vector in try JSONDecoder().decode([AezeedVector].self, from: Data(contentsOf: electrumURL)) {
@@ -59,6 +62,9 @@ import OathBitcoin
                 throw Failure.assertion("Electrum QR must enter recovery import")
             }
             try check(phrase.phrase == vector.phrase && phrase.electrum == nil, "Electrum QR must defer seed extension and format choice to import")
+            let formatted = vector.phrase.split(separator: " ").enumerated().map { "[\($0.offset + 1)] \($0.element)" }.joined(separator: ",\n")
+            guard case .recovery(let cleaned) = parser.parse(formatted) else { throw Failure.assertion("Formatted Electrum scan rejected") }
+            try check(cleaned.phrase == vector.phrase && cleaned.electrum == nil, "Formatted Electrum scans preserve words and defer decoding")
         }
         func invalid(_ payload: String) -> Bool { if case .invalid = parser.parse(payload) { return true }; return false }
         // Public scalar 1 and deterministic public Ed25519 test seed, never funded or imported.
@@ -301,12 +307,18 @@ import OathBitcoin
                     let scan = try qr(vector.mnemonic)
                     guard case .recovery(let phrase) = parser.parse(scan) else { throw Failure.assertion("Valid BIP39 QR rejected") }
                     try check(phrase.phrase == OathMnemonicValidator.normalize(vector.mnemonic).split(whereSeparator: \.isWhitespace).joined(separator: " "), "Phrase normalization changed words")
+                    let words = OathMnemonicValidator.words(in: vector.mnemonic)
+                    let formatted = words.enumerated().map { "\($0.offset + 1):\n\($0.element)" }.joined(separator: "\n\n")
+                    guard case .recovery(let cleaned) = parser.parse(formatted) else { throw Failure.assertion("Numbered BIP39 scan rejected") }
+                    try check(cleaned.phrase == words.joined(separator: " "), "Numbered BIP39 scans preserve word order and checksum validation")
                     languages.insert(language); counts.insert(OathMnemonicValidator.words(in: scan).count); vectorCount += 1
                 }
             }
         }
         try check(languages == Set(OathMnemonicValidator.languages) && counts == OathMnemonicValidator.wordCounts, "Mnemonic matrix incomplete")
         try check(invalid(Array(repeating: "abandon", count: 12).joined(separator: " ")), "Invalid checksum accepted")
+        let oversizedRecovery = Array(repeating: "abandon", count: 11).joined(separator: " ") + " about" + String(repeating: ",", count: 4_096)
+        try check(invalid(oversizedRecovery), "Formatting cleanup bypassed the recovery input bound")
         try check(invalid("https://example.com"), "Web URL accepted")
         try check(invalid("ethereum:"), "Empty payment target accepted")
         try check(invalid(String(repeating: "a", count: 8193)), "Oversized QR accepted")

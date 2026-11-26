@@ -1,3 +1,4 @@
+import OathDatabase
 import SwiftUI
 
 struct OathHomeAssetRow: View, Equatable {
@@ -107,11 +108,135 @@ private struct OathUntrackedPriceBounds: PreferenceKey {
 }
 
 extension View {
+    @ViewBuilder func homeCopyAddressAction(enabled: Bool, label: String, action: @escaping () -> Void) -> some View {
+        if enabled {
+            highPriorityGesture(LongPressGesture().onEnded { _ in action() })
+                .accessibilityAction(named: Text(verbatim: label), action)
+        } else { self }
+    }
+
     /// A sibling hit target over the label avoids nesting a button inside the
     /// asset navigation button. Remaining row taps still open asset details.
     @ViewBuilder func oathUntrackedPriceAction(enabled: Bool = true, _ action: @escaping () -> Void) -> some View {
         if enabled { modifier(OathUntrackedPriceAction(action: action)) }
         else { self }
+    }
+}
+
+struct OathHomeCopiedAsset: Identifiable {
+    let id = UUID()
+    let holding: Holding
+    let networkName: String
+    let networkLogo: String
+}
+
+struct OathHomeAddressCopyBanner: View {
+    @Binding var asset: OathHomeCopiedAsset?
+    @State private var isPresented = false
+    @Environment(\.oathLocalizer) private var strings
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .subheadline) private var logoSize = 20.0
+
+    var body: some View {
+        ZStack {
+            if let asset {
+                capsule(for: asset)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(announcement(for: asset))
+                    .accessibilityIdentifier("home.asset.addressCopied")
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 12)
+        .blur(radius: isPresented || reduceMotion ? 0 : 5)
+        .offset(y: isPresented || reduceMotion ? 0 : -46)
+        .opacity(isPresented ? 1 : 0)
+        .accessibilityHidden(!isPresented)
+        .frame(maxHeight: .infinity, alignment: .top)
+        .allowsHitTesting(false)
+        .task(id: asset?.id) {
+            guard let current = asset else {
+                isPresented = false
+                return
+            }
+            withAnimation(reduceMotion ? .easeOut(duration: 0.15) : .spring(response: 0.50, dampingFraction: 0.67)) {
+                isPresented = true
+            }
+            if UIAccessibility.isVoiceOverRunning {
+                UIAccessibility.post(notification: .announcement, argument: announcement(for: current))
+            }
+            // The reference starts moving up 1.12 s after the entrance begins.
+            do { try await Task.sleep(for: .milliseconds(1_120)) }
+            catch { return } // A newer confirmation or leaving Home cancels the timer.
+            guard asset?.id == current.id else { return }
+            let dismissal = reduceMotion ? Animation.easeOut(duration: 0.15) : .timingCurve(0.2, 0.7, 0.3, 1, duration: 0.30)
+            withAnimation(dismissal, completionCriteria: .removed) {
+                isPresented = false
+            } completion: {
+                if asset?.id == current.id, !isPresented { asset = nil }
+            }
+        }
+    }
+
+    private func capsule(for asset: OathHomeCopiedAsset) -> some View {
+        let copied = Text(strings.text(.homeAddressCopied))
+        return ViewThatFits(in: .horizontal) {
+            glassCapsule {
+                HStack(spacing: 6) {
+                    assetAndNetwork(asset)
+                    copied
+                }
+            }
+            .fixedSize(horizontal: true, vertical: false)
+            glassCapsule {
+                VStack(spacing: 3) {
+                    assetAndNetwork(asset)
+                    copied
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private func glassCapsule<Content: View>(@ViewBuilder label: () -> Content) -> some View {
+        let content = label()
+            .font(.subheadline.weight(.semibold))
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 20).padding(.vertical, 8)
+            .frame(minHeight: 50)
+        if #available(iOS 26, *) {
+            content.glassEffect(.regular, in: .capsule)
+        } else {
+            content.background(.regularMaterial, in: Capsule())
+        }
+    }
+
+    private func announcement(for asset: OathHomeCopiedAsset) -> String {
+        strings.format(.sendAssetOnNetwork, asset.holding.symbol, asset.networkName) + ". " + strings.text(.homeAddressCopied)
+    }
+
+    private func assetAndNetwork(_ asset: OathHomeCopiedAsset) -> some View {
+        // Preserve each language's argument order while pairing each label with its artwork.
+        let marker = "\u{FFFC}"
+        let parts = strings.format(.sendAssetOnNetwork, marker + "asset" + marker, marker + "network" + marker)
+            .components(separatedBy: marker)
+        return HStack(spacing: 0) {
+            ForEach(parts.indices, id: \.self) { index in
+                switch parts[index] {
+                case "asset":
+                    HStack(spacing: 4) {
+                        OathSendLogo(holding: asset.holding, size: logoSize, showsChainBadge: false)
+                        Text(verbatim: strings.invariant(asset.holding.symbol))
+                    }
+                case "network":
+                    HStack(spacing: 4) {
+                        OathNetworkLogo(asset: asset.networkLogo, size: logoSize)
+                        Text(verbatim: strings.invariant(asset.networkName))
+                    }
+                case "": EmptyView()
+                default: Text(verbatim: parts[index])
+                }
+            }
+        }
     }
 }
 

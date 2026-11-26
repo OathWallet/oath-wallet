@@ -72,8 +72,39 @@ struct OathMnemonicValidator: Sendable {
         text.decomposedStringWithCompatibilityMapping.lowercased(with: Locale(identifier: "en_US_POSIX"))
     }
 
+    // Formatting is a boundary, never a reason to join letters across a typo.
+    // Keep braces invalid so an arbitrary JSON object cannot become a phrase.
+    private static let separators = CharacterSet.punctuationCharacters.union(.symbols)
+        .subtracting(CharacterSet(charactersIn: "{}"))
+
+    private static func isSeparator(_ character: Character) -> Bool {
+        character.isWhitespace || character.unicodeScalars.allSatisfy { separators.contains($0) }
+    }
+
     static func words(in text: String) -> [String] {
-        normalize(text).split(whereSeparator: \.isWhitespace).map(String.init)
+        normalize(text).split(whereSeparator: isSeparator).filter { token in
+            // Standalone list indices are formatting. Digits attached to letters
+            // remain invalid rather than silently changing a recovery word.
+            !token.unicodeScalars.allSatisfy { CharacterSet.decimalDigits.contains($0) }
+        }.map(String.init)
+    }
+
+    /// Shared input for format recognition and decoding, before a format's own
+    /// normalization/KDF. Never apply formatting cleanup to a seed passphrase.
+    static func canonicalInput(_ text: String) -> String {
+        // Cleanup must not shrink oversized input past the format decoders'
+        // existing input bounds. Leave it intact so they reject it before KDF.
+        guard text.utf16.count <= maximumInputLength else { return text }
+        let normalized = normalize(text)
+        let compact = normalized.filter { !$0.isWhitespace }
+        // Legacy Electrum also accepts hex seeds, including all-numeric seeds.
+        // Their digits are material, not numbered-list labels.
+        if [32, 64].contains(compact.utf8.count), compact.utf8.allSatisfy({
+            (48...57).contains($0) || (97...102).contains($0)
+        }) {
+            return normalized.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        }
+        return words(in: text).joined(separator: " ")
     }
 
     func validate(_ text: String) -> OathMnemonicValidation {
@@ -127,9 +158,9 @@ struct OathMnemonicValidator: Sendable {
               let selected = Range(selection, in: text) else { return nil }
         var start = text.startIndex
         while start < text.endIndex {
-            if text[start].isWhitespace { start = text.index(after: start); continue }
+            if isSeparator(text[start]) { start = text.index(after: start); continue }
             var end = start
-            while end < text.endIndex, !text[end].isWhitespace { end = text.index(after: end) }
+            while end < text.endIndex, !isSeparator(text[end]) { end = text.index(after: end) }
             if selected.lowerBound > start, selected.lowerBound <= end, selected.upperBound <= end {
                 return Completion(range: NSRange(start..<end, in: text),
                                   prefix: normalize(String(text[start..<selected.lowerBound])))

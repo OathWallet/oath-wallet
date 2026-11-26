@@ -67,6 +67,26 @@ struct OathReceiveAsset: Identifiable {
 /// enters the unlocked vault; neither prices nor network discovery gate the QR.
 /// Errors propagate to the receive flow's shared diagnostics boundary.
 enum OathReceivePreparation {
+    static func copyPayload(for holding: Holding, walletID: String, database: OathDatabase,
+                            prepareBitcoin: @Sendable () async throws -> Void,
+                            prepareSolana: @Sendable () async throws -> SolanaReceiveState) async throws -> String {
+        let accountID = holding.accountID
+        let address: String
+        if let network = UTXONetwork(rawValue: holding.networkID) {
+            let prepared = try await bitcoin(database: database, accountID: accountID, walletID: walletID,
+                                             network: network, prepare: prepareBitcoin)
+            address = prepared.address.address
+        } else if holding.networkID == OathImportChain.solana.id {
+            let state = try await solana(database: database, accountID: accountID, walletID: walletID,
+                                         prepare: prepareSolana)
+            address = state.selected.address
+        } else {
+            try await validateAccount(database, accountID: accountID, walletID: walletID, networkID: holding.networkID)
+            address = holding.address
+        }
+        return try await database.receiveAddressPayload(accountID: accountID, address: address)
+    }
+
     static func bitcoin(database: OathDatabase, accountID: String, walletID: String,
                         network: UTXONetwork, type: BitcoinAddressType? = nil,
                         prepare: @Sendable () async throws -> Void) async throws

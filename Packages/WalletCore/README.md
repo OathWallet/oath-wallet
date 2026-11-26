@@ -1,6 +1,6 @@
 # Repaired Wallet Core distribution
 
-Current release: [5.1.1 (111)](../../releases/5.1.1.md).
+Current release: [5.1.2 (112)](../../releases/5.1.2.md).
 
 This source selects Wallet Core 4.8.4 with ten reviewed source repairs.
 The upstream source pin is `d40d24a63d92619167903369308bf0e2f7eb3a59`.

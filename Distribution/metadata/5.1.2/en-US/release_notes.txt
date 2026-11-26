@@ -1,0 +1,7 @@
+Recovery phrase imports now understand numbered lists, extra spaces, line breaks, bullets and punctuation while preserving the usual validity checks.
+
+Press and hold an asset on Home to copy its receive address, with a clear asset and network confirmation.
+
+See pending transaction counts on the History tab and choose whether to display them in Preferences.
+
+This update also refines sidebar motion, toolbar transitions, keypad symbols and localized labels.

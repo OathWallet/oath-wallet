@@ -228,14 +228,17 @@ struct OathScanParser: Sendable {
         // CashAddr and raw TON addresses contain colons but are not payment URLs.
         let direct = OathScanAddress.networks(for: text)
         if !direct.isEmpty { return .recipient(.init(original: text, networks: direct)) }
-        if text.contains(":") { return payment(text, now: now) }
+        // A numbered list such as "1: word" is not a URL scheme. Preserve real
+        // payment/link routing before considering formatted recovery input.
+        if text.contains(":"), URLComponents(string: text)?.scheme != nil { return payment(text, now: now) }
         let words = OathMnemonicValidator.words(in: text)
         if words.count > 1 {
+            let canonical = OathMnemonicValidator.canonicalInput(text)
             // Preserve BIP39 normalization on overlaps. The import page resolves
             // Electrum format selection and seed extensions; scanning never derives secrets.
-            if Aezeed.recognizes(text) { return .recovery(.init(phrase: Aezeed.canonical(text), language: "english")) }
+            if Aezeed.recognizes(canonical) { return .recovery(.init(phrase: Aezeed.canonical(canonical), language: "english")) }
             if let phrase = validator?.verifiedPhrase(text) { return .recovery(phrase) }
-            if ElectrumMnemonic.recognizesScannedPhrase(text) { return .recovery(.init(phrase: text, language: "electrum")) }
+            if ElectrumMnemonic.recognizesScannedPhrase(canonical) { return .recovery(.init(phrase: canonical, language: "electrum")) }
             guard validator != nil else { return .invalid(.unavailableDictionary) }
             return .invalid(.invalidRecovery)
         }

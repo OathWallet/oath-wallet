@@ -1,6 +1,6 @@
 # Bitcoin-family discovery and receive addresses
 
-Current release: [5.1.1 (111) verification record](../../releases/5.1.1.md). Historical checks below describe their original scope; they are not an independent audit of this release.
+Current release: [5.1.2 (112) verification record](../../releases/5.1.2.md). Historical checks below describe their original scope; they are not an independent audit of this release.
 
 
 Bitcoin, Dogecoin, Litecoin and Bitcoin Cash balance/history retrieval is enabled. Native Bitcoin, Bitcoin Cash, Litecoin and Dogecoin sending, signing and broadcast are connected to the app's Send flow. The existing package and database names are retained to avoid breaking Bitcoin integrations.

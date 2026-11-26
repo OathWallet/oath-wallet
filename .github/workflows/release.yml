@@ -3,15 +3,15 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version in the public v<version> tag (for example 5.1.1)'
+        description: 'Version in the public v<version> tag (for example 5.1.2)'
         required: true
         type: string
       build:
-        description: 'Build number in that tag (for example 111)'
+        description: 'Build number in that tag (for example 112)'
         required: true
         type: string
       source_tag:
-        description: 'Optional build tag, e.g. v5.1.1-build111; otherwise v<version>'
+        description: 'Optional build tag, e.g. v5.1.2-build112; otherwise v<version>'
         required: false
         type: string
       verify_only:

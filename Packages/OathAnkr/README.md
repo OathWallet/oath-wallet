@@ -1,6 +1,6 @@
 # Ankr account balances and history
 
-Current release: [5.1.1 (111) verification record](../../releases/5.1.1.md). Historical checks below describe their original scope; they are not an independent audit of this release.
+Current release: [5.1.2 (112) verification record](../../releases/5.1.2.md). Historical checks below describe their original scope; they are not an independent audit of this release.
 
 
 Implemented and checked against public mainnet responses on October 11, 2026.

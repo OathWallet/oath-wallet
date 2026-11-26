@@ -226,7 +226,8 @@ struct OathRecoveryPhraseScreen: View {
         guard canImport, scenePhase == .active else { return }
         isFocused = false
         if draft.isElectrum {
-            let text = draft.text
+            let input = draft.text
+            let text = draft.importText
             decoding = true; decodeError = nil
             decodeTask = Task {
                 await OathDiagnostics.$chain.withValue("bitcoin") {
@@ -237,7 +238,7 @@ struct OathRecoveryPhraseScreen: View {
                                 try ElectrumMnemonic.decode(text)
                             }.value
                             try Task.checkCancellation()
-                            guard draft.text == text, draft.isElectrum else { return }
+                            guard draft.text == input, draft.isElectrum else { return }
                             onImport(.init(phrase: ElectrumMnemonic.recoveryPhrase(text, kind: material.kind), language: "electrum", electrum: material))
                         } catch is CancellationError { /* Leaving the import page cancels delivery. */ }
                         catch let error as ElectrumMnemonicError where error != .derivation {
@@ -254,7 +255,8 @@ struct OathRecoveryPhraseScreen: View {
             return
         }
         if draft.isAezeed {
-            let text = draft.text
+            let input = draft.text
+            let text = draft.importText
             decoding = true; decodeError = nil
             decodeTask = Task {
                 await OathDiagnostics.$chain.withValue("bitcoin") {
@@ -265,7 +267,7 @@ struct OathRecoveryPhraseScreen: View {
                                 try Aezeed.decode(text)
                             }.value
                             try Task.checkCancellation()
-                            guard draft.text == text, draft.isAezeed else { return }
+                            guard draft.text == input, draft.isAezeed else { return }
                             onImport(.init(phrase: Aezeed.canonical(text), language: "english", aezeed: material))
                         } catch is CancellationError {
                             // Navigation or app lock invalidated this local import attempt.

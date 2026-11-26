@@ -22,8 +22,8 @@ platforms; they are not changed by a website release.
 
 ## App releases
 
-For **5.1.1 (111)**, use source tag `v5.1.1-build111`. The
-[release verification record](../releases/5.1.1.md) includes the completed checks
+For **5.1.2 (112)**, use source tag `v5.1.2-build112`. The
+[release verification record](../releases/5.1.2.md) includes the completed checks
 and generic iOS build command. Earlier tags retain their original version and build.
 
 1. Update both project version/build settings, release notes, in-app version history

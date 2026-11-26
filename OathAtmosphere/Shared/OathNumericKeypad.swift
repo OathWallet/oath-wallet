@@ -212,10 +212,11 @@ private final class OathKeypadButton: UIButton {
                 ]))
             }
             config.titlePadding = -1
-        case .delete, .biometrics:
-            config.image = key == .delete
-                ? UIImage(systemName: "delete.left")
-                : UIImage(systemName: biometricSymbol)
+        case .delete:
+            config.image = UIImage(systemName: "delete.left")
+            config.preferredSymbolConfigurationForImage = .init(pointSize: 18, weight: .regular)
+        case .biometrics:
+            config.image = UIImage(systemName: biometricSymbol)
             config.preferredSymbolConfigurationForImage = .init(pointSize: 26, weight: .regular)
         }
         configuration = config

@@ -24,7 +24,7 @@ extension View {
 /// Use the system's fading edge under the native bar. On iOS 27 automatic
 /// has a different appearance; select soft explicitly for the shadow-like fade.
 /// The system owns rendering and accessibility contrast, with no custom overlay.
-private struct OathNativeAppBarEdge: ViewModifier {
+struct OathNativeAppBarEdge: ViewModifier {
     func body(content: Content) -> some View {
         if #available(iOS 26, *) {
             content.scrollEdgeEffectStyle(.soft, for: .top)
@@ -79,12 +79,15 @@ private struct OathHomeToolbarWalletButton: View {
 }
 
 private struct OathHomeToolbarLabel: View {
+    private static let replacementAnimation = Animation.smooth(duration: 0.3)
+
     let walletName: String
     let balance: String
     let concealed: Bool
     let showsBalance: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.displayScale) private var displayScale
+    @State private var labelWidth: CGFloat = 0
 
     var body: some View {
         HStack(spacing: 10) {
@@ -113,9 +116,26 @@ private struct OathHomeToolbarLabel: View {
             .minimumScaleFactor(0.8)
             .truncationMode(.tail)
             .frame(maxWidth: 160, alignment: .leading)
-            .animation(reduceMotion ? .easeOut(duration: 0.12) : .smooth(duration: 0.3), value: showsBalance)
+            .fixedSize(horizontal: true, vertical: false)
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width in
+                withAnimation(labelWidth > 0 && !reduceMotion ? Self.replacementAnimation : nil) {
+                    labelWidth = width
+                }
+            }
+            .modifier(OathHomeToolbarLabelWidth(animatableData: labelWidth))
+            .clipped()
         }
+        .animation(reduceMotion ? .easeOut(duration: 0.12) : Self.replacementAnimation, value: showsBalance)
         .accessibilityHidden(true) // The enclosing sidebar button supplies one private, localized label/value.
+    }
+}
+
+/// Give the system toolbar each intermediate width so its glass follows the label.
+private struct OathHomeToolbarLabelWidth: ViewModifier, Animatable {
+    var animatableData: CGFloat
+
+    func body(content: Content) -> some View {
+        content.frame(width: animatableData > 0 ? animatableData : nil, alignment: .leading)
     }
 }
 

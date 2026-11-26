@@ -1,29 +1,28 @@
-# Oath Wallet 5.1.1
+# Oath Wallet 5.1.2
 
 A native multichain wallet for iPhone and iPad.
 
-**Version 5.1.1 · Build 111** — [source release](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111) for iPhone and iPad, iOS/iPadOS 17 or later. [Get Oath on the App Store](https://apps.apple.com/app/id6780187283).
+**Version 5.1.2 · Build 112** — [source release](https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.2-build112) for iPhone and iPad, iOS/iPadOS 17 or later. [Get Oath on the App Store](https://apps.apple.com/app/id6780187283).
 
-[Is Oath right for me?](https://oathwallet.org/about#wallet-fit) · [Dated wallet compatibility results](https://oathwallet.org/compatibility/2026-11-09)
+[Is Oath right for me?](https://oathwallet.org/about#wallet-fit) · [Dated wallet compatibility results](https://oathwallet.org/compatibility)
 
 [Published security review and remaining scope](https://github.com/OathWallet/oath-wallet-security-review) · [Current release metadata](https://oathwallet.org/release-status.json)
 
-[Release notes and verification](releases/5.1.1.md) · [Website](https://oathwallet.org) ·
+[Release notes and verification](releases/5.1.2.md) · [Website](https://oathwallet.org) ·
 [Security model](Documentation/SecurityModel.md) · [Reporting policy](SECURITY.md) · [Build configuration](Documentation/PublicBuild.md) ·
 [MIT license](LICENSE)
 
-## What's new in 5.1.1 (111)
+## What's new in 5.1.2 (112)
 
-- Add, select, rename and remove EVM and Solana accounts, including custom derivation paths and backup recovery.
-- View native balance history charts with interactive scrubbing and haptic feedback.
-- Browse with tabs, private sessions, favorites, recent sites and configurable search; review website connections and EVM signing requests in the app.
-- Use Plasma, World Chain and Elysium alongside the existing supported networks.
-- Find History and the scanner in Home's toolbar, with account-aware balances, improved scrolling and pull-to-refresh.
-- See funded assets, assets with activity and explicitly added tokens in Home, with consistent hidden-asset valuation.
-- Choose app icons in the new carousel, including Vice Sunset, and use the refreshed welcome and unlock screens.
-- Benefit from improved biometric prompting, import keyboard behavior, market-data recovery and token artwork handling.
+- Import valid recovery phrases from numbered lists, bullets, punctuation, blank lines and extra spaces, including formatted QR input.
+- Press and hold an asset on Home to copy its verified receive address, with an asset and network confirmation.
+- See pending transactions on the History tab, scoped to the selected wallet and accounts, with a preference to hide the count.
+- Enjoy refined sidebar motion, toolbar balance transitions and passcode-keypad symbols.
+- Use localized labels for the new address-copy confirmation and transaction-count preference.
 
-See the [release record](releases/5.1.1.md) for completed validation and scope.
+The account management, balance charts, browser, additional networks and app icons introduced in [5.1.1](releases/5.1.1.md) remain available.
+
+See the [release record](releases/5.1.2.md) for completed validation and scope.
 
 ## Public source boundaries
 

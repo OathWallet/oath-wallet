@@ -8,6 +8,11 @@ import OathBitcoin
 enum CheckReceivePreparation {
     enum Failure: Error { case unexpectedVaultAccess }
 
+    static func copy(_ holding: Holding, walletID: String, database: OathDatabase) async throws -> String {
+        try await OathReceivePreparation.copyPayload(for: holding, walletID: walletID, database: database,
+            prepareBitcoin: { throw Failure.unexpectedVaultAccess }, prepareSolana: { throw Failure.unexpectedVaultAccess })
+    }
+
     static func run() async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("oath-receive-" + UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -39,6 +44,9 @@ enum CheckReceivePreparation {
             print("Host prepared \(id) receive after database reopen: \(start.duration(to: .now))")
             precondition(again.address == selected.address && again.state.preferredType == type,
                          "Reopening must retain the preferred type and unused address without entering the vault")
+            let holding = try CheckReceiveSelection.holding(account: id, network: id, address: original.address, reference: "native")
+            let copied = try await copy(holding, walletID: id, database: reopened)
+            precondition(copied == selected.address.address, "Home must copy Receive's chosen UTXO output address")
             do {
                 _ = try await OathReceivePreparation.bitcoin(database: reopened, accountID: id, walletID: "different-wallet", network: network) {
                     throw Failure.unexpectedVaultAccess
@@ -58,6 +66,11 @@ enum CheckReceivePreparation {
             try await db.prepareSolanaReceive(accountID: "solana", addresses: [phantom, trust], preferredPath: phantom.path)
         }
         precondition(first.selected == phantom, "First preparation uses the actual derived preference, not the old profile")
+        for reference in ["native", "fixture-mint"] {
+            let asset = try CheckReceiveSelection.holding(account: "solana", network: "solana", address: trust.address, reference: reference)
+            let copied = try await copy(asset, walletID: "solana", database: db)
+            precondition(copied == phantom.address, "Both SOL and SPL tokens must copy the selected receiving owner")
+        }
         let changed = try await OathReceivePreparation.solana(database: db, accountID: "solana", walletID: "solana", path: trust.path) {
             throw Failure.unexpectedVaultAccess
         }

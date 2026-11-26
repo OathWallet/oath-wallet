@@ -225,9 +225,9 @@ import Vision
         for chain in chains {
             let wallet = "fee-" + chain.id
             let first = AccountRecord(id: wallet + "-first", walletID: wallet, networkID: chain.id,
-                                      address: "first-public-account", derivationPath: "first-path")
+                                      address: "first-public-" + chain.id, derivationPath: "first-path")
             let sender = AccountRecord(id: wallet + "-sender", walletID: wallet, networkID: chain.id,
-                                       address: "sender-public-account", derivationPath: "sender-path", accountIndex: 1)
+                                       address: "sender-public-" + chain.id, derivationPath: "sender-path", accountIndex: 1)
             try await db.seed(networks: [.init(id: chain.id, name: chain.name, family: "account", symbol: chain.ticker,
                 decimals: 18, derivationPath: "fixture", logo: chain.logoAsset, sortOrder: 0)], assets: [])
             try await db.importWalletIfNeeded(.init(id: wallet, name: "Fixture", kind: "hd", vaultReference: wallet, createdAt: 1),
@@ -242,6 +242,17 @@ import Vision
             precondition(OathReceiveAsset.feeAddress(for: foreign, in: snapshot) == nil)
             let mismatch = try holding(account: sender.id, network: chain == .base ? "ethereum" : "base", address: sender.address, reference: "native")
             precondition(OathReceiveAsset.feeAddress(for: mismatch, in: snapshot) == nil)
+            if chain == .ethereum || chain == .base || chain == .bnb {
+                let copied = try await CheckReceivePreparation.copy(token, walletID: wallet, database: db)
+                precondition(copied == sender.address && copied != token.reference && copied != first.address)
+                let wrongOwner = try holding(account: sender.id, network: chain.id, address: first.address, reference: token.reference)
+                for invalid in [foreign, mismatch, wrongOwner] {
+                    do {
+                        _ = try await CheckReceivePreparation.copy(invalid, walletID: wallet, database: db)
+                        preconditionFailure("Copy must reject a foreign account, network or address")
+                    } catch StoreError.conflictingIdentity { }
+                }
+            }
             try await db.seed(networks: [], assets: [.init(id: chain.id + ":native", networkID: chain.id, reference: "native",
                 name: chain.name, symbol: chain.ticker, decimals: 18)])
             let fundedSnapshot = try await db.snapshot(walletID: wallet, currency: "USD")

@@ -1,6 +1,6 @@
 # OathBalanceChart
 
-Current release: [5.1.1 (111)](../../releases/5.1.1.md).
+Current release: [5.1.2 (112)](../../releases/5.1.2.md).
 
 Native SwiftUI balance ribbon for iOS 17+, with UIKit horizontal pan recognition and Core Haptics. Home places it in the shared summary's detail slot, between the balance and Send/Receive actions. It uses the app's existing period picker, typography and light/dark canvas.
 

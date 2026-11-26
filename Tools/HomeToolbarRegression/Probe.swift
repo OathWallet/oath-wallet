@@ -81,7 +81,7 @@ struct ProbeHome: View {
             .scrollEdgeEffectStyle(.soft, for: .top)
             .toolbar {
                 OathHomeToolbar(walletName: walletName, balance: { "$1,234.56" }, balanceAvailable: true,
-                    concealed: concealed, scrollState: toolbarBalance, actionsEnabled: true, onHistory: {}, onScan: {})
+                    concealed: concealed, scrollState: toolbarBalance, actionsEnabled: true, onScan: {})
             }
             .safeAreaInset(edge: .bottom) {
                 VStack {

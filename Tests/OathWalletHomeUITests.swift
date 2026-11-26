@@ -656,6 +656,47 @@ final class OathWalletHomeUITests: XCTestCase {
         return app
     }
 
+    @MainActor func testAppIconBarStaysDarkInLightPreferences() throws {
+        continueAfterFailure = false
+        let app = launchHomeTabs()
+        defer { app.terminate() }
+        app.buttons["wallet.sidebar.open"].tap()
+        app.buttons["wallet.sidebar.settings"].tap()
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
+        let preferences = app.buttons["settings.appearance"]
+        XCTAssertTrue(preferences.waitForExistence(timeout: 5))
+        preferences.tap()
+        let light = app.buttons["settings.appearance.light"]
+        XCTAssertTrue(light.waitForExistence(timeout: 5))
+        light.tap()
+        let selected = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isSelected == true"), object: light)
+        XCTAssertEqual(XCTWaiter.wait(for: [selected], timeout: 5), .completed)
+        app.buttons["settings.appIcon"].tap()
+
+        func checkTitle(_ name: String, onDarkBackground: Bool) throws {
+            let title = app.navigationBars[name].staticTexts[name]
+            XCTAssertTrue(title.waitForExistence(timeout: 5))
+            let image = try XCTUnwrap(title.screenshot().image.cgImage)
+            var gray = [UInt8](repeating: 0, count: image.width * image.height)
+            try gray.withUnsafeMutableBytes { buffer in
+                let context = try XCTUnwrap(CGContext(data: buffer.baseAddress, width: image.width,
+                    height: image.height, bitsPerComponent: 8, bytesPerRow: image.width,
+                    space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue))
+                context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+            }
+            let dark = gray.filter { $0 < 64 }.count
+            let bright = gray.filter { $0 > 200 }.count
+            XCTAssertGreaterThan(onDarkBackground ? dark : bright, gray.count / 2, name)
+            XCTAssertGreaterThan(onDarkBackground ? bright : dark, gray.count / 25, name)
+        }
+
+        try checkTitle("App Icon", onDarkBackground: true)
+        capture("app-icon-navigation-in-light-mode", app)
+        app.navigationBars["App Icon"].buttons.firstMatch.tap()
+        try checkTitle("Preferences", onDarkBackground: false)
+        XCTAssertTrue(light.isSelected)
+    }
+
     @MainActor func testSidebarResortRequiresTwoActiveWallets() {
         continueAfterFailure = false
         for extraWallets in 0...1 {
@@ -1131,6 +1172,33 @@ final class OathWalletHomeUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["History"].waitForExistence(timeout: 5))
         app.tabBars.buttons["Wallet"].tap()
         openAndClose("Home after leaving History")
+    }
+
+    @MainActor func testHomeAssetLongPressCopiesReceiveAddress() throws {
+        continueAfterFailure = false
+        let app = launchHomeTabs()
+        defer { app.terminate() }
+
+        let row = app.buttons["home.token.bench-0"]
+        XCTAssertTrue(row.waitForExistence(timeout: 15))
+        let rowTop = row.frame.minY
+        let banner = app.descendants(matching: .any).matching(identifier: "home.asset.addressCopied").firstMatch
+        row.press(forDuration: 0.65)
+        // Sample immediately: XCTest's first waitForExistence poll can come after dismissal.
+        let firstCopy = try banner.snapshot()
+        XCTAssertEqual(firstCopy.label, "T0 on Ethereum. Address Copied")
+        XCTAssertLessThan(firstCopy.frame.midY, rowTop)
+        let nextRow = app.buttons["home.token.bench-1"]
+        nextRow.press(forDuration: 0.65)
+        XCTAssertEqual(try banner.snapshot().label, "T1 on Ethereum. Address Copied")
+        XCTAssertTrue(app.buttons["wallet.sidebar.open"].isHittable)
+        XCTAssertTrue(banner.waitForNonExistence(timeout: 3))
+
+        row.swipeLeft()
+        XCTAssertTrue(app.buttons["home.asset.hide"].waitForExistence(timeout: 4))
+        row.swipeRight()
+        row.tap()
+        XCTAssertTrue(app.navigationBars["Asset 00"].buttons["asset.information"].waitForExistence(timeout: 6))
     }
 
     @MainActor func testNativeHomeAndAssetToolbarsAndBackNavigation() {

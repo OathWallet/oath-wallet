@@ -28,11 +28,11 @@ public struct SidebarMotion: Equatable, Sendable {
     private var settledOpen = false
 
     public init() {}
-    // The reference reveals 320 points of a 440-point window. Keep that
+    // The reference reveals 300 points of a 440-point window. Keep that
     // proportion on compact windows, with a useful maximum on larger ones.
-    public static let revealFraction = 8.0 / 11.0
-    public static let settlingDuration = 0.4
-    public static let exposedCornerRadius = 40.0
+    public static let revealFraction = 15.0 / 22.0
+    public static let settlingDuration = 0.2
+    public static let exposedCornerRadius = 54.0
     public var sign: Double { rightToLeft ? -1 : 1 }
     public var contentTranslation: Double { contentTranslation(at: progress) }
     public var sidebarScale: Double { sidebarScale(at: progress) }
@@ -41,11 +41,23 @@ public struct SidebarMotion: Equatable, Sendable {
         sign * width * progress
     }
 
-    // The rear plane stays in place; it approaches at a small scale instead of
-    // sliding alongside the foreground like a navigation push.
-    public func sidebarScale(at progress: Double) -> Double { 0.97 + 0.03 * progress }
-    public func sidebarOpacity(at progress: Double) -> Double { 0.5 + 0.5 * progress }
-    public func contentVeilOpacity(at progress: Double) -> Double { 0.5 * progress }
+    /// Both pages ride in one strip. In its resting layout the drawer sits
+    /// immediately outside the leading edge and Home fills the viewport.
+    func frames(in viewport: CGRect) -> (strip: CGRect, sidebar: CGRect, content: CGRect) {
+        let drawerWidth = CGFloat(width)
+        let strip = CGRect(x: viewport.minX - (rightToLeft ? 0 : drawerWidth), y: viewport.minY,
+                           width: viewport.width + drawerWidth, height: viewport.height)
+        let sidebar = CGRect(x: rightToLeft ? viewport.width : 0, y: 0,
+                             width: drawerWidth, height: viewport.height)
+        let content = CGRect(x: rightToLeft ? 0 : drawerWidth, y: 0,
+                             width: viewport.width, height: viewport.height)
+        return (strip, sidebar, content)
+    }
+
+    public func sidebarScale(at progress: Double) -> Double { 0.92 + 0.08 * progress }
+    public func sidebarOpacity(at progress: Double) -> Double { progress }
+    // The front loses more contrast early in the drag, reaching a 70% veil.
+    public func contentVeilOpacity(at progress: Double) -> Double { progress * (0.9 - 0.2 * progress) }
 
     /// UIKit spring velocity is points/second divided by the remaining travel,
     /// not by the full drawer width. Keep a near-complete flick from producing

@@ -88,7 +88,7 @@ final class SidebarMotionTests: XCTestCase {
             XCTAssertFalse(motion.settle(), "Reversal before opening finished")
 
             motion.beginDrag()
-            motion.drag(translationX: direction * 320)
+            motion.drag(translationX: direction * motion.width)
             motion.endDrag(velocityX: 0, cancelled: false)
             XCTAssertTrue(motion.settle(), "Fully opened by swipe")
             motion.resize(windowWidth: 390, rightToLeft: rtl)
@@ -111,12 +111,12 @@ final class SidebarMotionTests: XCTestCase {
     func testOpeningClosingAndCancelledDrag() {
         var motion = SidebarMotion()
         motion.resize(windowWidth: 440, rightToLeft: false)
-        XCTAssertEqual(motion.width, 320)
+        XCTAssertEqual(motion.width, 300)
         motion.beginDrag(); motion.drag(translationX: 200)
-        XCTAssertEqual(motion.progress, 0.625)
+        XCTAssertEqual(motion.progress, 2.0 / 3.0, accuracy: 0.001)
         XCTAssertTrue(motion.endDrag(velocityX: 0, cancelled: false))
         motion.settle()
-        XCTAssertEqual(motion.contentTranslation, 320)
+        XCTAssertEqual(motion.contentTranslation, 300)
         motion.beginDrag(); motion.drag(translationX: -250)
         XCTAssertTrue(motion.endDrag(velocityX: -900, cancelled: true))
         motion.settle()
@@ -130,10 +130,10 @@ final class SidebarMotionTests: XCTestCase {
     func testRTLResizeAndProgressBounds() {
         var motion = SidebarMotion()
         motion.resize(windowWidth: 440, rightToLeft: true)
-        motion.beginDrag(); motion.drag(translationX: -160)
+        motion.beginDrag(); motion.drag(translationX: -150)
         XCTAssertEqual(motion.progress, 0.5)
-        XCTAssertEqual(motion.contentTranslation, -160)
-        XCTAssertEqual(motion.sidebarScale, 0.985, accuracy: 0.001)
+        XCTAssertEqual(motion.contentTranslation, -150)
+        XCTAssertEqual(motion.sidebarScale, 0.96, accuracy: 0.001)
         motion.resize(windowWidth: 1024, rightToLeft: true)
         XCTAssertEqual(motion.width, 360)
         XCTAssertEqual(motion.contentTranslation, -180)
@@ -156,11 +156,11 @@ final class SidebarMotionTests: XCTestCase {
         motion.resize(windowWidth: 440, rightToLeft: false)
         motion.request(open: true)
         motion.capture(progress: 0.4)
-        motion.beginDrag(); motion.drag(translationX: -64)
+        motion.beginDrag(); motion.drag(translationX: -60)
         XCTAssertEqual(motion.progress, 0.2, accuracy: 0.001)
         XCTAssertFalse(motion.endDrag(velocityX: -500, cancelled: false))
         motion.capture(progress: 0.1)
-        motion.beginDrag(); motion.drag(translationX: 64)
+        motion.beginDrag(); motion.drag(translationX: 60)
         XCTAssertEqual(motion.progress, 0.3, accuracy: 0.001)
         XCTAssertTrue(motion.endDrag(velocityX: 500, cancelled: false))
         motion.settle()
@@ -189,23 +189,39 @@ final class SidebarMotionTests: XCTestCase {
         XCTAssertFalse(begin(10, 200, open: true, transitioning: true))
     }
 
-    func testSidebarRevealsBeneathScreenAndMirrorsInRTL() {
+    func testPagesTravelTogetherAndSidebarMatchesRecordedLandmarks() {
+        let viewport = CGRect(x: 0, y: 0, width: 440, height: 956)
+        // Sidebar icon center in the recording, in viewport points at quarter,
+        // half, three-quarter and full reveal. The Home page stays full size.
+        let samples = [(0.25, 21.0, 128.0), (0.5, 98.0, 121.0),
+                       (0.75, 175.0, 113.0), (1.0, 252.0, 106.0)]
         for rtl in [false, true] {
             var motion = SidebarMotion()
-            motion.resize(windowWidth: 440, rightToLeft: rtl)
-            let sign = rtl ? -1.0 : 1.0
-            for progress in [0.0, 0.25, 0.5, 0.75, 1] {
+            motion.resize(windowWidth: viewport.width, rightToLeft: rtl)
+            let frames = motion.frames(in: viewport)
+            XCTAssertEqual(frames.content.size, viewport.size)
+            XCTAssertEqual(frames.strip.width, viewport.width + 300)
+            for (progress, iconX, iconY) in samples {
                 motion.capture(progress: progress)
-                XCTAssertEqual(motion.contentTranslation, sign * 320 * progress, accuracy: 0.001)
-                XCTAssertEqual(motion.sidebarScale, 0.97 + 0.03 * progress, accuracy: 0.001)
-                XCTAssertEqual(motion.sidebarOpacity(at: progress), 0.5 + 0.5 * progress)
-                XCTAssertEqual(motion.contentVeilOpacity(at: progress), 0.5 * progress)
+                let stripX = frames.strip.minX + motion.contentTranslation
+                let drawer = frames.sidebar.offsetBy(dx: stripX, dy: 0)
+                let home = frames.content.offsetBy(dx: stripX, dy: 0)
+                XCTAssertEqual(rtl ? drawer.minX : drawer.maxX, rtl ? home.maxX : home.minX, accuracy: 0.001)
+                XCTAssertEqual(home.minX, motion.sign * 300 * progress, accuracy: 0.001)
+                XCTAssertEqual(drawer.midX + motion.sign * (252 - drawer.width / 2) * motion.sidebarScale,
+                               rtl ? viewport.width - iconX : iconX, accuracy: 1)
+                XCTAssertEqual(drawer.midY + (106 - drawer.midY) * motion.sidebarScale, iconY, accuracy: 1)
+                XCTAssertEqual(motion.sidebarOpacity(at: progress), progress)
             }
+            XCTAssertEqual(motion.contentVeilOpacity(at: 0.5), 0.4, accuracy: 0.001)
+            XCTAssertEqual(motion.contentVeilOpacity(at: 1), 0.7, accuracy: 0.001)
             motion.reset()
             XCTAssertEqual(motion.contentTranslation, 0)
             motion.resize(windowWidth: 200, rightToLeft: rtl)
-            XCTAssertEqual(motion.width, 200 * 8 / 11, accuracy: 0.001)
-            XCTAssertEqual(motion.sidebarScale, 0.97, accuracy: 0.001)
+            XCTAssertEqual(motion.width, 200 * 15 / 22, accuracy: 0.001)
+            XCTAssertEqual(motion.sidebarScale, 0.92, accuracy: 0.001)
+            XCTAssertEqual(motion.sidebarOpacity(at: 0), 0)
+            XCTAssertEqual(motion.contentVeilOpacity(at: 0), 0)
         }
     }
 
@@ -215,11 +231,11 @@ final class SidebarMotionTests: XCTestCase {
             motion.resize(windowWidth: 440, rightToLeft: rtl)
             motion.capture(progress: 0.25)
             let sign = rtl ? -1.0 : 1.0
-            XCTAssertEqual(motion.springVelocity(velocityX: sign * 480, opening: true), 2)
-            XCTAssertEqual(motion.springVelocity(velocityX: -sign * 400, opening: false), 5)
+            XCTAssertEqual(motion.springVelocity(velocityX: sign * 450, opening: true), 2)
+            XCTAssertEqual(motion.springVelocity(velocityX: -sign * 375, opening: false), 5)
             // A slow drag that hasn't crossed the threshold can settle back
             // against the last finger velocity; the signed velocity is retained.
-            XCTAssertEqual(motion.springVelocity(velocityX: sign * 80, opening: false), -1)
+            XCTAssertEqual(motion.springVelocity(velocityX: sign * 75, opening: false), -1)
             XCTAssertEqual(motion.springVelocity(velocityX: 0, opening: true), 0)
             XCTAssertEqual(motion.springVelocity(velocityX: .infinity, opening: true), 0)
             XCTAssertEqual(motion.springVelocity(velocityX: .nan, opening: false), 0)

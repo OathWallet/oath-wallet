@@ -44,6 +44,8 @@ import XCTest
                 accounts: [.init(id: account, walletID: wallet, networkID: "ton", address: storedAddress, derivationPath: "ton-multisig-v1")])
             // Insertion creates the old persisted QR; the read must upgrade it.
             let presentation = try await db.receivePresentation(accountID: account, address: storedAddress)
+            let clipboard = try await db.receiveAddressPayload(accountID: account, address: storedAddress)
+            XCTAssertEqual(clipboard, presentation.address)
             XCTAssertEqual(presentation.address, friendly)
             XCTAssertEqual(try TonIdentity.raw(presentation.address), raw)
             try decode(presentation.image, matches: friendly)
