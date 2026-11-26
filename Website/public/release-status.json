@@ -22,10 +22,10 @@
   "published_source": {
     "version": "5.1.1",
     "build": 111,
-    "source_commit": null,
+    "source_commit": "87c783cf929c4282ba50daf2cc056f25c6a4d469",
     "source_tag": "v5.1.1-build111",
     "release_url": "https://github.com/OathWallet/oath-wallet/releases/tag/v5.1.1-build111",
-    "published_at": null,
+    "published_at": "2026-11-26T09:22:07Z",
     "checked_on": "2026-11-26",
     "scope": "Oath Wallet 5.1.1, build 111 source release. App Store availability is recorded separately. Dated guides and reviews retain their original evidence scope."
   },
